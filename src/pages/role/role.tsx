@@ -99,7 +99,6 @@ const PermissionsTable = () => {
                 </td>
               </tr>
             )}
-
             {permissions.map((item) => (
               <tr
                 key={item.id}
