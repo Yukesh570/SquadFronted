@@ -8,9 +8,9 @@ import { ThemeProvider } from "./context/themeContext.tsx";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ThemeProvider>
-    <SidebarProvider>
-      <App />
-    </SidebarProvider>
+      <SidebarProvider>
+        <App />
+      </SidebarProvider>
     </ThemeProvider>
   </React.StrictMode>
 );

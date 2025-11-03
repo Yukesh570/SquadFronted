@@ -1,96 +1,81 @@
 import React, { useState } from "react";
-import { LogIn } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { loginApi } from "../../api/loginAPi/login";
+import { LogIn, Eye, EyeOff } from "lucide-react";
+// import { useNavigate } from "react-router-dom"; // No longer needed
+// import { loginApi } from "../../api/loginAPi/login"; // No longer needed
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import { useAuth } from "../../context/AuthContext"; // 1. Import our hook
 
 const Login = () => {
   const [username, setusername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  
+  const { login } = useAuth(); // 2. Get the 'login' function from context
+  // const navigate = useNavigate(); // No longer needed, context handles it
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await loginApi({ username, password });
-      const token = response.token;
-      if (token) {
-        localStorage.setItem("token", token);
-        window.dispatchEvent(new Event("storage"));
-        // alert("Login successful!");
-        navigate("/dashboard");
-      } else {
-        alert("Login failed: No token received.");
-      }
+      // 3. Call the context 'login' function
+      await login({ username, password });
+      // The context will handle saving the token and navigating
     } catch (error) {
       console.log("error", error);
+      alert("Login failed. Please check your username and password."); // Give user feedback
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-secondary  dark:bg-gray-900">
-      <div className="w-full max-w-md p-8 space-y-6 bg-secondary  dark:bg-gray-800 rounded-lg shadow-md">
+    // ... (The rest of your JSX form is 100% the same) ...
+    <div className="flex items-center justify-center min-h-screen bg-secondary dark:bg-gray-900">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
         <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
-          Park Alarm Admin
+           Squad Login
         </h1>
         <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="relative w-full mb-6">
-            <input
-              type="text"
-              name="username"
-              id="username"
-              value={username}
-              onChange={(e) => setusername(e.target.value)}
-              placeholder=" "
-              required
-              className="peer block w-full px-3 pt-5 pb-2 border border-gray-300  rounded-md bg-transparent 
-               text-gray-900 dark:text-white placeholder-transparent focus:outline-none focus:border-primary 
-               focus:ring-2 focus:ring-primary transition-all duration-300"
-            />
-            <label
-              htmlFor="username"
-              className="absolute left-3 top-0 text-gray-900 dark:text-white text-sm transition-all duration-300 
-               peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-gray-400 peer-placeholder-shown:text-base 
-               peer-focus:top-0 peer-focus:text-sm peer-focus:text-primary "
-            >
-              Username
-            </label>
-          </div>
-
-          <div className="relative w-full mb-6">
-            <input
-              type="password"
-              name="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder=" "
-              required
-              className="peer block w-full px-4 pt-5 pb-2 border border-gray-300 rounded-md bg-transparent 
-               text-gray-900 dark:text-white placeholder-transparent focus:outline-none focus:border-primary 
-               focus:ring-2 focus:ring-primary transition-all duration-300"
-            />
-            <label
-              htmlFor="password"
-              className="absolute left-3   top-0 text-gray-900 dark:text-white text-sm transition-all duration-300 
-               peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-gray-400 peer-placeholder-shown:text-base 
-               peer-focus:top-0 peer-focus:text-sm peer-focus:text-primary"
-            >
-              Password
-            </label>
-          </div>
-
-          <button
+          <Input
+            label="Username"
+            type="text"
+            name="username"
+            id="username"
+            value={username}
+            onChange={(e) => setusername(e.target.value)}
+            placeholder="Enter your username"
+            required
+          />
+          <Input
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            name="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
+            required
+            rightIcon={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            }
+          />
+          <Button
             type="submit"
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            variant="primary"
+            className="w-full"
+            leftIcon={<LogIn className="mr-2" size={20} />}
+            disabled={loading}
           >
-            <LogIn className="mr-2" size={20} />
-            Sign in
-          </button>
-
+            {loading ? "Signing in..." : "Sign in"}
+          </Button>
           <p className="text-center text-sm text-gray-900 dark:text-white">
             Don't have an account?{" "}
             <a

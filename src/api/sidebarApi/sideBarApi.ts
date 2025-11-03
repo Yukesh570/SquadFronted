@@ -8,24 +8,15 @@ export interface SideBarApi {
   is_active: boolean;
   icon: string;
 }
-const token = localStorage.getItem("token");
 
 export const getSideBarApi = async (): Promise<SideBarApi[]> => {
-  const response = await api.get("/navItem/", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await api.get("/navItem/");
   return response.data;
 };
 
 export const createSideBarApi = async (
   data: SideBarApi
 ): Promise<SideBarApi> => {
-  const response = await api.post("/navItem/", data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await api.post("/navItem/", data);
   return response.data;
 };

@@ -1,25 +1,21 @@
 import { LogOut, User, Menu, Bell, HelpCircle } from "lucide-react";
 import Button from "../ui/Button";
-import Logo from "../../../src/assets/logos/logo.svg";
+import Logo from "../../../src/assets/logos/logo.png";
 import { Link } from "react-router-dom";
-import { decodeJwtPayload } from "../../helper/decrypt";
-import { useState, useEffect, useContext } from "react";
+import { useContext } from "react"; 
 import sunIcon from "../../assets/logos/contrast.png";
 import moonIcon from "../../assets/logos/moon.png";
 import { ThemeContext } from "../../context/themeContext";
+import { useAuth } from "../../context/AuthContext"; 
+
 interface NavbarProps {
   onToggleSidebar: () => void;
 }
 
 const Navbar = ({ onToggleSidebar }: NavbarProps) => {
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/";
-  };
+  const { payload, logout } = useAuth();
 
-  const { token, payload } = decodeJwtPayload();
-
-  const {theme,toggleTheme}=useContext(ThemeContext);
+  const { theme, toggleTheme } = useContext(ThemeContext);
   
   const ThemeToggle = () => (
     <button
@@ -41,6 +37,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
       </div>
     </button>
   );
+  
   return (
     <header
       className="h-16 flex justify-between items-center px-6 z-10 
@@ -55,7 +52,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
         </Button>
         <div className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
           <Link to="/">
-            <img src={Logo} alt="Logo" className="h-10 sm:h-7 w-auto" />
+            <img src={Logo} alt="Logo" className="h-10 sm:h-20 w-auto" />
           </Link>
         </div>
       </div>
@@ -76,11 +73,14 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
           />
         </Button>
         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-3 transition-colors duration-300" />
-        <Button variant="ghost" onClick={handleLogout}>
+        
+        {/* 4. This button now calls 'logout' from context */}
+        <Button variant="ghost" onClick={logout}>
           <User
             className="mr-1 text-gray-900 dark:text-white transition-colors duration-300"
             size={20}
           />
+          {/* 5. It gets the userType from the context 'payload' */}
           <span className="text-gray-900 dark:text-white transition-colors duration-300">
             {payload?.userType}
           </span>
