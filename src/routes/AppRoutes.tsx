@@ -8,6 +8,9 @@ import NotFound from "../pages/error/notFound";
 import SignUp from "../pages/Auth/signUp";
 import PermissionsTable from "../pages/role/role";
 import { useAuth } from "../context/AuthContext";
+import ChangePassword from "../pages/Auth/ChangePassword";
+// import AllNotifications from "../pages/Notifications/AllNotifications";
+// import Campaign from "../pages/Campaign/Campaign";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -38,6 +41,10 @@ const AppRoutes = () => {
         <Route path="createSidebar" element={<CreateSidebar />} />
         <Route path="role" element={<PermissionsTable />} />
 
+        {/* <Route path="campaign" element={<Campaign />} /> */}
+
+        <Route path="change-password" element={<ChangePassword />} />
+        {/* <Route path="notifications" element={<AllNotifications />} /> */}
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

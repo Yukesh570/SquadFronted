@@ -1,16 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
-  colors: {
-    'sidebar-active-bg': '#E5E7EB', // new hover background
-    'sidebar-active-text': '#1F2937', // new hover text
-  },
+  // 1. We removed the flowbite-react path from here
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-  extend: {
+    extend: {
       colors: {
         'primary': '#4F46E5',        // The main blue/indigo from app buttons
         'primary-dark': '#4338CA',   // A darker shade for hover
@@ -32,5 +29,6 @@ export default {
       transform: ['active'],
     },
   },
+  // 2. We removed the flowbite plugin from here
   plugins: [],
 };

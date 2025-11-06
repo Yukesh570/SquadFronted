@@ -1,14 +1,13 @@
-import { icons, Plus, HelpCircle } from "lucide-react";
+import { icons, Plus, HelpCircle, SquarePlus } from "lucide-react";
 import type { LucideProps } from "lucide-react";
 import React, { useState } from "react";
 import { createSideBarApi } from "../../api/sidebarApi/sideBarApi";
 import { useSidebarContext } from "../../context/sideBarContext";
 import * as Icons from "lucide-react";
 import { createNavUserRelation } from "../../api/navUserRelationApi/navUserRelationApi";
-// --- Import our standard UI components ---
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
-import { ToggleSwitch } from "flowbite-react"; // Use a clean toggle
+import ToggleSwitch from "../../components/ui/ToggleSwitch";
 
 const CreateSidebar = () => {
   const [search, setSearch] = useState("");
@@ -49,7 +48,6 @@ const CreateSidebar = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Specific handler for the new ToggleSwitch
   const handleToggleActive = (isChecked: boolean) => {
     setFormData((prev) => ({ ...prev, is_active: isChecked }));
   };
@@ -80,7 +78,6 @@ const CreateSidebar = () => {
           Create Sidebar Item
         </h2>
 
-        {/* --- REFACTORED FORM --- */}
         <div className="space-y-5">
           <Input
             label="Label"
@@ -109,7 +106,6 @@ const CreateSidebar = () => {
             min={1}
           />
 
-          {/* Icon Picker (This is a custom component, so we style it manually) */}
           <div className="mb-4">
             <label className="block mb-1.5 text-xs font-medium text-text-secondary">
               Icon
@@ -142,20 +138,18 @@ const CreateSidebar = () => {
             checked={formData.is_active}
             label="Active"
             onChange={handleToggleActive}
-            color="indigo" // This will use our 'primary' color
           />
 
           <Button
             variant="primary"
             onClick={handleSubmit}
             className="w-full"
+            leftIcon={<SquarePlus size={20} />}
           >
             Create Sidebar
           </Button>
         </div>
-        {/* --- END OF REFACTORED FORM --- */}
 
-        {/* Icon Modal (This is fine as-is) */}
         {showModal && (
           <div
             className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"

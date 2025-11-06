@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"; // 1. Removed 'useContext'
+import { useEffect, useState } from "react";
 import {
   getNavByUserType,
   type navUserData,
@@ -7,7 +7,8 @@ import {
 import Button from "../../components/ui/Button";
 import Select from "../../components/ui/Select";
 import { toast } from "react-toastify";
-import { useSidebarContext } from "../../context/sideBarContext"; // 2. Import the correct hook
+import { useSidebarContext } from "../../context/sideBarContext";
+import ToggleSwitch from "../../components/ui/ToggleSwitch";
 
 const userTypeOptions = [
   { value: "ADMIN", label: "ADMIN" },
@@ -24,9 +25,7 @@ const PermissionsTable = () => {
   const [permissions, setPermissions] = useState<navUserData[]>([]);
   const [originalPermissions, setOriginalPermissions] = useState<navUserData[]>([]);
   const [selectedUserType, setSelectedUserType] = useState("ADMIN");
-  const [isSaving, setIsSaving] = useState(false); 
-  
-  // 3. Use the hook to get the 'triggerRefresh' function
+  const [isSaving, setIsSaving] = useState(false);
   const { triggerRefresh } = useSidebarContext();
 
   const handleToggle = (id: number, key: PermissionKeys) => {
@@ -41,11 +40,9 @@ const PermissionsTable = () => {
     const fetctSideBar = async () => {
       try {
         const data = await getNavByUserType({ userType: selectedUserType });
-        console.log(`Fetched data for ${selectedUserType}:`, data);
         setPermissions(data);
         setOriginalPermissions(data);
       } catch (error) {
-        console.error(`Error fetching sidebar data for ${selectedUserType}:`, error);
         toast.error(`Failed to load permissions for ${selectedUserType}.`);
         setPermissions([]);
         setOriginalPermissions([]);
@@ -53,7 +50,7 @@ const PermissionsTable = () => {
     };
     fetctSideBar();
   }, [selectedUserType]);
-  
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -76,7 +73,7 @@ const PermissionsTable = () => {
         return;
       }
 
-      const dataToSave = changedPermissions.map(item => ({
+      const dataToSave = changedPermissions.map((item) => ({
         id: item.id!,
         read: item.read,
         write: item.write,
@@ -84,32 +81,24 @@ const PermissionsTable = () => {
         put: item.put,
       }));
 
-      console.log("Sending ONLY changed data to API:", dataToSave);
-      
       await updateNavUserRelationBulk(dataToSave);
-
       toast.success(`Permissions for ${selectedUserType} saved successfully!`);
-      
       setOriginalPermissions(permissions);
-      
-      triggerRefresh(); 
-
+      triggerRefresh();
     } catch (error) {
-      console.error("Error saving permissions:", error);
       toast.error(`Failed to save permissions for ${selectedUserType}.`);
     } finally {
       setIsSaving(false);
     }
   };
 
-    return (
+  return (
     <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-lg">
-      
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
           User Permissions
         </h2>
-        
+
         <div className="w-64">
           <Select
             label="Select User Type"
@@ -157,18 +146,16 @@ const PermissionsTable = () => {
                   <td className="px-6 py-1 font-medium text-gray-900 dark:text-white">
                     {item.navigateId?.label || "No label"}
                   </td>
+
                   {(["read", "write", "delete", "put"] as PermissionKeys[]).map(
                     (key) => (
-                      <td
-                        key={key}
-                        className="px-6 py-2 text-center text-gray-700 dark:text-gray-300"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={item[key]}
-                          onChange={() => handleToggle(item.id!, key)}
-                          className="w-6 h-6 mt-1 accent-blue-500 cursor-pointer rounded"
-                        />
+                      <td key={key} className="px-6 py-2 text-center">
+                        <div className="flex justify-center">
+                          <ToggleSwitch
+                            checked={item[key]}
+                            onChange={() => handleToggle(item.id!, key)}
+                          />
+                        </div>
                       </td>
                     )
                   )}
