@@ -12,11 +12,11 @@ interface SidebarProps {
 const Sidebar = ({ isCollapsed }: SidebarProps) => {
   // const [loading, setLoading] = useState(true);
 
-const { navItems, refreshNavItems } = useContext(NavItemsContext);
+  const { navItems, refreshNavItems } = useContext(NavItemsContext);
 
-useEffect(() => {
-  refreshNavItems();
-}, []);
+  useEffect(() => {
+    refreshNavItems();
+  }, []);
 
   const renderIcon = (iconName: string | undefined) => {
     if (!iconName) return <Icons.HelpCircle className="mr-0" size={20} />;
@@ -26,10 +26,10 @@ useEffect(() => {
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center p-3 my-1 rounded-lg text-text-secondary
-   hover:bg-gray-200 hover:text-gray-900
+   hover:bg-sidebar-active-bg hover:text-sidebar-active-text
    dark:hover:bg-gray-700 dark:hover:text-white
    ${isActive
-      ? "bg-gray-300 dark:bg-gray-800 text-gray-900 dark:text-white font-medium"
+      ? "bg-sidebar-active-bg dark:bg-gray-800 text-sidebar-active-text font-medium"
       : ""
     }
    ${isCollapsed ? "justify-center" : ""}`;

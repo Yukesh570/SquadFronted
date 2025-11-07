@@ -11,12 +11,12 @@ import { useAuth } from "../context/AuthContext";
 import ChangePassword from "../pages/Auth/ChangePassword";
 import { ProtectedRoute } from "./protector";
 // import AllNotifications from "../pages/Notifications/AllNotifications";
-// import Campaign from "../pages/Campaign/Campaign";
+import Campaign from "../pages/Campaign/Campaign";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
-   if (isLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
         <div className="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
@@ -51,7 +51,9 @@ const AppRoutes = () => {
           <Route path="change-password" element={<ChangePassword />} />
         </Route>
 
-        {/* <Route path="campaign" element={<Campaign />} /> */}
+        <Route element={<ProtectedRoute path="campaign" />}>
+          <Route path="campaign" element={<Campaign />} />
+        </Route>
 
         {/* <Route path="notifications" element={<AllNotifications />} /> */}
         <Route path="*" element={<NotFound />} />

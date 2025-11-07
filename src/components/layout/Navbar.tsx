@@ -94,7 +94,6 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
         </div>
       </div>
 
-      {/* --- Right Side --- */}
       <div className="flex items-center space-x-2">
         <div className="text-sm text-gray-900 dark:text-white font-medium hidden md:block">
           {currentTime.toLocaleDateString(undefined, {
