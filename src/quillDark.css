@@ -1,0 +1,71 @@
+/* Default light mode (optional tweak) */
+.quill-container .ql-editor {
+  color: #111827; /* Tailwind gray-900 */
+  background-color: #ffffff;
+}
+
+/* Dark mode override */
+.dark .quill-container .ql-editor {
+  color: #f9fafb; /* Tailwind gray-50 */
+  background-color: #1f2937; /* Tailwind gray-800 */
+}
+
+/* Dark mode toolbar */
+.dark .quill-container .ql-toolbar {
+  background-color: #374151; /* Tailwind gray-700 */
+  border-color: #4b5563; /* Tailwind gray-600 */
+}
+
+.dark .quill-container .ql-toolbar button svg {
+  fill: #d1d5db; /* Tailwind gray-300 */
+}
+
+.dark .quill-container .ql-toolbar button:hover svg {
+  fill: #f9fafb;
+}
+
+.dark .quill-container .ql-editor.ql-blank::before {
+  color: #9ca3af; /* Tailwind gray-400 */
+}
+
+/* Make toolbar dropdown text visible in dark mode */
+.dark .quill-container .ql-picker-label,
+.dark .quill-container .ql-picker-item {
+  color: #e5e7eb !important; /* Tailwind gray-200 */
+}
+
+/* Toolbar buttons and icons */
+.dark .quill-container .ql-stroke {
+  stroke: #d1d5db !important; /* Tailwind gray-300 */
+}
+
+.dark .quill-container .ql-fill {
+  fill: #d1d5db !important;
+}
+
+/* Hover and active states */
+.dark .quill-container .ql-toolbar button:hover .ql-stroke,
+.dark .quill-container .ql-toolbar button.ql-active .ql-stroke {
+  stroke: #f9fafb !important; /* Tailwind gray-50 */
+}
+
+.dark .quill-container .ql-toolbar button:hover .ql-fill,
+.dark .quill-container .ql-toolbar button.ql-active .ql-fill {
+  fill: #f9fafb !important;
+}
+
+/* Dropdown background and border */
+.dark .quill-container .ql-picker-options {
+  background-color: #374151 !important; /* Tailwind gray-700 */
+  border-color: #4b5563 !important; /* Tailwind gray-600 */
+}
+
+/* Toolbar borders */
+.dark .quill-container .ql-toolbar {
+  border-color: #4b5563 !important;
+}
+
+/* Editor border */
+.dark .quill-container .ql-container {
+  border-color: #4b5563 !important;
+}
