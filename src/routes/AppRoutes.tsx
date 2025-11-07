@@ -9,16 +9,17 @@ import SignUp from "../pages/Auth/signUp";
 import PermissionsTable from "../pages/role/role";
 import { useAuth } from "../context/AuthContext";
 import ChangePassword from "../pages/Auth/ChangePassword";
+import { ProtectedRoute } from "./protector";
 // import AllNotifications from "../pages/Notifications/AllNotifications";
 // import Campaign from "../pages/Campaign/Campaign";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) {
+   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-        <div className="w-12 h-12 border-4 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -37,13 +38,21 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="users" element={<UserActivity />} />
-        <Route path="createSidebar" element={<CreateSidebar />} />
-        <Route path="role" element={<PermissionsTable />} />
+        <Route element={<ProtectedRoute path="users" />}>
+          <Route path="users" element={<UserActivity />} />
+        </Route>
+        <Route element={<ProtectedRoute path="createSidebar" />}>
+          <Route path="createSidebar" element={<CreateSidebar />} />
+        </Route>
+        <Route element={<ProtectedRoute path="role" />}>
+          <Route path="role" element={<PermissionsTable />} />
+        </Route>
+        <Route element={<ProtectedRoute path="change-password" />}>
+          <Route path="change-password" element={<ChangePassword />} />
+        </Route>
 
         {/* <Route path="campaign" element={<Campaign />} /> */}
 
-        <Route path="change-password" element={<ChangePassword />} />
         {/* <Route path="notifications" element={<AllNotifications />} /> */}
         <Route path="*" element={<NotFound />} />
       </Route>

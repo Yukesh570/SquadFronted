@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   getNavByUserType,
   type navUserData,
@@ -7,8 +7,8 @@ import {
 import Button from "../../components/ui/Button";
 import Select from "../../components/ui/Select";
 import { toast } from "react-toastify";
-import { useSidebarContext } from "../../context/sideBarContext";
 import ToggleSwitch from "../../components/ui/ToggleSwitch";
+import { NavItemsContext } from "../../context/navItemsContext";
 
 const userTypeOptions = [
   { value: "ADMIN", label: "ADMIN" },
@@ -23,10 +23,12 @@ type PermissionKeys = "read" | "write" | "delete" | "put";
 
 const PermissionsTable = () => {
   const [permissions, setPermissions] = useState<navUserData[]>([]);
-  const [originalPermissions, setOriginalPermissions] = useState<navUserData[]>([]);
+  const [originalPermissions, setOriginalPermissions] = useState<navUserData[]>(
+    []
+  );
   const [selectedUserType, setSelectedUserType] = useState("ADMIN");
   const [isSaving, setIsSaving] = useState(false);
-  const { triggerRefresh } = useSidebarContext();
+  const { refreshNavItems } = useContext(NavItemsContext);
 
   const handleToggle = (id: number, key: PermissionKeys) => {
     setPermissions((prev) =>
@@ -84,7 +86,7 @@ const PermissionsTable = () => {
       await updateNavUserRelationBulk(dataToSave);
       toast.success(`Permissions for ${selectedUserType} saved successfully!`);
       setOriginalPermissions(permissions);
-      triggerRefresh();
+      refreshNavItems();
     } catch (error) {
       toast.error(`Failed to save permissions for ${selectedUserType}.`);
     } finally {
@@ -167,11 +169,7 @@ const PermissionsTable = () => {
       </div>
 
       <div className="mt-6 flex justify-end">
-        <Button
-          variant="primary"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
+        <Button variant="primary" onClick={handleSave} disabled={isSaving}>
           {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>

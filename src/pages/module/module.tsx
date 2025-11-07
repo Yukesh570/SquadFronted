@@ -1,13 +1,13 @@
 import { icons, Plus, HelpCircle, SquarePlus } from "lucide-react";
 import type { LucideProps } from "lucide-react";
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { createSideBarApi } from "../../api/sidebarApi/sideBarApi";
-import { useSidebarContext } from "../../context/sideBarContext";
 import * as Icons from "lucide-react";
 import { createNavUserRelation } from "../../api/navUserRelationApi/navUserRelationApi";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import ToggleSwitch from "../../components/ui/ToggleSwitch";
+import { NavItemsContext } from "../../context/navItemsContext";
 
 const CreateSidebar = () => {
   const [search, setSearch] = useState("");
@@ -30,7 +30,8 @@ const CreateSidebar = () => {
 
   const handleOpenModal = () => setShowModal(true);
   const handleCloseModal = () => setShowModal(false);
-  const { triggerRefresh } = useSidebarContext();
+  const { refreshNavItems } = useContext(NavItemsContext);
+
   const iconed = Icons as unknown as Record<
     string,
     React.ComponentType<{ size?: number; className?: string }>
@@ -56,7 +57,7 @@ const CreateSidebar = () => {
     try {
       const response = await createSideBarApi(formData);
       await createNavUserRelation({ label: formData.label });
-      triggerRefresh();
+      refreshNavItems();
       setFormData({
         label: "",
         url: "",

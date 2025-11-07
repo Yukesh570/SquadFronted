@@ -1,10 +1,9 @@
 import { NavLink } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import React from "react";
 // import tags from "lucide-static/tags.json";
-import { useSidebarContext } from "../../context/sideBarContext";
-import { getUserSideBarApi, type navUserData } from "../../api/navUserRelationApi/navUserRelationApi";
+import { NavItemsContext } from "../../context/navItemsContext";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -12,22 +11,12 @@ interface SidebarProps {
 
 const Sidebar = ({ isCollapsed }: SidebarProps) => {
   // const [loading, setLoading] = useState(true);
-  const [navItems, setNavItems] = useState<navUserData[]>([]);
-  const { refreshSidebar } = useSidebarContext();
 
-  useEffect(() => {
-    const fetctSideBar = async () => {
-      try {
-        const data = await getUserSideBarApi();
-        console.log("Sidebar data fetched:", data);
-        setNavItems(data);
-        // setLoading(false);
-      } catch (error) {
-        console.log("Error during the sidebarcall api", error);
-      }
-    };
-    fetctSideBar();
-  }, [refreshSidebar]);
+const { navItems, refreshNavItems } = useContext(NavItemsContext);
+
+useEffect(() => {
+  refreshNavItems();
+}, []);
 
   const renderIcon = (iconName: string | undefined) => {
     if (!iconName) return <Icons.HelpCircle className="mr-0" size={20} />;
