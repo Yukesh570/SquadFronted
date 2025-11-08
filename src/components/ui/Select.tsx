@@ -12,6 +12,7 @@ interface SelectProps {
   value: string;
   onChange: (value: string) => void;
   options: SelectOption[];
+  placeholder?: string;
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -19,6 +20,7 @@ const Select: React.FC<SelectProps> = ({
   value,
   onChange,
   options,
+  placeholder,
 }) => {
   const selectedOption =
     options.find((option) => option.value === value) || null;
@@ -40,7 +42,7 @@ const Select: React.FC<SelectProps> = ({
             }`}
           >
             <span className="block truncate text-text-primary">
-              {selectedOption ? selectedOption.label : "Select..."}
+              {selectedOption ? selectedOption.label : placeholder}
             </span>
             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
               <ChevronDown

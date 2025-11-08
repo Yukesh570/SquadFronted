@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import '../../quillDark.css'; 
-import { createTemplate } from '../../api/templateApi/templateApi';
 import { toast } from "react-toastify";
+import { createTemplate } from '../../api/campaignApi/campaignApi';
 
 
 function TemplateEditor() {
