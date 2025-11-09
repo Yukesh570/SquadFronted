@@ -1,14 +1,25 @@
 import api from "../axiosInstance";
 import { type SideBarApi } from "../sidebarApi/sideBarApi";
 
-export interface navUserData {
-  id?: number;
+// export interface navUserData {
+//   id?: number;
+//   userType: string;
+//   navigateId: SideBarApi;
+//   read: boolean;
+//   write: boolean;
+//   delete: boolean;
+//   put: boolean;
+// }
+export interface navUserData extends SideBarApi {
   userType: string;
-  navigateId: SideBarApi;
-  read: boolean;
-  write: boolean;
-  delete: boolean;
-  put: boolean;
+  children?: navUserData[];
+  permission?: {
+    NavRelationid: number;
+    read: boolean;
+    write: boolean;
+    delete: boolean;
+    put: boolean;
+  };
 }
 export interface navUserRelationCreateData {
   label: string;
@@ -18,7 +29,7 @@ export interface params {
 }
 
 export const getUserSideBarApi = async (): Promise<navUserData[]> => {
-  const response = await api.get("/navUserRelation/");
+  const response = await api.get("/navUserRelationGet/");
   return response.data;
 };
 
@@ -30,7 +41,7 @@ export const createNavUserRelation = async (
 };
 
 export const getNavByUserType = async (data: params): Promise<navUserData[]> => {
-  const response = await api.get(`/navUserRelation/getByUserType/${data.userType}`);
+  const response = await api.get(`/navUserRelationGet/getByUserType/${data.userType}`);
   return response.data;
 };
 

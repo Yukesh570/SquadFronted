@@ -16,10 +16,9 @@ export const ProtectedRoute = ({ path }: ProtectedRouteProps) => {
     );
   }
   const navItem = navItems.find(
-    (item) => item.navigateId.url === path.replace(/^\//, "")
+    (item) => item.url === path.replace(/^\//, "")
   );
-  console.log("============",navItem);
-  if (navItem && navItem.read) {
+  if (navItem && navItem.permission!.read) {
     return <Outlet />;
   }
   return <Navigate to="/dashboard" replace />;

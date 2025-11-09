@@ -1,7 +1,11 @@
 import { icons, Plus, HelpCircle, SquarePlus } from "lucide-react";
 import type { LucideProps } from "lucide-react";
-import React, { useContext, useState } from "react";
-import { createSideBarApi } from "../../api/sidebarApi/sideBarApi";
+import React, { useContext, useEffect, useState } from "react";
+import {
+  createSideBarApi,
+  getSideBarApi,
+  type SideBarApi,
+} from "../../api/sidebarApi/sideBarApi";
 import * as Icons from "lucide-react";
 import { createNavUserRelation } from "../../api/navUserRelationApi/navUserRelationApi";
 import Input from "../../components/ui/Input";
@@ -9,18 +13,39 @@ import Button from "../../components/ui/Button";
 import ToggleSwitch from "../../components/ui/ToggleSwitch";
 import { NavItemsContext } from "../../context/navItemsContext";
 import { toast } from "react-toastify";
+import Select from "../../components/ui/Select";
 
 const CreateSidebar = () => {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [navItem, setNavItem] = useState<SideBarApi[]>([]);
   const [formData, setFormData] = useState({
     label: "",
     url: "",
+    parent: null,
     order: 1,
     is_active: true,
     icon: "",
   });
+  const [selectedValue, setSelectedValue] = useState<string>("");
 
+  interface SelectOption {
+    value: string;
+    label: string;
+  }
+  useEffect(() => {
+    getSideBarApi().then((data) => {
+      setNavItem(data);
+    });
+  }, []);
+
+  const selectOptions = navItem.map((item) => ({
+    value: String(item.id),
+    label: item.label,
+  }));
+  const handleSelectChange = (name: "label", value: string) => {
+    setSelectedValue(value);
+  };
   const iconEntries = Object.entries(
     icons as Record<string, React.FC<LucideProps>>
   );
@@ -56,12 +81,13 @@ const CreateSidebar = () => {
 
   const handleSubmit = async () => {
     try {
-      const response = await createSideBarApi(formData);
+      const response = await createSideBarApi({...formData, parent: Number(selectedValue)});
       await createNavUserRelation({ label: formData.label });
       refreshNavItems();
       setFormData({
         label: "",
         url: "",
+        parent: null,
         order: 1,
         is_active: true,
         icon: "",
@@ -71,7 +97,7 @@ const CreateSidebar = () => {
       toast.error(`${error.response.status} Error \n${error.response.data}`);
     }
   };
-
+console.log("selectedValue",selectedValue)
   return (
     <div className="container mx-auto">
       <div className="max-w-xl mx-auto p-6 rounded-xl bg-white dark:bg-gray-800 shadow-card">
@@ -97,7 +123,13 @@ const CreateSidebar = () => {
             onChange={handleChange}
             placeholder="Enter URL (e.g., dashboard)"
           />
-
+          <Select
+            label="Parent"
+            value={selectedValue}
+            onChange={(value) => handleSelectChange("label", value)}
+            placeholder="Select Sidebar Label"
+            options={selectOptions}
+          />
           <Input
             label="Order"
             type="number"

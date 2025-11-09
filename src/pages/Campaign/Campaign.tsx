@@ -40,7 +40,7 @@ type ScheduleType = "now" | "datetime";
 const CreateCampaignForm: React.FC = () => {
     const [formData, setFormData] = useState<CampaignFormData>({
         campaignName: "",
-        objective: "Promotion",
+        objective: "",
         audienceType: "specify",
         contactNumber: "",
         template: "",

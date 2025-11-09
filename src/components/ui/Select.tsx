@@ -41,7 +41,7 @@ const Select: React.FC<SelectProps> = ({
               hasLabel ? "py-2.5" : "py-2"
             }`}
           >
-            <span className="block truncate text-text-primary">
+            <span className="block truncate text-text-secondary">
               {selectedOption ? selectedOption.label : placeholder}
             </span>
             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">

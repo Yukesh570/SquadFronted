@@ -9,6 +9,7 @@ import Select from "../../components/ui/Select";
 import { toast } from "react-toastify";
 import ToggleSwitch from "../../components/ui/ToggleSwitch";
 import { NavItemsContext } from "../../context/navItemsContext";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 const userTypeOptions = [
   { value: "ADMIN", label: "ADMIN" },
@@ -23,18 +24,46 @@ type PermissionKeys = "read" | "write" | "delete" | "put";
 
 const PermissionsTable = () => {
   const [permissions, setPermissions] = useState<navUserData[]>([]);
-  const [originalPermissions, setOriginalPermissions] = useState<navUserData[]>(
-    []
-  );
+  const [originalPermissions, setOriginalPermissions] = useState<navUserData[]>([]);
   const [selectedUserType, setSelectedUserType] = useState("ADMIN");
   const [isSaving, setIsSaving] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<number[]>([]);
   const { refreshNavItems } = useContext(NavItemsContext);
 
   const handleToggle = (id: number, key: PermissionKeys) => {
     setPermissions((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, [key]: !item[key] } : item
+        item.permission!.NavRelationid === id
+          ? {
+              ...item,
+              permission: {
+                ...item.permission!,
+                [key]: !item.permission![key],
+              },
+            }
+          : {
+              ...item,
+              children: item.children
+                ? item.children.map((child) =>
+                    child.permission!.NavRelationid === id
+                      ? {
+                          ...child,
+                          permission: {
+                            ...child.permission!,
+                            [key]: !child.permission![key],
+                          },
+                        }
+                      : child
+                  )
+                : item.children,
+            }
       )
+    );
+  };
+
+  const toggleExpand = (id: number) => {
+    setExpandedRows((prev) =>
+      prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
     );
   };
 
@@ -56,16 +85,22 @@ const PermissionsTable = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const changedPermissions = permissions.filter((currentItem) => {
-        const originalItem = originalPermissions.find(
-          (item) => item.id === currentItem.id
+      const flattenItems = (items: navUserData[]): navUserData[] =>
+        items.flatMap((item) =>
+          item.children ? [item, ...flattenItems(item.children)] : [item]
         );
+
+      const flatPermissions = flattenItems(permissions);
+      const flatOriginal = flattenItems(originalPermissions);
+
+      const changedPermissions = flatPermissions.filter((currentItem) => {
+        const originalItem = flatOriginal.find((i) => i.id === currentItem.id);
         return (
           !originalItem ||
-          currentItem.read !== originalItem.read ||
-          currentItem.write !== originalItem.write ||
-          currentItem.delete !== originalItem.delete ||
-          currentItem.put !== originalItem.put
+          currentItem.permission!.read !== originalItem.permission!.read ||
+          currentItem.permission!.write !== originalItem.permission!.write ||
+          currentItem.permission!.delete !== originalItem.permission!.delete ||
+          currentItem.permission!.put !== originalItem.permission!.put
         );
       });
 
@@ -76,11 +111,11 @@ const PermissionsTable = () => {
       }
 
       const dataToSave = changedPermissions.map((item) => ({
-        id: item.id!,
-        read: item.read,
-        write: item.write,
-        delete: item.delete,
-        put: item.put,
+        id: item.permission!.NavRelationid,
+        read: item.permission!.read,
+        write: item.permission!.write,
+        delete: item.permission!.delete,
+        put: item.permission!.put,
       }));
 
       await updateNavUserRelationBulk(dataToSave);
@@ -92,6 +127,51 @@ const PermissionsTable = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const renderRows = (items: navUserData[], level = 0) => {
+    return items.map((item) => (
+      <Fragment key={item.permission!.NavRelationid}>
+        <tr
+          className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
+        >
+          <td
+            className="px-6 py-2 font-medium text-gray-900 dark:text-white flex items-center"
+            style={{ paddingLeft: `${level * 20 + 24}px` }}
+          >
+            {item.children && item.children.length > 0 && (
+              <button
+                onClick={() => toggleExpand(item.permission!.NavRelationid!)}
+                className="mr-2 focus:outline-none"
+              >
+                {expandedRows.includes(item.permission!.NavRelationid!) ? (
+                  <ChevronDown size={16} />
+                ) : (
+                  <ChevronRight size={16} />
+                )}
+              </button>
+            )}
+            {item.label || "No label"}
+          </td>
+
+          {(["read", "write", "delete", "put"] as PermissionKeys[]).map((key) => (
+            <td key={key} className="px-6 py-2 text-center">
+              <div className="flex justify-center">
+                <ToggleSwitch
+                  checked={item.permission![key]}
+                  onChange={() => handleToggle(item.permission!.NavRelationid!, key)}
+                />
+              </div>
+            </td>
+          ))}
+        </tr>
+
+        {item.children &&
+          item.children.length > 0 &&
+          expandedRows.includes(item.permission!.NavRelationid!) &&
+          renderRows(item.children, level + 1)}
+      </Fragment>
+    ));
   };
 
   return (
@@ -140,29 +220,7 @@ const PermissionsTable = () => {
                 </td>
               </tr>
             ) : (
-              permissions.map((item) => (
-                <tr
-                  key={item.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <td className="px-6 py-1 font-medium text-gray-900 dark:text-white">
-                    {item.navigateId?.label || "No label"}
-                  </td>
-
-                  {(["read", "write", "delete", "put"] as PermissionKeys[]).map(
-                    (key) => (
-                      <td key={key} className="px-6 py-2 text-center">
-                        <div className="flex justify-center">
-                          <ToggleSwitch
-                            checked={item[key]}
-                            onChange={() => handleToggle(item.id!, key)}
-                          />
-                        </div>
-                      </td>
-                    )
-                  )}
-                </tr>
-              ))
+              renderRows(permissions)
             )}
           </tbody>
         </table>
@@ -177,4 +235,5 @@ const PermissionsTable = () => {
   );
 };
 
+import { Fragment } from "react";
 export default PermissionsTable;
