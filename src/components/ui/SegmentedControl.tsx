@@ -30,8 +30,8 @@ const SegmentedControl: React.FC<SegmentedControlProps> = ({
                     type="button"
                     onClick={() => onChange(option.value)}
                     className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-200 ${selectedValue === option.value
-                        ? "bg-white dark:bg-gray-800 text-primary font-semibold shadow ring-1 ring-gray-200 dark:ring-gray-600"
-                        : "text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600"
+                            ? "bg-white dark:bg-gray-800 text-primary font-semibold shadow ring-1 ring-gray-200 dark:ring-gray-600"
+                            : "text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600"
                         }`}
                 >
                     {option.icon}

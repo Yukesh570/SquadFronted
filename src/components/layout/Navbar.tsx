@@ -1,4 +1,5 @@
 import {
+
   LogOut,
   User,
   Menu,
@@ -14,7 +15,6 @@ import {
   Archive,
 } from "lucide-react";
 import Button from "../ui/Button";
-import Logo from "../../../src/assets/logos/logo.svg";
 import { Link } from "react-router-dom";
 import { useContext, Fragment, useState, useEffect } from "react";
 import { ThemeContext } from "../../context/themeContext";
@@ -26,9 +26,8 @@ interface NavbarProps {
 }
 
 const notifications = [
-  { id: 1, text: "New user 'Alex' just registered.", time: "5m ago" },
-  { id: 2, text: "Your password will expire in 3 days.", time: "1h ago" },
-  { id: 3, text: "Server #4 is experiencing high load.", time: "yesterday" },
+  { id: 1, text: "New user 'Ujjwal' just registered.", time: "5m ago" },
+  { id: 1, text: "New campaign was created.", time: "45m ago" },
 ];
 
 const Navbar = ({ onToggleSidebar }: NavbarProps) => {
@@ -87,11 +86,6 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
             size={24}
           />
         </Button>
-        <div className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
-          <Link to="/">
-            <img src={Logo} alt="Logo" className="h-10 sm:h-20 w-auto" />
-          </Link>
-        </div>
       </div>
 
       <div className="flex items-center space-x-2">

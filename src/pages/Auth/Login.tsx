@@ -1,41 +1,36 @@
 import React, { useState } from "react";
 import { LogIn, Eye, EyeOff } from "lucide-react";
-// import { useNavigate } from "react-router-dom"; // No longer needed
-// import { loginApi } from "../../api/loginAPi/login"; // No longer needed
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
-import { useAuth } from "../../context/AuthContext"; // 1. Import our hook
+import { useAuth } from "../../context/AuthContext";
 
 const Login = () => {
   const [username, setusername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  const { login } = useAuth(); // 2. Get the 'login' function from context
-  // const navigate = useNavigate(); // No longer needed, context handles it
+
+  const { login } = useAuth();
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      // 3. Call the context 'login' function
       await login({ username, password });
-      // The context will handle saving the token and navigating
     } catch (error) {
       console.log("error", error);
-      alert("Login failed. Please check your username and password."); // Give user feedback
+      alert("Login failed. Please check your username and password.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    // ... (The rest of your JSX form is 100% the same) ...
     <div className="flex items-center justify-center min-h-screen bg-secondary dark:bg-gray-900">
       <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
         <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
-           Squad Login
+          Squad Login
         </h1>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <Input

@@ -8,6 +8,7 @@ import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import ToggleSwitch from "../../components/ui/ToggleSwitch";
 import { NavItemsContext } from "../../context/navItemsContext";
+import { toast } from "react-toastify";
 
 const CreateSidebar = () => {
   const [search, setSearch] = useState("");
@@ -65,10 +66,9 @@ const CreateSidebar = () => {
         is_active: true,
         icon: "",
       });
-      console.log("Response:", response);
+      toast.success("Sidebar item created successfully!");
     } catch (error: any) {
-      console.error("Error creating sidebar:", error);
-      alert(`${error.response.status} Error \n${error.response.data}`);
+      toast.error(`${error.response.status} Error \n${error.response.data}`);
     }
   };
 

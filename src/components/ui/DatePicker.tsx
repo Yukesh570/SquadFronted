@@ -7,7 +7,6 @@ interface DatePickerProps {
   label: string;
   selected: Date | null;
   onChange: (date: Date | null) => void;
-  // 1. New optional prop
   showTimeSelect?: boolean;
 }
 
@@ -15,13 +14,11 @@ const CustomDatePicker: React.FC<DatePickerProps> = ({
   label,
   selected,
   onChange,
-  showTimeSelect = false, // 2. Default to false (no time selector)
+  showTimeSelect = false,
 }) => {
 
-  // 3. New handler to ensure time is set if only date is chosen
   const handleDateChange = (date: Date | null) => {
     if (date && !showTimeSelect) {
-      // If time select is off, set the time to midnight for consistency (00:00:00)
       date.setHours(0, 0, 0, 0);
     }
     onChange(date);
@@ -36,9 +33,13 @@ const CustomDatePicker: React.FC<DatePickerProps> = ({
         <DatePicker
           selected={selected}
           onChange={handleDateChange}
+
           showTimeSelect={showTimeSelect}
-          dateFormat={showTimeSelect ? "dd/MM/yyyy h:mm aa" : "dd/MM/yyyy"}
-          placeholderText={showTimeSelect ? "dd/MM/yyyy h:mm aa" : "dd/MM/yyyy"}
+          showTimeInput={showTimeSelect}
+
+          dateFormat={showTimeSelect ? "dd/mm/yyyy h:mm aa" : "dd/mm/yyyy"}
+          placeholderText={showTimeSelect ? "dd/mm/yyyy h:mm aa" : "dd/mm/yyyy"}
+
           className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 pl-10 text-sm shadow-input transition duration-150 ease-in-out focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           wrapperClassName="w-full"
         />

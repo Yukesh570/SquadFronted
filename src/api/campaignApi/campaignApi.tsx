@@ -1,16 +1,13 @@
 import api from "../axiosInstance";
-import { type CampaignFormData } from "../../pages/Campaign/Campaign";
 
 export interface templateData {
   id?: number;
   name: string;
   content: string;
 }
-export const getTemplatesApi = async (): Promise<
-  { id: number, name: string, content: string }[]
-> => {
+export const getTemplatesApi = async (): Promise<templateData[]> => {
   const response = await api.get("/template/");
-  console.log("=========!!!!",response.data);
+  console.log("=========!!!!", response.data);
   return response.data;
 };
 

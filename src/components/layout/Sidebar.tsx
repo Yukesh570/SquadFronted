@@ -1,17 +1,16 @@
 import { NavLink } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect } from "react";
 import React from "react";
-// import tags from "lucide-static/tags.json";
 import { NavItemsContext } from "../../context/navItemsContext";
+import FullLogo from "../../../src/assets/logos/logo.svg";
+import IconLogo from "../../../src/assets/logos/S-logo.svg";
 
 interface SidebarProps {
   isCollapsed: boolean;
 }
 
 const Sidebar = ({ isCollapsed }: SidebarProps) => {
-  // const [loading, setLoading] = useState(true);
-
   const { navItems, refreshNavItems } = useContext(NavItemsContext);
 
   useEffect(() => {
@@ -40,13 +39,25 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         }`}
     >
       <div className="h-16 flex-shrink-0 flex items-center justify-center">
-        {isCollapsed && (
-          <Icons.BarChart size={24} className="text-text-secondary" />
-        )}
+        <NavLink to="/dashboard" className="flex items-center justify-center">
+          {isCollapsed ? (
+            <img
+              src={IconLogo}
+              alt="Logo Icon"
+              className="h-8 w-auto cursor-pointer"
+            />
+          ) : (
+            <img
+              src={FullLogo}
+              alt="Full Logo"
+              className="h-[100px] w-auto cursor-pointer"
+            />
+          )}
+        </NavLink>
       </div>
 
-      <nav className="flex-1 px-3 py-2 overflow-y-auto">
 
+      <nav className="flex-1 px-3 py-2 overflow-y-auto">
         {navItems.map((item) => {
           if (!item.read) {
             return null;
@@ -61,15 +72,15 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
               {renderIcon(item.navigateId.icon)}
 
               {!isCollapsed && (
-                <span className="ml-3 text-gray-900 dark:text-white ">
+                <span className="ml-3 text-gray-900 dark:text-white">
                   {item.navigateId.label}
                 </span>
               )}
             </NavLink>
           );
         })}
-
       </nav>
+
       <div className="p-1 flex-shrink-0"></div>
     </aside>
   );
