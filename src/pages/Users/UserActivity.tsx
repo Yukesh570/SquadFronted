@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Trash2, Home, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Trash2, Home, ChevronLeft, ChevronRight, CirclePlus } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import Select from "../../components/ui/Select";
 import Button from "../../components/ui/Button";
@@ -37,7 +37,7 @@ const UserActivity = () => {
       {/* 1. BREADCRUMBS AND TITLE */}
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary">
-          User Activity
+          SMTP Server
         </h1>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
@@ -48,8 +48,13 @@ const UserActivity = () => {
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary">User Activity</span>
+          <span className="text-text-primary">SMTP Server</span>
         </div>
+      </div>
+      <div className="mb-4 flex justify-end">
+        <Button variant="primary" leftIcon={<CirclePlus size={16} />}>
+          Add Server
+        </Button>
       </div>
 
       {/* 2. FILTER CARD */}
@@ -148,9 +153,9 @@ const UserActivity = () => {
             </div>
           </div>
 
-          <Button variant="primary" leftIcon={<Download size={16} />}>
+          {/* <Button variant="primary" leftIcon={<Download size={16} />}>
             Download CSV
-          </Button>
+          </Button> */}
         </div>
 
         {/* Table (with horizontal scroll) */}

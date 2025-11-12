@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, Fragment } from "react"; // 1. Moved Fragment
 import {
   getNavByUserType,
   type navUserData,
@@ -30,35 +30,29 @@ const PermissionsTable = () => {
   const [expandedRows, setExpandedRows] = useState<number[]>([]);
   const { refreshNavItems } = useContext(NavItemsContext);
 
+  // This is a complex but necessary function for recursive state updates
   const handleToggle = (id: number, key: PermissionKeys) => {
-    setPermissions((prev) =>
-      prev.map((item) =>
-        item.permission!.NavRelationid === id
-          ? {
-              ...item,
-              permission: {
-                ...item.permission!,
-                [key]: !item.permission![key],
-              },
-            }
-          : {
-              ...item,
-              children: item.children
-                ? item.children.map((child) =>
-                    child.permission!.NavRelationid === id
-                      ? {
-                          ...child,
-                          permission: {
-                            ...child.permission!,
-                            [key]: !child.permission![key],
-                          },
-                        }
-                      : child
-                  )
-                : item.children,
-            }
-      )
-    );
+    const updatePermissions = (items: navUserData[]): navUserData[] => {
+      return items.map(item => {
+        if (item.permission?.NavRelationid === id) {
+          return {
+            ...item,
+            permission: {
+              ...item.permission,
+              [key]: !item.permission[key],
+            },
+          };
+        }
+        if (item.children) {
+          return {
+            ...item,
+            children: updatePermissions(item.children),
+          };
+        }
+        return item;
+      });
+    };
+    setPermissions(prev => updatePermissions(prev));
   };
 
   const toggleExpand = (id: number) => {
@@ -72,7 +66,7 @@ const PermissionsTable = () => {
       try {
         const data = await getNavByUserType({ userType: selectedUserType });
         setPermissions(data);
-        setOriginalPermissions(data);
+        setOriginalPermissions(data); // Set snapshot for comparison
       } catch (error) {
         toast.error(`Failed to load permissions for ${selectedUserType}.`);
         setPermissions([]);
@@ -85,6 +79,7 @@ const PermissionsTable = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Flattens the nested permission state
       const flattenItems = (items: navUserData[]): navUserData[] =>
         items.flatMap((item) =>
           item.children ? [item, ...flattenItems(item.children)] : [item]
@@ -93,14 +88,17 @@ const PermissionsTable = () => {
       const flatPermissions = flattenItems(permissions);
       const flatOriginal = flattenItems(originalPermissions);
 
+      // Compares the new state to the original state
       const changedPermissions = flatPermissions.filter((currentItem) => {
         const originalItem = flatOriginal.find((i) => i.id === currentItem.id);
+        if (!originalItem || !currentItem.permission || !originalItem.permission) {
+          return false; // Safety check
+        }
         return (
-          !originalItem ||
-          currentItem.permission!.read !== originalItem.permission!.read ||
-          currentItem.permission!.write !== originalItem.permission!.write ||
-          currentItem.permission!.delete !== originalItem.permission!.delete ||
-          currentItem.permission!.put !== originalItem.permission!.put
+          currentItem.permission.read !== originalItem.permission.read ||
+          currentItem.permission.write !== originalItem.permission.write ||
+          currentItem.permission.delete !== originalItem.permission.delete ||
+          currentItem.permission.put !== originalItem.permission.put
         );
       });
 
@@ -110,6 +108,7 @@ const PermissionsTable = () => {
         return;
       }
 
+      // Creates the payload for the backend
       const dataToSave = changedPermissions.map((item) => ({
         id: item.permission!.NavRelationid,
         read: item.permission!.read,
@@ -120,8 +119,8 @@ const PermissionsTable = () => {
 
       await updateNavUserRelationBulk(dataToSave);
       toast.success(`Permissions for ${selectedUserType} saved successfully!`);
-      setOriginalPermissions(permissions);
-      refreshNavItems();
+      setOriginalPermissions(permissions); // Update snapshot
+      refreshNavItems(); // Refresh sidebar
     } catch (error) {
       toast.error(`Failed to save permissions for ${selectedUserType}.`);
     } finally {
@@ -129,49 +128,57 @@ const PermissionsTable = () => {
     }
   };
 
+  // This is the new recursive render function
   const renderRows = (items: navUserData[], level = 0) => {
-    return items.map((item) => (
-      <Fragment key={item.permission!.NavRelationid}>
-        <tr
-          className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
-        >
-          <td
-            className="px-6 py-2 font-medium text-gray-900 dark:text-white flex items-center"
-            style={{ paddingLeft: `${level * 20 + 24}px` }}
+    return items.map((item) => {
+      // Safety check for missing permission object
+      if (!item.permission) {
+        console.warn("Item missing permission object:", item);
+        return null;
+      }
+      return (
+        <Fragment key={item.permission.NavRelationid}>
+          <tr
+            className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
           >
-            {item.children && item.children.length > 0 && (
-              <button
-                onClick={() => toggleExpand(item.permission!.NavRelationid!)}
-                className="mr-2 focus:outline-none"
-              >
-                {expandedRows.includes(item.permission!.NavRelationid!) ? (
-                  <ChevronDown size={16} />
-                ) : (
-                  <ChevronRight size={16} />
-                )}
-              </button>
-            )}
-            {item.label || "No label"}
-          </td>
-
-          {(["read", "write", "delete", "put"] as PermissionKeys[]).map((key) => (
-            <td key={key} className="px-6 py-2 text-center">
-              <div className="flex justify-center">
-                <ToggleSwitch
-                  checked={item.permission![key]}
-                  onChange={() => handleToggle(item.permission!.NavRelationid!, key)}
-                />
-              </div>
+            <td
+              className="px-6 py-2 font-medium text-gray-900 dark:text-white flex items-center"
+              style={{ paddingLeft: `${level * 20 + 24}px` }}
+            >
+              {item.children && item.children.length > 0 && (
+                <button
+                  onClick={() => toggleExpand(item.permission!.NavRelationid!)}
+                  className="mr-2 focus:outline-none"
+                >
+                  {expandedRows.includes(item.permission!.NavRelationid!) ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronRight size={16} />
+                  )}
+                </button>
+              )}
+              {item.label || "No label"}
             </td>
-          ))}
-        </tr>
 
-        {item.children &&
-          item.children.length > 0 &&
-          expandedRows.includes(item.permission!.NavRelationid!) &&
-          renderRows(item.children, level + 1)}
-      </Fragment>
-    ));
+            {(["read", "write", "delete", "put"] as PermissionKeys[]).map((key) => (
+              <td key={key} className="px-6 py-2 text-center">
+                <div className="flex justify-center">
+                  <ToggleSwitch
+                    checked={item.permission![key]}
+                    onChange={() => handleToggle(item.permission!.NavRelationid!, key)}
+                  />
+                </div>
+              </td>
+            ))}
+          </tr>
+
+          {item.children &&
+            item.children.length > 0 &&
+            expandedRows.includes(item.permission!.NavRelationid!) &&
+            renderRows(item.children, level + 1)}
+        </Fragment>
+      );
+    });
   };
 
   return (
@@ -187,6 +194,7 @@ const PermissionsTable = () => {
             value={selectedUserType}
             onChange={setSelectedUserType}
             options={userTypeOptions}
+            placeholder="Select User Type"
           />
         </div>
       </div>
@@ -235,5 +243,5 @@ const PermissionsTable = () => {
   );
 };
 
-import { Fragment } from "react";
+// 2. REMOVED the extra Fragment import at the bottom
 export default PermissionsTable;

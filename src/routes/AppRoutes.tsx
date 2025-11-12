@@ -10,9 +10,10 @@ import PermissionsTable from "../pages/role/role";
 import { useAuth } from "../context/AuthContext";
 import ChangePassword from "../pages/Auth/ChangePassword";
 import { ProtectedRoute } from "./protector";
-import TemplateEditor from "../pages/template/templateInput";
+import TemplatePage from "../pages/template/templateInput";
 // import AllNotifications from "../pages/Notifications/AllNotifications";
 import CreateCampaignForm from "../pages/Campaign/Campaign";
+import SmtpServer from "../pages/Smtp/SmtpServer";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -48,10 +49,13 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute path="role" />}>
           <Route path="role" element={<PermissionsTable />} />
         </Route>
-        <Route path="template" element={<TemplateEditor />} />
+        <Route path="template" element={<TemplatePage />} />
         <Route element={<ProtectedRoute path="campaign" />}>
           <Route path="campaign" element={<CreateCampaignForm />} />
         </Route>
+        {/* <Route element={<ProtectedRoute path="smtp" />}> */}
+        <Route path="smtp" element={<SmtpServer />} />
+        {/* </Route> */}
 
         {/* <Route element={<ProtectedRoute path="change-password" />}> */}
         <Route path="change-password" element={<ChangePassword />} />

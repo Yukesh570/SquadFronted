@@ -14,6 +14,7 @@ import {
 } from "../../api/campaignApi/campaignApi";
 import ReactQuill from "react-quill-new";
 import '../../quillDark.css';
+import ToggleSwitch from "../../components/ui/ToggleSwitch";
 
 export interface CampaignFormData {
     campaignName: string;
@@ -23,6 +24,7 @@ export interface CampaignFormData {
     template: string;
     content: string;
     scheduleType: "now" | "datetime";
+    is_active: boolean;
 }
 interface SelectOption {
     label: string;
@@ -40,12 +42,13 @@ type ScheduleType = "now" | "datetime";
 const CreateCampaignForm: React.FC = () => {
     const [formData, setFormData] = useState<CampaignFormData>({
         campaignName: "",
-        objective: "",
+        objective: "Promotion",
         audienceType: "specify",
         contactNumber: "",
         template: "",
         content: "",
         scheduleType: "now",
+        is_active: true,
     });
 
     const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
@@ -53,8 +56,9 @@ const CreateCampaignForm: React.FC = () => {
     const [csvFile, setCsvFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [uploadLoading, setUploadLoading] = useState(false);
+    const [uploadLoading, setUploadLoading] = useState(false); // This is now used
 
+    // --- Options Arrays ---
     const objectiveOptions: SelectOption[] = [
         { label: "Promotion", value: "Promotion" },
         { label: "Announcement", value: "Announcement" },
@@ -69,14 +73,15 @@ const CreateCampaignForm: React.FC = () => {
         { label: "Schedule Later", value: "datetime", icon: <Clock size={16} /> },
     ];
 
+    // --- Fetch Templates ---
     useEffect(() => {
         const fetchTemplates = async () => {
             try {
                 const templates = await getTemplatesApi();
                 const formattedOptions = templates
-                    .filter(t => t.id)
+                    .filter(t => t.id) // Filter out undefined IDs
                     .map((t) => ({
-                        value: t.id!.toString(),
+                        value: t.id!.toString(), // t.id is now guaranteed to exist
                         label: t.name,
                         content: t.content,
                     }));
@@ -84,8 +89,8 @@ const CreateCampaignForm: React.FC = () => {
                 if (formattedOptions.length > 0) {
                     setFormData(prev => ({
                         ...prev,
-                        // template: formattedOptions[0].value,
-                        // content: formattedOptions[0].content,
+                        template: formattedOptions[0].value,
+                        content: formattedOptions[0].content,
                     }));
                 }
             } catch (error) {
@@ -96,6 +101,7 @@ const CreateCampaignForm: React.FC = () => {
         fetchTemplates();
     }, []);
 
+    // --- Handlers ---
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
@@ -119,6 +125,10 @@ const CreateCampaignForm: React.FC = () => {
         }
     };
 
+    const handleToggleActive = (isChecked: boolean) => {
+        setFormData((prev) => ({ ...prev, is_active: isChecked }));
+    };
+
     const handleAudienceChange = (value: string) => {
         setFormData((prev) => ({
             ...prev,
@@ -139,18 +149,29 @@ const CreateCampaignForm: React.FC = () => {
         }
     };
 
+    // --- THIS IS THE FIX ---
     const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) {
             toast.error("No file selected.");
             return;
         }
-        setCsvFile(file);
-        toast.info(
-            `File "${file.name}" selected. Click Send Campaign to submit.`
-        );
-        if (e.target) e.target.value = "";
+
+        setUploadLoading(true); // 1. FIX: Added this line
+        try {
+            setCsvFile(file);
+            toast.info(
+                `File "${file.name}" selected. Click Send Campaign to submit.`
+            );
+        } catch (error: any) {
+            console.error("File selection error:", error);
+            toast.error(error.message || "Failed to select file.");
+        } finally {
+            setUploadLoading(false); // 2. FIX: Added this line
+            if (e.target) e.target.value = "";
+        }
     };
+    // --- END OF FIX ---
 
     const handleUploadButtonClick = () => {
         fileInputRef.current?.click();
@@ -161,7 +182,7 @@ const CreateCampaignForm: React.FC = () => {
         setIsSubmitting(true);
 
         try {
-            // Validation...
+            // Validation
             if (!formData.campaignName || !formData.content) { throw new Error("Campaign Name and Content are required fields."); }
             if (!formData.template) { throw new Error("Template is required."); }
             if (formData.audienceType === "specify" && !formData.contactNumber) { throw new Error("Contact Number is required."); }
@@ -173,6 +194,7 @@ const CreateCampaignForm: React.FC = () => {
             dataToUpload.append("objective", formData.objective);
             dataToUpload.append("content", formData.content);
             dataToUpload.append("template", formData.template);
+            dataToUpload.append("is_active", String(formData.is_active));
 
             let scheduleTimestamp: string;
             if (formData.scheduleType === "datetime" && scheduleDate) {
@@ -204,6 +226,7 @@ const CreateCampaignForm: React.FC = () => {
                 template: templateOptions[0]?.value || "",
                 content: templateOptions[0]?.content || "",
                 scheduleType: "now",
+                is_active: true,
             });
             setCsvFile(null);
             setScheduleDate(null);
@@ -255,7 +278,6 @@ const CreateCampaignForm: React.FC = () => {
                             options={audienceOptions}
                             onChange={handleAudienceChange}
                         />
-
                         {formData.audienceType === "specify" ? (
                             <Input
                                 label="Contact Number(s)"
@@ -303,7 +325,7 @@ const CreateCampaignForm: React.FC = () => {
 
                     <div className="space-y-1">
                         <label className="text-xs font-medium text-text-secondary mb-1">
-                            Template Content
+                            Content
                         </label>
                         <div className="quill-container dark:quill-dark">
                             <ReactQuill
@@ -333,6 +355,11 @@ const CreateCampaignForm: React.FC = () => {
                         )}
                     </div>
 
+                    <ToggleSwitch
+                        checked={formData.is_active}
+                        label="Campaign Status (Active)"
+                        onChange={handleToggleActive}
+                    />
 
                     <div className="pt-3">
                         <Button

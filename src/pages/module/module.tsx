@@ -29,10 +29,6 @@ const CreateSidebar = () => {
   });
   const [selectedValue, setSelectedValue] = useState<string>("");
 
-  interface SelectOption {
-    value: string;
-    label: string;
-  }
   useEffect(() => {
     getSideBarApi().then((data) => {
       setNavItem(data);
@@ -43,9 +39,11 @@ const CreateSidebar = () => {
     value: String(item.id),
     label: item.label,
   }));
-  const handleSelectChange = (name: "label", value: string) => {
+
+  const handleParentChange = (value: string) => {
     setSelectedValue(value);
   };
+
   const iconEntries = Object.entries(
     icons as Record<string, React.FC<LucideProps>>
   );
@@ -81,7 +79,7 @@ const CreateSidebar = () => {
 
   const handleSubmit = async () => {
     try {
-      const response = await createSideBarApi({...formData, parent: Number(selectedValue)});
+      await createSideBarApi({ ...formData, parent: Number(selectedValue) });
       await createNavUserRelation({ label: formData.label });
       refreshNavItems();
       setFormData({
@@ -92,12 +90,13 @@ const CreateSidebar = () => {
         is_active: true,
         icon: "",
       });
+      setSelectedValue(""); // Reset parent selection
       toast.success("Sidebar item created successfully!");
     } catch (error: any) {
       toast.error(`${error.response.status} Error \n${error.response.data}`);
     }
   };
-console.log("selectedValue",selectedValue)
+
   return (
     <div className="container mx-auto">
       <div className="max-w-xl mx-auto p-6 rounded-xl bg-white dark:bg-gray-800 shadow-card">
@@ -126,8 +125,8 @@ console.log("selectedValue",selectedValue)
           <Select
             label="Parent"
             value={selectedValue}
-            onChange={(value) => handleSelectChange("label", value)}
-            placeholder="Select Sidebar Label"
+            onChange={handleParentChange}
+            placeholder="Select Parent (Optional)"
             options={selectOptions}
           />
           <Input
@@ -144,15 +143,17 @@ console.log("selectedValue",selectedValue)
               Icon
             </label>
             <div className="flex items-center gap-2">
-              <input
+              <Input
+                label=""
                 type="text"
                 value={formData.icon}
                 readOnly
                 onClick={handleOpenModal}
                 placeholder="Select icon"
-                className="w-50 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm shadow-input transition duration-150 ease-in-out focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
               {SelectedIcon ? (
+                // --- THIS IS THE FIX ---
+                // Removed the invalid 'onClick' prop
                 <SelectedIcon
                   size={28}
                   className="text-primary cursor-pointer hover:scale-110 transition"
@@ -190,36 +191,36 @@ console.log("selectedValue",selectedValue)
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-xl p-6 w-11/12 md:w-3/4 lg:w-1/2 max-h-[80vh] overflow-y-auto shadow-lg"
+              className="bg-white dark:bg-gray-800 rounded-xl p-6 w-11/12 md:w-3/4 lg:w-1/2 max-h-[80vh] overflow-y-auto shadow-lg"
             >
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Choose an Icon</h2>
+                <h2 className="text-xl font-semibold dark:text-white">Choose an Icon</h2>
                 <button
                   onClick={handleCloseModal}
-                  className="text-gray-600 text-xl hover:text-gray-900"
+                  className="text-gray-600 dark:text-gray-300 text-xl hover:text-gray-900 dark:hover:text-white"
                 >
                   ✖
                 </button>
               </div>
 
-              <input
+              <Input
+                label="Search Icons"
                 type="text"
                 placeholder="Search icons..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
 
-              <div className="flex flex-wrap gap-5 text-indigo-600 justify-center">
+              <div className="flex flex-wrap gap-5 text-primary dark:text-indigo-400 justify-center mt-5">
                 {filteredIcons.length > 0 ? (
                   filteredIcons.map(([name, IconComponent]) => (
                     <div
                       key={name}
-                      className="flex flex-col items-center w-24 cursor-pointer hover:text-indigo-800 transition"
+                      className="flex flex-col items-center w-24 cursor-pointer hover:text-primary-dark dark:hover:text-indigo-300 transition"
                       onClick={() => handleSelectIcon(name)}
                     >
                       <IconComponent size={32} />
-                      <span className="text-xs text-center mt-2 truncate w-full overflow-hidden text-ellipsis">
+                      <span className="text-xs text-center mt-2 truncate w-full overflow-hidden text-ellipsis text-text-secondary dark:text-gray-300">
                         {name}
                       </span>
                     </div>

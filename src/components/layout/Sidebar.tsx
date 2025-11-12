@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import * as Icons from "lucide-react";
 import { useContext, useEffect, useState } from "react";
 import React from "react";
@@ -13,34 +13,37 @@ interface SidebarProps {
 
 const Sidebar = ({ isCollapsed }: SidebarProps) => {
   const { navItems, refreshNavItems } = useContext(NavItemsContext);
-  const [openItems, setOpenItems] = useState<Record<number, boolean>>({}); // track open states
+  const [openItems, setOpenItems] = useState<Record<number, boolean>>({});
+  const location = useLocation();
 
   useEffect(() => {
     refreshNavItems();
-  }, []);
+  }, [refreshNavItems]); // Added dependency
 
   const toggleItem = (id?: number) => {
-    console.log("id", id);
-
     if (!id) return;
     setOpenItems((prev) => ({ ...prev, [id]: !prev[id] }));
   };
-  console.log("optitems", openItems);
+
   const renderIcon = (iconName: string | undefined) => {
     if (!iconName) return <Icons.HelpCircle className="mr-0" size={20} />;
     const IconComponent = (Icons as any)[iconName] || Icons.HelpCircle;
     return React.createElement(IconComponent, { className: "mr-0", size: 20 });
   };
 
-  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  // This function generates the styles for the link
+  const getNavLinkClass = (isActive: boolean) =>
     `flex items-center justify-between p-3 my-1 rounded-lg text-text-secondary
      hover:bg-sidebar-active-bg hover:text-sidebar-active-text
      dark:hover:bg-gray-700 dark:hover:text-white
-     ${
-       isActive
-         ? "bg-sidebar-active-bg dark:bg-gray-800 text-sidebar-active-text font-medium"
-         : ""
-     }
+     transition-colors duration-150
+     ${isActive
+      // --- THIS IS THE FIX ---
+      // Changed dark:bg-gray-800 to dark:bg-gray-700
+      ? "bg-sidebar-active-bg dark:bg-gray-700 text-sidebar-active-text font-medium"
+      // --- END OF FIX ---
+      : ""
+    }
      ${isCollapsed ? "justify-center" : ""}`;
 
   const renderNavItems = (items: navUserData[], level = 0) => {
@@ -50,32 +53,42 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       const hasChildren = item.children && item.children.length > 0;
       const isOpen = item.id ? openItems[item.id] : false;
 
+      // Check if the current page URL matches the item's URL
+      const isActive = location.pathname === `/${item.url}`;
+
       return (
         <div key={item.id}>
-          <div
-            className={navLinkClass({ isActive: false })}
+          <NavLink
+            to={`/${item.url}`}
+            // Give the NavLink the active class
+            className={getNavLinkClass(isActive)}
             style={{ paddingLeft: `${level * 16 + 12}px` }}
-          >
-            <NavLink
-              to={`/${item.url}`}
-              className="flex-1 flex items-center"
-              onClick={(e) => {
-                if (hasChildren) e.preventDefault(); // prevent navigation if expandable
+            onClick={(e) => {
+              if (hasChildren) {
+                e.preventDefault(); // Prevent navigation
                 toggleItem(item.id);
-              }}
-            >
+              }
+            }}
+          >
+            {/* Div for icon and label */}
+            <div className="flex-1 flex items-center">
               {renderIcon(item.icon)}
               {!isCollapsed && (
                 <span className="ml-3 text-gray-900 dark:text-white">
                   {item.label}
                 </span>
               )}
-            </NavLink>
+            </div>
 
+            {/* Chevron button */}
             {hasChildren && !isCollapsed && (
               <button
-                onClick={() => toggleItem(item.id)}
                 className="ml-2 focus:outline-none"
+                onClick={(e) => {
+                  e.preventDefault(); // Stop NavLink click
+                  e.stopPropagation(); // Stop parent click
+                  toggleItem(item.id);
+                }}
               >
                 {isOpen ? (
                   <Icons.ChevronDown size={16} />
@@ -84,10 +97,10 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
                 )}
               </button>
             )}
-          </div>
+          </NavLink>
 
           {/* Children */}
-          {hasChildren && isOpen && (
+          {hasChildren && isOpen && !isCollapsed && ( // Added !isCollapsed
             <div className="ml-3 border-l border-gray-200 dark:border-gray-700">
               {renderNavItems(item.children!, level + 1)}
             </div>
@@ -99,9 +112,8 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
 
   return (
     <aside
-      className={`flex flex-col h-screen bg-white dark:bg-gray-800 shadow-md transition-all duration-300 ${
-        isCollapsed ? "w-20" : "w-64"
-      }`}
+      className={`flex flex-col h-screen bg-white dark:bg-gray-800 shadow-md transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"
+        }`}
     >
       <div className="h-16 flex-shrink-0 flex items-center justify-center">
         <NavLink to="/dashboard" className="flex items-center justify-center">
