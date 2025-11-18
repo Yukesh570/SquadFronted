@@ -16,9 +16,9 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
   const [openItems, setOpenItems] = useState<Record<number, boolean>>({});
   const location = useLocation();
 
-  useEffect(() => {
-    refreshNavItems();
-  }, [refreshNavItems]); // Added dependency
+  // useEffect(() => {
+  //   refreshNavItems();
+  // }, [refreshNavItems]); // Added dependency
 
   const toggleItem = (id?: number) => {
     if (!id) return;
@@ -31,17 +31,13 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
     return React.createElement(IconComponent, { className: "mr-0", size: 20 });
   };
 
-  // This function generates the styles for the link
   const getNavLinkClass = (isActive: boolean) =>
     `flex items-center justify-between p-3 my-1 rounded-lg text-text-secondary
      hover:bg-sidebar-active-bg hover:text-sidebar-active-text
      dark:hover:bg-gray-700 dark:hover:text-white
      transition-colors duration-150
      ${isActive
-      // --- THIS IS THE FIX ---
-      // Changed dark:bg-gray-800 to dark:bg-gray-700
       ? "bg-sidebar-active-bg dark:bg-gray-700 text-sidebar-active-text font-medium"
-      // --- END OF FIX ---
       : ""
     }
      ${isCollapsed ? "justify-center" : ""}`;
@@ -53,24 +49,21 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       const hasChildren = item.children && item.children.length > 0;
       const isOpen = item.id ? openItems[item.id] : false;
 
-      // Check if the current page URL matches the item's URL
       const isActive = location.pathname === `/${item.url}`;
 
       return (
         <div key={item.id}>
           <NavLink
             to={`/${item.url}`}
-            // Give the NavLink the active class
             className={getNavLinkClass(isActive)}
             style={{ paddingLeft: `${level * 16 + 12}px` }}
             onClick={(e) => {
               if (hasChildren) {
-                e.preventDefault(); // Prevent navigation
+                e.preventDefault();
                 toggleItem(item.id);
               }
             }}
           >
-            {/* Div for icon and label */}
             <div className="flex-1 flex items-center">
               {renderIcon(item.icon)}
               {!isCollapsed && (
@@ -85,8 +78,8 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
               <button
                 className="ml-2 focus:outline-none"
                 onClick={(e) => {
-                  e.preventDefault(); // Stop NavLink click
-                  e.stopPropagation(); // Stop parent click
+                  e.preventDefault();
+                  e.stopPropagation();
                   toggleItem(item.id);
                 }}
               >
@@ -100,7 +93,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
           </NavLink>
 
           {/* Children */}
-          {hasChildren && isOpen && !isCollapsed && ( // Added !isCollapsed
+          {hasChildren && isOpen && !isCollapsed && (
             <div className="ml-3 border-l border-gray-200 dark:border-gray-700">
               {renderNavItems(item.children!, level + 1)}
             </div>

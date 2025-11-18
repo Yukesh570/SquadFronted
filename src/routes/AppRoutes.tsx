@@ -3,7 +3,7 @@ import Layout from "../components/layout/Layout";
 import Login from "../pages/Auth/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import UserActivity from "../pages/Users/UserActivity";
-import CreateSidebar from "../pages/module/module";
+import CreateSidebar from "../pages/module/ModuleList";
 import NotFound from "../pages/error/notFound";
 import SignUp from "../pages/Auth/signUp";
 import PermissionsTable from "../pages/role/role";
@@ -14,6 +14,9 @@ import TemplatePage from "../pages/template/templateInput";
 // import AllNotifications from "../pages/Notifications/AllNotifications";
 import CreateCampaignForm from "../pages/Campaign/Campaign";
 import SmtpServer from "../pages/Smtp/SmtpServer";
+import EmailTemplatePage from "../pages/Email Template/emailTemplate";
+import SendMailPage from "../pages/Send Mail/SendMail";
+import Country from "../pages/Country/Country";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -50,12 +53,21 @@ const AppRoutes = () => {
           <Route path="role" element={<PermissionsTable />} />
         </Route>
         <Route path="template" element={<TemplatePage />} />
+        <Route element={<ProtectedRoute path="emailTemplate" />}>
+          <Route path="emailTemplate" element={<EmailTemplatePage />} />
+        </Route>
+        <Route element={<ProtectedRoute path="sendMail" />}>
+          <Route path="sendMail" element={<SendMailPage />} />
+        </Route>
         <Route element={<ProtectedRoute path="campaign" />}>
           <Route path="campaign" element={<CreateCampaignForm />} />
         </Route>
-        {/* <Route element={<ProtectedRoute path="smtp" />}> */}
-        <Route path="smtp" element={<SmtpServer />} />
-        {/* </Route> */}
+        <Route element={<ProtectedRoute path="setting/country" />}>
+          <Route path="setting/country" element={<Country />} />
+        </Route>
+        <Route element={<ProtectedRoute path="setting/smtp" />}>
+          <Route path="setting/smtp" element={<SmtpServer />} />
+        </Route>
 
         {/* <Route element={<ProtectedRoute path="change-password" />}> */}
         <Route path="change-password" element={<ChangePassword />} />

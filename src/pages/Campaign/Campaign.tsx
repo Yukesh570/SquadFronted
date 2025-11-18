@@ -1,381 +1,175 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Send, Upload, Clock, Phone, Zap } from "lucide-react";
-import Input from "../../components/ui/Input";
-import Button from "../../components/ui/Button";
-import Select from "../../components/ui/Select";
-import SegmentedControl, {
-    type SegmentOption,
-} from "../../components/ui/SegmentedControl";
-import CustomDatePicker from "../../components/ui/DatePicker";
+import React, { useState, useEffect, useMemo } from "react";
+import { Home, Plus, Trash, Edit, Megaphone, Calendar } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
-import {
-    createCampaignApi,
-    getTemplatesApi,
-} from "../../api/campaignApi/campaignApi";
-import ReactQuill from "react-quill-new";
-import '../../quillDark.css';
-import ToggleSwitch from "../../components/ui/ToggleSwitch";
+import { getCampaignsApi, deleteCampaignApi, type CampaignFormData } from "../../api/campaignApi/campaignApi";
+import CampaignModal from "../../components/modals/CampaignModal";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import Select from "../../components/ui/Select";
+import DataTable from "../../components/ui/DataTable"; 
+import FilterCard from "../../components/ui/FilterCard"; 
+import { DeleteModal } from "../../components/modals/DeleteModal";
 
-export interface CampaignFormData {
-    campaignName: string;
-    objective: string;
-    audienceType: "specify" | "import";
-    contactNumber: string;
-    template: string;
-    content: string;
-    scheduleType: "now" | "datetime";
-    is_active: boolean;
-}
-interface SelectOption {
-    label: string;
-    value: string;
-}
-interface TemplateOption {
-    label: string;
-    value: string;
-    content: string;
-}
+const CampaignList: React.FC = () => {
+  const [campaigns, setCampaigns] = useState<CampaignFormData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Modal States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<CampaignFormData | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
-type AudienceType = "specify" | "import";
-type ScheduleType = "now" | "datetime";
+  // Filter States
+  const [nameFilter, setNameFilter] = useState("");
+  const [objectiveFilter, setObjectiveFilter] = useState("");
+  
+  const location = useLocation();
+  const routeName = location.pathname.split('/')[1] || '';
 
-const CreateCampaignForm: React.FC = () => {
-    const [formData, setFormData] = useState<CampaignFormData>({
-        campaignName: "",
-        objective: "Promotion",
-        audienceType: "specify",
-        contactNumber: "",
-        template: "",
-        content: "",
-        scheduleType: "now",
-        is_active: true,
-    });
+  const fetchCampaigns = async () => {
+    setIsLoading(true);
+    try {
+      const data = await getCampaignsApi(routeName);
+      setCampaigns(data);
+    } catch (error) {
+      console.error("Fetch error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
-    const [templateOptions, setTemplateOptions] = useState<TemplateOption[]>([]);
-    const [csvFile, setCsvFile] = useState<File | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [uploadLoading, setUploadLoading] = useState(false); // This is now used
+  useEffect(() => {
+    fetchCampaigns();
+  }, [routeName]);
 
-    // --- Options Arrays ---
-    const objectiveOptions: SelectOption[] = [
-        { label: "Promotion", value: "Promotion" },
-        { label: "Announcement", value: "Announcement" },
-        { label: "Re-engagement", value: "Re-engagement" },
-    ];
-    const audienceOptions: SegmentOption[] = [
-        { label: "Specify Contact", value: "specify", icon: <Phone size={16} /> },
-        { label: "Import CSV/Excel", value: "import", icon: <Upload size={16} /> },
-    ];
-    const scheduleOptions: SegmentOption[] = [
-        { label: "Now", value: "now", icon: <Zap size={16} /> },
-        { label: "Schedule Later", value: "datetime", icon: <Clock size={16} /> },
-    ];
-
-    // --- Fetch Templates ---
-    useEffect(() => {
-        const fetchTemplates = async () => {
-            try {
-                const templates = await getTemplatesApi();
-                const formattedOptions = templates
-                    .filter(t => t.id) // Filter out undefined IDs
-                    .map((t) => ({
-                        value: t.id!.toString(), // t.id is now guaranteed to exist
-                        label: t.name,
-                        content: t.content,
-                    }));
-                setTemplateOptions(formattedOptions);
-                if (formattedOptions.length > 0) {
-                    setFormData(prev => ({
-                        ...prev,
-                        template: formattedOptions[0].value,
-                        content: formattedOptions[0].content,
-                    }));
-                }
-            } catch (error) {
-                console.error("Failed to fetch templates:", error);
-                toast.error("Could not load templates from server.");
-            }
-        };
-        fetchTemplates();
-    }, []);
-
-    // --- Handlers ---
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-    ) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleSelectChange = (
-        name: "objective" | "template",
-        value: string
-    ) => {
-        if (name === "template") {
-            const selectedTemplate = templateOptions.find((t) => t.value === value);
-            setFormData((prev) => ({
-                ...prev,
-                template: value ? value : "",
-                content: selectedTemplate ? selectedTemplate.content : "",
-            }));
-        } else {
-            setFormData((prev) => ({ ...prev, [name]: value }));
-        }
-    };
-
-    const handleToggleActive = (isChecked: boolean) => {
-        setFormData((prev) => ({ ...prev, is_active: isChecked }));
-    };
-
-    const handleAudienceChange = (value: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            audienceType: value as AudienceType,
-            contactNumber: value === "import" ? "" : prev.contactNumber,
-        }));
-        if (value === "specify") setCsvFile(null);
-    };
-
-    const handleScheduleChange = (value: string) => {
-        const newScheduleType = value as ScheduleType;
-        setFormData((prev) => ({
-            ...prev,
-            scheduleType: newScheduleType,
-        }));
-        if (newScheduleType === "now") {
-            setScheduleDate(null);
-        }
-    };
-
-    // --- THIS IS THE FIX ---
-    const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) {
-            toast.error("No file selected.");
-            return;
-        }
-
-        setUploadLoading(true); // 1. FIX: Added this line
-        try {
-            setCsvFile(file);
-            toast.info(
-                `File "${file.name}" selected. Click Send Campaign to submit.`
-            );
-        } catch (error: any) {
-            console.error("File selection error:", error);
-            toast.error(error.message || "Failed to select file.");
-        } finally {
-            setUploadLoading(false); // 2. FIX: Added this line
-            if (e.target) e.target.value = "";
-        }
-    };
-    // --- END OF FIX ---
-
-    const handleUploadButtonClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-
-        try {
-            // Validation
-            if (!formData.campaignName || !formData.content) { throw new Error("Campaign Name and Content are required fields."); }
-            if (!formData.template) { throw new Error("Template is required."); }
-            if (formData.audienceType === "specify" && !formData.contactNumber) { throw new Error("Contact Number is required."); }
-            if (formData.audienceType === "import" && !csvFile) { throw new Error("A file must be uploaded."); }
-            if (formData.scheduleType === "datetime" && !scheduleDate) { throw new Error("A schedule date and time is required."); }
-
-            const dataToUpload = new FormData();
-            dataToUpload.append("name", formData.campaignName);
-            dataToUpload.append("objective", formData.objective);
-            dataToUpload.append("content", formData.content);
-            dataToUpload.append("template", formData.template);
-            dataToUpload.append("is_active", String(formData.is_active));
-
-            let scheduleTimestamp: string;
-            if (formData.scheduleType === "datetime" && scheduleDate) {
-                scheduleTimestamp = scheduleDate.toISOString();
-            } else {
-                scheduleTimestamp = new Date().toISOString();
-            }
-            const formattedDateTime = scheduleTimestamp.substring(0, 19).replace('T', ' ');
-            dataToUpload.append("schedule", formattedDateTime);
-
-            if (formData.audienceType === "specify") {
-                const contactsArray = formData.contactNumber.split(',').map(c => c.trim()).filter(Boolean);
-                contactsArray.forEach(contact => {
-                    dataToUpload.append('contacts', contact);
-                });
-            } else if (csvFile) {
-                dataToUpload.append("csvFile", csvFile, csvFile.name);
-            }
-
-            const response = await createCampaignApi(dataToUpload);
-            toast.success(`Campaign "${response.campaign.name}" created!`);
-
-            // Reset form
-            setFormData({
-                campaignName: "",
-                objective: "Promotion",
-                audienceType: "specify",
-                contactNumber: "",
-                template: templateOptions[0]?.value || "",
-                content: templateOptions[0]?.content || "",
-                scheduleType: "now",
-                is_active: true,
-            });
-            setCsvFile(null);
-            setScheduleDate(null);
-        } catch (error: any) {
-            console.error("Error creating campaign:", error);
-            const errorMsg =
-                error.response?.data?.error ||
-                error.response?.data?.[0] ||
-                error.message ||
-                "Submission Failed";
-            toast.error(errorMsg);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    return (
-        <div className="container mx-auto p-4 sm:p-6 min-h-screen bg-secondary dark:bg-gray-900 font-sans">
-            <div
-                className={`max-w-xl mx-auto p-6 rounded-xl bg-white dark:bg-gray-800 shadow-card`}
-            >
-                <h2 className="text-2xl font-semibold mb-6 text-gray-800 dark:text-white">
-                    Create New Campaign
-                </h2>
-
-                <form className="space-y-5" onSubmit={handleSubmit}>
-                    <Input
-                        label="Campaign Name"
-                        type="text"
-                        name="campaignName"
-                        value={formData.campaignName}
-                        onChange={handleChange}
-                        placeholder="e.g., Summer Promo SMS"
-                        required
-                    />
-
-                    <Select
-                        label="Objective"
-                        value={formData.objective}
-                        onChange={(value) => handleSelectChange("objective", value)}
-                        options={objectiveOptions}
-                        placeholder="Select an objective"
-                    />
-
-                    <div className="space-y-3">
-                        <SegmentedControl
-                            label="Audience"
-                            selectedValue={formData.audienceType}
-                            options={audienceOptions}
-                            onChange={handleAudienceChange}
-                        />
-                        {formData.audienceType === "specify" ? (
-                            <Input
-                                label="Contact Number(s)"
-                                type="text"
-                                name="contactNumber"
-                                value={formData.contactNumber}
-                                onChange={handleChange}
-                                placeholder="e.g., 98xxxxxxxx, 97xxxxxxxx"
-                                required={formData.audienceType === "specify"}
-                            />
-                        ) : (
-                            <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 transition flex justify-between items-center">
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    {csvFile
-                                        ? `Selected: ${csvFile.name}`
-                                        : "Import contacts via CSV/Excel."}
-                                </p>
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    onClick={handleUploadButtonClick}
-                                    leftIcon={<Upload size={18} />}
-                                    disabled={uploadLoading}
-                                >
-                                    {csvFile ? "Change File" : "Upload File"}
-                                </Button>
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleFileSelected}
-                                    className="hidden"
-                                    accept=".csv, .xls, .xlsx, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    <Select
-                        label="Template"
-                        value={formData.template}
-                        onChange={(value) => handleSelectChange("template", value)}
-                        placeholder="Select Template"
-                        options={templateOptions}
-                    />
-
-                    <div className="space-y-1">
-                        <label className="text-xs font-medium text-text-secondary mb-1">
-                            Content
-                        </label>
-                        <div className="quill-container dark:quill-dark">
-                            <ReactQuill
-                                value={formData.content}
-                                onChange={(value) =>
-                                    setFormData((prev) => ({ ...prev, content: value }))
-                                }
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        <SegmentedControl
-                            label="Schedule"
-                            selectedValue={formData.scheduleType}
-                            options={scheduleOptions}
-                            onChange={handleScheduleChange}
-                        />
-
-                        {formData.scheduleType === "datetime" && (
-                            <CustomDatePicker
-                                label="Date Time Selection"
-                                selected={scheduleDate}
-                                onChange={(date) => setScheduleDate(date)}
-                                showTimeSelect={true}
-                            />
-                        )}
-                    </div>
-
-                    <ToggleSwitch
-                        checked={formData.is_active}
-                        label="Campaign Status (Active)"
-                        onChange={handleToggleActive}
-                    />
-
-                    <div className="pt-3">
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            className="w-full text-lg py-3"
-                            leftIcon={<Send size={20} />}
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting ? "Sending..." : "Send Campaign"}
-                        </Button>
-                    </div>
-                </form>
-            </div>
-        </div>
+  // Search Logic
+  const filteredCampaigns = useMemo(() => {
+    return campaigns.filter(c => 
+      c.name.toLowerCase().includes(nameFilter.toLowerCase()) &&
+      c.objective.toLowerCase().includes(objectiveFilter.toLowerCase())
     );
+  }, [campaigns, nameFilter, objectiveFilter]);
+
+  const handleDelete = async () => {
+    if (deleteId) {
+      try {
+        await deleteCampaignApi(deleteId, routeName);
+        toast.success("Campaign deleted.");
+        fetchCampaigns();
+      } catch (error) {
+        toast.error("Failed to delete campaign.");
+      }
+      setDeleteId(null);
+    }
+  };
+
+  const handleEdit = (campaign: CampaignFormData) => {
+      setEditingCampaign(campaign);
+      setIsModalOpen(true);
+  };
+
+  const handleAdd = () => {
+      setEditingCampaign(null);
+      setIsModalOpen(true);
+  };
+
+  const headers = ["S.N.", "Name", "Objective", "Schedule", "Actions"];
+
+  const objectiveOptions = [
+    { label: "All", value: "" },
+    { label: "Promotion", value: "Promotion" },
+    { label: "Announcement", value: "Announcement" },
+    { label: "Re-engagement", value: "Re-engagement" },
+  ];
+
+  return (
+    <div className="container mx-auto">
+      {/* Header */}
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-text-primary dark:text-white">Campaigns</h1>
+        <div className="flex items-center space-x-2 text-sm text-text-secondary">
+          <Home size={16} className="text-gray-400" />
+          <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">Home</NavLink>
+          <span>/</span>
+          <span className="text-text-primary dark:text-white">Campaigns</span>
+        </div>
+      </div>
+
+      {/* Filter Card */}
+      <FilterCard
+        onSearch={fetchCampaigns}
+        onClear={() => { setNameFilter(""); setObjectiveFilter(""); }}
+      >
+        <Input label="Search Name" value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} placeholder="Campaign Name..." />
+        <Select 
+            label="Search Objective" 
+            value={objectiveFilter} 
+            onChange={setObjectiveFilter} 
+            options={objectiveOptions} 
+            placeholder="Filter by Objective"
+        />
+      </FilterCard>
+
+      {/* Data Table */}
+      <DataTable 
+        data={filteredCampaigns}
+        headers={headers}
+        isLoading={isLoading}
+        headerActions={
+            <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18}/>}>
+                Create Campaign
+            </Button>
+        }
+        renderRow={(campaign, index) => (
+          <tr key={campaign.id || index} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
+               {index + 1}
+             </td>
+             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">{campaign.name}</td>
+             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+                <span className="flex items-center gap-2">
+                   <Megaphone size={14}/> {campaign.objective}
+                </span>
+             </td>
+             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+                <span className="flex items-center gap-2">
+                   <Calendar size={14}/> {campaign.schedule}
+                </span>
+             </td>
+             <td className="px-4 py-4 text-sm">
+                <div className="flex items-center space-x-2">
+                  <Button variant="secondary" size="xs" onClick={() => handleEdit(campaign)}>
+                      <Edit size={14}/>
+                  </Button>
+                  <Button variant="danger" size="xs" onClick={() => setDeleteId(campaign.id!)}>
+                      <Trash size={14}/>
+                  </Button>
+                </div>
+             </td>
+          </tr>
+        )}
+      />
+
+      {/* Modals */}
+      <CampaignModal 
+         isOpen={isModalOpen} 
+         onClose={() => setIsModalOpen(false)} 
+         onSuccess={fetchCampaigns} 
+         moduleName={routeName}
+         editingCampaign={editingCampaign}
+      />
+
+      <DeleteModal 
+         isOpen={!!deleteId} 
+         onClose={() => setDeleteId(null)} 
+         onConfirm={handleDelete} 
+         title="Delete Campaign"
+         message="Are you sure you want to delete this campaign? This action cannot be undone."
+      />
+
+    </div>
+  );
 };
 
-export default CreateCampaignForm;
+export default CampaignList;

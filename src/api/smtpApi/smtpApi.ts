@@ -1,28 +1,40 @@
 import api from "../axiosInstance";
 
 export interface SmtpServerData {
-    id?: number;
-    server_name: string;
-    email: string;
-    smtp_server: string;
-    security: 'SSL' | 'TLS' | 'None';
-    server_port: number;
-    user_name: string;
-    password?: string; // Password is send-only, not usually fetched
+  id?: number;
+  name: string;      
+  smtpHost: string; 
+  smtpPort: number;
+  smtpUser: string; 
+  smtpPassword: string;
+  security: 'TLS' | 'SSL';
 }
 
-// API to GET all existing SMTP servers
-export const getSmtpServersApi = async (): Promise<SmtpServerData[]> => {
-    // We'll assume this is the backend endpoint.
-    // Your senior may provide the exact URL.
-    const response = await api.get("/smtp-servers/");
-    return response.data;
+export const getSmtpServersApi = async (module: string): Promise<SmtpServerData[]> => {
+  const response = await api.get(`/emailHost/${module}/`);
+  return response.data;
 };
 
-// API to CREATE a new SMTP server
 export const createSmtpServerApi = async (
-    data: SmtpServerData
+  data: Omit<SmtpServerData, 'id'>,
+  module: string
 ): Promise<SmtpServerData> => {
-    const response = await api.post("/smtp-servers/", data);
-    return response.data;
+  const response = await api.post(`/emailHost/${module}/`, data);
+  return response.data;
+};
+
+export const updateSmtpServerApi = async (
+  id: number,
+  data: Omit<SmtpServerData, 'id'>,
+  module: string
+): Promise<SmtpServerData> => {
+  const response = await api.patch(`/emailHost/${module}/${id}/`, data);
+  return response.data;
+};
+
+export const deleteSmtpServerApi = async (
+  id: number,
+  module: string
+): Promise<void> => {
+  await api.delete(`/emailHost/${module}/${id}/`);
 };

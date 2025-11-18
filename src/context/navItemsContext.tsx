@@ -10,7 +10,7 @@ interface NavItemsContextType {
 
 export const NavItemsContext = createContext<NavItemsContextType>({
   navItems: [],
-  refreshNavItems: async () => {},
+  refreshNavItems: async () => { },
   loading: true,
 });
 
@@ -20,6 +20,7 @@ export const NavItemProvider = ({
   children: React.ReactNode;
 }) => {
   const [navItems, setNavItems] = useState<navUserData[]>([]);
+  console.log("NavItemsContext:", navItems);
   const [loading, setLoading] = useState(true);
 
   const refreshNavItems = async () => {
@@ -29,7 +30,7 @@ export const NavItemProvider = ({
     } catch (error) {
       console.error("Error fetching nav items:", error);
     }
-    finally{
+    finally {
       setLoading(false);
     }
   };
