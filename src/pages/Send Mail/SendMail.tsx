@@ -7,7 +7,7 @@ import {
   getEmailTemplatesApi,
   type EmailTemplateData,
 } from "../../api/emailTemplateApi/emailTemplateApi";
-import { getSmtpServersApi } from "../../api/smtpApi/smtpApi";
+import { getSmtpServersApi } from "../../api/settingApi/smtpApi/smtpApi";
 import ReactQuill from "react-quill-new";
 import "../../quillDark.css";
 import Input from "../../components/ui/Input";

@@ -16,9 +16,6 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
   const [openItems, setOpenItems] = useState<Record<number, boolean>>({});
   const location = useLocation();
 
-  // useEffect(() => {
-  //   refreshNavItems();
-  // }, [refreshNavItems]); // Added dependency
 
   const toggleItem = (id?: number) => {
     if (!id) return;

@@ -6,15 +6,15 @@ import {
   getSmtpServersApi,
   deleteSmtpServerApi,
   type SmtpServerData,
-} from "../../api/smtpApi/smtpApi";
-import { SmtpModal } from "../../components/modals/SmtpModal";
+} from "../../../api/settingApi/smtpApi/smtpApi";
+import { SmtpModal } from "../../../components/modals/SmtpModal";
 // import Select from "../../components/ui/Select";
-import Button from "../../components/ui/Button";
-import Input from "../../components/ui/Input";
-import DataTable from "../../components/ui/DataTable";
-import FilterCard from "../../components/ui/FilterCard";
-import { DeleteModal } from "../../components/modals/DeleteModal";
-import ViewButton from "../../components/ui/ViewButton";
+import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
+import DataTable from "../../../components/ui/DataTable";
+import FilterCard from "../../../components/ui/FilterCard";
+import { DeleteModal } from "../../../components/modals/DeleteModal";
+import ViewButton from "../../../components/ui/ViewButton";
 
 const SmtpServer: React.FC = () => {
   const [servers, setServers] = useState<SmtpServerData[]>([]);

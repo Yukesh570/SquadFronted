@@ -6,7 +6,7 @@ import {
   getCountriesApi,
   deleteCountryApi,
   type CountryData,
-} from "../../api/settingApi/countryApi";
+} from "../../api/settingApi/countryApi/countryApi";
 import { CountryModal } from "../../components/modals/CountryModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";

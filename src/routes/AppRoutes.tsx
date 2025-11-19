@@ -13,10 +13,11 @@ import { ProtectedRoute } from "./protector";
 import TemplatePage from "../pages/template/templateInput";
 // import AllNotifications from "../pages/Notifications/AllNotifications";
 import CreateCampaignForm from "../pages/Campaign/Campaign";
-import SmtpServer from "../pages/Smtp/SmtpServer";
+import SmtpServer from "../pages/settings/Smtp/SmtpServer";
 import EmailTemplatePage from "../pages/Email Template/emailTemplate";
 import SendMailPage from "../pages/Send Mail/SendMail";
 import Country from "../pages/Country/Country";
+import State from "../pages/settings/state";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -67,6 +68,9 @@ const AppRoutes = () => {
         </Route>
         <Route element={<ProtectedRoute path="setting/smtp" />}>
           <Route path="setting/smtp" element={<SmtpServer />} />
+        </Route>
+        <Route element={<ProtectedRoute path="setting/state" />}>
+          <Route path="setting/state" element={<State />} />
         </Route>
 
         {/* <Route element={<ProtectedRoute path="change-password" />}> */}

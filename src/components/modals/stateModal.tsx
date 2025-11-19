@@ -2,52 +2,54 @@ import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import {
   createCountryApi,
+  createStateApi,
   updateCountryApi,
   type CountryData,
+  type StateData,
 } from "../../api/settingApi/countryApi/countryApi";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";
 
-interface CountryModalProps {
+interface StateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   moduleName: string;
-  editingCountry: CountryData | null;
+  editingServer: StateData | null;
 }
 
-export const CountryModal: React.FC<CountryModalProps> = ({
+export const StateModal: React.FC<StateModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
   moduleName,
-  editingCountry,
+  editingServer,
 }) => {
   const [formData, setFormData] = useState({
     name: "",
-    countryCode: "",
-    MCC: "",
+    country: 0,
+    countryName: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      if (editingCountry) {
+      if (editingServer) {
         setFormData({
-          name: editingCountry.name,
-          countryCode: editingCountry.countryCode,
-          MCC: editingCountry.MCC,
+          name: editingServer.name,
+          country: editingServer.country,
+          countryName: editingServer.countryName!,
         });
       } else {
         setFormData({
           name: "",
-          countryCode: "",
-          MCC: "",
+          country: 0,
+          countryName: "",
         });
       }
     }
-  }, [isOpen, editingCountry]);
+  }, [isOpen, editingServer]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -59,20 +61,19 @@ export const CountryModal: React.FC<CountryModalProps> = ({
 
     const dataToSend = {
       name: formData.name,
-      countryCode: formData.countryCode,
-      MCC: formData.MCC,
+      country: formData.country,
     };
 
     try {
-      if (editingCountry) {
+      if (editingServer) {
         await updateCountryApi(
-          editingCountry.id!,
+          editingServer.id!,
           dataToSend as any,
           moduleName
         );
         toast.success("Country updated successfully!");
       } else {
-        await createCountryApi(dataToSend as any, moduleName);
+        await createStateApi(dataToSend as any, moduleName);
         toast.success("Country added successfully!");
       }
       onSuccess();
@@ -91,7 +92,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={editingCountry ? "Edit Country" : "Add Country"}
+      title={editingServer ? "Edit Country" : "Add Country"}
       className="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -106,15 +107,15 @@ export const CountryModal: React.FC<CountryModalProps> = ({
         <Input
           label="Code"
           name="countryCode"
-          value={formData.countryCode}
+          value={formData.country}
           onChange={handleChange}
           placeholder="e.g., NP"
           required
         />
         <Input
-          label="MCC"
-          name="MCC"
-          value={formData.MCC}
+          label="Country"
+          name="Country"
+          value={formData.countryName}
           onChange={handleChange}
           placeholder="e.g., 429"
           required
@@ -127,7 +128,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
           <Button type="submit" variant="primary" disabled={isSubmitting}>
             {isSubmitting
               ? "Saving..."
-              : editingCountry
+              : editingServer
               ? "Save Changes"
               : "Add Country"}
           </Button>

@@ -4,7 +4,7 @@ import {
   createSmtpServerApi,
   updateSmtpServerApi,
   type SmtpServerData,
-} from "../../api/smtpApi/smtpApi";
+} from "../../api/settingApi/smtpApi/smtpApi";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
