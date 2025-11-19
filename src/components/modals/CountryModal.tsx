@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { 
-  createCountryApi, 
-  updateCountryApi, 
-  type CountryData 
+import {
+  createCountryApi,
+  updateCountryApi,
+  type CountryData,
 } from "../../api/settingApi/countryApi";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
@@ -26,8 +26,8 @@ export const CountryModal: React.FC<CountryModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: "",
-    code: "",
-    mcc: "",
+    countryCode: "",
+    MCC: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -36,14 +36,14 @@ export const CountryModal: React.FC<CountryModalProps> = ({
       if (editingCountry) {
         setFormData({
           name: editingCountry.name,
-          code: editingCountry.code,
-          mcc: editingCountry.mcc,
+          countryCode: editingCountry.countryCode,
+          MCC: editingCountry.MCC,
         });
       } else {
         setFormData({
           name: "",
-          code: "",
-          mcc: "",
+          countryCode: "",
+          MCC: "",
         });
       }
     }
@@ -57,17 +57,28 @@ export const CountryModal: React.FC<CountryModalProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
 
+    const dataToSend = {
+      name: formData.name,
+      countryCode: formData.countryCode,
+      MCC: formData.MCC,
+    };
+
     try {
       if (editingCountry) {
-        await updateCountryApi(editingCountry.id!, formData, moduleName);
+        await updateCountryApi(
+          editingCountry.id!,
+          dataToSend as any,
+          moduleName
+        );
         toast.success("Country updated successfully!");
       } else {
-        await createCountryApi(formData, moduleName);
+        await createCountryApi(dataToSend as any, moduleName);
         toast.success("Country added successfully!");
       }
       onSuccess();
       onClose();
     } catch (error: any) {
+      console.error(error);
       toast.error(error.response?.data?.detail || "Failed to save country.");
     } finally {
       setIsSubmitting(false);
@@ -77,9 +88,9 @@ export const CountryModal: React.FC<CountryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose} 
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
       title={editingCountry ? "Edit Country" : "Add Country"}
       className="max-w-md"
     >
@@ -94,16 +105,16 @@ export const CountryModal: React.FC<CountryModalProps> = ({
         />
         <Input
           label="Code"
-          name="code"
-          value={formData.code}
+          name="countryCode"
+          value={formData.countryCode}
           onChange={handleChange}
           placeholder="e.g., NP"
           required
         />
         <Input
           label="MCC"
-          name="mcc"
-          value={formData.mcc}
+          name="MCC"
+          value={formData.MCC}
           onChange={handleChange}
           placeholder="e.g., 429"
           required
@@ -114,7 +125,11 @@ export const CountryModal: React.FC<CountryModalProps> = ({
             Cancel
           </Button>
           <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : (editingCountry ? "Save Changes" : "Add Country")}
+            {isSubmitting
+              ? "Saving..."
+              : editingCountry
+              ? "Save Changes"
+              : "Add Country"}
           </Button>
         </div>
       </form>

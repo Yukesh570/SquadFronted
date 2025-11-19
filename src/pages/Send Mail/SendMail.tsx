@@ -3,10 +3,13 @@ import { Send, Home, Paperclip, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 import { sendEmailApi } from "../../api/sendMailApi/sendMailApi";
-import { getEmailTemplatesApi } from "../../api/emailTemplateApi/emailTemplateApi"; 
+import {
+  getEmailTemplatesApi,
+  type EmailTemplateData,
+} from "../../api/emailTemplateApi/emailTemplateApi";
 import { getSmtpServersApi } from "../../api/smtpApi/smtpApi";
 import ReactQuill from "react-quill-new";
-import '../../quillDark.css'; 
+import "../../quillDark.css";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import Select from "../../components/ui/Select";
@@ -14,58 +17,59 @@ import Select from "../../components/ui/Select";
 interface Option {
   label: string;
   value: string;
-  content?: string; 
-  email?: string;   
+  content?: string;
+  email?: string;
 }
 
 const SendMailPage: React.FC = () => {
-  const [recipientList, setRecipientList] = useState(""); 
+  const [recipientList, setRecipientList] = useState("");
   const [subject, setSubject] = useState("");
-  const [content, setContent] = useState(""); 
+  const [content, setContent] = useState("");
   const [attachment, setAttachment] = useState<File | null>(null);
-  
+
   const [templateOptions, setTemplateOptions] = useState<Option[]>([]);
   const [emailHostOptions, setEmailHostOptions] = useState<Option[]>([]);
-  
-  const [selectedTemplate, setSelectedTemplate] = useState(""); 
-  const [selectedEmailHost, setSelectedEmailHost] = useState(""); 
-  const [fromEmail, setFromEmail] = useState(""); 
+
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [selectedEmailHost, setSelectedEmailHost] = useState("");
+  const [fromEmail, setFromEmail] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const templateModuleName = "emailTemplate"; 
-  const smtpModuleName = "smtp"; 
+  const templateModuleName = "emailTemplate";
+  const smtpModuleName = "smtp";
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch Templates
         const templates = await getEmailTemplatesApi(templateModuleName);
-        setTemplateOptions(templates.map(t => ({
-          value: t.id!.toString(),
-          label: t.name,
-          content: t.content,
-        })));
+        setTemplateOptions(
+          templates.map((t) => ({
+            value: t.id!.toString(),
+            label: t.name,
+            content: t.content,
+          }))
+        );
 
-        // Fetch Email Hosts
         const hosts = await getSmtpServersApi(smtpModuleName);
-        setEmailHostOptions(hosts.map(h => ({
-          value: h.id!.toString(),
-          label: h.name, 
-          email: h.name, 
-        })));
-
+        setEmailHostOptions(
+          hosts.map((h) => ({
+            value: h.id!.toString(),
+            label: h.name,
+            email: h.name,
+          }))
+        );
       } catch (error) {
         console.error("Failed to load data:", error);
       }
     };
     fetchData();
-  }, []); 
+  }, []);
 
   const handleTemplateChange = (value: string) => {
-    const template = templateOptions.find(t => t.value === value);
-    setSelectedTemplate(value); 
+    const template = templateOptions.find((t) => t.value === value);
+    setSelectedTemplate(value);
     if (template && template.content) {
       setContent(template.content);
     } else {
@@ -74,8 +78,8 @@ const SendMailPage: React.FC = () => {
   };
 
   const handleEmailHostChange = (value: string) => {
-    const host = emailHostOptions.find(h => h.value === value);
-    setSelectedEmailHost(value); 
+    const host = emailHostOptions.find((h) => h.value === value);
+    setSelectedEmailHost(value);
     if (host && host.email) {
       setFromEmail(host.email);
     } else {
@@ -90,46 +94,70 @@ const SendMailPage: React.FC = () => {
     }
   };
 
+  // Helper
+  const isContentEmpty = (html: string) => {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const text = doc.body.textContent || "";
+    return text.trim().length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedEmailHost) {
-        toast.error("Please select an Email Host (Sender).");
-        return;
+      toast.error("Please select an Email Host (Sender).");
+      return;
+    }
+    if (!recipientList.trim()) {
+      toast.error("Recipient List is required.");
+      return;
+    }
+    if (!subject.trim()) {
+      toast.error("Subject is required.");
+      return;
+    }
+    if (isContentEmpty(content)) {
+      toast.error("Email content cannot be empty.");
+      return;
     }
 
     setIsSubmitting(true);
 
     const dataToUpload = new FormData();
-    
+    dataToUpload.append("email_host_id", selectedEmailHost);
+    dataToUpload.append("content", content);
+    dataToUpload.append("subject", subject);
+    dataToUpload.append("from_email", fromEmail);
+    dataToUpload.append("recipient_list", recipientList);
 
-    dataToUpload.append("email_host_id", selectedEmailHost); 
-    
-    dataToUpload.append("content", content);          
-    
-    dataToUpload.append("subject", subject);          
-    dataToUpload.append("from_email", fromEmail);     
-    dataToUpload.append("recipient_list", recipientList); 
-    
     if (attachment) {
-      dataToUpload.append("attachments", attachment, attachment.name); 
+      dataToUpload.append("attachments", attachment, attachment.name);
     }
 
     try {
       await sendEmailApi(dataToUpload);
       toast.success("Email sent successfully!");
-      
+
       setRecipientList("");
       setSubject("");
       setContent("");
       setAttachment(null);
       setSelectedTemplate("");
       if (fileInputRef.current) fileInputRef.current.value = "";
-      
     } catch (error: any) {
       console.error("Error sending email:", error);
-      const errorMsg = error.response?.data?.detail || error.response?.data?.error || "Failed to send email.";
-      toast.error(errorMsg);
+      const serverError = error.response?.data;
+      if (serverError) {
+        if (typeof serverError === "object") {
+          Object.entries(serverError).forEach(([key, msgs]) => {
+            toast.error(`${key}: ${Array.isArray(msgs) ? msgs[0] : msgs}`);
+          });
+        } else {
+          toast.error(String(serverError));
+        }
+      } else {
+        toast.error("Failed to send email.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -143,10 +171,7 @@ const SendMailPage: React.FC = () => {
         </h1>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
-          <NavLink
-            to="/dashboard"
-            className="text-gray-400 hover:text-primary"
-          >
+          <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">
             Home
           </NavLink>
           <span>/</span>
@@ -156,15 +181,11 @@ const SendMailPage: React.FC = () => {
 
       <div className="max-w-3xl mx-auto p-6 bg-white rounded-xl shadow-card dark:bg-gray-800">
         <form className="space-y-5" onSubmit={handleSubmit}>
-          
           <Select
             label="From (Email Host)"
             value={selectedEmailHost}
             onChange={handleEmailHostChange}
-            options={[
-               { value: "", label: "Select Sender" },
-               ...emailHostOptions
-            ]}
+            options={emailHostOptions}
             placeholder="Select the email server to send from"
           />
 
@@ -172,21 +193,18 @@ const SendMailPage: React.FC = () => {
             label="Select Template (Optional)"
             value={selectedTemplate}
             onChange={handleTemplateChange}
-            options={[
-              { value: "", label: "No Template" }, 
-              ...templateOptions
-            ]}
+            options={templateOptions}
             placeholder="Select a template to auto-fill Body"
           />
-          
-          <hr className="dark:border-gray-700"/>
+
+          <hr className="dark:border-gray-700" />
 
           <Input
             label="To (Recipient List)"
-            type="text" 
+            type="text"
             value={recipientList}
             onChange={(e) => setRecipientList(e.target.value)}
-            placeholder="recipient@example.com"
+            placeholder="recipient@example.com, other@example.com"
             required
           />
 
@@ -256,7 +274,6 @@ const SendMailPage: React.FC = () => {
               {isSubmitting ? "Sending..." : "Send Mail"}
             </Button>
           </div>
-
         </form>
       </div>
     </div>

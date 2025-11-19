@@ -3,8 +3,8 @@ import api from "../axiosInstance";
 export interface CountryData {
   id?: number;
   name: string;
-  code: string;
-  mcc: string;
+  countryCode: string;
+  MCC: string;
 }
 
 export const getCountriesApi = async (module: string): Promise<CountryData[]> => {

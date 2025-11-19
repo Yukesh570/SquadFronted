@@ -1,19 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
-import '../../quillDark.css'; 
+import React, { useState, useEffect } from "react";
+import ReactQuill from "react-quill-new";
+import "react-quill-new/dist/quill.snow.css";
+import "../../quillDark.css";
 import { toast } from "react-toastify";
-import { createTemplate, updateTemplateApi, type templateData } from '../../api/campaignApi/campaignApi';
-import Input from '../ui/Input';
-import Button from '../ui/Button';
-import Modal from '../ui/Modal'; // Using our reusable Modal wrapper
+import {
+  createTemplate,
+  updateTemplateApi,
+  type templateData,
+} from "../../api/campaignApi/campaignApi";
+import Input from "../ui/Input";
+import Button from "../ui/Button";
+import Modal from "../ui/Modal";
 
 interface AddTemplateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   moduleName: string;
-  editingTemplate: templateData | null; 
+  editingTemplate: templateData | null;
 }
 
 export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
@@ -23,8 +27,7 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
   moduleName,
   editingTemplate,
 }) => {
-  const [name, setName] = useState('');
-  
+  const [name, setName] = useState("");
   const [quillContent, setQuillContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -40,26 +43,54 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
     }
   }, [isOpen, editingTemplate]);
 
+  const isContentEmpty = (html: string) => {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const text = doc.body.textContent || "";
+    return text.trim().length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); 
+    e.preventDefault();
+
+    if (!name.trim()) {
+      toast.error("Template Name is required.");
+      return;
+    }
+    if (isContentEmpty(quillContent)) {
+      toast.error("Content cannot be empty.");
+      return;
+    }
+
     setIsSubmitting(true);
-    
+
     const dataToSend = { name, content: quillContent };
 
     try {
       if (editingTemplate) {
         await updateTemplateApi(editingTemplate.id!, dataToSend, moduleName);
-        toast.success('Template updated successfully!');
+        toast.success("Template updated successfully!");
       } else {
         await createTemplate(dataToSend, moduleName);
-        toast.success('Template saved successfully!');
+        toast.success("Template saved successfully!");
       }
-      
+
       onSuccess();
       onClose();
     } catch (error: any) {
       console.error("Error saving template:", error);
-      toast.error(error.response?.data?.detail || "Error saving template");
+
+      const serverError = error.response?.data;
+      if (serverError) {
+        if (typeof serverError === "object") {
+          Object.entries(serverError).forEach(([key, msgs]) => {
+            toast.error(`${key}: ${Array.isArray(msgs) ? msgs[0] : msgs}`);
+          });
+        } else {
+          toast.error(String(serverError));
+        }
+      } else {
+        toast.error("Failed to save template.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -72,6 +103,7 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={editingTemplate ? "Edit Template" : "Create New Template"}
+      className="max-w-3xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <Input
@@ -82,22 +114,26 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
           placeholder="Enter Template Name"
           required
         />
-        
+
         <div>
           <label className="mb-1.5 text-xs font-medium text-text-secondary">
-            Template Content
+            Template Content <span className="text-red-500">*</span>
           </label>
           <div className="quill-container dark:quill-dark">
             <ReactQuill value={quillContent} onChange={setQuillContent} />
           </div>
         </div>
-        
+
         <div className="flex justify-end space-x-3 pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
           <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : (editingTemplate ? "Save Changes" : "Save Template")}
+            {isSubmitting
+              ? "Saving..."
+              : editingTemplate
+              ? "Save Changes"
+              : "Save Template"}
           </Button>
         </div>
       </form>

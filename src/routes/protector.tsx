@@ -8,8 +8,8 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ path }: ProtectedRouteProps) => {
   const segments = path.replace(/^\//, "").split("/");
-  const parentUrl = segments[0]; // "settings"
-  const childUrl = segments[1] || null; // "smtp"
+  const parentUrl = segments[0];
+  const childUrl = segments[1] || null;
 
   const { navItems, loading } = useContext(NavItemsContext);
   if (loading) {
