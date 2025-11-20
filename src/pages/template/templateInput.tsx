@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -13,25 +13,28 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
+import ViewButton from "../../components/ui/ViewButton";
 
 const stripHtml = (html: string) => {
   const doc = new DOMParser().parseFromString(html, "text/html");
   return doc.body.textContent || "";
 };
 
-const CampaignTemplatePage = () => {
+const CampaignTemplatePage: React.FC = () => {
   const [templates, setTemplates] = useState<templateData[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<templateData | null>(
     null
   );
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isViewMode, setIsViewMode] = useState(false);
 
-  // Filter State
   const [nameFilter, setNameFilter] = useState("");
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
@@ -39,11 +42,22 @@ const CampaignTemplatePage = () => {
   const fetchTemplates = async () => {
     setIsLoading(true);
     try {
-      const data = await getTemplatesApi();
-      setTemplates(data);
+      const response = await getTemplatesApi(currentPage, rowsPerPage);
+
+      // 1. FIX: Handle both Object and Array responses
+      if ("results" in response) {
+        setTemplates(response.results);
+        setTotalItems(response.count);
+      } else if (Array.isArray(response)) {
+        setTemplates(response);
+        setTotalItems(response.length);
+      } else {
+        setTemplates([]);
+        setTotalItems(0);
+      }
     } catch (error) {
-      toast.error("Failed to fetch templates.");
       console.error(error);
+      toast.error("Failed to fetch templates.");
     } finally {
       setIsLoading(false);
     }
@@ -51,16 +65,15 @@ const CampaignTemplatePage = () => {
 
   useEffect(() => {
     fetchTemplates();
-  }, []);
+  }, [currentPage, rowsPerPage]);
 
-  // Search Logic
   const filteredTemplates = useMemo(() => {
+    if (!Array.isArray(templates)) return [];
     return templates.filter((template) =>
       template.name.toLowerCase().includes(nameFilter.toLowerCase())
     );
   }, [templates, nameFilter]);
 
-  // Delete Logic
   const handleDelete = async () => {
     if (deleteId) {
       try {
@@ -78,11 +91,19 @@ const CampaignTemplatePage = () => {
 
   const handleEdit = (template: templateData) => {
     setEditingTemplate(template);
+    setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
     setEditingTemplate(null);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleView = (template: templateData) => {
+    setEditingTemplate(template);
+    setIsViewMode(true);
     setIsModalOpen(true);
   };
 
@@ -92,7 +113,7 @@ const CampaignTemplatePage = () => {
     <div className="container mx-auto">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
-          Manage Templates
+          Manage Campaign Templates
         </h1>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
@@ -100,11 +121,12 @@ const CampaignTemplatePage = () => {
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary dark:text-white">Templates</span>
+          <span className="text-text-primary dark:text-white">
+            Campaign Templates
+          </span>
         </div>
       </div>
 
-      {/* Filter Card */}
       <FilterCard onSearch={fetchTemplates} onClear={() => setNameFilter("")}>
         <Input
           label="Search by Name"
@@ -115,9 +137,14 @@ const CampaignTemplatePage = () => {
         />
       </FilterCard>
 
-      {/* Data Table */}
       <DataTable
+        serverSide={true}
         data={filteredTemplates}
+        totalItems={totalItems}
+        currentPage={currentPage}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={setRowsPerPage}
         headers={headers}
         isLoading={isLoading}
         headerActions={
@@ -135,7 +162,7 @@ const CampaignTemplatePage = () => {
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {index + 1}
+              {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
               {template.name}
@@ -143,7 +170,7 @@ const CampaignTemplatePage = () => {
 
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               <div
-                className="block w-full max-w-xs overflow-hidden truncate whitespace-nowrap"
+                className="block w-full max-w-xs overflow-hidden truncate"
                 style={{
                   display: "-webkit-box",
                   WebkitLineClamp: 2,
@@ -160,6 +187,7 @@ const CampaignTemplatePage = () => {
 
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
+                <ViewButton onClick={() => handleView(template)} />
                 <Button
                   variant="secondary"
                   size="xs"
@@ -186,6 +214,7 @@ const CampaignTemplatePage = () => {
         onSuccess={fetchTemplates}
         moduleName={routeName}
         editingTemplate={editingTemplate}
+        isViewMode={isViewMode}
       />
 
       <DeleteModal

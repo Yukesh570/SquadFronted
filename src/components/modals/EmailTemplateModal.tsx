@@ -19,9 +19,10 @@ interface EmailTemplateModalProps {
   onSuccess: (template: EmailTemplateData) => void;
   moduleName: string;
   editingTemplate: EmailTemplateData | null;
+  isViewMode?: boolean;
 }
 
-type FormData = Omit<EmailTemplateData, "id" | "is_active" | "content">;
+type FormData = Omit<EmailTemplateData, "id">;
 
 export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
   isOpen,
@@ -29,23 +30,31 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
   onSuccess,
   moduleName,
   editingTemplate,
+  isViewMode = false,
 }) => {
-  const [formData, setFormData] = useState<FormData>({ name: "" });
+  const [formData, setFormData] = useState<FormData>({ name: "", content: "" });
   const [quillContent, setQuillContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Sync state when the modal opens or the template to edit changes
   useEffect(() => {
-    if (editingTemplate && isOpen) {
-      setFormData({ name: editingTemplate.name });
-      setQuillContent(editingTemplate.content);
-    } else {
-      setFormData({ name: "" });
-      setQuillContent("");
+    if (isOpen) {
+      if (editingTemplate) {
+        setFormData({
+          name: editingTemplate.name,
+          content: editingTemplate.content,
+        });
+        setQuillContent(editingTemplate.content);
+      } else {
+        setFormData({ name: "", content: "" });
+        setQuillContent("");
+      }
     }
-  }, [editingTemplate, isOpen]);
+  }, [isOpen, editingTemplate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const isContentEmpty = (html: string) => {
@@ -56,6 +65,7 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isViewMode) return;
 
     if (!formData.name.trim()) {
       toast.error("Template Name is required.");
@@ -101,7 +111,7 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
           toast.error(String(serverError));
         }
       } else {
-        toast.error("An unexpected error occurred.");
+        toast.error("Failed to save template.");
       }
     } finally {
       setIsSubmitting(false);
@@ -114,7 +124,13 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={editingTemplate ? "Edit Email Template" : "Create New Template"}
+      title={
+        isViewMode
+          ? "View Email Template"
+          : editingTemplate
+          ? "Edit Email Template"
+          : "Create New Template"
+      }
       className="max-w-3xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -126,31 +142,39 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
           onChange={handleChange}
           placeholder="e.g., Welcome Email"
           required
+          disabled={isViewMode}
         />
         <div>
           <label className="mb-1.5 text-xs font-medium text-text-secondary">
             Content <span className="text-red-500">*</span>
           </label>
           <div className="quill-container dark:quill-dark">
+            {/* FIX: The 'key' prop forces ReactQuill to re-initialize when 
+                 editingTemplate changes. This ensures the content actually loads.
+              */}
             <ReactQuill
+              key={editingTemplate ? editingTemplate.id : "new"}
               theme="snow"
               value={quillContent}
               onChange={setQuillContent}
+              readOnly={isViewMode}
             />
           </div>
         </div>
 
         <div className="flex justify-end space-x-3 pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
+            {isViewMode ? "Close" : "Cancel"}
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting
-              ? "Saving..."
-              : editingTemplate
-              ? "Save Changes"
-              : "Save Template"}
-          </Button>
+          {!isViewMode && (
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
+              {isSubmitting
+                ? "Saving..."
+                : editingTemplate
+                ? "Save Changes"
+                : "Save Template"}
+            </Button>
+          )}
         </div>
       </form>
     </Modal>

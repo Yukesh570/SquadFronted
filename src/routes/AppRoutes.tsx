@@ -16,8 +16,8 @@ import CreateCampaignForm from "../pages/Campaign/Campaign";
 import SmtpServer from "../pages/settings/Smtp/SmtpServer";
 import EmailTemplatePage from "../pages/Email Template/emailTemplate";
 import SendMailPage from "../pages/Send Mail/SendMail";
-import Country from "../pages/Country/Country";
-import State from "../pages/settings/state";
+import Country from "../pages/settings/Country/Country";
+import State from "../pages/settings/State/state";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();

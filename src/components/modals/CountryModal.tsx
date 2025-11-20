@@ -15,6 +15,7 @@ interface CountryModalProps {
   onSuccess: () => void;
   moduleName: string;
   editingCountry: CountryData | null;
+  isViewMode?: boolean;
 }
 
 export const CountryModal: React.FC<CountryModalProps> = ({
@@ -23,11 +24,12 @@ export const CountryModal: React.FC<CountryModalProps> = ({
   onSuccess,
   moduleName,
   editingCountry,
+  isViewMode = false,
 }) => {
   const [formData, setFormData] = useState({
     name: "",
     countryCode: "",
-    MCC: "",
+    MCC: "", // 1. FIX: Changed 'mcc' to 'MCC'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -37,13 +39,13 @@ export const CountryModal: React.FC<CountryModalProps> = ({
         setFormData({
           name: editingCountry.name,
           countryCode: editingCountry.countryCode,
-          MCC: editingCountry.MCC,
+          MCC: editingCountry.MCC, // 2. FIX: Map correct key
         });
       } else {
         setFormData({
           name: "",
           countryCode: "",
-          MCC: "",
+          MCC: "", // 3. FIX: Reset correct key
         });
       }
     }
@@ -55,31 +57,30 @@ export const CountryModal: React.FC<CountryModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isViewMode) return;
     setIsSubmitting(true);
 
-    const dataToSend = {
-      name: formData.name,
-      countryCode: formData.countryCode,
-      MCC: formData.MCC,
-    };
-
     try {
+      // Data is already in correct format { name, countryCode, MCC }
       if (editingCountry) {
-        await updateCountryApi(
-          editingCountry.id!,
-          dataToSend as any,
-          moduleName
-        );
+        await updateCountryApi(editingCountry.id!, formData, moduleName);
         toast.success("Country updated successfully!");
       } else {
-        await createCountryApi(dataToSend as any, moduleName);
+        await createCountryApi(formData, moduleName);
         toast.success("Country added successfully!");
       }
       onSuccess();
       onClose();
     } catch (error: any) {
       console.error(error);
-      toast.error(error.response?.data?.detail || "Failed to save country.");
+      const serverError = error.response?.data;
+      if (serverError && typeof serverError === "object") {
+        Object.entries(serverError).forEach(([key, msgs]) => {
+          toast.error(`${key}: ${Array.isArray(msgs) ? msgs[0] : msgs}`);
+        });
+      } else {
+        toast.error("Failed to save country.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -91,7 +92,13 @@ export const CountryModal: React.FC<CountryModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={editingCountry ? "Edit Country" : "Add Country"}
+      title={
+        isViewMode
+          ? "View Country"
+          : editingCountry
+          ? "Edit Country"
+          : "Add Country"
+      }
       className="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -102,6 +109,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
           onChange={handleChange}
           placeholder="e.g., Nepal"
           required
+          disabled={isViewMode}
         />
         <Input
           label="Code"
@@ -110,7 +118,9 @@ export const CountryModal: React.FC<CountryModalProps> = ({
           onChange={handleChange}
           placeholder="e.g., NP"
           required
+          disabled={isViewMode}
         />
+        {/* 4. FIX: Updated name and value to match 'MCC' */}
         <Input
           label="MCC"
           name="MCC"
@@ -118,19 +128,23 @@ export const CountryModal: React.FC<CountryModalProps> = ({
           onChange={handleChange}
           placeholder="e.g., 429"
           required
+          disabled={isViewMode}
         />
 
         <div className="flex justify-end space-x-3 pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
+            {isViewMode ? "Close" : "Cancel"}
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting
-              ? "Saving..."
-              : editingCountry
-              ? "Save Changes"
-              : "Add Country"}
-          </Button>
+
+          {!isViewMode && (
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
+              {isSubmitting
+                ? "Saving..."
+                : editingCountry
+                ? "Save Changes"
+                : "Add Country"}
+            </Button>
+          )}
         </div>
       </form>
     </Modal>

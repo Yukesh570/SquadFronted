@@ -6,16 +6,19 @@ import {
   getCountriesApi,
   deleteCountryApi,
   type CountryData,
-} from "../../api/settingApi/countryApi/countryApi";
-import { CountryModal } from "../../components/modals/CountryModal";
-import Button from "../../components/ui/Button";
-import Input from "../../components/ui/Input";
-import DataTable from "../../components/ui/DataTable";
-import FilterCard from "../../components/ui/FilterCard";
-import { DeleteModal } from "../../components/modals/DeleteModal";
+} from "../../../api/settingApi/countryApi/countryApi";
+import { CountryModal } from "../../../components/modals/CountryModal";
+import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
+import DataTable from "../../../components/ui/DataTable";
+import FilterCard from "../../../components/ui/FilterCard";
+import { DeleteModal } from "../../../components/modals/DeleteModal";
+import ViewButton from "../../../components/ui/ViewButton"; // 1. Import ViewButton
+// import Select from "../../components/ui/Select";
 
 const Country: React.FC = () => {
   const [countries, setCountries] = useState<CountryData[]>([]);
+  const [totalItems, setTotalItems] = useState(0); // 2. Total Count
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,9 +26,15 @@ const Country: React.FC = () => {
     null
   );
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isViewMode, setIsViewMode] = useState(false); // 3. View Mode
 
   const [nameFilter, setNameFilter] = useState("");
   const [codeFilter, setCodeFilter] = useState("");
+  const [mccFilter, setMccFilter] = useState("");
+
+  // 4. Pagination State
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
@@ -33,8 +42,24 @@ const Country: React.FC = () => {
   const fetchCountries = async () => {
     setIsLoading(true);
     try {
-      const data = await getCountriesApi(routeName);
-      setCountries(data);
+      // 5. Pass params
+      const response: any = await getCountriesApi(
+        routeName,
+        currentPage,
+        rowsPerPage
+      );
+
+      // 6. Handle response safely
+      if (response && response.results) {
+        setCountries(response.results);
+        setTotalItems(response.count);
+      } else if (Array.isArray(response)) {
+        setCountries(response);
+        setTotalItems(response.length);
+      } else {
+        setCountries([]);
+        setTotalItems(0);
+      }
     } catch (error: any) {
       console.error("Fetch error:", error);
       if (error.response && error.response.status !== 404) {
@@ -47,19 +72,22 @@ const Country: React.FC = () => {
 
   useEffect(() => {
     fetchCountries();
-  }, [routeName]);
+  }, [routeName, currentPage, rowsPerPage]); // 7. Refetch on change
 
+  // Client-side filter for current page
   const filteredCountries = useMemo(() => {
+    if (!Array.isArray(countries)) return [];
     return countries.filter((c) => {
       const name = String(c.name || "");
       const code = String(c.countryCode || "");
-
+      const MCC = String(c.MCC || "");
       return (
         name.toLowerCase().includes(nameFilter.toLowerCase()) &&
-        code.toLowerCase().includes(codeFilter.toLowerCase())
+        code.toLowerCase().includes(codeFilter.toLowerCase()) &&
+        MCC.toLowerCase().includes(mccFilter.toLowerCase())
       );
     });
-  }, [countries, nameFilter, codeFilter]);
+  }, [countries, nameFilter, codeFilter, mccFilter]);
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -76,11 +104,19 @@ const Country: React.FC = () => {
 
   const handleEdit = (country: CountryData) => {
     setEditingCountry(country);
+    setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
     setEditingCountry(null);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleView = (country: CountryData) => {
+    setEditingCountry(country);
+    setIsViewMode(true);
     setIsModalOpen(true);
   };
 
@@ -111,6 +147,7 @@ const Country: React.FC = () => {
         onClear={() => {
           setNameFilter("");
           setCodeFilter("");
+          setMccFilter("");
         }}
       >
         <Input
@@ -118,17 +155,32 @@ const Country: React.FC = () => {
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
           placeholder="Country Name..."
+          className="md:col-span-2"
         />
         <Input
           label="Search Code"
           value={codeFilter}
           onChange={(e) => setCodeFilter(e.target.value)}
           placeholder="Country Code..."
+          className="md:col-span-2"
+        />
+        <Input
+          label="Search MCC"
+          value={mccFilter}
+          onChange={(e) => setMccFilter(e.target.value)}
+          placeholder="MCC..."
+          className="md:col-span-2"
         />
       </FilterCard>
 
       <DataTable
+        serverSide={true} // 8. Enable Server Side
         data={filteredCountries}
+        totalItems={totalItems}
+        currentPage={currentPage}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={setRowsPerPage}
         headers={headers}
         isLoading={isLoading}
         headerActions={
@@ -155,7 +207,8 @@ const Country: React.FC = () => {
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {index + 1}
+              {/* 9. S.N. Calculation */}
+              {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
               {country.name}
@@ -168,6 +221,8 @@ const Country: React.FC = () => {
             </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
+                {/* 10. View Button */}
+                <ViewButton onClick={() => handleView(country)} />
                 <Button
                   variant="secondary"
                   size="xs"
@@ -194,6 +249,7 @@ const Country: React.FC = () => {
         onSuccess={fetchCountries}
         moduleName={routeName}
         editingCountry={editingCountry}
+        isViewMode={isViewMode}
       />
 
       <DeleteModal

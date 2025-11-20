@@ -1,113 +1,118 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Home, Plus, Edit, Trash } from "lucide-react";
+import { Home, Plus, Edit, Trash, Download } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
+// 1. FIX: Import from stateApi.ts
 import {
-  getSmtpServersApi,
-  deleteSmtpServerApi,
-  type SmtpServerData,
-} from "../../../api/settingApi/smtpApi/smtpApi";
-import { SmtpModal } from "../../../components/modals/SmtpModal";
+  getStateApi,
+  deleteStateApi,
+  type StateData,
+} from "../../../api/settingApi/stateApi/stateApi";
+import { StateModal } from "../../../components/modals/StateModal";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
+// import Select from "../../components/ui/Select";
 
-const SmtpServer: React.FC = () => {
-  const [servers, setServers] = useState<SmtpServerData[]>([]);
+const State: React.FC = () => {
+  const [states, setStates] = useState<StateData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingServer, setEditingServer] = useState<SmtpServerData | null>(
-    null
-  );
+  const [editingState, setEditingState] = useState<StateData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
   const [nameFilter, setNameFilter] = useState("");
-  const [hostFilter, setHostFilter] = useState("");
+  const [countryFilter, setCountryFilter] = useState("");
+
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
 
-  const fetchServers = async () => {
+  const fetchStates = async () => {
     setIsLoading(true);
     try {
-      const response: any = await getSmtpServersApi(
+      const response: any = await getStateApi(
         routeName,
         currentPage,
         rowsPerPage
       );
       if (response && response.results) {
-        setServers(response.results);
+        setStates(response.results);
         setTotalItems(response.count);
       } else {
-        setServers([]);
+        setStates([]);
         setTotalItems(0);
       }
     } catch (error) {
-      toast.error("Failed to fetch SMTP servers.");
+      toast.error("Failed to fetch states.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchServers();
+    fetchStates();
   }, [routeName, currentPage, rowsPerPage]);
 
-  const filteredServers = useMemo(() => {
-    if (!Array.isArray(servers)) return [];
-    return servers.filter(
-      (server) =>
-        server.name.toLowerCase().includes(nameFilter.toLowerCase()) &&
-        server.smtpHost.toLowerCase().includes(hostFilter.toLowerCase())
+  const filteredStates = useMemo(() => {
+    if (!Array.isArray(states)) return [];
+    return states.filter(
+      (c) =>
+        (c.name || "").toLowerCase().includes(nameFilter.toLowerCase()) &&
+        (c.countryName?.toString() || "")
+          .toLowerCase()
+          .includes(countryFilter.toLowerCase())
     );
-  }, [servers, nameFilter, hostFilter]);
+  }, [states, nameFilter, countryFilter]);
 
   const handleDelete = async () => {
     if (deleteId) {
       try {
-        await deleteSmtpServerApi(deleteId, routeName);
-        toast.success("Email Host deleted.");
-        fetchServers();
+        await deleteStateApi(deleteId, routeName);
+        toast.success("State deleted.");
+        fetchStates();
       } catch (error) {
-        toast.error("Failed to delete host.");
+        toast.error("Failed to delete state.");
       }
       setDeleteId(null);
     }
   };
 
-  const handleEdit = (server: SmtpServerData) => {
-    setEditingServer(server);
+  const handleEdit = (state: StateData) => {
+    setEditingState(state);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
-    setEditingServer(null);
+    setEditingState(null);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
-  const handleView = (server: SmtpServerData) => {
-    setEditingServer(server);
+  const handleView = (state: StateData) => {
+    setEditingState(state);
     setIsViewMode(true);
     setIsModalOpen(true);
   };
 
+  const handleExport = () => {
+    toast.info("Export functionality coming soon!");
+  };
+
   const headers = [
     "S.N.",
-    "Name",
-    "Host",
-    "Port",
-    "User",
-    "Security",
+    "State Name",
+    "Country ID",
+    "Country Name",
     "Actions",
   ];
 
@@ -115,7 +120,7 @@ const SmtpServer: React.FC = () => {
     <div className="container mx-auto">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
-          Email Hosts (SMTP)
+          State Settings
         </h1>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
@@ -123,36 +128,36 @@ const SmtpServer: React.FC = () => {
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary dark:text-white">Email Hosts</span>
+          <span className="text-text-primary dark:text-white">State</span>
         </div>
       </div>
 
       <FilterCard
-        onSearch={fetchServers}
+        onSearch={fetchStates}
         onClear={() => {
           setNameFilter("");
-          setHostFilter("");
+          setCountryFilter("");
         }}
       >
         <Input
-          label="Search Name"
+          label="Search State"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Name..."
+          placeholder="State Name..."
           className="md:col-span-2"
         />
         <Input
-          label="Search Host"
-          value={hostFilter}
-          onChange={(e) => setHostFilter(e.target.value)}
-          placeholder="Host..."
+          label="Search Country"
+          value={countryFilter}
+          onChange={(e) => setCountryFilter(e.target.value)}
+          placeholder="Country Name..."
           className="md:col-span-2"
         />
       </FilterCard>
 
       <DataTable
         serverSide={true}
-        data={filteredServers}
+        data={filteredStates}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}
@@ -161,51 +166,54 @@ const SmtpServer: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <Button
-            variant="primary"
-            onClick={handleAdd}
-            leftIcon={<Plus size={18} />}
-          >
-            Add Host
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={handleExport}
+              leftIcon={<Download size={18} />}
+            >
+              Export
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Add State
+            </Button>
+          </div>
         }
-        renderRow={(server, index) => (
+        renderRow={(state, index) => (
           <tr
-            key={server.id}
+            key={state.id || index}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.name}
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
+              {state.name}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.smtpHost}
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {state.country}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.smtpPort}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.smtpUser}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.security}
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {state.countryName || "-"}
             </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(server)} />
+                <ViewButton onClick={() => handleView(state)} />
                 <Button
                   variant="secondary"
                   size="xs"
-                  onClick={() => handleEdit(server)}
+                  onClick={() => handleEdit(state)}
                 >
                   <Edit size={14} />
                 </Button>
                 <Button
                   variant="danger"
                   size="xs"
-                  onClick={() => setDeleteId(server.id!)}
+                  onClick={() => setDeleteId(state.id!)}
                 >
                   <Trash size={14} />
                 </Button>
@@ -214,22 +222,23 @@ const SmtpServer: React.FC = () => {
           </tr>
         )}
       />
-      <SmtpModal
+      <StateModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchServers}
+        onSuccess={fetchStates}
         moduleName={routeName}
-        editingServer={editingServer}
+        editingState={editingState}
         isViewMode={isViewMode}
       />
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Host"
+        title="Delete State"
         message="Are you sure?"
       />
     </div>
   );
 };
-export default SmtpServer;
+
+export default State;

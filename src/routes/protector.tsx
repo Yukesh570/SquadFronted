@@ -19,7 +19,7 @@ export const ProtectedRoute = ({ path }: ProtectedRouteProps) => {
       </div>
     );
   }
-  const parentItem = navItems.find((item) => item.url === parentUrl);
+  const parentItem = navItems.results.find((item) => item.url === parentUrl);
   let navItem = parentItem;
   if (parentItem && childUrl) {
     const child = parentItem.children?.find((c) => c.url === childUrl);

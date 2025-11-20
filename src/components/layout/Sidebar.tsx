@@ -6,6 +6,7 @@ import { NavItemsContext } from "../../context/navItemsContext";
 import FullLogo from "../../../src/assets/logos/logo.svg";
 import IconLogo from "../../../src/assets/logos/S-logo.svg";
 import type { navUserData } from "../../api/navUserRelationApi/navUserRelationApi";
+import type { PaginatedResponse } from "../../api/sidebarApi/sideBarApi";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -15,8 +16,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
   const { navItems, refreshNavItems } = useContext(NavItemsContext);
   const [openItems, setOpenItems] = useState<Record<number, boolean>>({});
   const location = useLocation();
-
-
+  console.log("Nav Items in Sidebar:", navItems);
   const toggleItem = (id?: number) => {
     if (!id) return;
     setOpenItems((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -33,14 +33,15 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
      hover:bg-sidebar-active-bg hover:text-sidebar-active-text
      dark:hover:bg-gray-700 dark:hover:text-white
      transition-colors duration-150
-     ${isActive
-      ? "bg-sidebar-active-bg dark:bg-gray-700 text-sidebar-active-text font-medium"
-      : ""
-    }
+     ${
+       isActive
+         ? "bg-sidebar-active-bg dark:bg-gray-700 text-sidebar-active-text font-medium"
+         : ""
+     }
      ${isCollapsed ? "justify-center" : ""}`;
 
-  const renderNavItems = (items: navUserData[], level = 0) => {
-    return items.map((item) => {
+  const renderNavItems = (items: PaginatedResponse<navUserData>, level = 0) => {
+    return items.results.map((item) => {
       if (!item.permission?.read) return null;
 
       const hasChildren = item.children && item.children.length > 0;
@@ -92,7 +93,15 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
           {/* Children */}
           {hasChildren && isOpen && !isCollapsed && (
             <div className="ml-3 border-l border-gray-200 dark:border-gray-700">
-              {renderNavItems(item.children!, level + 1)}
+              {renderNavItems(
+                {
+                  count: 0,
+                  next: null,
+                  previous: null,
+                  results: item.children!,
+                },
+                level + 1
+              )}
             </div>
           )}
         </div>
@@ -102,8 +111,9 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
 
   return (
     <aside
-      className={`flex flex-col h-screen bg-white dark:bg-gray-800 shadow-md transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"
-        }`}
+      className={`flex flex-col h-screen bg-white dark:bg-gray-800 shadow-md transition-all duration-300 ${
+        isCollapsed ? "w-20" : "w-64"
+      }`}
     >
       <div className="h-16 flex-shrink-0 flex items-center justify-center">
         <NavLink to="/dashboard" className="flex items-center justify-center">

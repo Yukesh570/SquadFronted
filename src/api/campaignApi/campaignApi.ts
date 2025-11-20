@@ -6,37 +6,6 @@ export interface templateData {
   content: string;
 }
 
-
-
-export const getTemplatesApi = async (): Promise<templateData[]> => {
-  const response = await api.get("/template/");
-  return response.data;
-};
-
-export const createTemplate = async (
-  data: templateData,
-  module: string
-): Promise<templateData> => {
-  const response = await api.post(`/template/${module}/`, data);
-  return response.data;
-};
-
-export const updateTemplateApi = async (
-  id: number,
-  data: templateData,
-  module: string
-): Promise<templateData> => {
-  const response = await api.patch(`/template/${module}/${id}/`, data);
-  return response.data;
-};
-
-export const deleteTemplateApi = async (
-  id: number,
-  module: string
-): Promise<void> => {
-  await api.delete(`/template/${module}/${id}/`);
-};
-
 export interface CampaignFormData {
   id?: number;
   name: string;
@@ -45,24 +14,54 @@ export interface CampaignFormData {
   content: string;
   template: string;
   is_active: boolean;
+  module: string;
 }
 
-export const getCampaignsApi = async (module: string): Promise<CampaignFormData[]> => {
-  const response = await api.get(`/campaign/${module}/`);
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+export const getTemplatesApi = async (
+  page: number = 1,
+  pageSize: number = 10
+): Promise<PaginatedResponse<templateData> | templateData[]> => {
+  const response = await api.get(`/template/?page=${page}&page_size=${pageSize}`);
+  return response.data;
+};
+
+export const createTemplate = async (data: templateData, module: string): Promise<templateData> => {
+  const response = await api.post(`/template/${module}/`, data);
+  return response.data;
+};
+
+export const updateTemplateApi = async (id: number, data: templateData, module: string): Promise<templateData> => {
+  const response = await api.patch(`/template/${module}/${id}/`, data);
+  return response.data;
+};
+
+export const deleteTemplateApi = async (id: number, module: string): Promise<void> => {
+  await api.delete(`/template/${module}/${id}/`);
+};
+
+export const getCampaignsApi = async (
+  module: string, 
+  page: number = 1, 
+  pageSize: number = 10
+): Promise<PaginatedResponse<CampaignFormData> | CampaignFormData[]> => {
+  const response = await api.get(`/campaign/${module}/?page=${page}&page_size=${pageSize}`);
   return response.data;
 };
 
 export const createCampaignApi = async (data: FormData, module: string) => {
-  const response = await api.post(`/campaign/${module}/`, data, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const response = await api.post(`/campaign/${module}/`, data, { headers: { "Content-Type": "multipart/form-data" } });
   return response.data;
 };
 
 export const updateCampaignApi = async (id: number, data: FormData, module: string) => {
-  const response = await api.patch(`/campaign/${module}/${id}/`, data, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const response = await api.patch(`/campaign/${module}/${id}/`, data, { headers: { "Content-Type": "multipart/form-data" } });
   return response.data;
 };
 
@@ -73,8 +72,6 @@ export const deleteCampaignApi = async (id: number, module: string): Promise<voi
 export const uploadCampaignCsvApi = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
-  const response = await api.post("/campaigns/upload-csv/", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const response = await api.post("/campaigns/upload-csv/", formData, { headers: { "Content-Type": "multipart/form-data" } });
   return response.data;
 };

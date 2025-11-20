@@ -7,7 +7,10 @@ import {
   getEmailTemplatesApi,
   type EmailTemplateData,
 } from "../../api/emailTemplateApi/emailTemplateApi";
-import { getSmtpServersApi } from "../../api/settingApi/smtpApi/smtpApi";
+import {
+  getSmtpServersApi,
+  type SmtpServerData,
+} from "../../api/settingApi/smtpApi/smtpApi";
 import ReactQuill from "react-quill-new";
 import "../../quillDark.css";
 import Input from "../../components/ui/Input";
@@ -43,18 +46,46 @@ const SendMailPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const templates = await getEmailTemplatesApi(templateModuleName);
+        // 1. Fetch Templates (Requesting 1000 to get all for dropdown)
+        const templatesResponse: any = await getEmailTemplatesApi(
+          templateModuleName,
+          1,
+          1000
+        );
+
+        // FIX: Extract array from paginated response
+        let templatesData: EmailTemplateData[] = [];
+        if (templatesResponse && templatesResponse.results) {
+          templatesData = templatesResponse.results;
+        } else if (Array.isArray(templatesResponse)) {
+          templatesData = templatesResponse;
+        }
+
         setTemplateOptions(
-          templates.map((t) => ({
+          templatesData.map((t: EmailTemplateData) => ({
             value: t.id!.toString(),
             label: t.name,
             content: t.content,
           }))
         );
 
-        const hosts = await getSmtpServersApi(smtpModuleName);
+        // 2. Fetch Email Hosts (Requesting 1000 to get all for dropdown)
+        const hostsResponse: any = await getSmtpServersApi(
+          smtpModuleName,
+          1,
+          1000
+        );
+
+        // FIX: Extract array from paginated response
+        let hostsData: SmtpServerData[] = [];
+        if (hostsResponse && hostsResponse.results) {
+          hostsData = hostsResponse.results;
+        } else if (Array.isArray(hostsResponse)) {
+          hostsData = hostsResponse;
+        }
+
         setEmailHostOptions(
-          hosts.map((h) => ({
+          hostsData.map((h: SmtpServerData) => ({
             value: h.id!.toString(),
             label: h.name,
             email: h.name,
@@ -62,6 +93,7 @@ const SendMailPage: React.FC = () => {
         );
       } catch (error) {
         console.error("Failed to load data:", error);
+        toast.error("Failed to load dropdown options.");
       }
     };
     fetchData();
@@ -94,30 +126,11 @@ const SendMailPage: React.FC = () => {
     }
   };
 
-  // Helper
-  const isContentEmpty = (html: string) => {
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    const text = doc.body.textContent || "";
-    return text.trim().length === 0;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedEmailHost) {
       toast.error("Please select an Email Host (Sender).");
-      return;
-    }
-    if (!recipientList.trim()) {
-      toast.error("Recipient List is required.");
-      return;
-    }
-    if (!subject.trim()) {
-      toast.error("Subject is required.");
-      return;
-    }
-    if (isContentEmpty(content)) {
-      toast.error("Email content cannot be empty.");
       return;
     }
 
@@ -146,18 +159,11 @@ const SendMailPage: React.FC = () => {
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error: any) {
       console.error("Error sending email:", error);
-      const serverError = error.response?.data;
-      if (serverError) {
-        if (typeof serverError === "object") {
-          Object.entries(serverError).forEach(([key, msgs]) => {
-            toast.error(`${key}: ${Array.isArray(msgs) ? msgs[0] : msgs}`);
-          });
-        } else {
-          toast.error(String(serverError));
-        }
-      } else {
-        toast.error("Failed to send email.");
-      }
+      const errorMsg =
+        error.response?.data?.detail ||
+        error.response?.data?.error ||
+        "Failed to send email.";
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -185,7 +191,7 @@ const SendMailPage: React.FC = () => {
             label="From (Email Host)"
             value={selectedEmailHost}
             onChange={handleEmailHostChange}
-            options={emailHostOptions}
+            options={[...emailHostOptions]}
             placeholder="Select the email server to send from"
           />
 
@@ -193,7 +199,7 @@ const SendMailPage: React.FC = () => {
             label="Select Template (Optional)"
             value={selectedTemplate}
             onChange={handleTemplateChange}
-            options={templateOptions}
+            options={[...templateOptions]}
             placeholder="Select a template to auto-fill Body"
           />
 

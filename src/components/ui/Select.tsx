@@ -14,6 +14,7 @@ interface SelectProps {
   options: SelectOption[];
   placeholder?: string;
   error?: string;
+  clearable?: boolean; // 1. NEW PROP
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -23,6 +24,7 @@ const Select: React.FC<SelectProps> = ({
   options,
   placeholder = "Select an option",
   error,
+  clearable = true, // 2. Default is TRUE (Show X). Pass false to hide it.
 }) => {
   const selectedOption =
     options.find((option) => option.value === value) || null;
@@ -69,7 +71,8 @@ const Select: React.FC<SelectProps> = ({
               />
             </span>
 
-            {value && (
+            {/* 3. Only show 'X' if value exists AND clearable is true */}
+            {value && clearable && (
               <span
                 onClick={handleClear}
                 className="absolute inset-y-0 right-8 flex items-center pr-2 cursor-pointer hover:text-red-500 group"

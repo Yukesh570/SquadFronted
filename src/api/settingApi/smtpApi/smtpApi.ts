@@ -10,8 +10,15 @@ export interface SmtpServerData {
   security: 'TLS' | 'SSL';
 }
 
-export const getSmtpServersApi = async (module: string): Promise<SmtpServerData[]> => {
-  const response = await api.get(`/emailHost/${module}/`);
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+export const getSmtpServersApi = async (module: string, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<SmtpServerData>> => {
+  const response = await api.get(`/emailHost/${module}/?page=${page}&page_size=${pageSize}`);
   return response.data;
 };
 

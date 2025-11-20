@@ -1,5 +1,5 @@
 import api from "../axiosInstance";
-import { type SideBarApi } from "../sidebarApi/sideBarApi";
+import { type PaginatedResponse, type SideBarApi } from "../sidebarApi/sideBarApi";
 
 // export interface navUserData {
 //   id?: number;
@@ -28,7 +28,7 @@ export interface params {
   userType: string;
 }
 
-export const getUserSideBarApi = async (): Promise<navUserData[]> => {
+export const getUserSideBarApi = async (): Promise<PaginatedResponse<navUserData>> => {
   const response = await api.get("/navUserRelationGet/");
   return response.data;
 };

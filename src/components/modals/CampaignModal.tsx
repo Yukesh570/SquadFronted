@@ -1,5 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Upload, Clock, Phone, Zap, FileSpreadsheet } from "lucide-react";
+import {
+  Send,
+  Upload,
+  Clock,
+  Phone,
+  Zap,
+  FileSpreadsheet,
+} from "lucide-react";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import Select from "../ui/Select";
@@ -13,6 +20,7 @@ import {
   getTemplatesApi,
   type CampaignFormData,
 } from "../../api/campaignApi/campaignApi";
+// @ts-ignore
 import ReactQuill from "react-quill-new";
 import "../../quillDark.css";
 
@@ -22,6 +30,7 @@ interface CampaignModalProps {
   onSuccess: () => void;
   moduleName: string;
   editingCampaign: CampaignFormData | null;
+  isViewMode?: boolean;
 }
 
 const CampaignModal: React.FC<CampaignModalProps> = ({
@@ -30,6 +39,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
   onSuccess,
   moduleName,
   editingCampaign,
+  isViewMode = false,
 }) => {
   const [formData, setFormData] = useState({
     campaignName: "",
@@ -37,9 +47,11 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     audienceType: "specify",
     contactNumber: "",
     template: "",
-    content: "",
     scheduleType: "now",
   });
+
+  // Separate state for Quill content
+  const [quillContent, setQuillContent] = useState("");
 
   const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
   const [templateOptions, setTemplateOptions] = useState<
@@ -67,9 +79,17 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      getTemplatesApi().then((data) => {
+      // Fetch templates
+      getTemplatesApi(1, 1000).then((response: any) => {
+        let data = [];
+        if (response && response.results) {
+          data = response.results;
+        } else if (Array.isArray(response)) {
+          data = response;
+        }
+
         setTemplateOptions(
-          data.map((t) => ({
+          data.map((t: any) => ({
             label: t.name,
             value: t.id!.toString(),
             content: t.content,
@@ -77,30 +97,37 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
         );
       });
 
+      // Pre-fill form if editing
       if (editingCampaign) {
         setFormData({
           campaignName: editingCampaign.name,
           objective: editingCampaign.objective,
           audienceType: "specify",
           contactNumber: "",
-          template: editingCampaign.template || "",
-          content: editingCampaign.content || "",
+          // Ensure template ID matches dropdown (string)
+          template: editingCampaign.template
+            ? String(editingCampaign.template)
+            : "",
           scheduleType: "now",
         });
+
+        setQuillContent(editingCampaign.content || "");
+
         if (editingCampaign.schedule) {
           setScheduleDate(new Date(editingCampaign.schedule));
           setFormData((prev) => ({ ...prev, scheduleType: "datetime" }));
         }
       } else {
+        // Reset if adding
         setFormData({
           campaignName: "",
           objective: "Promotion",
           audienceType: "specify",
           contactNumber: "",
           template: "",
-          content: "",
           scheduleType: "now",
         });
+        setQuillContent("");
         setScheduleDate(null);
         setCsvFile(null);
       }
@@ -117,8 +144,11 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       setFormData({
         ...formData,
         template: value,
-        content: selected ? selected.content : "",
       });
+      // Auto-fill content
+      if (selected) {
+        setQuillContent(selected.content);
+      }
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -131,6 +161,18 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     }
   };
 
+  const downloadSample = () => {
+    const csvContent =
+      "data:text/csv;charset=utf-8,PhoneNumber\n9800000000\n9811111111";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "sample_contacts.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const isContentEmpty = (html: string) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
     const text = doc.body.textContent || "";
@@ -139,18 +181,16 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isViewMode) return;
 
-    // 1. FIX: Validation
-    if (isContentEmpty(formData.content)) {
-      toast.error("Content cannot be empty.");
-      return;
-    }
     if (!formData.campaignName.trim()) {
-      toast.error("Campaign name required.");
+      toast.error("Campaign name is required.");
       return;
     }
-    // Ensure template is selected if required by your logic, or allow blank if it's optional.
-    // If template is optional but content is required, we are good.
+    if (isContentEmpty(quillContent)) {
+      toast.error("Campaign content cannot be empty.");
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -158,9 +198,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       const dataToUpload = new FormData();
       dataToUpload.append("name", formData.campaignName);
       dataToUpload.append("objective", formData.objective);
-      dataToUpload.append("content", formData.content);
-
-      // Send template only if it has a value
+      dataToUpload.append("content", quillContent);
       if (formData.template) dataToUpload.append("template", formData.template);
 
       let scheduleTimestamp = new Date().toISOString();
@@ -173,22 +211,17 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       );
 
       if (formData.audienceType === "specify") {
-        const contacts = formData.contactNumber
-          .split(",")
-          .map((c) => c.trim())
-          .filter(Boolean);
-        if (contacts.length === 0) {
+        // --- FIX: Validate but send raw string ---
+        if (!formData.contactNumber.trim()) {
           toast.error("Please specify at least one contact number.");
           setIsSubmitting(false);
           return;
         }
-        contacts.forEach((c) => dataToUpload.append("contacts", c));
+        // Send the contacts as a SINGLE string. The backend will split it.
+        dataToUpload.append("contacts", formData.contactNumber);
+        // ----------------------------------------
       } else if (csvFile) {
         dataToUpload.append("csvFile", csvFile);
-      } else {
-        toast.error("Please provide contacts (Specify or Upload).");
-        setIsSubmitting(false);
-        return;
       }
 
       if (editingCampaign) {
@@ -201,17 +234,29 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
       onSuccess();
       onClose();
+
+      // Reset
+      setFormData({
+        campaignName: "",
+        objective: "Promotion",
+        audienceType: "specify",
+        contactNumber: "",
+        template: "",
+        scheduleType: "now",
+      });
+      setQuillContent("");
+      setScheduleDate(null);
+      setCsvFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (error: any) {
-      // 2. FIX: Better error handling
+      console.error(error);
       const serverError = error.response?.data;
-      if (serverError) {
-        if (typeof serverError === "object") {
-          Object.entries(serverError).forEach(([key, msgs]) => {
-            toast.error(`${key}: ${Array.isArray(msgs) ? msgs[0] : msgs}`);
-          });
-        } else {
-          toast.error(String(serverError));
-        }
+      if (serverError && typeof serverError === "object") {
+        Object.entries(serverError).forEach(([key, msgs]) => {
+          toast.error(`${key}: ${Array.isArray(msgs) ? msgs[0] : msgs}`);
+        });
       } else {
         toast.error("Failed to save campaign.");
       }
@@ -226,7 +271,13 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={editingCampaign ? "Edit Campaign" : "Create New Campaign"}
+      title={
+        isViewMode
+          ? "View Campaign"
+          : editingCampaign
+          ? "Edit Campaign"
+          : "Create New Campaign"
+      }
       className="max-w-3xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -237,6 +288,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
             value={formData.campaignName}
             onChange={handleChange}
             required
+            disabled={isViewMode}
           />
           <Select
             label="Objective"
@@ -263,6 +315,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
               value={formData.contactNumber}
               onChange={handleChange}
               placeholder="e.g., 98xxxxxxxx, 98xxxxxxxx"
+              disabled={isViewMode}
             />
           ) : (
             <div className="flex items-center gap-3 p-4 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
@@ -271,6 +324,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
                 variant="secondary"
                 onClick={() => fileInputRef.current?.click()}
                 leftIcon={<Upload size={16} />}
+                disabled={isViewMode}
               >
                 {csvFile ? "Change File" : "Upload CSV/Excel"}
               </Button>
@@ -285,6 +339,18 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
               <div className="flex-1 text-sm text-gray-500 truncate">
                 {csvFile ? csvFile.name : "No file selected"}
               </div>
+
+              {!isViewMode && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={downloadSample}
+                  title="Download Sample"
+                  className="text-primary"
+                >
+                  <FileSpreadsheet size={18} />
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -294,14 +360,16 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
             label="Template"
             value={formData.template}
             onChange={(v) => handleSelectChange("template", v)}
-            // 3. FIX: Removed the manual "None" option. The Select component handles clearing.
-            options={templateOptions}
+            options={[{ label: "None (Blank)", value: "" }, ...templateOptions]}
             placeholder="Select Template"
           />
           <div className="quill-container dark:quill-dark mt-2">
             <ReactQuill
-              value={formData.content}
-              onChange={(v) => setFormData({ ...formData, content: v })}
+              key={editingCampaign ? editingCampaign.id : "new"}
+              theme="snow"
+              value={quillContent}
+              onChange={setQuillContent}
+              readOnly={isViewMode}
             />
           </div>
         </div>
@@ -327,20 +395,22 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
         <div className="flex justify-end pt-2 gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
+            {isViewMode ? "Close" : "Cancel"}
           </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={isSubmitting}
-            leftIcon={<Send size={18} />}
-          >
-            {isSubmitting
-              ? "Saving..."
-              : editingCampaign
-              ? "Update Campaign"
-              : "Create Campaign"}
-          </Button>
+          {!isViewMode && (
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isSubmitting}
+              leftIcon={<Send size={18} />}
+            >
+              {isSubmitting
+                ? "Saving..."
+                : editingCampaign
+                ? "Update Campaign"
+                : "Create Campaign"}
+            </Button>
+          )}
         </div>
       </form>
     </Modal>

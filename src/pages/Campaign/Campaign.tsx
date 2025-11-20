@@ -7,6 +7,7 @@ import {
   deleteCampaignApi,
   type CampaignFormData,
 } from "../../api/campaignApi/campaignApi";
+// Correct Import
 import CampaignModal from "../../components/modals/CampaignModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -14,20 +15,24 @@ import Select from "../../components/ui/Select";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
+import ViewButton from "../../components/ui/ViewButton";
 
 const CampaignList: React.FC = () => {
   const [campaigns, setCampaigns] = useState<CampaignFormData[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] =
     useState<CampaignFormData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isViewMode, setIsViewMode] = useState(false); // View Mode
 
-  // Filter States
   const [nameFilter, setNameFilter] = useState("");
   const [objectiveFilter, setObjectiveFilter] = useState("");
+
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
@@ -35,8 +40,21 @@ const CampaignList: React.FC = () => {
   const fetchCampaigns = async () => {
     setIsLoading(true);
     try {
-      const data = await getCampaignsApi(routeName);
-      setCampaigns(data);
+      const response: any = await getCampaignsApi(
+        routeName,
+        currentPage,
+        rowsPerPage
+      );
+      if (response && response.results) {
+        setCampaigns(response.results);
+        setTotalItems(response.count);
+      } else if (Array.isArray(response)) {
+        setCampaigns(response);
+        setTotalItems(response.length);
+      } else {
+        setCampaigns([]);
+        setTotalItems(0);
+      }
     } catch (error) {
       console.error("Fetch error:", error);
     } finally {
@@ -46,18 +64,15 @@ const CampaignList: React.FC = () => {
 
   useEffect(() => {
     fetchCampaigns();
-  }, [routeName]);
+  }, [routeName, currentPage, rowsPerPage]);
 
-  // Search Logic
   const filteredCampaigns = useMemo(() => {
-    return campaigns.filter((c) => {
-      const name = String(c.name || "");
-      const objective = String(c.objective || "");
-      return (
-        name.toLowerCase().includes(nameFilter.toLowerCase()) &&
-        objective.toLowerCase().includes(objectiveFilter.toLowerCase())
-      );
-    });
+    if (!Array.isArray(campaigns)) return [];
+    return campaigns.filter(
+      (c) =>
+        c.name.toLowerCase().includes(nameFilter.toLowerCase()) &&
+        c.objective.toLowerCase().includes(objectiveFilter.toLowerCase())
+    );
   }, [campaigns, nameFilter, objectiveFilter]);
 
   const handleDelete = async () => {
@@ -75,16 +90,23 @@ const CampaignList: React.FC = () => {
 
   const handleEdit = (campaign: CampaignFormData) => {
     setEditingCampaign(campaign);
+    setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
     setEditingCampaign(null);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleView = (campaign: CampaignFormData) => {
+    setEditingCampaign(campaign);
+    setIsViewMode(true);
     setIsModalOpen(true);
   };
 
   const headers = ["S.N.", "Name", "Objective", "Schedule", "Actions"];
-
   const objectiveOptions = [
     { label: "All", value: "" },
     { label: "Promotion", value: "Promotion" },
@@ -94,7 +116,6 @@ const CampaignList: React.FC = () => {
 
   return (
     <div className="container mx-auto">
-      {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Campaigns
@@ -109,7 +130,6 @@ const CampaignList: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Card */}
       <FilterCard
         onSearch={fetchCampaigns}
         onClear={() => {
@@ -132,9 +152,14 @@ const CampaignList: React.FC = () => {
         />
       </FilterCard>
 
-      {/* Data Table */}
       <DataTable
+        serverSide={true}
         data={filteredCampaigns}
+        totalItems={totalItems}
+        currentPage={currentPage}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={setRowsPerPage}
         headers={headers}
         isLoading={isLoading}
         headerActions={
@@ -151,8 +176,8 @@ const CampaignList: React.FC = () => {
             key={campaign.id || index}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
           >
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {index + 1}
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
+              {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
               {campaign.name}
@@ -169,6 +194,7 @@ const CampaignList: React.FC = () => {
             </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
+                <ViewButton onClick={() => handleView(campaign)} />
                 <Button
                   variant="secondary"
                   size="xs"
@@ -189,13 +215,13 @@ const CampaignList: React.FC = () => {
         )}
       />
 
-      {/* Modals */}
       <CampaignModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchCampaigns}
         moduleName={routeName}
         editingCampaign={editingCampaign}
+        isViewMode={isViewMode}
       />
 
       <DeleteModal
@@ -203,7 +229,7 @@ const CampaignList: React.FC = () => {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Campaign"
-        message="Are you sure you want to delete this campaign? This action cannot be undone."
+        message="Are you sure you want to delete this campaign?"
       />
     </div>
   );

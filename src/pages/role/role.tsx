@@ -24,7 +24,9 @@ type PermissionKeys = "read" | "write" | "delete" | "put";
 
 const PermissionsTable = () => {
   const [permissions, setPermissions] = useState<navUserData[]>([]);
-  const [originalPermissions, setOriginalPermissions] = useState<navUserData[]>([]);
+  const [originalPermissions, setOriginalPermissions] = useState<navUserData[]>(
+    []
+  );
   const [selectedUserType, setSelectedUserType] = useState("ADMIN");
   const [isSaving, setIsSaving] = useState(false);
   const [expandedRows, setExpandedRows] = useState<number[]>([]);
@@ -33,7 +35,7 @@ const PermissionsTable = () => {
   // This is a complex but necessary function for recursive state updates
   const handleToggle = (id: number, key: PermissionKeys) => {
     const updatePermissions = (items: navUserData[]): navUserData[] => {
-      return items.map(item => {
+      return items.map((item) => {
         if (item.permission?.NavRelationid === id) {
           return {
             ...item,
@@ -52,7 +54,7 @@ const PermissionsTable = () => {
         return item;
       });
     };
-    setPermissions(prev => updatePermissions(prev));
+    setPermissions((prev) => updatePermissions(prev));
   };
 
   const toggleExpand = (id: number) => {
@@ -91,7 +93,11 @@ const PermissionsTable = () => {
       // Compares the new state to the original state
       const changedPermissions = flatPermissions.filter((currentItem) => {
         const originalItem = flatOriginal.find((i) => i.id === currentItem.id);
-        if (!originalItem || !currentItem.permission || !originalItem.permission) {
+        if (
+          !originalItem ||
+          !currentItem.permission ||
+          !originalItem.permission
+        ) {
           return false; // Safety check
         }
         return (
@@ -160,16 +166,20 @@ const PermissionsTable = () => {
               {item.label || "No label"}
             </td>
 
-            {(["read", "write", "delete", "put"] as PermissionKeys[]).map((key) => (
-              <td key={key} className="px-6 py-2 text-center">
-                <div className="flex justify-center">
-                  <ToggleSwitch
-                    checked={item.permission![key]}
-                    onChange={() => handleToggle(item.permission!.NavRelationid!, key)}
-                  />
-                </div>
-              </td>
-            ))}
+            {(["read", "write", "delete", "put"] as PermissionKeys[]).map(
+              (key) => (
+                <td key={key} className="px-6 py-2 text-center">
+                  <div className="flex justify-center">
+                    <ToggleSwitch
+                      checked={item.permission![key]}
+                      onChange={() =>
+                        handleToggle(item.permission!.NavRelationid!, key)
+                      }
+                    />
+                  </div>
+                </td>
+              )
+            )}
           </tr>
 
           {item.children &&
@@ -195,6 +205,7 @@ const PermissionsTable = () => {
             onChange={setSelectedUserType}
             options={userTypeOptions}
             placeholder="Select User Type"
+            clearable={false}
           />
         </div>
       </div>

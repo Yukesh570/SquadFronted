@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+// @ts-ignore
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import "../../quillDark.css";
@@ -18,6 +19,7 @@ interface AddTemplateModalProps {
   onSuccess: () => void;
   moduleName: string;
   editingTemplate: templateData | null;
+  isViewMode?: boolean;
 }
 
 export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
@@ -26,6 +28,7 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
   onSuccess,
   moduleName,
   editingTemplate,
+  isViewMode = false,
 }) => {
   const [name, setName] = useState("");
   const [quillContent, setQuillContent] = useState("");
@@ -51,6 +54,7 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isViewMode) return; // Block submit
 
     if (!name.trim()) {
       toast.error("Template Name is required.");
@@ -62,7 +66,6 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
     }
 
     setIsSubmitting(true);
-
     const dataToSend = { name, content: quillContent };
 
     try {
@@ -73,12 +76,10 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
         await createTemplate(dataToSend, moduleName);
         toast.success("Template saved successfully!");
       }
-
       onSuccess();
       onClose();
     } catch (error: any) {
       console.error("Error saving template:", error);
-
       const serverError = error.response?.data;
       if (serverError) {
         if (typeof serverError === "object") {
@@ -102,7 +103,13 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={editingTemplate ? "Edit Template" : "Create New Template"}
+      title={
+        isViewMode
+          ? "View Template"
+          : editingTemplate
+          ? "Edit Template"
+          : "Create New Template"
+      }
       className="max-w-3xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -113,6 +120,7 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter Template Name"
           required
+          disabled={isViewMode}
         />
 
         <div>
@@ -120,21 +128,28 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
             Template Content <span className="text-red-500">*</span>
           </label>
           <div className="quill-container dark:quill-dark">
-            <ReactQuill value={quillContent} onChange={setQuillContent} />
+            <ReactQuill
+              theme="snow"
+              value={quillContent}
+              onChange={setQuillContent}
+              readOnly={isViewMode}
+            />
           </div>
         </div>
 
         <div className="flex justify-end space-x-3 pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
+            {isViewMode ? "Close" : "Cancel"}
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting
-              ? "Saving..."
-              : editingTemplate
-              ? "Save Changes"
-              : "Save Template"}
-          </Button>
+          {!isViewMode && (
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
+              {isSubmitting
+                ? "Saving..."
+                : editingTemplate
+                ? "Save Changes"
+                : "Save Template"}
+            </Button>
+          )}
         </div>
       </form>
     </Modal>

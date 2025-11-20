@@ -8,18 +8,30 @@ export interface SideBarApi {
   order: number;
   is_active: boolean;
   icon: string;
+  module: string;
 }
 
-export const getSideBarApi = async (module: string): Promise<SideBarApi[]> => {
-  const response = await api.get(`/navItem/${module}/`);
-  console.log("Fetched sidebar data:", module);
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+export const getSideBarApi = async (
+  module?: string,
+  page?: number,
+  pageSize?: number,
+): Promise<PaginatedResponse<SideBarApi>> => {
+    const params: any = {};
+
+  if (page !== undefined) params.page = page;
+  if (pageSize !== undefined) params.page_size = pageSize;
+  const response = await api.get(`/navItem/${module}/`, { params });
   return response.data;
 };
 
-export const createSideBarApi = async (
-  data: SideBarApi,
-  module: string
-): Promise<SideBarApi> => {
+export const createSideBarApi = async (data: SideBarApi, module: string): Promise<SideBarApi> => {
   if (data.parent === 0) {
     const { parent, ...rest } = data;
     const response = await api.post(`/navItem/${module}/`, rest);
@@ -30,18 +42,11 @@ export const createSideBarApi = async (
   }
 };
 
-export const updateSideBarApi = async (
-  id: number,
-  data: SideBarApi,
-  module: string
-): Promise<SideBarApi> => {
+export const updateSideBarApi = async (id: number, data: SideBarApi, module: string): Promise<SideBarApi> => {
   const response = await api.patch(`/navItem/${module}/${id}/`, data);
   return response.data;
 };
 
-export const deleteSideBarApi = async (
-  id: number,
-  module: string
-): Promise<void> => {
+export const deleteSideBarApi = async (id: number, module: string): Promise<void> => {
   await api.delete(`/navItem/${module}/${id}/`);
 };

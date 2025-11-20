@@ -4,11 +4,21 @@ export interface EmailTemplateData {
   id?: number;
   name: string;
   content: string;
-  is_active: boolean;
 }
 
-export const getEmailTemplatesApi = async (module: string): Promise<EmailTemplateData[]> => {
-  const response = await api.get(`/emailTemplate/${module}/`);
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+export const getEmailTemplatesApi = async (
+  module: string,
+  page: number = 1,
+  pageSize: number = 10
+): Promise<PaginatedResponse<EmailTemplateData>> => {
+  const response = await api.get(`/emailTemplate/${module}/?page=${page}&page_size=${pageSize}`);
   return response.data;
 };
 

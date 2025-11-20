@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useContext } from "react";
-import { Plus, Edit, Trash } from "lucide-react";
+import { Plus, Edit, Trash, Home } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -14,33 +14,44 @@ import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import { NavItemsContext } from "../../context/navItemsContext";
-import { Home } from "lucide-react";
+import ViewButton from "../../components/ui/ViewButton";
 
 const ModuleList: React.FC = () => {
   const [modules, setModules] = useState<SideBarApi[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingModule, setEditingModule] = useState<SideBarApi | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isViewMode, setIsViewMode] = useState(false);
 
-  // Filter States
   const [labelFilter, setLabelFilter] = useState("");
   const [urlFilter, setUrlFilter] = useState("");
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { refreshNavItems } = useContext(NavItemsContext);
-
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
 
   const fetchModules = async () => {
     setIsLoading(true);
     try {
-      const data = await getSideBarApi(routeName);
-      setModules(data);
+      const response: any = await getSideBarApi(
+        routeName,
+
+        currentPage,
+        rowsPerPage
+      );
+      if (response && response.results) {
+        setModules(response.results);
+        setTotalItems(response.count);
+      } else {
+        setModules([]);
+        setTotalItems(0);
+      }
     } catch (error) {
-      console.error("Fetch error:", error);
       toast.error("Failed to fetch modules.");
     } finally {
       setIsLoading(false);
@@ -49,10 +60,10 @@ const ModuleList: React.FC = () => {
 
   useEffect(() => {
     fetchModules();
-  }, []);
+  }, [currentPage, rowsPerPage]);
 
-  // Search Logic
   const filteredModules = useMemo(() => {
+    if (!Array.isArray(modules)) return [];
     return modules.filter(
       (module) =>
         module.label.toLowerCase().includes(labelFilter.toLowerCase()) &&
@@ -76,11 +87,17 @@ const ModuleList: React.FC = () => {
 
   const handleEdit = (module: SideBarApi) => {
     setEditingModule(module);
+    setIsViewMode(false);
     setIsModalOpen(true);
   };
-
   const handleAdd = () => {
     setEditingModule(null);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+  const handleView = (module: SideBarApi) => {
+    setEditingModule(module);
+    setIsViewMode(true);
     setIsModalOpen(true);
   };
 
@@ -89,14 +106,13 @@ const ModuleList: React.FC = () => {
     "Label",
     "URL",
     "Icon",
-    "Order",
+    // "Order",
     "Status",
     "Actions",
   ];
 
   return (
     <div className="container mx-auto">
-      {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Module Management
@@ -111,7 +127,6 @@ const ModuleList: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Card */}
       <FilterCard
         onSearch={fetchModules}
         onClear={() => {
@@ -135,9 +150,14 @@ const ModuleList: React.FC = () => {
         />
       </FilterCard>
 
-      {/* Data Table */}
       <DataTable
+        serverSide={true}
         data={filteredModules}
+        totalItems={totalItems}
+        currentPage={currentPage}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={setRowsPerPage}
         headers={headers}
         isLoading={isLoading}
         headerActions={
@@ -155,7 +175,7 @@ const ModuleList: React.FC = () => {
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {index + 1}
+              {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
               {module.label}
@@ -166,22 +186,23 @@ const ModuleList: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {module.icon}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
+            {/* <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {module.order}
-            </td>
+            </td> */}
             <td className="px-4 py-4 text-sm">
               {module.is_active ? (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                <span className="px-2.5 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
                   Active
                 </span>
               ) : (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                <span className="px-2.5 py-0.5 rounded-full text-xs bg-red-100 text-red-800">
                   Inactive
                 </span>
               )}
             </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
+                <ViewButton onClick={() => handleView(module)} />
                 <Button
                   variant="secondary"
                   size="xs"
@@ -201,8 +222,6 @@ const ModuleList: React.FC = () => {
           </tr>
         )}
       />
-
-      {/* Modals */}
       <ModuleModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -212,14 +231,14 @@ const ModuleList: React.FC = () => {
         }}
         moduleName={routeName}
         editingModule={editingModule}
+        isViewMode={isViewMode}
       />
-
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Module"
-        message="Are you sure you want to delete this module? This action cannot be undone."
+        message="Are you sure?"
       />
     </div>
   );
