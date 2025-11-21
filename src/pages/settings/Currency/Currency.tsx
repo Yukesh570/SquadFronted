@@ -1,135 +1,124 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Home, Plus, Edit, Trash, Download } from "lucide-react";
+import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  getCountriesApi,
-  deleteCountryApi,
-  type CountryData,
-} from "../../../api/settingApi/countryApi/countryApi";
-import { CountryModal } from "../../../components/modals/Settings/CountryModal";
+  getCurrenciesApi,
+  deleteCurrencyApi,
+  type CurrencyData,
+} from "../../../api/settingApi/currencyApi/currencyApi";
+import { CurrencyModal } from "../../../components/modals/Settings/CurrencyModal";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
-// import Select from "../../components/ui/Select";
 
-const Country: React.FC = () => {
-  const [countries, setCountries] = useState<CountryData[]>([]);
+const Currency: React.FC = () => {
+  const [currencies, setCurrencies] = useState<CurrencyData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCountry, setEditingCountry] = useState<CountryData | null>(
+  const [editingCurrency, setEditingCurrency] = useState<CurrencyData | null>(
     null
   );
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
   const [nameFilter, setNameFilter] = useState("");
-  const [codeFilter, setCodeFilter] = useState("");
-  const [mccFilter, setMccFilter] = useState("");
 
-  // 4. Pagination State
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const routeName = location.pathname.split("/")[1] || "";
 
-  const fetchCountries = async () => {
+  const pathParts = location.pathname.split("/").filter(Boolean);
+  const routeName = pathParts[pathParts.length - 1] || "currency";
+
+  const fetchCurrencies = async () => {
     setIsLoading(true);
     try {
-      const response: any = await getCountriesApi(
+      const response: any = await getCurrenciesApi(
         routeName,
         currentPage,
         rowsPerPage
       );
 
-      // 6. Handle response safely
       if (response && response.results) {
-        setCountries(response.results);
+        setCurrencies(response.results);
         setTotalItems(response.count);
       } else if (Array.isArray(response)) {
-        setCountries(response);
+        setCurrencies(response);
         setTotalItems(response.length);
       } else {
-        setCountries([]);
+        setCurrencies([]);
         setTotalItems(0);
       }
-    } catch (error: any) {
-      console.error("Fetch error:", error);
-      if (error.response && error.response.status !== 404) {
-        toast.error("Failed to fetch countries.");
-      }
+    } catch (error) {
+      toast.error("Failed to fetch currencies.");
+      //   console.error("Fetch error", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCountries();
-  }, [routeName, currentPage, rowsPerPage]); // 7. Refetch on change
+    fetchCurrencies();
+  }, [routeName, currentPage, rowsPerPage]);
 
-  // Client-side filter for current page
-  const filteredCountries = useMemo(() => {
-    if (!Array.isArray(countries)) return [];
-    return countries.filter((c) => {
-      const name = String(c.name || "");
-      const code = String(c.countryCode || "");
-      const MCC = String(c.MCC || "");
-      return (
-        name.toLowerCase().includes(nameFilter.toLowerCase()) &&
-        code.toLowerCase().includes(codeFilter.toLowerCase()) &&
-        MCC.toLowerCase().includes(mccFilter.toLowerCase())
-      );
-    });
-  }, [countries, nameFilter, codeFilter, mccFilter]);
+  const filteredCurrencies = useMemo(() => {
+    if (!Array.isArray(currencies)) return [];
+    return currencies.filter((c) =>
+      (c.name || "").toLowerCase().includes(nameFilter.toLowerCase())
+    );
+  }, [currencies, nameFilter]);
 
   const handleDelete = async () => {
     if (deleteId) {
       try {
-        await deleteCountryApi(deleteId, routeName);
-        toast.success("Country deleted.");
-        fetchCountries();
+        await deleteCurrencyApi(deleteId, routeName);
+        toast.success("Currency deleted.");
+        fetchCurrencies();
       } catch (error) {
-        toast.error("Failed to delete country.");
+        toast.error("Failed to delete currency.");
       }
       setDeleteId(null);
     }
   };
 
-  const handleEdit = (country: CountryData) => {
-    setEditingCountry(country);
+  const handleEdit = (currency: CurrencyData) => {
+    setEditingCurrency(currency);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
-    setEditingCountry(null);
+    setEditingCurrency(null);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
-  const handleView = (country: CountryData) => {
-    setEditingCountry(country);
+  const handleView = (currency: CurrencyData) => {
+    setEditingCurrency(currency);
     setIsViewMode(true);
     setIsModalOpen(true);
   };
 
-  const handleExport = () => {
-    toast.info("Export functionality coming soon!");
-  };
-
-  const headers = ["S.N.", "Country", "Code", "MCC", "Actions"];
+  const headers = [
+    "S.N.",
+    "Currency Name",
+    "Country ID",
+    "Country Name",
+    "Actions",
+  ];
 
   return (
     <div className="container mx-auto">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
-          Country Settings
+          Currency Settings
         </h1>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
@@ -137,44 +126,23 @@ const Country: React.FC = () => {
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary dark:text-white">Country</span>
+          <span className="text-text-primary dark:text-white">Currency</span>
         </div>
       </div>
 
-      <FilterCard
-        onSearch={fetchCountries}
-        onClear={() => {
-          setNameFilter("");
-          setCodeFilter("");
-          setMccFilter("");
-        }}
-      >
+      <FilterCard onSearch={fetchCurrencies} onClear={() => setNameFilter("")}>
         <Input
-          label="Search Country"
+          label="Search Currency"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Country Name..."
-          className="md:col-span-2"
-        />
-        <Input
-          label="Search Code"
-          value={codeFilter}
-          onChange={(e) => setCodeFilter(e.target.value)}
-          placeholder="Country Code..."
-          className="md:col-span-2"
-        />
-        <Input
-          label="Search MCC"
-          value={mccFilter}
-          onChange={(e) => setMccFilter(e.target.value)}
-          placeholder="MCC..."
+          placeholder="Currency Name..."
           className="md:col-span-2"
         />
       </FilterCard>
 
       <DataTable
         serverSide={true}
-        data={filteredCountries}
+        data={filteredCurrencies}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}
@@ -184,54 +152,53 @@ const Country: React.FC = () => {
         isLoading={isLoading}
         headerActions={
           <div className="flex gap-2">
-            <Button
+            {/* <Button
               variant="secondary"
               onClick={handleExport}
               leftIcon={<Download size={18} />}
             >
               Export
-            </Button>
+            </Button> */}
             <Button
               variant="primary"
               onClick={handleAdd}
               leftIcon={<Plus size={18} />}
             >
-              Add Country
+              Add Currency
             </Button>
           </div>
         }
-        renderRow={(country, index) => (
+        renderRow={(currency, index) => (
           <tr
-            key={country.id || index}
+            key={currency.id || index}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {/* 9. S.N. Calculation */}
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {country.name}
+              {currency.name}
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {country.countryCode}
+              {currency.country}
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {country.MCC}
+              {currency.countryName || "-"}
             </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(country)} />
+                <ViewButton onClick={() => handleView(currency)} />
                 <Button
                   variant="secondary"
                   size="xs"
-                  onClick={() => handleEdit(country)}
+                  onClick={() => handleEdit(currency)}
                 >
                   <Edit size={14} />
                 </Button>
                 <Button
                   variant="danger"
                   size="xs"
-                  onClick={() => setDeleteId(country.id!)}
+                  onClick={() => setDeleteId(currency.id!)}
                 >
                   <Trash size={14} />
                 </Button>
@@ -240,25 +207,23 @@ const Country: React.FC = () => {
           </tr>
         )}
       />
-
-      <CountryModal
+      <CurrencyModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchCountries}
+        onSuccess={fetchCurrencies}
         moduleName={routeName}
-        editingCountry={editingCountry}
+        editingCurrency={editingCurrency}
         isViewMode={isViewMode}
       />
-
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Country"
-        message="Are you sure you want to delete this country? This action cannot be undone."
+        title="Delete Currency"
+        message="Are you sure?"
       />
     </div>
   );
 };
 
-export default Country;
+export default Currency;

@@ -3,11 +3,11 @@ import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  getSmtpServersApi,
-  deleteSmtpServerApi,
-  type SmtpServerData,
-} from "../../../api/settingApi/smtpApi/smtpApi";
-import { SmtpModal } from "../../../components/modals/Settings/SmtpModal";
+  getCompanyCategoryApi,
+  deleteCompanyCategoryApi,
+  type CompanyCategoryData,
+} from "../../../api/settingApi/companyCategoryApi/companyCategoryApi";
+import { CompanyCategoryModal } from "../../../components/modals/Settings/companyCategoryModal";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
@@ -15,107 +15,105 @@ import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
 
-const SmtpServer: React.FC = () => {
-  const [servers, setServers] = useState<SmtpServerData[]>([]);
+const CompanyCategory: React.FC = () => {
+  const [entities, setEntities] = useState<CompanyCategoryData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingServer, setEditingServer] = useState<SmtpServerData | null>(
-    null
-  );
+  const [editingCompanyCategory, setEditingCompanyCategory] =
+    useState<CompanyCategoryData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
   const [nameFilter, setNameFilter] = useState("");
-  const [hostFilter, setHostFilter] = useState("");
+
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const routeName = location.pathname.split("/")[1] || "";
 
-  const fetchServers = async () => {
+  // FIX: Grab "CompanyCategory" from URL end
+  const pathParts = location.pathname.split("/").filter(Boolean);
+  const routeName = pathParts[pathParts.length - 1] || "CompanyCategory";
+
+  const fetchCompanyCategory = async () => {
     setIsLoading(true);
     try {
-      const response: any = await getSmtpServersApi(
+      const response: any = await getCompanyCategoryApi(
         routeName,
         currentPage,
         rowsPerPage
       );
+
       if (response && response.results) {
-        setServers(response.results);
+        setEntities(response.results);
         setTotalItems(response.count);
+      } else if (Array.isArray(response)) {
+        setEntities(response);
+        setTotalItems(response.length);
       } else {
-        setServers([]);
+        setEntities([]);
         setTotalItems(0);
       }
     } catch (error) {
-      toast.error("Failed to fetch SMTP servers.");
+      console.error("Fetch error:", error);
+      // Only show toast if it's a real error, not just empty list on load
+      // toast.error("Failed to fetch entities.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchServers();
+    fetchCompanyCategory();
   }, [routeName, currentPage, rowsPerPage]);
 
-  const filteredServers = useMemo(() => {
-    if (!Array.isArray(servers)) return [];
-    return servers.filter(
-      (server) =>
-        server.name.toLowerCase().includes(nameFilter.toLowerCase()) &&
-        server.smtpHost.toLowerCase().includes(hostFilter.toLowerCase())
+  const filteredEntities = useMemo(() => {
+    if (!Array.isArray(entities)) return [];
+    return entities.filter((c) =>
+      (c.name || "").toLowerCase().includes(nameFilter.toLowerCase())
     );
-  }, [servers, nameFilter, hostFilter]);
+  }, [entities, nameFilter]);
 
   const handleDelete = async () => {
     if (deleteId) {
       try {
-        await deleteSmtpServerApi(deleteId, routeName);
-        toast.success("Email Host deleted.");
-        fetchServers();
+        await deleteCompanyCategoryApi(deleteId, routeName);
+        toast.success("Company Category deleted.");
+        fetchCompanyCategory();
       } catch (error) {
-        toast.error("Failed to delete host.");
+        toast.error("Failed to delete Company Category.");
       }
       setDeleteId(null);
     }
   };
 
-  const handleEdit = (server: SmtpServerData) => {
-    setEditingServer(server);
+  const handleEdit = (CompanyCategory: CompanyCategoryData) => {
+    setEditingCompanyCategory(CompanyCategory);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
-    setEditingServer(null);
+    setEditingCompanyCategory(null);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
-  const handleView = (server: SmtpServerData) => {
-    setEditingServer(server);
+  const handleView = (CompanyCategory: CompanyCategoryData) => {
+    setEditingCompanyCategory(CompanyCategory);
     setIsViewMode(true);
     setIsModalOpen(true);
   };
 
-  const headers = [
-    "S.N.",
-    "Name",
-    "Host",
-    "Port",
-    "User",
-    "Security",
-    "Actions",
-  ];
+  const headers = ["S.N.", "Company Category Name", "Actions"];
 
   return (
     <div className="container mx-auto">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
-          Email Hosts (SMTP)
+          Company Category Settings
         </h1>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
@@ -123,36 +121,28 @@ const SmtpServer: React.FC = () => {
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary dark:text-white">Email Hosts</span>
+          <span className="text-text-primary dark:text-white">
+            Company Category
+          </span>
         </div>
       </div>
 
       <FilterCard
-        onSearch={fetchServers}
-        onClear={() => {
-          setNameFilter("");
-          setHostFilter("");
-        }}
+        onSearch={fetchCompanyCategory}
+        onClear={() => setNameFilter("")}
       >
         <Input
-          label="Search Name"
+          label="Search Company Category"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Name..."
-          className="md:col-span-2"
-        />
-        <Input
-          label="Search Host"
-          value={hostFilter}
-          onChange={(e) => setHostFilter(e.target.value)}
-          placeholder="Host..."
+          placeholder="Company Category Name..."
           className="md:col-span-2"
         />
       </FilterCard>
 
       <DataTable
         serverSide={true}
-        data={filteredServers}
+        data={filteredEntities}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}
@@ -166,46 +156,34 @@ const SmtpServer: React.FC = () => {
             onClick={handleAdd}
             leftIcon={<Plus size={18} />}
           >
-            Add Host
+            Add Company Category
           </Button>
         }
-        renderRow={(server, index) => (
+        renderRow={(CompanyCategory, index) => (
           <tr
-            key={server.id}
+            key={CompanyCategory.id || index}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.name}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.smtpHost}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.smtpPort}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.smtpUser}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.security}
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
+              {CompanyCategory.name}
             </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(server)} />
+                <ViewButton onClick={() => handleView(CompanyCategory)} />
                 <Button
                   variant="secondary"
                   size="xs"
-                  onClick={() => handleEdit(server)}
+                  onClick={() => handleEdit(CompanyCategory)}
                 >
                   <Edit size={14} />
                 </Button>
                 <Button
                   variant="danger"
                   size="xs"
-                  onClick={() => setDeleteId(server.id!)}
+                  onClick={() => setDeleteId(CompanyCategory.id!)}
                 >
                   <Trash size={14} />
                 </Button>
@@ -214,22 +192,23 @@ const SmtpServer: React.FC = () => {
           </tr>
         )}
       />
-      <SmtpModal
+      <CompanyCategoryModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchServers}
+        onSuccess={fetchCompanyCategory}
         moduleName={routeName}
-        editingServer={editingServer}
+        editingCompanyCategory={editingCompanyCategory}
         isViewMode={isViewMode}
       />
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Host"
+        title="Delete Company Category"
         message="Are you sure?"
       />
     </div>
   );
 };
-export default SmtpServer;
+
+export default CompanyCategory;

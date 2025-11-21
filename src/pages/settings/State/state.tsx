@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Home, Plus, Edit, Trash, Download } from "lucide-react";
+import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
-// 1. FIX: Import from stateApi.ts
 import {
   getStateApi,
   deleteStateApi,
   type StateData,
 } from "../../../api/settingApi/stateApi/stateApi";
-import { StateModal } from "../../../components/modals/StateModal";
+import { StateModal } from "../../../components/modals/Settings/StateModal";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
@@ -104,10 +103,6 @@ const State: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleExport = () => {
-    toast.info("Export functionality coming soon!");
-  };
-
   const headers = [
     "S.N.",
     "State Name",
@@ -167,13 +162,6 @@ const State: React.FC = () => {
         isLoading={isLoading}
         headerActions={
           <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={handleExport}
-              leftIcon={<Download size={18} />}
-            >
-              Export
-            </Button>
             <Button
               variant="primary"
               onClick={handleAdd}

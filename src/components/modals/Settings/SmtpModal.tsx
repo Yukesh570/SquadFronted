@@ -4,11 +4,11 @@ import {
   createSmtpServerApi,
   updateSmtpServerApi,
   type SmtpServerData,
-} from "../../api/settingApi/smtpApi/smtpApi";
-import Button from "../ui/Button";
-import Input from "../ui/Input";
-import Select from "../ui/Select";
-import Modal from "../ui/Modal";
+} from "../../../api/settingApi/smtpApi/smtpApi";
+import Button from "../../ui/Button";
+import Input from "../../ui/Input";
+import Select from "../../ui/Select";
+import Modal from "../../ui/Modal";
 
 interface SmtpModalProps {
   isOpen: boolean;

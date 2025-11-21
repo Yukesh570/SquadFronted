@@ -264,7 +264,7 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 w-11/12 md:w-3/4 lg:w-1/2 max-h-[80vh] overflow-y-auto shadow-lg"
+            className="bg-white dark:bg-gray-800 rounded-xl p-6 w-11/12 md:w-4/5 lg:w-9/12 max-h-[80vh] overflow-y-auto shadow-lg"
           >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold dark:text-white">

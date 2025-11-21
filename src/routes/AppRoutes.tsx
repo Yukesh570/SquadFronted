@@ -18,6 +18,11 @@ import EmailTemplatePage from "../pages/Email Template/emailTemplate";
 import SendMailPage from "../pages/Send Mail/SendMail";
 import Country from "../pages/settings/Country/Country";
 import State from "../pages/settings/State/state";
+import Currency from "../pages/settings/Currency/Currency";
+import Entity from "../pages/settings/Entity/Entity";
+import CompanyCategory from "../pages/settings/companyCategory/companyCategory";
+import CompanyStatus from "../pages/settings/countryStatus/countryStatus";
+import Timezone from "../pages/settings/Timezone/Timezone";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -71,6 +76,21 @@ const AppRoutes = () => {
         </Route>
         <Route element={<ProtectedRoute path="setting/state" />}>
           <Route path="setting/state" element={<State />} />
+        </Route>
+        <Route element={<ProtectedRoute path="setting/currency" />}>
+          <Route path="setting/currency" element={<Currency />} />
+        </Route>
+        <Route element={<ProtectedRoute path="setting/entity" />}>
+          <Route path="setting/entity" element={<Entity />} />
+        </Route>
+        <Route element={<ProtectedRoute path="setting/companyCategory" />}>
+          <Route path="setting/companyCategory" element={<CompanyCategory />} />
+        </Route>
+        <Route element={<ProtectedRoute path="setting/companyStatus" />}>
+          <Route path="setting/companyStatus" element={<CompanyStatus />} />
+        </Route>
+        <Route element={<ProtectedRoute path="setting/timezone" />}>
+          <Route path="setting/timezone" element={<Timezone />} />
         </Route>
 
         {/* <Route element={<ProtectedRoute path="change-password" />}> */}

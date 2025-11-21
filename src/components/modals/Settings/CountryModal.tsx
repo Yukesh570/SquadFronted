@@ -4,10 +4,10 @@ import {
   createCountryApi,
   updateCountryApi,
   type CountryData,
-} from "../../api/settingApi/countryApi/countryApi";
-import Input from "../ui/Input";
-import Button from "../ui/Button";
-import Modal from "../ui/Modal";
+} from "../../../api/settingApi/countryApi/countryApi";
+import Input from "../../ui/Input";
+import Button from "../../ui/Button";
+import Modal from "../../ui/Modal";
 
 interface CountryModalProps {
   isOpen: boolean;
@@ -29,7 +29,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
   const [formData, setFormData] = useState({
     name: "",
     countryCode: "",
-    MCC: "", // 1. FIX: Changed 'mcc' to 'MCC'
+    MCC: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -39,13 +39,13 @@ export const CountryModal: React.FC<CountryModalProps> = ({
         setFormData({
           name: editingCountry.name,
           countryCode: editingCountry.countryCode,
-          MCC: editingCountry.MCC, // 2. FIX: Map correct key
+          MCC: editingCountry.MCC,
         });
       } else {
         setFormData({
           name: "",
           countryCode: "",
-          MCC: "", // 3. FIX: Reset correct key
+          MCC: "",
         });
       }
     }
@@ -61,7 +61,6 @@ export const CountryModal: React.FC<CountryModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Data is already in correct format { name, countryCode, MCC }
       if (editingCountry) {
         await updateCountryApi(editingCountry.id!, formData, moduleName);
         toast.success("Country updated successfully!");
@@ -120,7 +119,6 @@ export const CountryModal: React.FC<CountryModalProps> = ({
           required
           disabled={isViewMode}
         />
-        {/* 4. FIX: Updated name and value to match 'MCC' */}
         <Input
           label="MCC"
           name="MCC"

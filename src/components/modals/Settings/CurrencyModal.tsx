@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import {
-  createStateApi,
-  updateStateApi,
-  type StateData,
-} from "../../api/settingApi/stateApi/stateApi";
-// 1. Import Country API to fetch the list
-import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
-import Input from "../ui/Input";
-import Button from "../ui/Button";
-import Select from "../ui/Select"; // 2. Import Select
-import Modal from "../ui/Modal";
+  createCurrencyApi,
+  updateCurrencyApi,
+  type CurrencyData,
+} from "../../../api/settingApi/currencyApi/currencyApi";
+import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
+import Input from "../../ui/Input";
+import Button from "../../ui/Button";
+import Select from "../../ui/Select";
+import Modal from "../../ui/Modal";
 
-interface StateModalProps {
+interface CurrencyModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   moduleName: string;
-  editingState: StateData | null;
+  editingCurrency: CurrencyData | null;
   isViewMode?: boolean;
 }
 
@@ -26,27 +25,24 @@ interface Option {
   value: string;
 }
 
-export const StateModal: React.FC<StateModalProps> = ({
+export const CurrencyModal: React.FC<CurrencyModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
   moduleName,
-  editingState,
+  editingCurrency,
   isViewMode = false,
 }) => {
   const [formData, setFormData] = useState({
     name: "",
-    country: "", // Stores the Country ID as a string
+    country: "",
   });
 
-  // 3. State for Country Dropdown Options
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 4. Fetch Countries when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Fetching "country" module. Using a large page size to get all countries.
       getCountriesApi("country", 1, 1000)
         .then((response: any) => {
           let data = [];
@@ -56,38 +52,33 @@ export const StateModal: React.FC<StateModalProps> = ({
             data = response;
           }
 
-          // Map to options
           const options = data.map((c: any) => ({
-            label: c.name, // Display Name (e.g., "Nepal")
-            value: String(c.id), // Value is ID (e.g., "1")
+            label: c.name,
+            value: String(c.id),
           }));
           setCountryOptions(options);
         })
-        .catch((err) => {
-          console.error("Failed to load countries", err);
-          // toast.error("Could not load countries");
-        });
+        .catch((err) => console.error("Failed to load countries", err));
     }
   }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
-      if (editingState) {
+      if (editingCurrency) {
         setFormData({
-          name: editingState.name,
-          country: String(editingState.country || ""),
+          name: editingCurrency.name,
+          country: String(editingCurrency.country || ""),
         });
       } else {
         setFormData({ name: "", country: "" });
       }
     }
-  }, [isOpen, editingState]);
+  }, [isOpen, editingCurrency]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 5. Handle Dropdown Change
   const handleCountryChange = (value: string) => {
     setFormData({ ...formData, country: value });
   };
@@ -97,7 +88,7 @@ export const StateModal: React.FC<StateModalProps> = ({
     if (isViewMode) return;
 
     if (!formData.name.trim()) {
-      toast.error("State Name is required");
+      toast.error("Currency Name is required");
       return;
     }
     if (!formData.country) {
@@ -109,21 +100,21 @@ export const StateModal: React.FC<StateModalProps> = ({
 
     const dataToSend = {
       name: formData.name,
-      country: Number(formData.country), // Convert back to number for API
+      country: Number(formData.country),
     };
 
     try {
-      if (editingState) {
-        await updateStateApi(editingState.id!, dataToSend, moduleName);
-        toast.success("State updated successfully!");
+      if (editingCurrency) {
+        await updateCurrencyApi(editingCurrency.id!, dataToSend, moduleName);
+        toast.success("Currency updated successfully!");
       } else {
-        await createStateApi(dataToSend, moduleName);
-        toast.success("State added successfully!");
+        await createCurrencyApi(dataToSend, moduleName);
+        toast.success("Currency added successfully!");
       }
       onSuccess();
       onClose();
     } catch (error: any) {
-      console.error("Error saving state:", error);
+      console.error("Error saving currency:", error);
       const serverError = error.response?.data;
       if (serverError) {
         if (typeof serverError === "object") {
@@ -134,7 +125,7 @@ export const StateModal: React.FC<StateModalProps> = ({
           toast.error(String(serverError));
         }
       } else {
-        toast.error("Failed to save state.");
+        toast.error("Failed to save currency.");
       }
     } finally {
       setIsSubmitting(false);
@@ -148,30 +139,31 @@ export const StateModal: React.FC<StateModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={
-        isViewMode ? "View State" : editingState ? "Edit State" : "Add State"
+        isViewMode
+          ? "View Currency"
+          : editingCurrency
+          ? "Edit Currency"
+          : "Add Currency"
       }
       className="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <Input
-          label="State Name"
+          label="Currency Name"
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="e.g., Bagmati"
+          placeholder="e.g., US Dollar"
           required
           disabled={isViewMode}
         />
 
-        {/* 6. Replaced Input with Select */}
         <Select
           label="Country"
           value={formData.country}
           onChange={handleCountryChange}
           options={[{ value: "", label: "Select Country" }, ...countryOptions]}
           placeholder="Select Country"
-          // Note: If you want to visually disable it in view mode:
-          // You can wrap it in a div with pointer-events-none if Select doesn't support disabled
         />
 
         <div className="flex justify-end space-x-3 pt-4">
@@ -182,9 +174,9 @@ export const StateModal: React.FC<StateModalProps> = ({
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
                 ? "Saving..."
-                : editingState
+                : editingCurrency
                 ? "Save Changes"
-                : "Add State"}
+                : "Add Currency"}
             </Button>
           )}
         </div>
