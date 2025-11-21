@@ -23,6 +23,7 @@ import Entity from "../pages/settings/Entity/Entity";
 import CompanyCategory from "../pages/settings/companyCategory/companyCategory";
 import CompanyStatus from "../pages/settings/countryStatus/countryStatus";
 import Timezone from "../pages/settings/Timezone/Timezone";
+import Company from "../pages/Company/Company";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -91,6 +92,9 @@ const AppRoutes = () => {
         </Route>
         <Route element={<ProtectedRoute path="setting/timezone" />}>
           <Route path="setting/timezone" element={<Timezone />} />
+        </Route>
+        <Route element={<ProtectedRoute path="company" />}>
+          <Route path="company" element={<Company />} />
         </Route>
 
         {/* <Route element={<ProtectedRoute path="change-password" />}> */}
