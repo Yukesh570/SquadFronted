@@ -14,6 +14,7 @@ import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import ViewButton from "../../components/ui/ViewButton";
+import { download, downloadStatus } from "../../api/downloadApi/downloadApi";
 
 const CompanyList: React.FC = () => {
   const [companies, setCompanies] = useState<CompanyData[]>([]);
@@ -37,7 +38,30 @@ const CompanyList: React.FC = () => {
   // FIX: Robust module name extraction (gets 'company' from /company or /settings/company)
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const routeName = pathSegments[pathSegments.length - 1] || "company";
+  const handleExport = async () => {
+  const data:any = await download(routeName, currentPage, rowsPerPage,nameFilter);
+  const taskId = data.task_id;
+  const checkStatus = setInterval(async () => {
+  try {
+    const res = await downloadStatus(routeName, taskId);
 
+    if (res && res.ready) { // <- make sure res exists
+      clearInterval(checkStatus);
+
+      if (res.download_url) { // <- only access if defined
+        window.location.href = res.download_url;
+      } else {
+        console.error("Download URL is missing from response:", res);
+      }
+    }
+  } catch (error) {
+    console.error("Error checking CSV status:", error);
+    clearInterval(checkStatus);
+  }
+}, 2000);
+
+
+  };
   const fetchCompanies = async () => {
     setIsLoading(true);
     try {
@@ -104,10 +128,6 @@ const CompanyList: React.FC = () => {
     setEditingCompany(company);
     setIsViewMode(true);
     setIsModalOpen(true);
-  };
-
-  const handleExport = () => {
-    toast.info("Export functionality coming soon!");
   };
 
   const headers = ["S.N.", "Name", "Short Name", "Email", "Phone", "Actions"];
