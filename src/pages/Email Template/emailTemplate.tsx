@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -39,13 +39,20 @@ const EmailTemplatePage: React.FC = () => {
   // Ensure we get the module name, fallback to 'emailTemplate' if root
   const routeName = location.pathname.split("/")[1] || "emailTemplate";
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
+      const currentSearchParams = overrideParams || {
+        name: nameFilter,
+      };
+      const cleanParams = Object.fromEntries(
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+      );
       const response: any = await getEmailTemplatesApi(
         routeName,
         currentPage,
-        rowsPerPage
+        rowsPerPage,
+        cleanParams
       );
       if (response && response.results) {
         setTemplates(response.results);
@@ -68,18 +75,15 @@ const EmailTemplatePage: React.FC = () => {
   useEffect(() => {
     fetchTemplates();
   }, [routeName, currentPage, rowsPerPage]);
-
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchTemplates();
+  };
   const handleClearFilters = () => {
     setNameFilter("");
+    setCurrentPage(1);
+    fetchTemplates({ name: "" });
   };
-
-  // Client-side filter for current page results
-  const filteredTemplates = useMemo(() => {
-    if (!Array.isArray(templates)) return [];
-    return templates.filter((template) =>
-      (template.name || "").toLowerCase().includes(nameFilter.toLowerCase())
-    );
-  }, [templates, nameFilter]);
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -134,7 +138,7 @@ const EmailTemplatePage: React.FC = () => {
         </div>
       </div>
 
-      <FilterCard onSearch={fetchTemplates} onClear={handleClearFilters}>
+      <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search by Name"
           value={nameFilter}
@@ -146,7 +150,7 @@ const EmailTemplatePage: React.FC = () => {
 
       <DataTable
         serverSide={true}
-        data={filteredTemplates}
+        data={templates}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}

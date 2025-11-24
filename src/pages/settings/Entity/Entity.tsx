@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -35,13 +35,20 @@ const Entity: React.FC = () => {
   const pathParts = location.pathname.split("/").filter(Boolean);
   const routeName = pathParts[pathParts.length - 1] || "entity";
 
-  const fetchEntities = async () => {
+  const fetchEntities = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
+      const currentSearchParams = overrideParams || {
+        name: nameFilter,
+      };
+      const cleanParams = Object.fromEntries(
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+      );
       const response: any = await getEntityApi(
         routeName,
         currentPage,
-        rowsPerPage
+        rowsPerPage,
+        cleanParams
       );
 
       if (response && response.results) {
@@ -67,12 +74,16 @@ const Entity: React.FC = () => {
     fetchEntities();
   }, [routeName, currentPage, rowsPerPage]);
 
-  const filteredEntities = useMemo(() => {
-    if (!Array.isArray(entities)) return [];
-    return entities.filter((c) =>
-      (c.name || "").toLowerCase().includes(nameFilter.toLowerCase())
-    );
-  }, [entities, nameFilter]);
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchEntities();
+  };
+
+  const handleClearFilters = () => {
+    setNameFilter("");
+    setCurrentPage(1);
+    fetchEntities({ name: "" });
+  };
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -123,7 +134,7 @@ const Entity: React.FC = () => {
         </div>
       </div>
 
-      <FilterCard onSearch={fetchEntities} onClear={() => setNameFilter("")}>
+      <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search Entity"
           value={nameFilter}
@@ -135,7 +146,7 @@ const Entity: React.FC = () => {
 
       <DataTable
         serverSide={true}
-        data={filteredEntities}
+        data={entities}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}

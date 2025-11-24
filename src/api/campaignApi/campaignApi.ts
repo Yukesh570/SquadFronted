@@ -26,9 +26,15 @@ export interface PaginatedResponse<T> {
 
 export const getTemplatesApi = async (
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  searchParams?: Record<string, any>
 ): Promise<PaginatedResponse<templateData> | templateData[]> => {
-  const response = await api.get(`/template/?page=${page}&page_size=${pageSize}`);
+    const params: any = {
+      page: page,
+    page_size: pageSize,
+    ...searchParams
+    };
+  const response = await api.get(`/template/`, { params });
   return response.data;
 };
 
@@ -49,9 +55,15 @@ export const deleteTemplateApi = async (id: number, module: string): Promise<voi
 export const getCampaignsApi = async (
   module: string, 
   page: number = 1, 
-  pageSize: number = 10
+  pageSize: number = 10,
+  searchParams?: Record<string, any>
 ): Promise<PaginatedResponse<CampaignFormData> | CampaignFormData[]> => {
-  const response = await api.get(`/campaign/${module}/?page=${page}&page_size=${pageSize}`);
+    const params: any = {
+      page: page,
+    page_size: pageSize,
+    ...searchParams
+    };
+  const response = await api.get(`/campaign/${module}/`, { params });
   return response.data;
 };
 

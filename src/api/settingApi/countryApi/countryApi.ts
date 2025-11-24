@@ -17,9 +17,15 @@ export interface PaginatedResponse<T> {
 export const getCountriesApi = async (
   module: string,
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  searchParams?: Record<string, any>
 ): Promise<PaginatedResponse<CountryData>> => {
-  const response = await api.get(`/country/${module}/?page=${page}&page_size=${pageSize}`);
+    const params: any = {
+      page: page,
+    page_size: pageSize,
+    ...searchParams
+    };
+  const response = await api.get(`/country/${module}/`, { params });
   return response.data;
 };
 

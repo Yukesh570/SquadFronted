@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -35,13 +35,22 @@ const SmtpServer: React.FC = () => {
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
 
-  const fetchServers = async () => {
+  const fetchServers = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
+      const currentSearchParams = overrideParams || {
+        name: nameFilter,
+        smtpHost: hostFilter,
+      };
+      const cleanParams = Object.fromEntries(
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+      );
+
       const response: any = await getSmtpServersApi(
         routeName,
         currentPage,
-        rowsPerPage
+        rowsPerPage,
+        cleanParams
       );
       if (response && response.results) {
         setServers(response.results);
@@ -60,15 +69,17 @@ const SmtpServer: React.FC = () => {
   useEffect(() => {
     fetchServers();
   }, [routeName, currentPage, rowsPerPage]);
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchServers();
+  };
 
-  const filteredServers = useMemo(() => {
-    if (!Array.isArray(servers)) return [];
-    return servers.filter(
-      (server) =>
-        server.name.toLowerCase().includes(nameFilter.toLowerCase()) &&
-        server.smtpHost.toLowerCase().includes(hostFilter.toLowerCase())
-    );
-  }, [servers, nameFilter, hostFilter]);
+  const handleClearFilters = () => {
+    setNameFilter("");
+    setHostFilter("");
+    setCurrentPage(1);
+    fetchServers({ name: "", smtpHost: "" });
+  };
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -127,13 +138,7 @@ const SmtpServer: React.FC = () => {
         </div>
       </div>
 
-      <FilterCard
-        onSearch={fetchServers}
-        onClear={() => {
-          setNameFilter("");
-          setHostFilter("");
-        }}
-      >
+      <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search Name"
           value={nameFilter}
@@ -152,7 +157,7 @@ const SmtpServer: React.FC = () => {
 
       <DataTable
         serverSide={true}
-        data={filteredServers}
+        data={servers}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}

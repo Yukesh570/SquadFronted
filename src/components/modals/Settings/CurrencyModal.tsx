@@ -162,7 +162,7 @@ export const CurrencyModal: React.FC<CurrencyModalProps> = ({
           label="Country"
           value={formData.country}
           onChange={handleCountryChange}
-          options={[{ value: "", label: "Select Country" }, ...countryOptions]}
+          options={[...countryOptions]}
           placeholder="Select Country"
         />
 

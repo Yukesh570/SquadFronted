@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -35,13 +35,21 @@ const State: React.FC = () => {
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
 
-  const fetchStates = async () => {
+  const fetchStates = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
+      const currentSearchParams = overrideParams || {
+        name: nameFilter,
+        countryName: countryFilter,
+      };
+      const cleanParams = Object.fromEntries(
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+      );
       const response: any = await getStateApi(
         routeName,
         currentPage,
-        rowsPerPage
+        rowsPerPage,
+        cleanParams
       );
       if (response && response.results) {
         setStates(response.results);
@@ -60,17 +68,16 @@ const State: React.FC = () => {
   useEffect(() => {
     fetchStates();
   }, [routeName, currentPage, rowsPerPage]);
-
-  const filteredStates = useMemo(() => {
-    if (!Array.isArray(states)) return [];
-    return states.filter(
-      (c) =>
-        (c.name || "").toLowerCase().includes(nameFilter.toLowerCase()) &&
-        (c.countryName?.toString() || "")
-          .toLowerCase()
-          .includes(countryFilter.toLowerCase())
-    );
-  }, [states, nameFilter, countryFilter]);
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchStates();
+  };
+  const handleClearFilters = () => {
+    setNameFilter("");
+    setCountryFilter("");
+    setCurrentPage(1);
+    fetchStates({ name: "", countryName: "" });
+  };
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -127,13 +134,7 @@ const State: React.FC = () => {
         </div>
       </div>
 
-      <FilterCard
-        onSearch={fetchStates}
-        onClear={() => {
-          setNameFilter("");
-          setCountryFilter("");
-        }}
-      >
+      <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search State"
           value={nameFilter}
@@ -152,7 +153,7 @@ const State: React.FC = () => {
 
       <DataTable
         serverSide={true}
-        data={filteredStates}
+        data={states}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}

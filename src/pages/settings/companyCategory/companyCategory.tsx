@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -33,17 +33,26 @@ const CompanyCategory: React.FC = () => {
 
   const location = useLocation();
 
-  // FIX: Grab "CompanyCategory" from URL end
   const pathParts = location.pathname.split("/").filter(Boolean);
   const routeName = pathParts[pathParts.length - 1] || "CompanyCategory";
 
-  const fetchCompanyCategory = async () => {
+  const fetchCompanyCategory = async (
+    overrideParams?: Record<string, string>
+  ) => {
     setIsLoading(true);
     try {
+      const currentSearchParams = overrideParams || {
+        name: nameFilter,
+      };
+
+      const cleanParams = Object.fromEntries(
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+      );
       const response: any = await getCompanyCategoryApi(
         routeName,
         currentPage,
-        rowsPerPage
+        rowsPerPage,
+        cleanParams
       );
 
       if (response && response.results) {
@@ -68,13 +77,15 @@ const CompanyCategory: React.FC = () => {
   useEffect(() => {
     fetchCompanyCategory();
   }, [routeName, currentPage, rowsPerPage]);
-
-  const filteredEntities = useMemo(() => {
-    if (!Array.isArray(entities)) return [];
-    return entities.filter((c) =>
-      (c.name || "").toLowerCase().includes(nameFilter.toLowerCase())
-    );
-  }, [entities, nameFilter]);
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchCompanyCategory();
+  };
+  const handleClearFilters = () => {
+    setNameFilter("");
+    setCurrentPage(1);
+    fetchCompanyCategory({ name: "" });
+  };
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -127,10 +138,7 @@ const CompanyCategory: React.FC = () => {
         </div>
       </div>
 
-      <FilterCard
-        onSearch={fetchCompanyCategory}
-        onClear={() => setNameFilter("")}
-      >
+      <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search Company Category"
           value={nameFilter}
@@ -142,7 +150,7 @@ const CompanyCategory: React.FC = () => {
 
       <DataTable
         serverSide={true}
-        data={filteredEntities}
+        data={entities}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}

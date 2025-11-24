@@ -22,11 +22,16 @@ export const getSideBarApi = async (
   module?: string,
   page?: number,
   pageSize?: number,
+  searchParams?: Record<string, any>
 ): Promise<PaginatedResponse<SideBarApi>> => {
-    const params: any = {};
+    const params: any = {
+      page: page,
+    page_size: pageSize,
+    ...searchParams
+    };
 
-  if (page !== undefined) params.page = page;
-  if (pageSize !== undefined) params.page_size = pageSize;
+  // if (page !== undefined) params.page = page;
+  // if (pageSize !== undefined) params.page_size = pageSize;
   const response = await api.get(`/navItem/${module}/`, { params });
   return response.data;
 };

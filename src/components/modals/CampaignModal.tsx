@@ -1,12 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import {
-  Send,
-  Upload,
-  Clock,
-  Phone,
-  Zap,
-  FileSpreadsheet,
-} from "lucide-react";
+import { Send, Upload, Clock, Phone, Zap, FileSpreadsheet } from "lucide-react";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import Select from "../ui/Select";
@@ -360,7 +353,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
             label="Template"
             value={formData.template}
             onChange={(v) => handleSelectChange("template", v)}
-            options={[{ label: "None (Blank)", value: "" }, ...templateOptions]}
+            options={[...templateOptions]}
             placeholder="Select Template"
           />
           <div className="quill-container dark:quill-dark mt-2">

@@ -17,8 +17,13 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-export const getSmtpServersApi = async (module: string, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<SmtpServerData>> => {
-  const response = await api.get(`/emailHost/${module}/?page=${page}&page_size=${pageSize}`);
+export const getSmtpServersApi = async (module: string, page: number = 1, pageSize: number = 10, searchParams?: Record<string, string>): Promise<PaginatedResponse<SmtpServerData>> => {
+  const params: any = {
+    page: page,
+    page_size: pageSize,
+    ...searchParams
+  };
+  const response = await api.get(`/emailHost/${module}/`, { params });
   return response.data;
 };
 

@@ -13,8 +13,16 @@ const FilterCard: React.FC<FilterCardProps> = ({
   onSearch,
   onClear,
 }) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch();
+  };
+
   return (
-    <div className="mb-6 rounded-xl bg-white p-5 shadow-card dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+    <form
+      onSubmit={handleSubmit}
+      className="mb-6 rounded-xl bg-white p-5 shadow-card dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+    >
       {/* Grid layout fixed to make inputs smaller (4 cols on medium, 6 on large) */}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-4 lg:grid-cols-6">
         {children}
@@ -23,13 +31,15 @@ const FilterCard: React.FC<FilterCardProps> = ({
       {/* Buttons aligned Left */}
       <div className="mt-5 flex justify-start space-x-3">
         <Button
+          type="submit"
           variant="primary"
-          onClick={onSearch}
+          // onClick={onSearch}
           leftIcon={<Search size={16} />}
         >
           Search
         </Button>
         <Button
+          type="button"
           variant="secondary"
           onClick={onClear}
           leftIcon={<Trash2 size={16} />}
@@ -37,7 +47,7 @@ const FilterCard: React.FC<FilterCardProps> = ({
           Clear
         </Button>
       </div>
-    </div>
+    </form>
   );
 };
 

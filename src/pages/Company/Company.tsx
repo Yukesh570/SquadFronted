@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Home, Plus, Edit, Trash, Download } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -14,7 +14,7 @@ import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import ViewButton from "../../components/ui/ViewButton";
-import { download, downloadStatus } from "../../api/downloadApi/downloadApi";
+import { companyCsv, downloadStatus } from "../../api/downloadApi/downloadApi";
 
 const CompanyList: React.FC = () => {
   const [companies, setCompanies] = useState<CompanyData[]>([]);
@@ -35,40 +35,81 @@ const CompanyList: React.FC = () => {
 
   const location = useLocation();
 
-  // FIX: Robust module name extraction (gets 'company' from /company or /settings/company)
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const routeName = pathSegments[pathSegments.length - 1] || "company";
   const handleExport = async () => {
-  const data:any = await download(routeName, currentPage, rowsPerPage,nameFilter);
-  const taskId = data.task_id;
-  const checkStatus = setInterval(async () => {
-  try {
-    const res = await downloadStatus(routeName, taskId);
+    try {
+      const data: any = await companyCsv(
+        routeName,
+        currentPage,
+        rowsPerPage,
+        nameFilter
+      );
 
-    if (res && res.ready) { // <- make sure res exists
-      clearInterval(checkStatus);
-
-      if (res.download_url) { // <- only access if defined
-        window.location.href = res.download_url;
-      } else {
-        console.error("Download URL is missing from response:", res);
+      if (!data || !data.task_id) {
+        toast.error("Failed to start export process.");
+        return;
       }
+
+      const taskId = data.task_id;
+      let attempts = 0;
+      const maxAttempts = 5;
+
+      toast.info("Export started. Please wait...");
+
+      const checkStatus = setInterval(async () => {
+        attempts += 1;
+
+        try {
+          const res = await downloadStatus(routeName, taskId);
+
+          if (res && res.ready) {
+            clearInterval(checkStatus);
+
+            if (res.download_url) {
+              window.location.href = res.download_url;
+              toast.success("Export successful!");
+            } else {
+              console.error("Download URL is missing from response:", res);
+              toast.error("Export generated but URL is missing.");
+            }
+          } else if (attempts >= maxAttempts) {
+            // Stop after 5 attempts
+            clearInterval(checkStatus);
+            toast.error(
+              "Export timed out after 5 attempts. Please try again later."
+            );
+          }
+        } catch (error) {
+          console.error("Error checking CSV status:", error);
+          // Ensure we stop if there is a hard error, or you can let it retry until maxAttempts
+          if (attempts >= maxAttempts) {
+            clearInterval(checkStatus);
+            toast.error("Failed to check export status.");
+          }
+        }
+      }, 2000);
+    } catch (error) {
+      console.error("Export API failed:", error);
+      toast.error("Failed to initiate export.");
     }
-  } catch (error) {
-    console.error("Error checking CSV status:", error);
-    clearInterval(checkStatus);
-  }
-}, 2000);
-
-
   };
-  const fetchCompanies = async () => {
+  const fetchCompanies = async (overrideParams?: Record<string, any>) => {
     setIsLoading(true);
     try {
+      const currentSearchParams = overrideParams || {
+        name: nameFilter,
+      };
+
+      const cleanParams = Object.fromEntries(
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+      );
+
       const response: any = await getCompaniesApi(
         routeName,
         currentPage,
-        rowsPerPage
+        rowsPerPage,
+        cleanParams
       );
       if (response && response.results) {
         setCompanies(response.results);
@@ -92,12 +133,16 @@ const CompanyList: React.FC = () => {
     fetchCompanies();
   }, [routeName, currentPage, rowsPerPage]);
 
-  const filteredCompanies = useMemo(() => {
-    if (!Array.isArray(companies)) return [];
-    return companies.filter((c) =>
-      (c.name || "").toLowerCase().includes(nameFilter.toLowerCase())
-    );
-  }, [companies, nameFilter]);
+  const handleSearch = () => {
+    setCurrentPage(1); // Reset to page 1
+    fetchCompanies(); // Fetch using current state inputs
+  };
+
+  const handleClearFilters = () => {
+    setNameFilter("");
+    setCurrentPage(1);
+    fetchCompanies({ name: "" }); // Fetch immediately with empty params
+  };
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -148,7 +193,7 @@ const CompanyList: React.FC = () => {
         </div>
       </div>
 
-      <FilterCard onSearch={fetchCompanies} onClear={() => setNameFilter("")}>
+      <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search Company"
           value={nameFilter}
@@ -160,7 +205,7 @@ const CompanyList: React.FC = () => {
 
       <DataTable
         serverSide={true}
-        data={filteredCompanies}
+        data={companies}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}

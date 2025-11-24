@@ -53,9 +53,15 @@ export interface PaginatedResponse<T> {
 export const getCompaniesApi = async (
   module: string,
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  searchParams?: Record<string, any>
 ): Promise<PaginatedResponse<CompanyData>> => {
-  const response = await api.get(`/company/${module}/?page=${page}&page_size=${pageSize}`);
+    const params: any = {
+      page: page,
+    page_size: pageSize,
+    ...searchParams
+    };
+  const response = await api.get(`/company/${module}/`, { params });
   return response.data;
 };
 

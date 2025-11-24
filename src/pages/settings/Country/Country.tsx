@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Home, Plus, Edit, Trash, Download } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -15,6 +15,10 @@ import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
 // import Select from "../../components/ui/Select";
+import {
+  countryCsv,
+  downloadStatus,
+} from "../../../api/downloadApi/downloadApi";
 
 const Country: React.FC = () => {
   const [countries, setCountries] = useState<CountryData[]>([]);
@@ -38,14 +42,82 @@ const Country: React.FC = () => {
 
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
+  const handleExport = async () => {
+    try {
+      const data: any = await countryCsv(
+        routeName,
+        currentPage,
+        rowsPerPage,
+        nameFilter,
+        codeFilter,
+        mccFilter
+      );
 
-  const fetchCountries = async () => {
+      if (!data || !data.task_id) {
+        toast.error("Failed to start export process.");
+        return;
+      }
+
+      const taskId = data.task_id;
+      let attempts = 0;
+      const maxAttempts = 5;
+
+      toast.info("Export started. Please wait...");
+
+      const checkStatus = setInterval(async () => {
+        attempts += 1;
+
+        try {
+          const res = await downloadStatus(routeName, taskId);
+
+          if (res && res.ready) {
+            clearInterval(checkStatus);
+
+            if (res.download_url) {
+              window.location.href = res.download_url;
+              toast.success("Export successful!");
+            } else {
+              console.error("Download URL is missing from response:", res);
+              toast.error("Export generated but URL is missing.");
+            }
+          } else if (attempts >= maxAttempts) {
+            // Stop after 5 attempts
+            clearInterval(checkStatus);
+            toast.error(
+              "Export timed out after 5 attempts. Please try again later."
+            );
+          }
+        } catch (error) {
+          console.error("Error checking CSV status:", error);
+          // Ensure we stop if there is a hard error, or you can let it retry until maxAttempts
+          if (attempts >= maxAttempts) {
+            clearInterval(checkStatus);
+            toast.error("Failed to check export status.");
+          }
+        }
+      }, 2000);
+    } catch (error) {
+      console.error("Export API failed:", error);
+      toast.error("Failed to initiate export.");
+    }
+  };
+
+  const fetchCountries = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
+      const currentSearchParams = overrideParams || {
+        name: nameFilter,
+        countryCode: codeFilter,
+        MCC: mccFilter,
+      };
+      const cleanParams = Object.fromEntries(
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+      );
       const response: any = await getCountriesApi(
         routeName,
         currentPage,
-        rowsPerPage
+        rowsPerPage,
+        cleanParams
       );
 
       // 6. Handle response safely
@@ -72,21 +144,17 @@ const Country: React.FC = () => {
   useEffect(() => {
     fetchCountries();
   }, [routeName, currentPage, rowsPerPage]); // 7. Refetch on change
-
-  // Client-side filter for current page
-  const filteredCountries = useMemo(() => {
-    if (!Array.isArray(countries)) return [];
-    return countries.filter((c) => {
-      const name = String(c.name || "");
-      const code = String(c.countryCode || "");
-      const MCC = String(c.MCC || "");
-      return (
-        name.toLowerCase().includes(nameFilter.toLowerCase()) &&
-        code.toLowerCase().includes(codeFilter.toLowerCase()) &&
-        MCC.toLowerCase().includes(mccFilter.toLowerCase())
-      );
-    });
-  }, [countries, nameFilter, codeFilter, mccFilter]);
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchCountries();
+  };
+  const handleClearFilters = () => {
+    setNameFilter("");
+    setCodeFilter("");
+    setMccFilter("");
+    setCurrentPage(1);
+    fetchCountries();
+  };
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -119,10 +187,6 @@ const Country: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleExport = () => {
-    toast.info("Export functionality coming soon!");
-  };
-
   const headers = ["S.N.", "Country", "Code", "MCC", "Actions"];
 
   return (
@@ -141,14 +205,7 @@ const Country: React.FC = () => {
         </div>
       </div>
 
-      <FilterCard
-        onSearch={fetchCountries}
-        onClear={() => {
-          setNameFilter("");
-          setCodeFilter("");
-          setMccFilter("");
-        }}
-      >
+      <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search Country"
           value={nameFilter}
@@ -174,7 +231,7 @@ const Country: React.FC = () => {
 
       <DataTable
         serverSide={true}
-        data={filteredCountries}
+        data={countries}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}

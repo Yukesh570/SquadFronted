@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useContext } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Plus, Edit, Trash, Home } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -27,7 +27,7 @@ const ModuleList: React.FC = () => {
   const [isViewMode, setIsViewMode] = useState(false);
 
   const [labelFilter, setLabelFilter] = useState("");
-  const [urlFilter, setUrlFilter] = useState("");
+  // const [urlFilter, setUrlFilter] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -35,14 +35,26 @@ const ModuleList: React.FC = () => {
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
 
-  const fetchModules = async () => {
+  const fetchModules = async (overrideParams?: Record<string, any>) => {
     setIsLoading(true);
     try {
+      // Use provided params (for clear) OR current state values
+      const currentSearchParams = overrideParams || {
+        label: labelFilter, // Key must match backend filter field
+        // url: urlFilter,
+      };
+
+      // Remove empty keys to keep URL clean
+      const cleanParams = Object.fromEntries(
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+      );
+
       const response: any = await getSideBarApi(
         routeName,
 
         currentPage,
-        rowsPerPage
+        rowsPerPage,
+        cleanParams
       );
       if (response && response.results) {
         setModules(response.results);
@@ -60,16 +72,18 @@ const ModuleList: React.FC = () => {
 
   useEffect(() => {
     fetchModules();
-  }, [currentPage, rowsPerPage]);
+  }, [currentPage, rowsPerPage, routeName]);
+  const handleSearch = () => {
+    setCurrentPage(1); // Reset to page 1
+    fetchModules(); // Fetch using current state inputs
+  };
 
-  const filteredModules = useMemo(() => {
-    if (!Array.isArray(modules)) return [];
-    return modules.filter(
-      (module) =>
-        module.label.toLowerCase().includes(labelFilter.toLowerCase()) &&
-        module.url.toLowerCase().includes(urlFilter.toLowerCase())
-    );
-  }, [modules, labelFilter, urlFilter]);
+  const handleClearFilters = () => {
+    setLabelFilter("");
+    // setUrlFilter("");
+    setCurrentPage(1);
+    fetchModules({ label: "", url: "" }); // Fetch immediately with empty params
+  };
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -127,13 +141,7 @@ const ModuleList: React.FC = () => {
         </div>
       </div>
 
-      <FilterCard
-        onSearch={fetchModules}
-        onClear={() => {
-          setLabelFilter("");
-          setUrlFilter("");
-        }}
-      >
+      <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search by Label"
           value={labelFilter}
@@ -141,18 +149,18 @@ const ModuleList: React.FC = () => {
           placeholder="Module label"
           className="md:col-span-2"
         />
-        <Input
+        {/* <Input
           label="Search by URL"
           value={urlFilter}
           onChange={(e) => setUrlFilter(e.target.value)}
           placeholder="Module URL"
           className="md:col-span-2"
-        />
+        /> */}
       </FilterCard>
 
       <DataTable
         serverSide={true}
-        data={filteredModules}
+        data={modules}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}

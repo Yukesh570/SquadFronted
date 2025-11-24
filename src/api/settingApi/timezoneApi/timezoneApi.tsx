@@ -16,11 +16,15 @@ export interface PaginatedResponse<T> {
 export const getTimezoneApi = async (
   module: string,
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  searchParams?: Record<string, any>
 ): Promise<PaginatedResponse<TimezoneData>> => {
-  const response = await api.get(
-    `/timeZone/${module}/?page=${page}&page_size=${pageSize}`
-  );
+  const params: any = {
+    page: page,
+    page_size: pageSize,
+    ...searchParams,
+  };
+  const response = await api.get(`/timeZone/${module}/`, { params });
   return response.data;
 };
 

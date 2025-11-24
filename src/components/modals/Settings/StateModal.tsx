@@ -161,7 +161,7 @@ export const StateModal: React.FC<StateModalProps> = ({
           label="Country"
           value={formData.country}
           onChange={handleCountryChange}
-          options={[{ value: "", label: "Select Country" }, ...countryOptions]}
+          options={[...countryOptions]}
           placeholder="Select Country"
           // Note: If you want to visually disable it in view mode:
           // You can wrap it in a div with pointer-events-none if Select doesn't support disabled

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -39,10 +39,20 @@ const CampaignTemplatePage: React.FC = () => {
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
-      const response = await getTemplatesApi(currentPage, rowsPerPage);
+      const currentSearchParams = overrideParams || {
+        name: nameFilter,
+      };
+      const cleanParams = Object.fromEntries(
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+      );
+      const response = await getTemplatesApi(
+        currentPage,
+        rowsPerPage,
+        cleanParams
+      );
 
       // 1. FIX: Handle both Object and Array responses
       if ("results" in response) {
@@ -67,12 +77,15 @@ const CampaignTemplatePage: React.FC = () => {
     fetchTemplates();
   }, [currentPage, rowsPerPage]);
 
-  const filteredTemplates = useMemo(() => {
-    if (!Array.isArray(templates)) return [];
-    return templates.filter((template) =>
-      template.name.toLowerCase().includes(nameFilter.toLowerCase())
-    );
-  }, [templates, nameFilter]);
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchTemplates();
+  };
+  const handleClearFilters = () => {
+    setNameFilter("");
+    setCurrentPage(1);
+    fetchTemplates({ name: "" });
+  };
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -127,7 +140,7 @@ const CampaignTemplatePage: React.FC = () => {
         </div>
       </div>
 
-      <FilterCard onSearch={fetchTemplates} onClear={() => setNameFilter("")}>
+      <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search by Name"
           value={nameFilter}
@@ -139,7 +152,7 @@ const CampaignTemplatePage: React.FC = () => {
 
       <DataTable
         serverSide={true}
-        data={filteredTemplates}
+        data={templates}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}

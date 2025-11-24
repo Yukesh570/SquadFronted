@@ -37,13 +37,24 @@ const CampaignList: React.FC = () => {
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
 
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
+      const currentSearchParams = overrideParams || {
+        name: nameFilter,
+        objective: objectiveFilter,
+      };
+
+      // Clean empty values
+      const cleanParams = Object.fromEntries(
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+      );
+
       const response: any = await getCampaignsApi(
         routeName,
         currentPage,
-        rowsPerPage
+        rowsPerPage,
+        cleanParams
       );
       if (response && response.results) {
         setCampaigns(response.results);
@@ -66,14 +77,17 @@ const CampaignList: React.FC = () => {
     fetchCampaigns();
   }, [routeName, currentPage, rowsPerPage]);
 
-  const filteredCampaigns = useMemo(() => {
-    if (!Array.isArray(campaigns)) return [];
-    return campaigns.filter(
-      (c) =>
-        c.name.toLowerCase().includes(nameFilter.toLowerCase()) &&
-        c.objective.toLowerCase().includes(objectiveFilter.toLowerCase())
-    );
-  }, [campaigns, nameFilter, objectiveFilter]);
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchCampaigns();
+  };
+
+  const handleClearFilters = () => {
+    setNameFilter("");
+    setObjectiveFilter("");
+    setCurrentPage(1);
+    fetchCampaigns({ name: "", objective: "" });
+  };
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -130,13 +144,7 @@ const CampaignList: React.FC = () => {
         </div>
       </div>
 
-      <FilterCard
-        onSearch={fetchCampaigns}
-        onClear={() => {
-          setNameFilter("");
-          setObjectiveFilter("");
-        }}
-      >
+      <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search Name"
           value={nameFilter}
@@ -154,7 +162,7 @@ const CampaignList: React.FC = () => {
 
       <DataTable
         serverSide={true}
-        data={filteredCampaigns}
+        data={campaigns}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}
