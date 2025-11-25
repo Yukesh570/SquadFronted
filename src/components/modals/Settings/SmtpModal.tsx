@@ -9,6 +9,7 @@ import Button from "../../ui/Button";
 import Input from "../../ui/Input";
 import Select from "../../ui/Select";
 import Modal from "../../ui/Modal";
+import { Eye, EyeOff } from "lucide-react";
 
 interface SmtpModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ export const SmtpModal: React.FC<SmtpModalProps> = ({
     security: "TLS",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -118,20 +120,18 @@ export const SmtpModal: React.FC<SmtpModalProps> = ({
       }
     >
       <form className="space-y-5" onSubmit={handleSubmit}>
-        <Input
-          label="Name (From Email)"
-          name="name"
-          type="email"
-          value={formData.name}
-          onChange={handleChange}
-          placeholder="e.g., name@example.com"
-          required
-          disabled={isViewMode}
-        />
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Input
-            label="SMTP Host"
+            label="Email"
+            name="smtpUser"
+            value={formData.smtpUser}
+            onChange={handleChange}
+            placeholder="username@gmail.com"
+            required
+            disabled={isViewMode}
+          />
+          <Input
+            label="Server"
             name="smtpHost"
             type="text"
             value={formData.smtpHost}
@@ -140,8 +140,14 @@ export const SmtpModal: React.FC<SmtpModalProps> = ({
             required
             disabled={isViewMode}
           />
+          <Select
+            label="Security"
+            value={formData.security}
+            onChange={handleSelectChange}
+            options={securityOptions}
+          />
           <Input
-            label="SMTP Port"
+            label="Server Port"
             name="smtpPort"
             type="number"
             value={formData.smtpPort}
@@ -151,31 +157,33 @@ export const SmtpModal: React.FC<SmtpModalProps> = ({
             disabled={isViewMode}
           />
         </div>
-
-        <Select
-          label="Security"
-          value={formData.security}
-          onChange={handleSelectChange}
-          options={securityOptions}
-        />
-
         <Input
-          label="SMTP User"
-          name="smtpUser"
-          value={formData.smtpUser}
+          label="User Name"
+          name="name"
+          type="text"
+          value={formData.name}
           onChange={handleChange}
-          placeholder="your-username@gmail.com"
+          placeholder="e.g., Work Email"
           required
           disabled={isViewMode}
         />
 
         <Input
-          label="SMTP Password"
+          label="Password"
           name="smtpPassword"
-          type="password"
+          type={showPassword ? "text" : "password"}
           value={formData.smtpPassword}
           onChange={handleChange}
           placeholder="••••••••"
+          rightIcon={
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          }
           required
           disabled={isViewMode}
         />

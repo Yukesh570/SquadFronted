@@ -43,9 +43,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     scheduleType: "now",
   });
 
-  // Separate state for Quill content
   const [quillContent, setQuillContent] = useState("");
-
   const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
   const [templateOptions, setTemplateOptions] = useState<
     { label: string; value: string; content: string }[]
@@ -72,32 +70,28 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Fetch templates
-      getTemplatesApi(1, 1000).then((response: any) => {
-        let data = [];
-        if (response && response.results) {
-          data = response.results;
-        } else if (Array.isArray(response)) {
-          data = response;
-        }
+      if (!editingCampaign) {
+        getTemplatesApi(1, 1000).then((response: any) => {
+          let data = [];
+          if (response && response.results) data = response.results;
+          else if (Array.isArray(response)) data = response;
 
-        setTemplateOptions(
-          data.map((t: any) => ({
-            label: t.name,
-            value: t.id!.toString(),
-            content: t.content,
-          }))
-        );
-      });
+          setTemplateOptions(
+            data.map((t: any) => ({
+              label: t.name,
+              value: t.id!.toString(),
+              content: t.content,
+            }))
+          );
+        });
+      }
 
-      // Pre-fill form if editing
       if (editingCampaign) {
         setFormData({
           campaignName: editingCampaign.name,
           objective: editingCampaign.objective,
           audienceType: "specify",
           contactNumber: "",
-          // Ensure template ID matches dropdown (string)
           template: editingCampaign.template
             ? String(editingCampaign.template)
             : "",
@@ -111,7 +105,6 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
           setFormData((prev) => ({ ...prev, scheduleType: "datetime" }));
         }
       } else {
-        // Reset if adding
         setFormData({
           campaignName: "",
           objective: "Promotion",
@@ -134,11 +127,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
   const handleSelectChange = (name: string, value: string) => {
     if (name === "template") {
       const selected = templateOptions.find((t) => t.value === value);
-      setFormData({
-        ...formData,
-        template: value,
-      });
-      // Auto-fill content
+      setFormData({ ...formData, template: value });
       if (selected) {
         setQuillContent(selected.content);
       }
@@ -192,6 +181,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       dataToUpload.append("name", formData.campaignName);
       dataToUpload.append("objective", formData.objective);
       dataToUpload.append("content", quillContent);
+
       if (formData.template) dataToUpload.append("template", formData.template);
 
       let scheduleTimestamp = new Date().toISOString();
@@ -203,18 +193,25 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
         scheduleTimestamp.substring(0, 19).replace("T", " ")
       );
 
-      if (formData.audienceType === "specify") {
-        // --- FIX: Validate but send raw string ---
-        if (!formData.contactNumber.trim()) {
-          toast.error("Please specify at least one contact number.");
+      if (!editingCampaign) {
+        if (formData.audienceType === "specify") {
+          const contacts = formData.contactNumber
+            .split(",")
+            .map((c) => c.trim())
+            .filter(Boolean);
+          if (contacts.length === 0) {
+            toast.error("Please specify at least one contact number.");
+            setIsSubmitting(false);
+            return;
+          }
+          contacts.forEach((c) => dataToUpload.append("contacts", c));
+        } else if (csvFile) {
+          dataToUpload.append("csvFile", csvFile);
+        } else {
+          toast.error("Please provide contacts (Specify or Upload).");
           setIsSubmitting(false);
           return;
         }
-        // Send the contacts as a SINGLE string. The backend will split it.
-        dataToUpload.append("contacts", formData.contactNumber);
-        // ----------------------------------------
-      } else if (csvFile) {
-        dataToUpload.append("csvFile", csvFile);
       }
 
       if (editingCampaign) {
@@ -278,6 +275,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
           <Input
             label="Campaign Name"
             name="campaignName"
+            placeholder="Enter campaign name"
             value={formData.campaignName}
             onChange={handleChange}
             required
@@ -288,52 +286,51 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
             value={formData.objective}
             onChange={(v) => handleSelectChange("objective", v)}
             options={objectiveOptions}
+            // disabled={isViewMode} // Select needs wrapper for disabled style if not supported
           />
         </div>
 
-        <div className="space-y-3">
-          <SegmentedControl
-            label="Audience"
-            selectedValue={formData.audienceType}
-            options={audienceOptions}
-            onChange={(v) =>
-              setFormData({ ...formData, audienceType: v as any })
-            }
-          />
-
-          {formData.audienceType === "specify" ? (
-            <Input
-              label="Contact Number(s)"
-              name="contactNumber"
-              value={formData.contactNumber}
-              onChange={handleChange}
-              placeholder="e.g., 98xxxxxxxx, 98xxxxxxxx"
-              disabled={isViewMode}
+        {!editingCampaign && (
+          <div className="space-y-3">
+            <SegmentedControl
+              label="Audience"
+              selectedValue={formData.audienceType}
+              options={audienceOptions}
+              onChange={(v) =>
+                setFormData({ ...formData, audienceType: v as any })
+              }
             />
-          ) : (
-            <div className="flex items-center gap-3 p-4 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => fileInputRef.current?.click()}
-                leftIcon={<Upload size={16} />}
-                disabled={isViewMode}
-              >
-                {csvFile ? "Change File" : "Upload CSV/Excel"}
-              </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelected}
-                className="hidden"
-                accept=".csv,.xlsx,.xls"
+
+            {formData.audienceType === "specify" ? (
+              <Input
+                label="Contact Number(s)"
+                name="contactNumber"
+                value={formData.contactNumber}
+                onChange={handleChange}
+                placeholder="e.g., 98xxxxxxxx, 98xxxxxxxx"
               />
+            ) : (
+              <div className="flex items-center gap-3 p-4 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => fileInputRef.current?.click()}
+                  leftIcon={<Upload size={16} />}
+                >
+                  {csvFile ? "Change File" : "Upload CSV/Excel"}
+                </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelected}
+                  className="hidden"
+                  accept=".csv,.xlsx,.xls"
+                />
 
-              <div className="flex-1 text-sm text-gray-500 truncate">
-                {csvFile ? csvFile.name : "No file selected"}
-              </div>
+                <div className="flex-1 text-sm text-gray-500 truncate">
+                  {csvFile ? csvFile.name : "No file selected"}
+                </div>
 
-              {!isViewMode && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -343,20 +340,26 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
                 >
                   <FileSpreadsheet size={18} />
                 </Button>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="space-y-1">
-          <Select
-            label="Template"
-            value={formData.template}
-            onChange={(v) => handleSelectChange("template", v)}
-            options={[...templateOptions]}
-            placeholder="Select Template"
-          />
+          {!editingCampaign && (
+            <Select
+              label="Template"
+              value={formData.template}
+              onChange={(v) => handleSelectChange("template", v)}
+              options={[...templateOptions]}
+              placeholder="Select Template"
+            />
+          )}
+
           <div className="quill-container dark:quill-dark mt-2">
+            <label className="mb-1.5 text-xs font-medium text-text-secondary block">
+              Content <span className="text-red-500">*</span>
+            </label>
             <ReactQuill
               key={editingCampaign ? editingCampaign.id : "new"}
               theme="snow"

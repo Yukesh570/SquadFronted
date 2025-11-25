@@ -24,6 +24,8 @@ import CompanyCategory from "../pages/settings/companyCategory/companyCategory";
 import CompanyStatus from "../pages/settings/countryStatus/countryStatus";
 import Timezone from "../pages/settings/Timezone/Timezone";
 import Company from "../pages/Company/Company";
+import Vendor from "../pages/Connectivity/Vendor/vendor";
+import Smpp from "../pages/Connectivity/Smpp/Smpp";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -95,6 +97,14 @@ const AppRoutes = () => {
         </Route>
         <Route element={<ProtectedRoute path="company" />}>
           <Route path="company" element={<Company />} />
+        </Route>
+
+        {/* ----- */}
+        <Route element={<ProtectedRoute path="connectivity/vendor" />}>
+          <Route path="connectivity/vendor" element={<Vendor />} />
+        </Route>
+        <Route element={<ProtectedRoute path="connectivity/smpp" />}>
+          <Route path="connectivity/smpp" element={<Smpp />} />
         </Route>
 
         {/* <Route element={<ProtectedRoute path="change-password" />}> */}

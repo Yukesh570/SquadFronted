@@ -157,8 +157,8 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
       onClose();
     } catch (error: any) {
       toast.error(
-        `${error.response?.status || "Error"} - \n${
-          error.response?.data || "Failed to save"
+        `${error.response?.status?.error || "Error"} - \n${
+          error.response?.data?.error || "Failed to save"
         }`
       );
     } finally {
