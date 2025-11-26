@@ -33,16 +33,23 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
   const [name, setName] = useState("");
   const [quillContent, setQuillContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDataReady, setIsDataReady] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
+      setIsDataReady(false);
+
       if (editingTemplate) {
         setName(editingTemplate.name);
         setQuillContent(editingTemplate.content);
+        setIsDataReady(true);
       } else {
         setName("");
         setQuillContent("");
+        setIsDataReady(true);
       }
+    } else {
+      setIsDataReady(false);
     }
   }, [isOpen, editingTemplate]);
 
@@ -128,12 +135,18 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
             Template Content <span className="text-red-500">*</span>
           </label>
           <div className="quill-container dark:quill-dark">
-            <ReactQuill
-              theme="snow"
-              value={quillContent}
-              onChange={setQuillContent}
-              readOnly={isViewMode}
-            />
+            {isDataReady ? (
+              <ReactQuill
+                theme="snow"
+                value={quillContent}
+                onChange={setQuillContent}
+                readOnly={isViewMode}
+              />
+            ) : (
+              <div className="h-40 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 text-gray-400">
+                Loading editor...
+              </div>
+            )}
           </div>
         </div>
 

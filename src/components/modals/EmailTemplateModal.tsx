@@ -36,19 +36,26 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
   const [quillContent, setQuillContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Sync state when the modal opens or the template to edit changes
+  const [isDataReady, setIsDataReady] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
+      setIsDataReady(false);
+
       if (editingTemplate) {
         setFormData({
           name: editingTemplate.name,
           content: editingTemplate.content,
         });
         setQuillContent(editingTemplate.content);
+        setIsDataReady(true);
       } else {
         setFormData({ name: "", content: "" });
         setQuillContent("");
+        setIsDataReady(true);
       }
+    } else {
+      setIsDataReady(false);
     }
   }, [isOpen, editingTemplate]);
 
@@ -149,16 +156,19 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
             Content <span className="text-red-500">*</span>
           </label>
           <div className="quill-container dark:quill-dark">
-            {/* FIX: The 'key' prop forces ReactQuill to re-initialize when 
-                 editingTemplate changes. This ensures the content actually loads.
-              */}
-            <ReactQuill
-              key={editingTemplate ? editingTemplate.id : "new"}
-              theme="snow"
-              value={quillContent}
-              onChange={setQuillContent}
-              readOnly={isViewMode}
-            />
+            {/* FIX: Only render Quill when data is explicitly ready */}
+            {isDataReady ? (
+              <ReactQuill
+                theme="snow"
+                value={quillContent}
+                onChange={setQuillContent}
+                readOnly={isViewMode}
+              />
+            ) : (
+              <div className="h-40 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 text-gray-400">
+                Loading editor...
+              </div>
+            )}
           </div>
         </div>
 

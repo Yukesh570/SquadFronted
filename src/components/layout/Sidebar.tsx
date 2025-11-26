@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import React from "react";
 import { NavItemsContext } from "../../context/navItemsContext";
 import FullLogo from "../../../src/assets/logos/logo.svg";
@@ -13,7 +13,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isCollapsed }: SidebarProps) => {
-  const { navItems, refreshNavItems } = useContext(NavItemsContext);
+  const { navItems } = useContext(NavItemsContext);
   const [openItems, setOpenItems] = useState<Record<number, boolean>>({});
   const location = useLocation();
   console.log("Nav Items in Sidebar:", navItems);

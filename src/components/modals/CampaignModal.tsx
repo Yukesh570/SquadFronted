@@ -44,6 +44,8 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
   });
 
   const [quillContent, setQuillContent] = useState("");
+  const [isDataReady, setIsDataReady] = useState(false);
+
   const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
   const [templateOptions, setTemplateOptions] = useState<
     { label: string; value: string; content: string }[]
@@ -70,6 +72,8 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      setIsDataReady(false);
+
       if (!editingCampaign) {
         getTemplatesApi(1, 1000).then((response: any) => {
           let data = [];
@@ -104,6 +108,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
           setScheduleDate(new Date(editingCampaign.schedule));
           setFormData((prev) => ({ ...prev, scheduleType: "datetime" }));
         }
+        setIsDataReady(true);
       } else {
         setFormData({
           campaignName: "",
@@ -116,6 +121,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
         setQuillContent("");
         setScheduleDate(null);
         setCsvFile(null);
+        setIsDataReady(true);
       }
     }
   }, [isOpen, editingCampaign]);
@@ -225,7 +231,6 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       onSuccess();
       onClose();
 
-      // Reset
       setFormData({
         campaignName: "",
         objective: "Promotion",
@@ -275,7 +280,6 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
           <Input
             label="Campaign Name"
             name="campaignName"
-            placeholder="Enter campaign name"
             value={formData.campaignName}
             onChange={handleChange}
             required
@@ -286,7 +290,6 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
             value={formData.objective}
             onChange={(v) => handleSelectChange("objective", v)}
             options={objectiveOptions}
-            // disabled={isViewMode} // Select needs wrapper for disabled style if not supported
           />
         </div>
 
@@ -360,13 +363,20 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
             <label className="mb-1.5 text-xs font-medium text-text-secondary block">
               Content <span className="text-red-500">*</span>
             </label>
-            <ReactQuill
-              key={editingCampaign ? editingCampaign.id : "new"}
-              theme="snow"
-              value={quillContent}
-              onChange={setQuillContent}
-              readOnly={isViewMode}
-            />
+
+            {/* 4. FIX: Gatekeeper logic to ensure content is ready */}
+            {isDataReady ? (
+              <ReactQuill
+                theme="snow"
+                value={quillContent}
+                onChange={setQuillContent}
+                readOnly={isViewMode}
+              />
+            ) : (
+              <div className="h-40 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 text-gray-400">
+                Loading editor...
+              </div>
+            )}
           </div>
         </div>
 
