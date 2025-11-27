@@ -26,6 +26,7 @@ import Timezone from "../pages/settings/Timezone/Timezone";
 import Company from "../pages/Company/Company";
 import Vendor from "../pages/Connectivity/Vendor/vendor";
 import Smpp from "../pages/Connectivity/Smpp/Smpp";
+import Client from "../pages/Client/Client";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -97,6 +98,9 @@ const AppRoutes = () => {
         </Route>
         <Route element={<ProtectedRoute path="company" />}>
           <Route path="company" element={<Company />} />
+        </Route>
+        <Route element={<ProtectedRoute path="client" />}>
+          <Route path="client" element={<Client />} />
         </Route>
 
         {/* ----- */}

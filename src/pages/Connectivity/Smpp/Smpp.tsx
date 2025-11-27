@@ -269,7 +269,7 @@ const Smpp: React.FC = () => {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Config"
-        message="Are you sure?"
+        message="Are you sure you want to delete this SMPP configuration? This action cannot be undone."
       />
     </div>
   );

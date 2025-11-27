@@ -247,7 +247,7 @@ const Vendor: React.FC = () => {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Vendor"
-        message="Are you sure?"
+        message="Are you sure you want to delete this vendor? This action cannot be undone."
       />
     </div>
   );

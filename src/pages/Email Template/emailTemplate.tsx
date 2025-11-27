@@ -143,7 +143,7 @@ const EmailTemplatePage: React.FC = () => {
           label="Search by Name"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Template name"
+          placeholder="Email Template name"
           className="md:col-span-2"
         />
       </FilterCard>
@@ -233,7 +233,7 @@ const EmailTemplatePage: React.FC = () => {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Template"
-        message="Are you sure you want to delete this template?"
+        message="Are you sure you want to delete this template? This action cannot be undone."
       />
     </div>
   );

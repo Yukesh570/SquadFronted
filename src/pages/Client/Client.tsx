@@ -3,51 +3,53 @@ import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  getTimezoneApi,
-  deleteTimezoneApi,
-  type TimezoneData,
-} from "../../../api/settingApi/timezoneApi/timezoneApi";
+  getClientsApi,
+  deleteClientApi,
+  type ClientData,
+} from "../../api/clientApi/clientApi";
+import { ClientModal } from "../../components/modals/ClientModal";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import DataTable from "../../components/ui/DataTable";
+import FilterCard from "../../components/ui/FilterCard";
+import { DeleteModal } from "../../components/modals/DeleteModal";
+import ViewButton from "../../components/ui/ViewButton";
+import Select from "../../components/ui/Select";
 
-import Button from "../../../components/ui/Button";
-import Input from "../../../components/ui/Input";
-import DataTable from "../../../components/ui/DataTable";
-import FilterCard from "../../../components/ui/FilterCard";
-import { DeleteModal } from "../../../components/modals/DeleteModal";
-import ViewButton from "../../../components/ui/ViewButton";
-import { TimezoneModal } from "../../../components/modals/Settings/timezonemodal";
-
-const Timezone: React.FC = () => {
-  const [timezones, setTimezones] = useState<TimezoneData[]>([]);
+const Client: React.FC = () => {
+  const [clients, setClients] = useState<ClientData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTimezone, setEditingTimezone] = useState<TimezoneData | null>(
-    null
-  );
+  const [editingClient, setEditingClient] = useState<ClientData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
+  // Filters
   const [nameFilter, setNameFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
+  const pathSegments = location.pathname.split("/").filter(Boolean);
+  const routeName = pathSegments[pathSegments.length - 1] || "client";
 
-  const pathParts = location.pathname.split("/").filter(Boolean);
-  const routeName = pathParts[pathParts.length - 1] || "timezone";
-
-  const fetchTimezones = async (overrideParams?: Record<string, string>) => {
+  const fetchClients = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
       const currentSearchParams = overrideParams || {
         name: nameFilter,
+        status: statusFilter,
       };
+
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
       );
-      const response: any = await getTimezoneApi(
+
+      const response: any = await getClientsApi(
         routeName,
         currentPage,
         rowsPerPage,
@@ -55,75 +57,91 @@ const Timezone: React.FC = () => {
       );
 
       if (response && response.results) {
-        setTimezones(response.results);
+        setClients(response.results);
         setTotalItems(response.count);
       } else if (Array.isArray(response)) {
-        setTimezones(response);
+        setClients(response);
         setTotalItems(response.length);
       } else {
-        setTimezones([]);
+        setClients([]);
         setTotalItems(0);
       }
     } catch (error) {
       console.error("Fetch error:", error);
-      // Only show toast if it's a real error, not just empty list on load
-      // toast.error("Failed to fetch entities.");
+      toast.error("Failed to fetch clients.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTimezones();
+    fetchClients();
   }, [routeName, currentPage, rowsPerPage]);
+
   const handleSearch = () => {
     setCurrentPage(1);
-    fetchTimezones();
+    fetchClients();
   };
+
   const handleClearFilters = () => {
     setNameFilter("");
+    setStatusFilter("");
     setCurrentPage(1);
-    fetchTimezones({ name: "" });
+    fetchClients({ name: "", status: "" });
   };
 
   const handleDelete = async () => {
     if (deleteId) {
       try {
-        await deleteTimezoneApi(deleteId, routeName);
-        toast.success("Timezone deleted.");
-        fetchTimezones();
+        await deleteClientApi(deleteId, routeName);
+        toast.success("Client deleted successfully.");
+        fetchClients();
       } catch (error) {
-        toast.error("Failed to delete timezone.");
+        toast.error("Failed to delete client.");
       }
       setDeleteId(null);
     }
   };
 
-  const handleEdit = (timezone: TimezoneData) => {
-    setEditingTimezone(timezone);
+  const handleEdit = (client: ClientData) => {
+    setEditingClient(client);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
-    setEditingTimezone(null);
+    setEditingClient(null);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
-  const handleView = (timezone: TimezoneData) => {
-    setEditingTimezone(timezone);
+  const handleView = (client: ClientData) => {
+    setEditingClient(client);
     setIsViewMode(true);
     setIsModalOpen(true);
   };
 
-  const headers = ["S.N.", "Timezone Name", "Actions"];
+  const headers = [
+    "S.N.",
+    "Client Name",
+    "Company",
+    "Status",
+    "Route Type",
+    "Credit Limit",
+    "Actions",
+  ];
+
+  const statusOptions = [
+    { label: "Active", value: "ACTIVE" },
+    { label: "Trial", value: "TRIAL" },
+    { label: "Suspended", value: "SUSPENDED" },
+  ];
 
   return (
     <div className="container mx-auto">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
-          Timezone Settings
+          Clients
         </h1>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
@@ -131,23 +149,30 @@ const Timezone: React.FC = () => {
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary dark:text-white">Timezone</span>
+          <span className="text-text-primary dark:text-white">Clients</span>
         </div>
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
-          label="Search Timezone"
+          label="Search Name"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Timezone Name..."
+          placeholder="Client Name..."
           className="md:col-span-2"
+        />
+        <Select
+          label="Status"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={statusOptions}
+          placeholder="Select Status"
         />
       </FilterCard>
 
       <DataTable
         serverSide={true}
-        data={timezones}
+        data={clients}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}
@@ -161,34 +186,56 @@ const Timezone: React.FC = () => {
             onClick={handleAdd}
             leftIcon={<Plus size={18} />}
           >
-            Add Timezone
+            Add Client
           </Button>
         }
-        renderRow={(timezone, index) => (
+        renderRow={(client, index) => (
           <tr
-            key={timezone.id || index}
+            key={client.id || index}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {timezone.name}
+              {client.name}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {client.companyName || client.company}
+            </td>
+            <td className="px-4 py-4 text-sm">
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  client.status === "ACTIVE"
+                    ? "bg-green-100 text-green-800"
+                    : client.status === "TRIAL"
+                    ? "bg-blue-100 text-blue-800"
+                    : "bg-red-100 text-red-800"
+                }`}
+              >
+                {client.status}
+              </span>
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {client.route}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {client.creditLimit}
             </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(timezone)} />
+                <ViewButton onClick={() => handleView(client)} />
                 <Button
                   variant="secondary"
                   size="xs"
-                  onClick={() => handleEdit(timezone)}
+                  onClick={() => handleEdit(client)}
                 >
                   <Edit size={14} />
                 </Button>
                 <Button
                   variant="danger"
                   size="xs"
-                  onClick={() => setDeleteId(timezone.id!)}
+                  onClick={() => setDeleteId(client.id!)}
                 >
                   <Trash size={14} />
                 </Button>
@@ -197,23 +244,25 @@ const Timezone: React.FC = () => {
           </tr>
         )}
       />
-      <TimezoneModal
+
+      <ClientModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchTimezones}
+        onSuccess={fetchClients}
         moduleName={routeName}
-        editingTimezone={editingTimezone}
+        editingClient={editingClient}
         isViewMode={isViewMode}
       />
+
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Timezone"
-        message="Are you sure you want to delete this timezone? This action cannot be undone."
+        title="Delete Client"
+        message="Are you sure you want to delete this client? This action cannot be undone."
       />
     </div>
   );
 };
 
-export default Timezone;
+export default Client;

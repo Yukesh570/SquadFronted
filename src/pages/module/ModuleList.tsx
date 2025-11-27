@@ -246,7 +246,7 @@ const ModuleList: React.FC = () => {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Module"
-        message="Are you sure?"
+        message="Are you sure you want to delete this module? This action cannot be undone."
       />
     </div>
   );

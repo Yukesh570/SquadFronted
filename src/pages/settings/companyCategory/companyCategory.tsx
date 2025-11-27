@@ -213,7 +213,7 @@ const CompanyCategory: React.FC = () => {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Company Category"
-        message="Are you sure?"
+        message="Are you sure you want to delete this company category? This action cannot be undone."
       />
     </div>
   );

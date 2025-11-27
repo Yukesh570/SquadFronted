@@ -286,7 +286,7 @@ const CompanyList: React.FC = () => {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Company"
-        message="Are you sure?"
+        message="Are you sure you want to delete this company? This action cannot be undone."
       />
     </div>
   );

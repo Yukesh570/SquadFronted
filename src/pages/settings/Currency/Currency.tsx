@@ -118,7 +118,7 @@ const Currency: React.FC = () => {
   const headers = [
     "S.N.",
     "Currency Name",
-    "Country ID",
+    // "Country ID",
     "Country Name",
     "Actions",
   ];
@@ -188,9 +188,9 @@ const Currency: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
               {currency.name}
             </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+            {/* <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               {currency.country}
-            </td>
+            </td> */}
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               {currency.countryName || "-"}
             </td>
@@ -229,7 +229,7 @@ const Currency: React.FC = () => {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Currency"
-        message="Are you sure?"
+        message="Are you sure you want to delete this currency? This action cannot be undone."
       />
     </div>
   );

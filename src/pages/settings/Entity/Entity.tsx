@@ -209,7 +209,7 @@ const Entity: React.FC = () => {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Entity"
-        message="Are you sure?"
+        message="Are you sure you want to delete this entity? This action cannot be undone."
       />
     </div>
   );

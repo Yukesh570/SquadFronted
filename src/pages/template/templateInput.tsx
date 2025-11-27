@@ -235,7 +235,7 @@ const CampaignTemplatePage: React.FC = () => {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Template"
-        message="Are you sure you want to delete this template?"
+        message="Are you sure you want to delete this template? This action cannot be undone."
       />
     </div>
   );

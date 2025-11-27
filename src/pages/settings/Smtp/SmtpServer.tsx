@@ -232,7 +232,7 @@ const SmtpServer: React.FC = () => {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Host"
-        message="Are you sure?"
+        message="Are you sure you want to delete this email host? This action cannot be undone."
       />
     </div>
   );

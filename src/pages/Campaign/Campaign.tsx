@@ -236,7 +236,7 @@ const CampaignList: React.FC = () => {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Campaign"
-        message="Are you sure you want to delete this campaign?"
+        message="Are you sure you want to delete this campaign? This action cannot be undone."
       />
     </div>
   );
