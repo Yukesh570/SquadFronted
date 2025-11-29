@@ -45,10 +45,6 @@ jobs:
           /usr/bin/rsync -avz --delete \
             --exclude 'node_modules/' \
             --exclude '.git/' \
-            --exclude '.github/' \
-            --exclude '.env*' \
-            --include 'dist/***' \
-            --exclude '*' \
             ./ ${{ env.SSH_USER }}@${{ env.SSH_HOST }}:${{ env.REMOTE_DIR }}/
 
       - name: SSH → Deploy Docker
