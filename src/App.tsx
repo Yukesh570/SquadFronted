@@ -12,7 +12,6 @@ function App() {
       <AuthProvider>
         <AppRoutes />
       </AuthProvider>
-      
       {/* 3. Add our new component here. It's much cleaner! */}
       <ToastManager />
     </BrowserRouter>
