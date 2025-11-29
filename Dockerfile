@@ -1,15 +1,8 @@
 
-FROM node:22-alpine AS builder
+FROM node:22-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production=false
-COPY . .
-RUN npm run build
-
-FROM nginx:stable-alpine
-RUN rm -rf /usr/share/nginx/html/*
-COPY --from=builder /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-
-
+RUN npm ci --only=production
+COPY dist ./dist
+EXPOSE 3000
+CMD ["npx", "serve", "-s", "dist", "-l", "3000"]

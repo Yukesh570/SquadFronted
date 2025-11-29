@@ -8,6 +8,8 @@ services:
     image: squad-frontend:latest
     container_name: squad-frontend
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     networks:
       - squad-network
 
