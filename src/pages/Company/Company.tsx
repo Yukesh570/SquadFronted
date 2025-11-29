@@ -137,7 +137,6 @@ const CompanyList: React.FC = () => {
     setCurrentPage(1); // Reset to page 1
     fetchCompanies(); // Fetch using current state inputs
   };
-
   const handleClearFilters = () => {
     setNameFilter("");
     setCurrentPage(1);
