@@ -10,10 +10,5 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
-    networks:
-      - squad-network
+ 
 
-networks:
-  squad-network:
-    name: npm_default
-    external: true
