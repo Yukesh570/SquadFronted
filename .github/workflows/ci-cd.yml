@@ -1,0 +1,64 @@
+name: CI/CD Deploy React Frontend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+
+    env:
+      REMOTE_DIR: ${{ secrets.REMOTE_APP_DIR }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_PORT: ${{ secrets.SSH_PORT }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React
+        run: npm run build
+
+      - name: Prepare SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa 
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ env.SSH_PORT }} ${{ env.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Sync built files (rsync dist/)
+        run: |
+          rsync -avz --delete \
+            --exclude 'node_modules/' \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude '.env*' \
+            --include 'dist/***' \
+            --exclude '*' \
+            ./ ${{ env.SSH_USER }}@${{ env.SSH_HOST }}:${{ env.REMOTE_DIR }}/
+
+      - name: SSH → Deploy Docker
+        run: |
+          ssh -p ${{ env.SSH_PORT }} ${{ env.SSH_USER }}@${{ env.SSH_HOST }} << 'EOF' 
+            cd "${secrets.REMOTE_APP_DIR}"
+            echo "--- Deploying Squad Frontend ---"
+            docker compose -f docker-compose-react.yml down || true
+            docker compose -f docker-compose-react.yml up -d --build --remove-orphans
+            docker image prune -f
+            echo "✅ Deployment complete!"
+            docker ps
+          EOF
+
+      - name: Success
+        run: echo "Frontend CI/CD completed!"

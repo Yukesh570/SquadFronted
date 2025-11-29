@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  squad-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: squad-frontend:latest
+    container_name: squad-frontend
+    restart: unless-stopped
+    networks:
+      - squad-network
+
+networks:
+  squad-network:
+    name: npm_default
+    external: true
