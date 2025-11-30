@@ -44,6 +44,7 @@ jobs:
           which rsync || ls -l /usr/bin/rsync
           /usr/bin/rsync -avz --delete \
             --exclude 'node_modules/' \
+            --exclude '.env' \
             --exclude '.git/' \
             ./ ${{ env.SSH_USER }}@${{ env.SSH_HOST }}:${{ env.REMOTE_DIR }}/
 
