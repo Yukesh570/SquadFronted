@@ -16,7 +16,6 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
   const { navItems } = useContext(NavItemsContext);
   const [openItems, setOpenItems] = useState<Record<number, boolean>>({});
   const location = useLocation();
-  console.log("Nav Items in Sidebar:", navItems);
   const toggleItem = (id?: number) => {
     if (!id) return;
     setOpenItems((prev) => ({ ...prev, [id]: !prev[id] }));
