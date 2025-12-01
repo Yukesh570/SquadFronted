@@ -13,7 +13,6 @@ export interface PaginatedResponse<T> {
   previous: string | null;
   results: T[];
 }
-
 export const getCountriesApi = async (
   module: string,
   page: number = 1,
