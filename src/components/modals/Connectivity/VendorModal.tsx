@@ -145,6 +145,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           onChange={(v) => handleSelect("company", v)}
           options={companyOptions}
           placeholder="Select Company"
+          disabled={isViewMode}
         />
 
         <Input
@@ -163,6 +164,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           onChange={(v) => handleSelect("connectionType", v)}
           options={connectionTypeOptions}
           placeholder="Select Type"
+          disabled={isViewMode}
         />
 
         <div className="flex justify-end space-x-3 pt-4">

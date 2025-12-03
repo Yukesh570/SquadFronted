@@ -27,6 +27,7 @@ import Company from "../pages/Company/Company";
 import Vendor from "../pages/Connectivity/Vendor/vendor";
 import Smpp from "../pages/Connectivity/Smpp/Smpp";
 import Client from "../pages/Client/Client";
+import VendorRate from "../pages/Rate/VendorRate";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -99,11 +100,16 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute path="company" />}>
           <Route path="company" element={<Company />} />
         </Route>
-        <Route element={<ProtectedRoute path="client" />}>
-          <Route path="client" element={<Client />} />
+        {/* <Route element={<ProtectedRoute path="client" />}> */}
+        <Route path="client" element={<Client />} />
+        {/* </Route> */}
+
+        {/* Rate */}
+        <Route element={<ProtectedRoute path="rate/vendorRate" />}>
+          <Route path="rate/vendorRate" element={<VendorRate />} />
         </Route>
 
-        {/* ----- */}
+        {/* Connectivity */}
         <Route element={<ProtectedRoute path="connectivity/vendor" />}>
           <Route path="connectivity/vendor" element={<Vendor />} />
         </Route>

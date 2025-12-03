@@ -1,11 +1,11 @@
-import React, { useEffect } from "react";
+import React from "react";
+import { Dialog } from "@headlessui/react";
 import { X } from "lucide-react";
-import Button from "./Button";
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title?: string;
   children: React.ReactNode;
   className?: string;
 }
@@ -15,43 +15,56 @@ const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
-  className = "max-w-xl", // Default width
+  className = "max-w-md",
 }) => {
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    if (isOpen) document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm transition-opacity"
-      onClick={onClose}
-    >
+    <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+      {/* Backdrop */}
       <div
-        className={`relative w-full ${className} p-6 bg-white rounded-xl shadow-2xl dark:bg-gray-800 transform transition-all scale-100`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {title}
-          </h2>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
-            <X size={20} />
-          </Button>
-        </div>
+        className="fixed inset-0 bg-black/25 dark:bg-black/60 backdrop-blur-sm"
+        aria-hidden="true"
+      />
 
-        {/* Body */}
-        <div className="mt-4">
-          {children}
+      {/* Full-screen container for centering the panel */}
+      <div className="fixed inset-0 overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-4 text-center">
+          <Dialog.Panel
+            className={`w-full rounded-xl p-6 text-left align-middle shadow-xl 
+            
+            /* LIGHT MODE */
+            bg-white text-gray-900 
+            
+            /* DARK MODE */
+            dark:bg-gray-800 dark:text-white dark:border dark:border-gray-700
+            
+            ${className}`}
+          >
+            <div className="flex items-center justify-between mb-6">
+              {title && (
+                <Dialog.Title
+                  as="h3"
+                  className="text-lg font-semibold leading-6"
+                >
+                  {title}
+                </Dialog.Title>
+              )}
+              <button
+                type="button"
+                className="rounded-md p-1.5 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none transition-colors"
+                onClick={onClose}
+              >
+                <span className="sr-only">Close</span>
+                <X size={20} aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="text-text-secondary dark:text-gray-300">
+              {children}
+            </div>
+          </Dialog.Panel>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 };
 

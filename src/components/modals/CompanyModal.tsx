@@ -357,6 +357,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={(v) => handleSelect("country", v)}
               options={countries}
               placeholder="Select Country"
+              disabled={isViewMode}
             />
             <Select
               label="State Name"
@@ -364,6 +365,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={(v) => handleSelect("state", v)}
               options={states}
               placeholder="Select State"
+              disabled={isViewMode}
             />
             <Select
               label="Company Category"
@@ -371,6 +373,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={(v) => handleSelect("category", v)}
               options={categories}
               placeholder="Select Category"
+              disabled={isViewMode}
             />
             <Select
               label="Company Status"
@@ -378,6 +381,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={(v) => handleSelect("status", v)}
               options={statuses}
               placeholder="Select Status"
+              disabled={isViewMode}
             />
           </div>
         </fieldset>
@@ -394,6 +398,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={(v) => handleSelect("currency", v)}
               options={currencies}
               placeholder="Select Currency"
+              disabled={isViewMode}
             />
             <Select
               label="Time Zone"
@@ -401,6 +406,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={(v) => handleSelect("timeZone", v)}
               options={timeZones}
               placeholder="Select Time Zone"
+              disabled={isViewMode}
             />
             <Input
               label="Customer Credit Limit"
@@ -452,6 +458,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={(v) => handleSelect("businessEntity", v)}
               options={entities}
               placeholder="Select Entity Type"
+              disabled={isViewMode}
             />
             <Input
               label="Vat Number"
@@ -496,6 +503,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 { label: "Limited", value: "LTD" },
                 { label: "Unlimited", value: "UNL" },
               ]}
+              placeholder="Select Validity Period"
+              disabled={isViewMode}
             />
             <Select
               label="Default Email"
@@ -505,6 +514,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 { label: "Company", value: "CMP" },
                 { label: "Support", value: "SUP" },
               ]}
+              placeholder="Select Default Email"
+              disabled={isViewMode}
             />
           </div>
 

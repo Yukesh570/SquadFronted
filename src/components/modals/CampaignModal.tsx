@@ -280,6 +280,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
           <Input
             label="Campaign Name"
             name="campaignName"
+            placeholder="Enter campaign name"
             value={formData.campaignName}
             onChange={handleChange}
             required
@@ -290,6 +291,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
             value={formData.objective}
             onChange={(v) => handleSelectChange("objective", v)}
             options={objectiveOptions}
+            disabled={isViewMode}
           />
         </div>
 
@@ -356,6 +358,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
               onChange={(v) => handleSelectChange("template", v)}
               options={[...templateOptions]}
               placeholder="Select Template"
+              disabled={isViewMode}
             />
           )}
 

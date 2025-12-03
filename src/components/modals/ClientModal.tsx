@@ -220,6 +220,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               onChange={(v) => handleSelect("company", v)}
               options={companyOptions}
               placeholder="Select Company"
+              disabled={isViewMode}
             />
             <Input
               label="Client Name"
@@ -235,12 +236,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.status}
               onChange={(v) => handleSelect("status", v)}
               options={statusOptions}
+              disabled={isViewMode}
             />
             <Select
               label="Route Types"
               value={formData.route}
               onChange={(v) => handleSelect("route", v)}
               options={routeOptions}
+              disabled={isViewMode}
             />
           </div>
         </fieldset>
@@ -256,6 +259,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.paymentTerms}
               onChange={(v) => handleSelect("paymentTerms", v)}
               options={paymentTermOptions}
+              disabled={isViewMode}
             />
             <div className="flex items-end mb-2">
               <ToggleSwitch

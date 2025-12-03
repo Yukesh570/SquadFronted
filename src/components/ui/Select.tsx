@@ -14,7 +14,8 @@ interface SelectProps {
   options: SelectOption[];
   placeholder?: string;
   error?: string;
-  clearable?: boolean; // 1. NEW PROP
+  clearable?: boolean;
+  disabled?: boolean;
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -24,7 +25,8 @@ const Select: React.FC<SelectProps> = ({
   options,
   placeholder = "Select an option",
   error,
-  clearable = true, // 2. Default is TRUE (Show X). Pass false to hide it.
+  clearable = true,
+  disabled = false,
 }) => {
   const selectedOption =
     options.find((option) => option.value === value) || null;
@@ -36,28 +38,36 @@ const Select: React.FC<SelectProps> = ({
   };
 
   return (
-    <Listbox value={value} onChange={onChange}>
+    <Listbox value={value} onChange={onChange} disabled={disabled}>
       <div className={`flex flex-col ${hasLabel ? "" : "justify-end"}`}>
         {hasLabel && (
-          <label className="mb-1.5 text-xs font-medium text-text-secondary">
+          <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-300">
             {label}
           </label>
         )}
         <div className="relative">
           <Listbox.Button
-            className={`w-full rounded-lg border bg-white px-3 pr-10 text-sm text-left shadow-input transition duration-150 ease-in-out focus:outline-none focus:ring-1 ${
+            className={`w-full rounded-lg border px-3 pr-10 text-sm text-left shadow-input transition duration-150 ease-in-out focus:outline-none focus:ring-1 
+            ${
               error
                 ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                 : "border-gray-200 focus:border-primary focus:ring-primary"
-            } dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-              hasLabel ? "py-2.5" : "py-2"
-            }`}
+            } 
+            ${
+              disabled
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-500"
+                : "bg-white text-text-primary dark:bg-gray-700 dark:text-white"
+            }
+            dark:border-gray-600 
+            ${hasLabel ? "py-2.5" : "py-2"}`}
           >
             <span
               className={`block truncate ${
                 !selectedOption
+                  ? "text-gray-400 dark:text-gray-400"
+                  : disabled
                   ? "text-gray-400"
-                  : "text-text-secondary dark:text-gray-200"
+                  : "text-text-primary dark:text-white"
               }`}
             >
               {selectedOption ? selectedOption.label : placeholder}
@@ -66,13 +76,17 @@ const Select: React.FC<SelectProps> = ({
             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
               <ChevronDown
                 size={18}
-                className="text-gray-500"
+                className={`${
+                  disabled
+                    ? "text-gray-300"
+                    : "text-gray-500 dark:text-gray-400"
+                }`}
                 aria-hidden="true"
               />
             </span>
 
-            {/* 3. Only show 'X' if value exists AND clearable is true */}
-            {value && clearable && (
+            {/* Clear Button */}
+            {value && clearable && !disabled && (
               <span
                 onClick={handleClear}
                 className="absolute inset-y-0 right-8 flex items-center pr-2 cursor-pointer hover:text-red-500 group"
@@ -86,45 +100,49 @@ const Select: React.FC<SelectProps> = ({
             )}
           </Listbox.Button>
 
-          <Transition
-            as={Fragment}
-            leave="transition ease-in duration-100"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <Listbox.Options className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-              {options.map((option) => (
-                <Listbox.Option
-                  key={option.value}
-                  className={({ active }) =>
-                    `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                      active
-                        ? "bg-gray-100 dark:bg-gray-700 text-primary"
-                        : "text-text-secondary dark:text-gray-300"
-                    }`
-                  }
-                  value={option.value}
-                >
-                  {({ selected }) => (
-                    <>
-                      <span
-                        className={`block truncate ${
-                          selected ? "font-medium text-primary" : "font-normal"
-                        }`}
-                      >
-                        {option.label}
-                      </span>
-                      {selected ? (
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary">
-                          <Check size={16} aria-hidden="true" />
+          {!disabled && (
+            <Transition
+              as={Fragment}
+              leave="transition ease-in duration-100"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <Listbox.Options className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700">
+                {options.map((option) => (
+                  <Listbox.Option
+                    key={option.value}
+                    className={({ active }) =>
+                      `relative cursor-default select-none py-2 pl-10 pr-4 ${
+                        active
+                          ? "bg-gray-100 dark:bg-gray-700 text-primary dark:text-white"
+                          : "text-text-secondary dark:text-gray-300"
+                      }`
+                    }
+                    value={option.value}
+                  >
+                    {({ selected }) => (
+                      <>
+                        <span
+                          className={`block truncate ${
+                            selected
+                              ? "font-medium text-primary dark:text-white"
+                              : "font-normal"
+                          }`}
+                        >
+                          {option.label}
                         </span>
-                      ) : null}
-                    </>
-                  )}
-                </Listbox.Option>
-              ))}
-            </Listbox.Options>
-          </Transition>
+                        {selected ? (
+                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary dark:text-white">
+                            <Check size={16} aria-hidden="true" />
+                          </span>
+                        ) : null}
+                      </>
+                    )}
+                  </Listbox.Option>
+                ))}
+              </Listbox.Options>
+            </Transition>
+          )}
         </div>
         {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
       </div>

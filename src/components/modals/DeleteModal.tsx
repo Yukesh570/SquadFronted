@@ -26,8 +26,8 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
         <div className="p-3 bg-red-100 rounded-full dark:bg-red-900/30">
           <AlertTriangle size={40} className="text-red-600 dark:text-red-500" />
         </div>
-        
-        <p className="text-text-secondary text-sm leading-relaxed">
+
+        <p className="text-text-secondary text-sm leading-relaxed dark:text-gray-300">
           {message}
         </p>
 
@@ -35,9 +35,9 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
           <Button variant="secondary" onClick={onClose} className="w-1/2">
             Cancel
           </Button>
-          <Button 
-            variant="danger" 
-            onClick={onConfirm} 
+          <Button
+            variant="danger"
+            onClick={onConfirm}
             disabled={isDeleting}
             className="w-1/2"
           >

@@ -145,6 +145,7 @@ export const SmtpModal: React.FC<SmtpModalProps> = ({
             value={formData.security}
             onChange={handleSelectChange}
             options={securityOptions}
+            disabled={isViewMode}
           />
           <Input
             label="Server Port"

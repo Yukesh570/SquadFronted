@@ -161,7 +161,6 @@ export const SmppModal: React.FC<SmppModalProps> = ({
             disabled={isViewMode}
           />
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Input
             label="System ID"
@@ -196,6 +195,7 @@ export const SmppModal: React.FC<SmppModalProps> = ({
             onChange={(v) => handleSelect("bindMode", v)}
             options={bindModeOptions}
             placeholder="Select Mode"
+            disabled={isViewMode}
           />
         </div>
 
@@ -237,7 +237,6 @@ export const SmppModal: React.FC<SmppModalProps> = ({
             disabled={isViewMode}
           />
         </div>
-
         <div className="flex justify-end space-x-3 pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>
             {isViewMode ? "Close" : "Cancel"}
