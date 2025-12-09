@@ -15,8 +15,10 @@ import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import ViewButton from "../../components/ui/ViewButton";
 import Select from "../../components/ui/Select";
+import { usePagePermissions } from "../../hooks/usePagePermissions";
 
 const Client: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [clients, setClients] = useState<ClientData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,7 +93,7 @@ const Client: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteClientApi(deleteId, routeName);
         toast.success("Client deleted successfully.");
@@ -104,12 +106,14 @@ const Client: React.FC = () => {
   };
 
   const handleEdit = (client: ClientData) => {
+    if (!canUpdate) return;
     setEditingClient(client);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingClient(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -181,13 +185,15 @@ const Client: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <Button
-            variant="primary"
-            onClick={handleAdd}
-            leftIcon={<Plus size={18} />}
-          >
-            Add Client
-          </Button>
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Add Client
+            </Button>
+          ) : null
         }
         renderRow={(client, index) => (
           <tr
@@ -225,20 +231,24 @@ const Client: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(client)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(client)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(client.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(client)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(client.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import Login from "../pages/Auth/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
-import UserActivity from "../pages/Users/UserActivity";
 import CreateSidebar from "../pages/module/ModuleList";
 import NotFound from "../pages/error/notFound";
 import SignUp from "../pages/Auth/signUp";
@@ -28,6 +27,9 @@ import Vendor from "../pages/Connectivity/Vendor/vendor";
 import Smpp from "../pages/Connectivity/Smpp/Smpp";
 import Client from "../pages/Client/Client";
 import VendorRate from "../pages/Rate/VendorRate";
+import CustomerRate from "../pages/Rate/CustomerRate";
+import MappingSetup from "../pages/MappingSetup/MappingSetup";
+import Operators from "../pages/Operator/Operator";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -54,9 +56,6 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
-        <Route element={<ProtectedRoute path="users" />}>
-          <Route path="users" element={<UserActivity />} />
-        </Route>
         <Route element={<ProtectedRoute path="createSidebar" />}>
           <Route path="createSidebar" element={<CreateSidebar />} />
         </Route>
@@ -108,6 +107,9 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute path="rate/vendorRate" />}>
           <Route path="rate/vendorRate" element={<VendorRate />} />
         </Route>
+        <Route element={<ProtectedRoute path="rate/customerRate" />}>
+          <Route path="rate/customerRate" element={<CustomerRate />} />
+        </Route>
 
         {/* Connectivity */}
         <Route element={<ProtectedRoute path="connectivity/vendor" />}>
@@ -115,6 +117,16 @@ const AppRoutes = () => {
         </Route>
         <Route element={<ProtectedRoute path="connectivity/smpp" />}>
           <Route path="connectivity/smpp" element={<Smpp />} />
+        </Route>
+
+        {/* Mapping */}
+        <Route element={<ProtectedRoute path="mappingSetup" />}>
+          <Route path="mappingSetup" element={<MappingSetup />} />
+        </Route>
+
+        {/* Operator */}
+        <Route element={<ProtectedRoute path="operator" />}>
+          <Route path="operator" element={<Operators />} />
         </Route>
 
         {/* <Route element={<ProtectedRoute path="change-password" />}> */}

@@ -15,8 +15,10 @@ import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import { NavItemsContext } from "../../context/navItemsContext";
 import ViewButton from "../../components/ui/ViewButton";
+import { usePagePermissions } from "../../hooks/usePagePermissions";
 
 const ModuleList: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [modules, setModules] = useState<SideBarApi[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,7 +29,6 @@ const ModuleList: React.FC = () => {
   const [isViewMode, setIsViewMode] = useState(false);
 
   const [labelFilter, setLabelFilter] = useState("");
-  // const [urlFilter, setUrlFilter] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -38,13 +39,9 @@ const ModuleList: React.FC = () => {
   const fetchModules = async (overrideParams?: Record<string, any>) => {
     setIsLoading(true);
     try {
-      // Use provided params (for clear) OR current state values
       const currentSearchParams = overrideParams || {
-        label: labelFilter, // Key must match backend filter field
-        // url: urlFilter,
+        label: labelFilter,
       };
-
-      // Remove empty keys to keep URL clean
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
       );
@@ -74,19 +71,18 @@ const ModuleList: React.FC = () => {
     fetchModules();
   }, [currentPage, rowsPerPage, routeName]);
   const handleSearch = () => {
-    setCurrentPage(1); // Reset to page 1
-    fetchModules(); // Fetch using current state inputs
+    setCurrentPage(1);
+    fetchModules();
   };
 
   const handleClearFilters = () => {
     setLabelFilter("");
-    // setUrlFilter("");
     setCurrentPage(1);
-    fetchModules({ label: "", url: "" }); // Fetch immediately with empty params
+    fetchModules({ label: "", url: "" });
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteSideBarApi(deleteId, routeName);
         toast.success("Module deleted successfully.");
@@ -100,11 +96,13 @@ const ModuleList: React.FC = () => {
   };
 
   const handleEdit = (module: SideBarApi) => {
+    if (!canUpdate) return;
     setEditingModule(module);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingModule(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -149,13 +147,6 @@ const ModuleList: React.FC = () => {
           placeholder="Module label"
           className="md:col-span-2"
         />
-        {/* <Input
-          label="Search by URL"
-          value={urlFilter}
-          onChange={(e) => setUrlFilter(e.target.value)}
-          placeholder="Module URL"
-          className="md:col-span-2"
-        /> */}
       </FilterCard>
 
       <DataTable
@@ -169,13 +160,15 @@ const ModuleList: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <Button
-            variant="primary"
-            onClick={handleAdd}
-            leftIcon={<Plus size={18} />}
-          >
-            Add Module
-          </Button>
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Add Module
+            </Button>
+          ) : null
         }
         renderRow={(module, index) => (
           <tr
@@ -211,20 +204,24 @@ const ModuleList: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(module)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(module)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(module.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(module)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(module.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

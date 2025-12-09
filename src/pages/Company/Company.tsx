@@ -15,8 +15,10 @@ import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import ViewButton from "../../components/ui/ViewButton";
 import { companyCsv, downloadStatus } from "../../api/downloadApi/downloadApi";
+import { usePagePermissions } from "../../hooks/usePagePermissions";
 
 const CompanyList: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [companies, setCompanies] = useState<CompanyData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,7 +76,6 @@ const CompanyList: React.FC = () => {
               toast.error("Export generated but URL is missing.");
             }
           } else if (attempts >= maxAttempts) {
-            // Stop after 5 attempts
             clearInterval(checkStatus);
             toast.error(
               "Export timed out after 5 attempts. Please try again later."
@@ -82,7 +83,6 @@ const CompanyList: React.FC = () => {
           }
         } catch (error) {
           console.error("Error checking CSV status:", error);
-          // Ensure we stop if there is a hard error, or you can let it retry until maxAttempts
           if (attempts >= maxAttempts) {
             clearInterval(checkStatus);
             toast.error("Failed to check export status.");
@@ -134,17 +134,17 @@ const CompanyList: React.FC = () => {
   }, [routeName, currentPage, rowsPerPage]);
 
   const handleSearch = () => {
-    setCurrentPage(1); // Reset to page 1
-    fetchCompanies(); // Fetch using current state inputs
+    setCurrentPage(1);
+    fetchCompanies();
   };
   const handleClearFilters = () => {
     setNameFilter("");
     setCurrentPage(1);
-    fetchCompanies({ name: "" }); // Fetch immediately with empty params
+    fetchCompanies({ name: "" });
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteCompanyApi(deleteId, routeName);
         toast.success("Company deleted.");
@@ -157,12 +157,14 @@ const CompanyList: React.FC = () => {
   };
 
   const handleEdit = (company: CompanyData) => {
+    if (!canUpdate) return;
     setEditingCompany(company);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingCompany(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -221,13 +223,15 @@ const CompanyList: React.FC = () => {
             >
               Export
             </Button>
-            <Button
-              variant="primary"
-              onClick={handleAdd}
-              leftIcon={<Plus size={18} />}
-            >
-              Add Company
-            </Button>
+            {canCreate ? (
+              <Button
+                variant="primary"
+                onClick={handleAdd}
+                leftIcon={<Plus size={18} />}
+              >
+                Add Company
+              </Button>
+            ) : null}
           </div>
         }
         renderRow={(company, index) => (
@@ -253,20 +257,24 @@ const CompanyList: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(company)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(company)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(company.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(company)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(company.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, Fragment } from "react"; // 1. Moved Fragment
+import { useContext, useEffect, useState, Fragment } from "react";
 import {
   getNavByUserType,
   type navUserData,
@@ -32,7 +32,6 @@ const PermissionsTable = () => {
   const [expandedRows, setExpandedRows] = useState<number[]>([]);
   const { refreshNavItems } = useContext(NavItemsContext);
 
-  // This is a complex but necessary function for recursive state updates
   const handleToggle = (id: number, key: PermissionKeys) => {
     const updatePermissions = (items: navUserData[]): navUserData[] => {
       return items.map((item) => {
@@ -68,7 +67,7 @@ const PermissionsTable = () => {
       try {
         const data = await getNavByUserType({ userType: selectedUserType });
         setPermissions(data);
-        setOriginalPermissions(data); // Set snapshot for comparison
+        setOriginalPermissions(data);
       } catch (error) {
         toast.error(`Failed to load permissions for ${selectedUserType}.`);
         setPermissions([]);
@@ -81,7 +80,6 @@ const PermissionsTable = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Flattens the nested permission state
       const flattenItems = (items: navUserData[]): navUserData[] =>
         items.flatMap((item) =>
           item.children ? [item, ...flattenItems(item.children)] : [item]
@@ -90,7 +88,6 @@ const PermissionsTable = () => {
       const flatPermissions = flattenItems(permissions);
       const flatOriginal = flattenItems(originalPermissions);
 
-      // Compares the new state to the original state
       const changedPermissions = flatPermissions.filter((currentItem) => {
         const originalItem = flatOriginal.find((i) => i.id === currentItem.id);
         if (
@@ -98,7 +95,7 @@ const PermissionsTable = () => {
           !currentItem.permission ||
           !originalItem.permission
         ) {
-          return false; // Safety check
+          return false;
         }
         return (
           currentItem.permission.read !== originalItem.permission.read ||
@@ -113,8 +110,6 @@ const PermissionsTable = () => {
         setIsSaving(false);
         return;
       }
-
-      // Creates the payload for the backend
       const dataToSave = changedPermissions.map((item) => ({
         id: item.permission!.NavRelationid,
         read: item.permission!.read,
@@ -125,8 +120,8 @@ const PermissionsTable = () => {
 
       await updateNavUserRelationBulk(dataToSave);
       toast.success(`Permissions for ${selectedUserType} saved successfully!`);
-      setOriginalPermissions(permissions); // Update snapshot
-      refreshNavItems(); // Refresh sidebar
+      setOriginalPermissions(permissions);
+      refreshNavItems();
     } catch (error) {
       toast.error(`Failed to save permissions for ${selectedUserType}.`);
     } finally {
@@ -134,27 +129,27 @@ const PermissionsTable = () => {
     }
   };
 
-  // This is the new recursive render function
   const renderRows = (items: navUserData[], level = 0) => {
     return items.map((item) => {
-      // Safety check for missing permission object
       if (!item.permission) {
-        console.warn("Item missing permission object:", item);
         return null;
       }
+
+      const hasChildren = item.children && item.children.length > 0;
+
       return (
         <Fragment key={item.permission.NavRelationid}>
           <tr
-            className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
+            className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-800`}
           >
             <td
-              className="px-6 py-2 font-medium text-gray-900 dark:text-white flex items-center"
+              className="px-6 py-3 font-medium text-gray-900 dark:text-white flex items-center"
               style={{ paddingLeft: `${level * 20 + 24}px` }}
             >
-              {item.children && item.children.length > 0 && (
+              {hasChildren && (
                 <button
                   onClick={() => toggleExpand(item.permission!.NavRelationid!)}
-                  className="mr-2 focus:outline-none"
+                  className="mr-2 focus:outline-none text-gray-500 hover:text-primary"
                 >
                   {expandedRows.includes(item.permission!.NavRelationid!) ? (
                     <ChevronDown size={16} />
@@ -163,44 +158,63 @@ const PermissionsTable = () => {
                   )}
                 </button>
               )}
+              {!hasChildren && level > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-300 mr-2"></span>
+              )}
               {item.label || "No label"}
             </td>
 
             {(["read", "write", "delete", "put"] as PermissionKeys[]).map(
-              (key) => (
-                <td key={key} className="px-6 py-2 text-center">
-                  <div className="flex justify-center">
-                    <ToggleSwitch
-                      checked={item.permission![key]}
-                      onChange={() =>
-                        handleToggle(item.permission!.NavRelationid!, key)
-                      }
-                    />
-                  </div>
-                </td>
-              )
+              (key) => {
+                if (hasChildren && key !== "read") {
+                  return (
+                    <td key={key} className="px-6 py-2 text-center">
+                      <span className="text-gray-300 dark:text-gray-600 select-none">
+                        -
+                      </span>
+                    </td>
+                  );
+                }
+
+                return (
+                  <td key={key} className="px-6 py-2 text-center">
+                    <div className="flex justify-center">
+                      <ToggleSwitch
+                        checked={item.permission![key]}
+                        onChange={() =>
+                          handleToggle(item.permission!.NavRelationid!, key)
+                        }
+                      />
+                    </div>
+                  </td>
+                );
+              }
             )}
           </tr>
 
-          {item.children &&
-            item.children.length > 0 &&
+          {hasChildren &&
             expandedRows.includes(item.permission!.NavRelationid!) &&
-            renderRows(item.children, level + 1)}
+            renderRows(item.children!, level + 1)}
         </Fragment>
       );
     });
   };
 
   return (
-    <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-lg">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-          User Permissions
-        </h2>
+    <div className="container mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            User Permissions
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage access levels for different user roles.
+          </p>
+        </div>
 
-        <div className="w-64">
+        <div className="w-full md:w-64">
           <Select
-            label="Select User Type"
+            label="User Role"
             value={selectedUserType}
             onChange={setSelectedUserType}
             options={userTypeOptions}
@@ -210,49 +224,57 @@ const PermissionsTable = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-100 dark:bg-gray-800">
-            <tr>
-              <th className="px-6 py-3 text-left text-gray-700 dark:text-gray-300 font-medium uppercase tracking-wider">
-                Label
-              </th>
-              {["Read", "Write", "Delete", "Put"].map((col) => (
-                <th
-                  key={col}
-                  className="px-6 py-3 text-center text-gray-700 dark:text-gray-300 font-medium uppercase tracking-wider"
-                >
-                  {col}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            {permissions.length === 0 ? (
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-card border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <td
-                  colSpan={5}
-                  className="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
-                >
-                  No permissions found
-                </td>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Module
+                </th>
+                {["Read", "Create (Write)", "Delete", "Update (Put)"].map(
+                  (col) => (
+                    <th
+                      key={col}
+                      className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    >
+                      {col}
+                    </th>
+                  )
+                )}
               </tr>
-            ) : (
-              renderRows(permissions)
-            )}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+              {permissions.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-8 text-center text-gray-500 dark:text-gray-400"
+                  >
+                    No permissions found for this role.
+                  </td>
+                </tr>
+              ) : (
+                renderRows(permissions)
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="mt-6 flex justify-end">
-        <Button variant="primary" onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "Saving..." : "Save Changes"}
+        <Button
+          variant="primary"
+          onClick={handleSave}
+          disabled={isSaving}
+          className="px-8"
+        >
+          {isSaving ? "Saving Changes..." : "Save Changes"}
         </Button>
       </div>
     </div>
   );
 };
 
-// 2. REMOVED the extra Fragment import at the bottom
 export default PermissionsTable;

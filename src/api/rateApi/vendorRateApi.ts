@@ -2,14 +2,18 @@ import api from "../axiosInstance";
 
 export interface VendorRateData {
   id?: number;
-  country: number; // Country ID
-  countryName?: string; // Read-only
+  country: number | string;
+  countryName?: string; 
   ratePlan: string;
-  currencyCode: string; // String like "AUD"
-  timeZone: number; // Timezone ID
-  timeZoneName?: string; // Read-only
+  currencyCode: string; 
+  countryCode: number;
+  timeZone: number | string;
+  timeZoneName?: string; 
+  network: string;
   MCC: number;
-  rate: number | string; // API says int, but rates are usually decimal
+  MNC: number;
+  rate: number | string; 
+  dateTime: string;
   remark: string;
 }
 
@@ -61,4 +65,25 @@ export const deleteVendorRateApi = async (
   module: string
 ): Promise<void> => {
   await api.delete(`/vendorRate/${module}/${id}/`);
+};
+
+// IMPORT
+export const importVendorRatesApi = async (
+  file: File,
+  mappingId: string
+): Promise<{ task_id: string }> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("mapped", mappingId); 
+
+  const response = await api.post(`/vendor-rate/import/`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+// STATUS
+export const getImportStatusApi = async (taskId: string): Promise<any> => {
+  const response = await api.get(`/vendor-rate/import/status/${taskId}/`);
+  return response.data;
 };

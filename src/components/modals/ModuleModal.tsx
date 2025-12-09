@@ -46,9 +46,6 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
   });
 
   const [parentOptions, setParentOptions] = useState<Option[]>([]);
-  // Store full list to access parent URLs
-  const [allModules, setAllModules] = useState<SideBarApi[]>([]);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showIconModal, setShowIconModal] = useState(false);
   const [search, setSearch] = useState("");
@@ -72,7 +69,6 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
         if (res && res.results) list = res.results;
         else if (Array.isArray(res)) list = res;
 
-        setAllModules(list); // Save full list
         setParentOptions(
           list.map((m) => ({ label: m.label, value: String(m.id) }))
         );
@@ -107,20 +103,10 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
   };
 
   const handleSelect = (name: string, value: string) => {
-    if (name === "parent") {
-      const selectedParent = allModules.find((m) => String(m.id) === value);
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-        url:
-          selectedParent && !editingModule
-            ? `${selectedParent.url}/`
-            : prev.url,
-      }));
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleOpenIconModal = (e: React.MouseEvent) => {
@@ -226,7 +212,6 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
             />
           </div>
 
-          {/* MOVED DOWN: URL Path */}
           <Input
             label="URL Path"
             name="url"

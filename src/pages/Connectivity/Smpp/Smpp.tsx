@@ -15,9 +15,10 @@ import FilterCard from "../../../components/ui/FilterCard";
 import Select from "../../../components/ui/Select";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
-// import CustomDatePicker from "../../../components/ui/DatePicker";
+import { usePagePermissions } from "../../../hooks/usePagePermissions";
 
 const Smpp: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [smpps, setSmpps] = useState<SmppData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +32,6 @@ const Smpp: React.FC = () => {
   const [portFilter, setPortFilter] = useState("");
   const [systemIDFilter, setSystemIDFilter] = useState("");
   const [modeFilter, setModeFilter] = useState("");
-  //   const [isCreatedAtFilter, setIsCreatedAtFilter] = useState<Date | null>(null);
 
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,9 +48,6 @@ const Smpp: React.FC = () => {
         smppPort: portFilter,
         systemID: systemIDFilter,
         bindMode: modeFilter,
-        // createdAt: isCreatedAtFilter
-        //   ? isCreatedAtFilter.toISOString().split("T")[0]
-        //   : "",
       };
       const cleanParams = Object.fromEntries(
         Object.entries(params).filter(([_, v]) => v !== "")
@@ -94,19 +91,17 @@ const Smpp: React.FC = () => {
     setPortFilter("");
     setSystemIDFilter("");
     setModeFilter("");
-    // setIsCreatedAtFilter(null);
     setCurrentPage(1);
     fetchSmpp({
       smppHost: "",
       smppPort: "",
       systemID: "",
       bindMode: "",
-      //   createdAt: "",
     });
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteSmppApi(deleteId, routeName);
         toast.success("Deleted successfully.");
@@ -119,12 +114,14 @@ const Smpp: React.FC = () => {
   };
 
   const handleEdit = (item: SmppData) => {
+    if (!canUpdate) return;
     setEditingSmpp(item);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingSmpp(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -188,16 +185,11 @@ const Smpp: React.FC = () => {
           options={bindModeOptions}
           placeholder="Bind Mode..."
         />
-        {/* <CustomDatePicker
-          label="Created At"
-          selected={isCreatedAtFilter}
-          onChange={setIsCreatedAtFilter}
-        /> */}
       </FilterCard>
 
       <DataTable
         serverSide={true}
-        data={smpps} // Raw data from server
+        data={smpps}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}
@@ -206,13 +198,15 @@ const Smpp: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <Button
-            variant="primary"
-            onClick={handleAdd}
-            leftIcon={<Plus size={18} />}
-          >
-            Add Connectivity
-          </Button>
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Add Connectivity
+            </Button>
+          ) : null
         }
         renderRow={(item, index) => (
           <tr
@@ -237,20 +231,24 @@ const Smpp: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(item)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(item)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(item.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(item)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(item.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

@@ -14,6 +14,7 @@ import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import ViewButton from "../../components/ui/ViewButton";
+import { usePagePermissions } from "../../hooks/usePagePermissions";
 
 const stripHtml = (html: string) => {
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -21,6 +22,7 @@ const stripHtml = (html: string) => {
 };
 
 const EmailTemplatePage: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [templates, setTemplates] = useState<EmailTemplateData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +38,6 @@ const EmailTemplatePage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  // Ensure we get the module name, fallback to 'emailTemplate' if root
   const routeName = location.pathname.split("/")[1] || "emailTemplate";
 
   const fetchTemplates = async (overrideParams?: Record<string, string>) => {
@@ -86,7 +87,7 @@ const EmailTemplatePage: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteEmailTemplateApi(deleteId, routeName);
         toast.success("Template deleted successfully.");
@@ -101,12 +102,14 @@ const EmailTemplatePage: React.FC = () => {
   };
 
   const handleEdit = (template: EmailTemplateData) => {
+    if (!canUpdate) return;
     setEditingTemplate(template);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingTemplate(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -159,13 +162,15 @@ const EmailTemplatePage: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <Button
-            variant="primary"
-            onClick={handleAdd}
-            leftIcon={<Plus size={18} />}
-          >
-            Add Template
-          </Button>
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Add Template
+            </Button>
+          ) : null
         }
         renderRow={(template, index) => (
           <tr
@@ -197,20 +202,24 @@ const EmailTemplatePage: React.FC = () => {
             <td className="px-4 py-4 whitespace-nowrap text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(template)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(template)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(template.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(template)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(template.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

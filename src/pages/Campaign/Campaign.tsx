@@ -15,8 +15,10 @@ import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import ViewButton from "../../components/ui/ViewButton";
+import { usePagePermissions } from "../../hooks/usePagePermissions";
 
 const CampaignList: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [campaigns, setCampaigns] = useState<CampaignFormData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,7 +27,7 @@ const CampaignList: React.FC = () => {
   const [editingCampaign, setEditingCampaign] =
     useState<CampaignFormData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isViewMode, setIsViewMode] = useState(false); // View Mode
+  const [isViewMode, setIsViewMode] = useState(false);
 
   const [nameFilter, setNameFilter] = useState("");
   const [objectiveFilter, setObjectiveFilter] = useState("");
@@ -44,7 +46,6 @@ const CampaignList: React.FC = () => {
         objective: objectiveFilter,
       };
 
-      // Clean empty values
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
       );
@@ -89,7 +90,7 @@ const CampaignList: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteCampaignApi(deleteId, routeName);
         toast.success("Campaign deleted.");
@@ -102,12 +103,14 @@ const CampaignList: React.FC = () => {
   };
 
   const handleEdit = (campaign: CampaignFormData) => {
+    if (!canUpdate) return;
     setEditingCampaign(campaign);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingCampaign(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -170,13 +173,15 @@ const CampaignList: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <Button
-            variant="primary"
-            onClick={handleAdd}
-            leftIcon={<Plus size={18} />}
-          >
-            Create Campaign
-          </Button>
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Create Campaign
+            </Button>
+          ) : null
         }
         renderRow={(campaign, index) => (
           <tr
@@ -202,20 +207,24 @@ const CampaignList: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(campaign)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(campaign)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(campaign.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(campaign)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(campaign.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

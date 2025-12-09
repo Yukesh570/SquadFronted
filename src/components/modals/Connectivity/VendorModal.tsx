@@ -5,7 +5,7 @@ import {
   updateVendorApi,
   type VendorData,
 } from "../../../api/connectivityApi/vendorApi";
-import { getCompaniesApi } from "../../../api/companyApi/companyApi"; // To fetch companies list
+import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
@@ -34,7 +34,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   isViewMode = false,
 }) => {
   const [formData, setFormData] = useState({
-    companyName: "",
+    company: "",
     profileName: "",
     connectionType: "SMPP",
   });
@@ -47,6 +47,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     { label: "HTTP", value: "HTTP" },
   ];
 
+  // Fetch Companies
   useEffect(() => {
     if (isOpen) {
       getCompaniesApi("company", 1, 1000)
@@ -63,17 +64,17 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     }
   }, [isOpen]);
 
-  // Load Data for Editing
   useEffect(() => {
     if (isOpen && editingVendor) {
       setFormData({
-        companyName: String(editingVendor.company || ""),
+        company: editingVendor.company ? String(editingVendor.company) : "",
         profileName: editingVendor.profileName,
         connectionType: editingVendor.connectionType || "SMPP",
       });
     } else if (isOpen) {
+      // Reset form
       setFormData({
-        companyName: "",
+        company: "",
         profileName: "",
         connectionType: "SMPP",
       });
@@ -92,7 +93,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     e.preventDefault();
     if (isViewMode) return;
 
-    if (!formData.companyName || !formData.profileName) {
+    if (!formData.company || !formData.profileName) {
       toast.error("Company and Profile Name are required.");
       return;
     }
@@ -100,7 +101,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     setIsSubmitting(true);
 
     const payload = {
-      companyName: formData.companyName,
+      company: Number(formData.company),
       profileName: formData.profileName,
       connectionType: formData.connectionType,
     };
@@ -141,7 +142,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       <form onSubmit={handleSubmit} className="space-y-5">
         <Select
           label="Company Name"
-          value={formData.companyName}
+          value={formData.company}
           onChange={(v) => handleSelect("company", v)}
           options={companyOptions}
           placeholder="Select Company"

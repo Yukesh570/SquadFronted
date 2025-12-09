@@ -1,7 +1,8 @@
 import { NavLink, useLocation } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import React from "react";
+import { createPortal } from "react-dom";
 import { NavItemsContext } from "../../context/navItemsContext";
 import FullLogo from "../../../src/assets/logos/logo.svg";
 import IconLogo from "../../../src/assets/logos/S-logo.svg";
@@ -12,32 +13,80 @@ interface SidebarProps {
   isCollapsed: boolean;
 }
 
+const Tooltip = ({
+  text,
+  top,
+  left,
+}: {
+  text: string;
+  top: number;
+  left: number;
+}) => {
+  return createPortal(
+    <div
+      className="fixed z-[9999] px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-md shadow-lg pointer-events-none transform -translate-y-1/2 animate-in fade-in zoom-in-95 duration-100 dark:bg-gray-700 border border-gray-700/50"
+      style={{ top, left }}
+    >
+      {text}
+      <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-700"></div>
+    </div>,
+    document.body
+  );
+};
+
 const Sidebar = ({ isCollapsed }: SidebarProps) => {
   const { navItems } = useContext(NavItemsContext);
   const [openItems, setOpenItems] = useState<Record<number, boolean>>({});
   const location = useLocation();
+
+  const [hoveredItem, setHoveredItem] = useState<{
+    label: string;
+    top: number;
+    left: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (navItems.results) {
+      navItems.results.forEach((parent) => {
+        if (parent.children) {
+          const hasActiveChild = parent.children.some((child) =>
+            location.pathname.startsWith(`/${child.url}`)
+          );
+          if (hasActiveChild && parent.id) {
+            setOpenItems((prev) => ({ ...prev, [parent.id!]: true }));
+          }
+        }
+      });
+    }
+  }, [location.pathname, navItems]);
+
   const toggleItem = (id?: number) => {
     if (!id) return;
     setOpenItems((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const renderIcon = (iconName: string | undefined) => {
-    if (!iconName) return <Icons.HelpCircle className="mr-0" size={20} />;
-    const IconComponent = (Icons as any)[iconName] || Icons.HelpCircle;
-    return React.createElement(IconComponent, { className: "mr-0", size: 20 });
+  const renderIcon = (iconName: string | undefined, size: number) => {
+    const IconComponent =
+      iconName && (Icons as any)[iconName]
+        ? (Icons as any)[iconName]
+        : Icons.HelpCircle;
+    return <IconComponent size={size} className="flex-shrink-0" />;
   };
 
-  const getNavLinkClass = (isActive: boolean) =>
-    `flex items-center justify-between p-3 my-1 rounded-lg text-text-secondary
-     hover:bg-sidebar-active-bg hover:text-sidebar-active-text
-     dark:hover:bg-gray-700 dark:hover:text-white
-     transition-colors duration-150
-     ${
-       isActive
-         ? "bg-sidebar-active-bg dark:bg-gray-700 text-sidebar-active-text font-medium"
-         : ""
-     }
-     ${isCollapsed ? "justify-center" : ""}`;
+  const handleMouseEnter = (e: React.MouseEvent, label: string) => {
+    if (isCollapsed) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setHoveredItem({
+        label,
+        top: rect.top + rect.height / 2,
+        left: rect.right + 10,
+      });
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredItem(null);
+  };
 
   const renderNavItems = (items: PaginatedResponse<navUserData>, level = 0) => {
     return items.results.map((item) => {
@@ -45,53 +94,82 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
 
       const hasChildren = item.children && item.children.length > 0;
       const isOpen = item.id ? openItems[item.id] : false;
+      const itemPath = `/${item.url}`;
 
-      const isActive = location.pathname === `/${item.url}`;
+      const isActive =
+        location.pathname === itemPath ||
+        location.pathname.startsWith(`${itemPath}/`);
+
+      const baseClasses =
+        "group flex items-center rounded-lg transition-all duration-200 mb-1 relative cursor-pointer select-none";
+      const layoutClasses = isCollapsed
+        ? "justify-center py-3 px-0 w-full"
+        : `justify-between py-2.5 px-3`;
+
+      const colorClasses = isActive
+        ? "bg-primary/10 text-primary font-medium dark:bg-primary/20"
+        : "text-text-secondary hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white";
+
+      const paddingLeftStyle = !isCollapsed
+        ? { paddingLeft: `${level * 12 + 12}px` }
+        : {};
+      const iconSize = level === 0 ? 20 : 18;
 
       return (
-        <div key={item.id}>
+        <div key={item.id} className="w-full">
           <NavLink
-            to={`/${item.url}`}
-            className={getNavLinkClass(isActive)}
-            style={{ paddingLeft: `${level * 16 + 12}px` }}
+            to={itemPath}
+            className={`${baseClasses} ${layoutClasses} ${colorClasses}`}
+            style={paddingLeftStyle}
             onClick={(e) => {
               if (hasChildren) {
                 e.preventDefault();
                 toggleItem(item.id);
               }
             }}
+            onMouseEnter={(e) => handleMouseEnter(e, item.label)}
+            onMouseLeave={handleMouseLeave}
+            data-testid={`sidebar-item-${item.label}`}
           >
-            <div className="flex-1 flex items-center">
-              {renderIcon(item.icon)}
+            <div
+              className={`flex items-center ${
+                isCollapsed ? "justify-center" : "gap-3"
+              }`}
+            >
+              {renderIcon(item.icon, iconSize)}
               {!isCollapsed && (
-                <span className="ml-3 text-gray-900 dark:text-white">
-                  {item.label}
-                </span>
+                <span className="truncate text-sm">{item.label}</span>
               )}
             </div>
 
-            {/* Chevron button */}
-            {hasChildren && !isCollapsed && (
-              <button
-                className="ml-2 focus:outline-none"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toggleItem(item.id);
-                }}
-              >
+            {/* Chevron */}
+            {!isCollapsed && hasChildren && (
+              <div className="text-gray-400">
                 {isOpen ? (
-                  <Icons.ChevronDown size={16} />
+                  <Icons.ChevronDown size={15} />
                 ) : (
-                  <Icons.ChevronRight size={16} />
+                  <Icons.ChevronRight size={15} />
                 )}
-              </button>
+              </div>
+            )}
+
+            {isCollapsed && isActive && (
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-l-full"></div>
             )}
           </NavLink>
 
-          {/* Children */}
-          {hasChildren && isOpen && !isCollapsed && (
-            <div className="ml-3 border-l border-gray-200 dark:border-gray-700">
+          {/* Children Container */}
+          {hasChildren && isOpen && (
+            <div
+              className={`
+                overflow-hidden transition-all duration-300
+                ${
+                  isCollapsed
+                    ? "bg-gray-100 dark:bg-gray-800/50 rounded-xl mx-1 mb-2 py-1 border border-gray-100 dark:border-gray-700" // "Pod" style for collapsed
+                    : "border-l-2 border-gray-100 dark:border-gray-700 ml-5 my-1" // Tree line for expanded
+                }
+              `}
+            >
               {renderNavItems(
                 {
                   count: 0,
@@ -109,35 +187,50 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
   };
 
   return (
-    <aside
-      className={`flex flex-col h-screen bg-white dark:bg-gray-800 shadow-md transition-all duration-300 ${
-        isCollapsed ? "w-20" : "w-64"
-      }`}
-    >
-      <div className="h-16 flex-shrink-0 flex items-center justify-center">
-        <NavLink to="/dashboard" className="flex items-center justify-center">
-          {isCollapsed ? (
-            <img
-              src={IconLogo}
-              alt="Logo Icon"
-              className="h-8 w-auto cursor-pointer"
-            />
-          ) : (
-            <img
-              src={FullLogo}
-              alt="Full Logo"
-              className="h-[100px] w-auto cursor-pointer"
-            />
-          )}
-        </NavLink>
-      </div>
+    <>
+      <aside
+        className={`flex flex-col h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-sm transition-all duration-300 ease-in-out ${
+          isCollapsed ? "w-[88px]" : "w-64"
+        }`}
+        data-testid="sidebar"
+      >
+        {/* Logo Area */}
+        <div className="h-16 flex-shrink-0 flex items-center justify-center border-b border-gray-100 dark:border-gray-800 mb-2">
+          <NavLink
+            to="/dashboard"
+            className="flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+          >
+            {isCollapsed ? (
+              <img
+                src={IconLogo}
+                alt="Logo"
+                className="h-9 w-auto object-contain"
+              />
+            ) : (
+              <img
+                src={FullLogo}
+                alt="Squad Logo"
+                className="h-[100px] w-auto cursor-pointer"
+              />
+            )}
+          </NavLink>
+        </div>
 
-      <nav className="flex-1 px-3 py-2 overflow-y-auto">
-        {renderNavItems(navItems)}
-      </nav>
+        <nav className="flex-1 px-3 py-2 overflow-y-auto scrollbar-hide space-y-0.5">
+          {renderNavItems(navItems)}
+        </nav>
 
-      <div className="p-1 flex-shrink-0"></div>
-    </aside>
+        <div className="p-4 border-t border-gray-100 dark:border-gray-800"></div>
+      </aside>
+
+      {hoveredItem && (
+        <Tooltip
+          text={hoveredItem.label}
+          top={hoveredItem.top}
+          left={hoveredItem.left}
+        />
+      )}
+    </>
   );
 };
 

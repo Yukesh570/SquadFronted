@@ -15,8 +15,10 @@ import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
 import Select from "../../../components/ui/Select";
+import { usePagePermissions } from "../../../hooks/usePagePermissions";
 
 const Vendor: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [vendors, setVendors] = useState<VendorData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -92,7 +94,7 @@ const Vendor: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteVendorApi(deleteId, routeName);
         toast.success("Vendor deleted.");
@@ -105,12 +107,14 @@ const Vendor: React.FC = () => {
   };
 
   const handleEdit = (vendor: VendorData) => {
+    if (!canUpdate) return;
     setEditingVendor(vendor);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingVendor(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -185,13 +189,15 @@ const Vendor: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <Button
-            variant="primary"
-            onClick={handleAdd}
-            leftIcon={<Plus size={18} />}
-          >
-            Add Vendor
-          </Button>
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Add Vendor
+            </Button>
+          ) : null
         }
         renderRow={(vendor, index) => (
           <tr
@@ -215,20 +221,24 @@ const Vendor: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(vendor)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(vendor)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(vendor.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(vendor)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(vendor.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

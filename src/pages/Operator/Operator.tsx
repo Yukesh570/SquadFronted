@@ -3,134 +3,161 @@ import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  getTemplatesApi,
-  deleteTemplateApi,
-  type templateData,
-} from "../../api/campaignApi/campaignApi";
-import { AddTemplateModal } from "../../components/modals/AddTemplateModal";
-import { DeleteModal } from "../../components/modals/DeleteModal";
+  getOperatorsApi,
+  deleteOperatorApi,
+  type OperatorData,
+} from "../../api/operatorApi/operatorApi";
+import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
+import { OperatorModal } from "../../components/modals/OperatorModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
-import ViewButton from "../../components/ui/ViewButton";
+import { DeleteModal } from "../../components/modals/DeleteModal";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
+import ViewButton from "../../components/ui/ViewButton";
 
-const stripHtml = (html: string) => {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  return doc.body.textContent || "";
-};
-
-const CampaignTemplatePage: React.FC = () => {
+const Operators: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
-  const [templates, setTemplates] = useState<templateData[]>([]);
+  const [data, setData] = useState<OperatorData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [countryMap, setCountryMap] = useState<Record<number, string>>({});
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<templateData | null>(
+  const [editingOperator, setEditingOperator] = useState<OperatorData | null>(
     null
   );
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
-  const [nameFilter, setNameFilter] = useState("");
+  // Filters
+  const [searchName, setSearchName] = useState("");
+
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const routeName = location.pathname.split("/")[1] || "";
+  const routeName = location.pathname.split("/")[1] || "operator";
 
-  const fetchTemplates = async (overrideParams?: Record<string, string>) => {
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const response: any = await getCountriesApi("country", 1, 1000);
+        let countryList = [];
+
+        if (response && response.results) {
+          countryList = response.results;
+        } else if (Array.isArray(response)) {
+          countryList = response;
+        } else if (response && Array.isArray(response.data)) {
+          countryList = response.data;
+        }
+
+        const mapping: Record<number, string> = {};
+        countryList.forEach((c: any) => {
+          mapping[c.id] = c.name;
+        });
+        setCountryMap(mapping);
+      } catch (error) {
+        console.error("Failed to load countries for mapping", error);
+      }
+    };
+
+    fetchCountries();
+  }, []);
+
+  // 2. Fetch Operators
+  const fetchOperators = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
       const currentSearchParams = overrideParams || {
-        name: nameFilter,
+        name: searchName,
       };
+
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
       );
-      const response = await getTemplatesApi(
+
+      const response = await getOperatorsApi(
+        routeName,
         currentPage,
         rowsPerPage,
         cleanParams
       );
 
-      // 1. FIX: Handle both Object and Array responses
-      if ("results" in response) {
-        setTemplates(response.results);
+      if (response && response.results) {
+        setData(response.results);
         setTotalItems(response.count);
-      } else if (Array.isArray(response)) {
-        setTemplates(response);
-        setTotalItems(response.length);
       } else {
-        setTemplates([]);
+        setData([]);
         setTotalItems(0);
       }
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to fetch templates.");
+      console.error("Fetch error:", error);
+      toast.error("Failed to fetch operators.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTemplates();
-  }, [currentPage, rowsPerPage]);
+    fetchOperators();
+  }, [routeName, currentPage, rowsPerPage]);
 
   const handleSearch = () => {
     setCurrentPage(1);
-    fetchTemplates();
+    fetchOperators();
   };
+
   const handleClearFilters = () => {
-    setNameFilter("");
+    setSearchName("");
     setCurrentPage(1);
-    fetchTemplates({ name: "" });
+    fetchOperators({ name: "" });
   };
 
   const handleDelete = async () => {
     if (deleteId && canDelete) {
       try {
-        await deleteTemplateApi(deleteId, routeName);
-        toast.success("Template deleted successfully.");
-        fetchTemplates();
-      } catch (error: any) {
-        toast.error(
-          error.response?.data?.detail || "Failed to delete template."
-        );
+        await deleteOperatorApi(deleteId, routeName);
+        toast.success("Operator deleted.");
+        fetchOperators();
+      } catch (error) {
+        toast.error("Failed to delete operator.");
       }
       setDeleteId(null);
     }
   };
 
-  const handleEdit = (template: templateData) => {
+  const handleEdit = (item: OperatorData) => {
     if (!canUpdate) return;
-    setEditingTemplate(template);
+    setEditingOperator(item);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
     if (!canCreate) return;
-    setEditingTemplate(null);
+    setEditingOperator(null);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
-  const handleView = (template: templateData) => {
-    setEditingTemplate(template);
+  const handleView = (item: OperatorData) => {
+    setEditingOperator(item);
     setIsViewMode(true);
     setIsModalOpen(true);
   };
 
-  const headers = ["S.N.", "Name", "Content", "Actions"];
+  const headers = ["S.N.", "Operator Name", "Country", "MNC", "Actions"];
 
   return (
     <div className="container mx-auto">
+      {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
-          Manage Campaign Templates
+          Operators
         </h1>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
@@ -138,25 +165,25 @@ const CampaignTemplatePage: React.FC = () => {
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary dark:text-white">
-            Campaign Templates
-          </span>
+          <span className="text-text-primary dark:text-white">Operators</span>
         </div>
       </div>
 
+      {/* Filters */}
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search by Name"
-          value={nameFilter}
-          onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Template name"
+          value={searchName}
+          onChange={(e) => setSearchName(e.target.value)}
+          placeholder="Operator Name..."
           className="md:col-span-2"
         />
       </FilterCard>
 
+      {/* Table */}
       <DataTable
         serverSide={true}
-        data={templates}
+        data={data}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}
@@ -171,47 +198,38 @@ const CampaignTemplatePage: React.FC = () => {
               onClick={handleAdd}
               leftIcon={<Plus size={18} />}
             >
-              Create Template
+              Add Operator
             </Button>
           ) : null
         }
-        renderRow={(template, index) => (
+        renderRow={(item: OperatorData, index: number) => (
           <tr
-            key={template.id || index}
+            key={item.id || index}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
           >
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {template.name}
+              {item.name}
             </td>
 
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <div
-                className="block w-full max-w-xs overflow-hidden truncate"
-                style={{
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "normal",
-                  maxHeight: "2.5rem",
-                }}
-              >
-                {stripHtml(template.content)}
-              </div>
+              {countryMap[item.country] || item.country}
             </td>
 
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {item.MNC}
+            </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(template)} />
+                <ViewButton onClick={() => handleView(item)} />
                 {canUpdate && (
                   <Button
                     variant="secondary"
                     size="xs"
-                    onClick={() => handleEdit(template)}
+                    onClick={() => handleEdit(item)}
+                    title="Edit"
                   >
                     <Edit size={14} />
                   </Button>
@@ -220,7 +238,8 @@ const CampaignTemplatePage: React.FC = () => {
                   <Button
                     variant="danger"
                     size="xs"
-                    onClick={() => setDeleteId(template.id!)}
+                    onClick={() => setDeleteId(item.id!)}
+                    title="Delete"
                   >
                     <Trash size={14} />
                   </Button>
@@ -231,12 +250,12 @@ const CampaignTemplatePage: React.FC = () => {
         )}
       />
 
-      <AddTemplateModal
+      <OperatorModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchTemplates}
+        onSuccess={fetchOperators}
         moduleName={routeName}
-        editingTemplate={editingTemplate}
+        editingOperator={editingOperator}
         isViewMode={isViewMode}
       />
 
@@ -244,11 +263,11 @@ const CampaignTemplatePage: React.FC = () => {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Template"
-        message="Are you sure you want to delete this template? This action cannot be undone."
+        title="Delete Operator"
+        message="Are you sure you want to delete this operator? This action cannot be undone."
       />
     </div>
   );
 };
 
-export default CampaignTemplatePage;
+export default Operators;

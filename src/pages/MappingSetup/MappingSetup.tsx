@@ -3,134 +3,138 @@ import { Home, Plus, Edit, Trash } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  getTemplatesApi,
-  deleteTemplateApi,
-  type templateData,
-} from "../../api/campaignApi/campaignApi";
-import { AddTemplateModal } from "../../components/modals/AddTemplateModal";
-import { DeleteModal } from "../../components/modals/DeleteModal";
+  getMappingSetupsApi,
+  deleteMappingSetupApi,
+  type MappingSetupData,
+} from "../../api/mappingSetupApi/mappingSetupApi";
+import { MappingSetupModal } from "../../components/modals/MappingSetupModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
-import ViewButton from "../../components/ui/ViewButton";
+import { DeleteModal } from "../../components/modals/DeleteModal";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
+import ViewButton from "../../components/ui/ViewButton";
 
-const stripHtml = (html: string) => {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  return doc.body.textContent || "";
-};
-
-const CampaignTemplatePage: React.FC = () => {
+const MappingSetup: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
-  const [templates, setTemplates] = useState<templateData[]>([]);
+  const [data, setData] = useState<MappingSetupData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<templateData | null>(
+  const [editingMapping, setEditingMapping] = useState<MappingSetupData | null>(
     null
   );
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
-  const [nameFilter, setNameFilter] = useState("");
+  const [headerFilter, setHeaderFilter] = useState("");
+
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const routeName = location.pathname.split("/")[1] || "";
+  const routeName = location.pathname.split("/")[1] || "mappingSetup";
 
-  const fetchTemplates = async (overrideParams?: Record<string, string>) => {
+  const fetchMappings = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
       const currentSearchParams = overrideParams || {
-        name: nameFilter,
+        ratePlan: headerFilter,
       };
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
       );
-      const response = await getTemplatesApi(
+      const response = await getMappingSetupsApi(
+        routeName,
         currentPage,
         rowsPerPage,
         cleanParams
       );
 
-      // 1. FIX: Handle both Object and Array responses
-      if ("results" in response) {
-        setTemplates(response.results);
+      if (response && response.results) {
+        setData(response.results);
         setTotalItems(response.count);
-      } else if (Array.isArray(response)) {
-        setTemplates(response);
-        setTotalItems(response.length);
       } else {
-        setTemplates([]);
+        setData([]);
         setTotalItems(0);
       }
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to fetch templates.");
+      console.error("Fetch error:", error);
+      toast.error("Failed to fetch mappings.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTemplates();
-  }, [currentPage, rowsPerPage]);
+    fetchMappings();
+  }, [routeName, currentPage, rowsPerPage]);
 
   const handleSearch = () => {
     setCurrentPage(1);
-    fetchTemplates();
+    fetchMappings();
   };
+
   const handleClearFilters = () => {
-    setNameFilter("");
+    setHeaderFilter("");
     setCurrentPage(1);
-    fetchTemplates({ name: "" });
+    fetchMappings({ ratePlan: "" });
   };
 
   const handleDelete = async () => {
     if (deleteId && canDelete) {
       try {
-        await deleteTemplateApi(deleteId, routeName);
-        toast.success("Template deleted successfully.");
-        fetchTemplates();
-      } catch (error: any) {
-        toast.error(
-          error.response?.data?.detail || "Failed to delete template."
-        );
+        await deleteMappingSetupApi(deleteId, routeName);
+        toast.success("Mapping deleted.");
+        fetchMappings();
+      } catch (error) {
+        toast.error("Failed to delete mapping.");
       }
       setDeleteId(null);
     }
   };
 
-  const handleEdit = (template: templateData) => {
+  const handleEdit = (item: MappingSetupData) => {
     if (!canUpdate) return;
-    setEditingTemplate(template);
+    setEditingMapping(item);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
     if (!canCreate) return;
-    setEditingTemplate(null);
+    setEditingMapping(null);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
-  const handleView = (template: templateData) => {
-    setEditingTemplate(template);
+  const handleView = (item: MappingSetupData) => {
+    setEditingMapping(item);
     setIsViewMode(true);
     setIsModalOpen(true);
   };
 
-  const headers = ["S.N.", "Name", "Content", "Actions"];
+  const headers = [
+    "S.N.",
+    "RatePlan",
+    "Country",
+    "CountryCode",
+    "TimeZone",
+    "Network",
+    "MCC",
+    "MNC",
+    "Rate",
+    "CreatedAt",
+    "Actions",
+  ];
 
   return (
     <div className="container mx-auto">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
-          Manage Campaign Templates
+          Mapping Setup
         </h1>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
@@ -139,24 +143,24 @@ const CampaignTemplatePage: React.FC = () => {
           </NavLink>
           <span>/</span>
           <span className="text-text-primary dark:text-white">
-            Campaign Templates
+            Mapping Setup
           </span>
         </div>
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
-          label="Search by Name"
-          value={nameFilter}
-          onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Template name"
+          label="Search by RatePlan"
+          value={headerFilter}
+          onChange={(e) => setHeaderFilter(e.target.value)}
+          placeholder="RatePlan..."
           className="md:col-span-2"
         />
       </FilterCard>
 
       <DataTable
         serverSide={true}
-        data={templates}
+        data={data}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}
@@ -171,47 +175,56 @@ const CampaignTemplatePage: React.FC = () => {
               onClick={handleAdd}
               leftIcon={<Plus size={18} />}
             >
-              Create Template
+              Add Mapping Setup
             </Button>
           ) : null
         }
-        renderRow={(template, index) => (
+        renderRow={(item: MappingSetupData, index: number) => (
           <tr
-            key={template.id || index}
+            key={item.id || index}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
           >
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {template.name}
+              {item.ratePlan}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {item.country}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {item.countryCode}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {item.timeZone}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {item.network || "-"}
             </td>
 
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <div
-                className="block w-full max-w-xs overflow-hidden truncate"
-                style={{
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "normal",
-                  maxHeight: "2.5rem",
-                }}
-              >
-                {stripHtml(template.content)}
-              </div>
+              {item.MCC}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {item.MNC}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {item.rate || "-"}
             </td>
 
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {item.createdAt ? new Date(item.createdAt).toLocaleString() : "-"}
+            </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(template)} />
+                <ViewButton onClick={() => handleView(item)} />
                 {canUpdate && (
                   <Button
                     variant="secondary"
                     size="xs"
-                    onClick={() => handleEdit(template)}
+                    onClick={() => handleEdit(item)}
+                    title="Edit"
                   >
                     <Edit size={14} />
                   </Button>
@@ -220,7 +233,8 @@ const CampaignTemplatePage: React.FC = () => {
                   <Button
                     variant="danger"
                     size="xs"
-                    onClick={() => setDeleteId(template.id!)}
+                    onClick={() => setDeleteId(item.id!)}
+                    title="Delete"
                   >
                     <Trash size={14} />
                   </Button>
@@ -231,12 +245,12 @@ const CampaignTemplatePage: React.FC = () => {
         )}
       />
 
-      <AddTemplateModal
+      <MappingSetupModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchTemplates}
+        onSuccess={fetchMappings}
         moduleName={routeName}
-        editingTemplate={editingTemplate}
+        editingMapping={editingMapping}
         isViewMode={isViewMode}
       />
 
@@ -244,11 +258,11 @@ const CampaignTemplatePage: React.FC = () => {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Template"
-        message="Are you sure you want to delete this template? This action cannot be undone."
+        title="Delete Mapping Setup"
+        message="Are you sure you want to delete this mapping setup? This action cannot be undone."
       />
     </div>
   );
 };
 
-export default CampaignTemplatePage;
+export default MappingSetup;

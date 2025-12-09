@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Home, Plus, Edit, Trash } from "lucide-react";
+import { Home, Plus, Edit, Trash, Upload } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -7,20 +7,30 @@ import {
   deleteVendorRateApi,
   type VendorRateData,
 } from "../../api/rateApi/vendorRateApi";
+import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
+import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
 import { VendorRateModal } from "../../components/modals/Rate/VendorRateModal";
+import { ImportVendorRateModal } from "../../components/modals/Rate/ImportVendorRateModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import ViewButton from "../../components/ui/ViewButton";
+import { usePagePermissions } from "../../hooks/usePagePermissions";
 
 const VendorRate: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
+
   const [rates, setRates] = useState<VendorRateData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [countryMap, setCountryMap] = useState<Record<string, string>>({});
+  const [timezoneMap, setTimezoneMap] = useState<Record<string, string>>({});
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingRate, setEditingRate] = useState<VendorRateData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -30,8 +40,34 @@ const VendorRate: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const pathSegments = location.pathname.split("/").filter(Boolean);
-  const routeName = pathSegments[pathSegments.length - 1] || "vendor";
+  const routeName = location.pathname.split("/")[1] || "vendor";
+
+  // Fetch Lookups
+  useEffect(() => {
+    getCountriesApi("country", 1, 1000)
+      .then((res: any) => {
+        const list = res.results || (Array.isArray(res) ? res : []);
+        const map: Record<string, string> = {};
+        list.forEach((c: any) => {
+          map[String(c.id)] = c.name;
+        });
+        setCountryMap(map);
+      })
+      .catch((err) => console.error(err));
+
+    if (typeof getTimezoneApi === "function") {
+      getTimezoneApi("timezone", 1, 1000)
+        .then((res: any) => {
+          const list = res.results || (Array.isArray(res) ? res : []);
+          const map: Record<string, string> = {};
+          list.forEach((t: any) => {
+            map[String(t.id)] = t.name;
+          });
+          setTimezoneMap(map);
+        })
+        .catch((err) => console.error(err));
+    }
+  }, []);
 
   const fetchRates = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
@@ -39,7 +75,6 @@ const VendorRate: React.FC = () => {
       const currentSearchParams = overrideParams || {
         ratePlan: planNameFilter,
       };
-
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
       );
@@ -62,7 +97,7 @@ const VendorRate: React.FC = () => {
         setTotalItems(0);
       }
     } catch (error) {
-      console.error("Fetch error:", error);
+      console.error(error);
       toast.error("Failed to fetch vendor rates.");
     } finally {
       setIsLoading(false);
@@ -85,10 +120,10 @@ const VendorRate: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteVendorRateApi(deleteId, routeName);
-        toast.success("Vendor rate deleted successfully.");
+        toast.success("Vendor rate deleted.");
         fetchRates();
       } catch (error) {
         toast.error("Failed to delete vendor rate.");
@@ -98,15 +133,22 @@ const VendorRate: React.FC = () => {
   };
 
   const handleEdit = (rate: VendorRateData) => {
+    if (!canUpdate) return;
     setEditingRate(rate);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingRate(null);
     setIsViewMode(false);
     setIsModalOpen(true);
+  };
+
+  const handleImportClick = () => {
+    if (!canCreate) return;
+    setIsImportModalOpen(true);
   };
 
   const handleView = (rate: VendorRateData) => {
@@ -115,15 +157,27 @@ const VendorRate: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Columns: Rate Plan, Country, MCC, Rate, Currency, Timezone, Actions
+  const renderCountry = (rate: VendorRateData) => {
+    if (rate.countryName) return rate.countryName;
+    return countryMap[String(rate.country)] || rate.country;
+  };
+
+  const renderTimezone = (rate: VendorRateData) => {
+    if (rate.timeZoneName) return rate.timeZoneName;
+    return timezoneMap[String(rate.timeZone)] || rate.timeZone;
+  };
+
   const headers = [
     "S.N.",
-    "Rate Plan",
+    "RatePlan",
     "Country",
+    "CountryCode",
+    "TimeZone",
+    "Network",
     "MCC",
+    "MNC",
     "Rate",
-    "Currency",
-    "Timezone",
+    "DateTime",
     "Actions",
   ];
 
@@ -147,10 +201,10 @@ const VendorRate: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
-          label="Search Plan"
+          label="Search by RatePlan"
           value={planNameFilter}
           onChange={(e) => setPlanNameFilter(e.target.value)}
-          placeholder="Rate Plan..."
+          placeholder="RatePlan..."
           className="md:col-span-2"
         />
       </FilterCard>
@@ -166,13 +220,24 @@ const VendorRate: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <Button
-            variant="primary"
-            onClick={handleAdd}
-            leftIcon={<Plus size={18} />}
-          >
-            Add Rate
-          </Button>
+          canCreate ? (
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={handleImportClick}
+                leftIcon={<Upload size={18} />}
+              >
+                Import CSV
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleAdd}
+                leftIcon={<Plus size={18} />}
+              >
+                Add Vendor Rate
+              </Button>
+            </div>
+          ) : null
         }
         renderRow={(item, index) => (
           <tr
@@ -186,37 +251,50 @@ const VendorRate: React.FC = () => {
               {item.ratePlan}
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {item.countryName}
+              {renderCountry(item)}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {item.countryCode}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {renderTimezone(item)}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {item.network}
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               {item.MCC}
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {item.MNC}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               {item.rate}
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {item.currencyCode}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {item.timeZoneName}
+              {item.dateTime ? new Date(item.dateTime).toLocaleString() : "-"}
             </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(item)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(item)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(item.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(item)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(item.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>
@@ -232,12 +310,18 @@ const VendorRate: React.FC = () => {
         isViewMode={isViewMode}
       />
 
+      <ImportVendorRateModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={fetchRates}
+      />
+
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Vendor Rate"
-        message="Are you sure you want to delete this vendor rate? This action cannot be undone."
+        message="Are you sure you want to delete this rate? Action cannot be undone."
       />
     </div>
   );
