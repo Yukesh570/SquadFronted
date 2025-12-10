@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LogIn, Eye, EyeOff } from "lucide-react";
+import { LogIn, Eye, EyeOff, AlertCircle } from "lucide-react";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import { useAuth } from "../../context/AuthContext";
@@ -10,17 +10,19 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { login } = useAuth();
+  const [errorMessage, setErrorMessage] = useState("");
 
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage("");
+
     try {
       await login({ username, password });
     } catch (error) {
-      console.log("error", error);
-      alert("Login failed. Please check your username and password.");
+      setErrorMessage("Invalid username or password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -32,36 +34,59 @@ const Login = () => {
         <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
           Squad Login
         </h1>
+
         <form className="space-y-6" onSubmit={handleSubmit}>
+          {errorMessage && (
+            <div className="flex items-start p-4 text-sm bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/10 dark:border-red-800">
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-medium text-red-800 dark:text-red-300">
+                  Login Failed
+                </h3>
+                <p className="mt-1 text-red-700 dark:text-red-400">
+                  {errorMessage}
+                </p>
+              </div>
+            </div>
+          )}
+
           <Input
             label="Username"
             type="text"
             name="username"
             id="username"
             value={username}
-            onChange={(e) => setusername(e.target.value)}
+            onChange={(e) => {
+              setusername(e.target.value);
+              if (errorMessage) setErrorMessage("");
+            }}
             placeholder="Enter your username"
             required
           />
+
           <Input
             label="Password"
             type={showPassword ? "text" : "password"}
             name="password"
             id="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (errorMessage) setErrorMessage("");
+            }}
             placeholder="Enter your password"
             required
             rightIcon={
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 focus:outline-none"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             }
           />
+
           <Button
             type="submit"
             variant="primary"
@@ -71,15 +96,6 @@ const Login = () => {
           >
             {loading ? "Signing in..." : "Sign in"}
           </Button>
-          <p className="text-center text-sm text-gray-900 dark:text-white">
-            Don't have an account?{" "}
-            <a
-              href="/signUp"
-              className="font-medium text-primary hover:underline"
-            >
-              Sign up
-            </a>
-          </p>
         </form>
       </div>
     </div>

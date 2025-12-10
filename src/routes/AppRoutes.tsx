@@ -4,13 +4,11 @@ import Login from "../pages/Auth/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import CreateSidebar from "../pages/module/ModuleList";
 import NotFound from "../pages/error/notFound";
-import SignUp from "../pages/Auth/signUp";
 import PermissionsTable from "../pages/role/role";
 import { useAuth } from "../context/AuthContext";
 import ChangePassword from "../pages/Auth/ChangePassword";
 import { ProtectedRoute } from "./protector";
 import TemplatePage from "../pages/template/templateInput";
-// import AllNotifications from "../pages/Notifications/AllNotifications";
 import CreateCampaignForm from "../pages/Campaign/Campaign";
 import SmtpServer from "../pages/settings/Smtp/SmtpServer";
 import EmailTemplatePage from "../pages/Email Template/emailTemplate";
@@ -48,11 +46,10 @@ const AppRoutes = () => {
         path="/login"
         element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />}
       />
-      <Route path="/signUp" element={<SignUp />} />
 
       <Route
         path="/"
-        element={isAuthenticated ? <Layout /> : <Navigate to="/login" />} //parentRoute
+        element={isAuthenticated ? <Layout /> : <Navigate to="/login" />}
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
@@ -99,9 +96,10 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute path="company" />}>
           <Route path="company" element={<Company />} />
         </Route>
-        {/* <Route element={<ProtectedRoute path="client" />}> */}
-        <Route path="client" element={<Client />} />
-        {/* </Route> */}
+
+        <Route element={<ProtectedRoute path="client" />}>
+          <Route path="client" element={<Client />} />
+        </Route>
 
         {/* Rate */}
         <Route element={<ProtectedRoute path="rate/vendorRate" />}>
@@ -129,10 +127,8 @@ const AppRoutes = () => {
           <Route path="operator" element={<Operators />} />
         </Route>
 
-        {/* <Route element={<ProtectedRoute path="change-password" />}> */}
         <Route path="change-password" element={<ChangePassword />} />
-        {/* </Route> */}
-        {/* <Route path="notifications" element={<AllNotifications />} /> */}
+
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

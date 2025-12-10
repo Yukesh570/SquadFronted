@@ -15,8 +15,10 @@ import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
 // import Select from "../../components/ui/Select";
+import { usePagePermissions } from "../../../hooks/usePagePermissions";
 
 const State: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [states, setStates] = useState<StateData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,7 +82,7 @@ const State: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteStateApi(deleteId, routeName);
         toast.success("State deleted.");
@@ -93,12 +95,14 @@ const State: React.FC = () => {
   };
 
   const handleEdit = (state: StateData) => {
+    if (!canUpdate) return;
     setEditingState(state);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingState(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -162,7 +166,7 @@ const State: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <div className="flex gap-2">
+          canCreate ? (
             <Button
               variant="primary"
               onClick={handleAdd}
@@ -170,7 +174,7 @@ const State: React.FC = () => {
             >
               Add State
             </Button>
-          </div>
+          ) : null
         }
         renderRow={(state, index) => (
           <tr
@@ -192,20 +196,24 @@ const State: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(state)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(state)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(state.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(state)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(state.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

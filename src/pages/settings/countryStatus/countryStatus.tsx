@@ -14,8 +14,10 @@ import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
 import { CompanyStatusModal } from "../../../components/modals/Settings/companyStatusModal";
+import { usePagePermissions } from "../../../hooks/usePagePermissions";
 
 const CompanyStatus: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [entities, setEntities] = useState<CompanyStatusData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,7 +89,7 @@ const CompanyStatus: React.FC = () => {
     fetchCompanyStatus({ name: "" });
   };
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteCompanyStatusApi(deleteId, routeName);
         toast.success("Company Status deleted.");
@@ -100,12 +102,14 @@ const CompanyStatus: React.FC = () => {
   };
 
   const handleEdit = (CompanyStatus: CompanyStatusData) => {
+    if (!canUpdate) return;
     setEditingCompanyStatus(CompanyStatus);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingCompanyStatus(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -158,13 +162,15 @@ const CompanyStatus: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <Button
-            variant="primary"
-            onClick={handleAdd}
-            leftIcon={<Plus size={18} />}
-          >
-            Add Company Category
-          </Button>
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Add Company Category
+            </Button>
+          ) : null
         }
         renderRow={(CompanyStatus, index) => (
           <tr
@@ -180,20 +186,24 @@ const CompanyStatus: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(CompanyStatus)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(CompanyStatus)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(CompanyStatus.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(CompanyStatus)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(CompanyStatus.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

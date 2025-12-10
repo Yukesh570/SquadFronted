@@ -14,8 +14,10 @@ import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
+import { usePagePermissions } from "../../../hooks/usePagePermissions";
 
 const Currency: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [currencies, setCurrencies] = useState<CurrencyData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,7 +87,7 @@ const Currency: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteCurrencyApi(deleteId, routeName);
         toast.success("Currency deleted.");
@@ -98,12 +100,14 @@ const Currency: React.FC = () => {
   };
 
   const handleEdit = (currency: CurrencyData) => {
+    if (!canUpdate) return;
     setEditingCurrency(currency);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingCurrency(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -160,14 +164,7 @@ const Currency: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <div className="flex gap-2">
-            {/* <Button
-              variant="secondary"
-              onClick={handleExport}
-              leftIcon={<Download size={18} />}
-            >
-              Export
-            </Button> */}
+          canCreate ? (
             <Button
               variant="primary"
               onClick={handleAdd}
@@ -175,7 +172,7 @@ const Currency: React.FC = () => {
             >
               Add Currency
             </Button>
-          </div>
+          ) : null
         }
         renderRow={(currency, index) => (
           <tr
@@ -197,20 +194,24 @@ const Currency: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(currency)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(currency)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(currency.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(currency)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(currency.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

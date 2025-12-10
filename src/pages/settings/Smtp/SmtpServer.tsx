@@ -14,8 +14,10 @@ import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
+import { usePagePermissions } from "../../../hooks/usePagePermissions";
 
 const SmtpServer: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [servers, setServers] = useState<SmtpServerData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,7 +84,7 @@ const SmtpServer: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteSmtpServerApi(deleteId, routeName);
         toast.success("Email Host deleted.");
@@ -95,12 +97,14 @@ const SmtpServer: React.FC = () => {
   };
 
   const handleEdit = (server: SmtpServerData) => {
+    if (!canUpdate) return;
     setEditingServer(server);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingServer(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -166,13 +170,15 @@ const SmtpServer: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <Button
-            variant="primary"
-            onClick={handleAdd}
-            leftIcon={<Plus size={18} />}
-          >
-            Add Host
-          </Button>
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Add Host
+            </Button>
+          ) : null
         }
         renderRow={(server, index) => (
           <tr
@@ -200,20 +206,24 @@ const SmtpServer: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(server)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(server)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(server.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(server)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(server.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

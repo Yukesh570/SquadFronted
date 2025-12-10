@@ -7,7 +7,6 @@ import {
   deleteTimezoneApi,
   type TimezoneData,
 } from "../../../api/settingApi/timezoneApi/timezoneApi";
-
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
@@ -15,8 +14,10 @@ import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
 import { TimezoneModal } from "../../../components/modals/Settings/timezonemodal";
+import { usePagePermissions } from "../../../hooks/usePagePermissions";
 
 const Timezone: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [timezones, setTimezones] = useState<TimezoneData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,8 +67,6 @@ const Timezone: React.FC = () => {
       }
     } catch (error) {
       console.error("Fetch error:", error);
-      // Only show toast if it's a real error, not just empty list on load
-      // toast.error("Failed to fetch entities.");
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +86,7 @@ const Timezone: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteTimezoneApi(deleteId, routeName);
         toast.success("Timezone deleted.");
@@ -100,12 +99,14 @@ const Timezone: React.FC = () => {
   };
 
   const handleEdit = (timezone: TimezoneData) => {
+    if (!canUpdate) return;
     setEditingTimezone(timezone);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingTimezone(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -156,13 +157,15 @@ const Timezone: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <Button
-            variant="primary"
-            onClick={handleAdd}
-            leftIcon={<Plus size={18} />}
-          >
-            Add Timezone
-          </Button>
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Add Timezone
+            </Button>
+          ) : null
         }
         renderRow={(timezone, index) => (
           <tr
@@ -178,20 +181,24 @@ const Timezone: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(timezone)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(timezone)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(timezone.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(timezone)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(timezone.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

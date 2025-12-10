@@ -14,8 +14,10 @@ import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
+import { usePagePermissions } from "../../../hooks/usePagePermissions";
 
 const CompanyCategory: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [entities, setEntities] = useState<CompanyCategoryData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,8 +69,6 @@ const CompanyCategory: React.FC = () => {
       }
     } catch (error) {
       console.error("Fetch error:", error);
-      // Only show toast if it's a real error, not just empty list on load
-      // toast.error("Failed to fetch entities.");
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +88,7 @@ const CompanyCategory: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteCompanyCategoryApi(deleteId, routeName);
         toast.success("Company Category deleted.");
@@ -101,12 +101,14 @@ const CompanyCategory: React.FC = () => {
   };
 
   const handleEdit = (CompanyCategory: CompanyCategoryData) => {
+    if (!canUpdate) return;
     setEditingCompanyCategory(CompanyCategory);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingCompanyCategory(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -159,13 +161,15 @@ const CompanyCategory: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          <Button
-            variant="primary"
-            onClick={handleAdd}
-            leftIcon={<Plus size={18} />}
-          >
-            Add Company Category
-          </Button>
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Add Company Category
+            </Button>
+          ) : null
         }
         renderRow={(CompanyCategory, index) => (
           <tr
@@ -181,20 +185,24 @@ const CompanyCategory: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(CompanyCategory)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(CompanyCategory)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(CompanyCategory.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(CompanyCategory)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(CompanyCategory.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>

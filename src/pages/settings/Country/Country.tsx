@@ -19,8 +19,10 @@ import {
   countryCsv,
   downloadStatus,
 } from "../../../api/downloadApi/downloadApi";
+import { usePagePermissions } from "../../../hooks/usePagePermissions";
 
 const Country: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [countries, setCountries] = useState<CountryData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -157,7 +159,7 @@ const Country: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
         await deleteCountryApi(deleteId, routeName);
         toast.success("Country deleted.");
@@ -170,12 +172,14 @@ const Country: React.FC = () => {
   };
 
   const handleEdit = (country: CountryData) => {
+    if (!canUpdate) return;
     setEditingCountry(country);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setEditingCountry(null);
     setIsViewMode(false);
     setIsModalOpen(true);
@@ -248,13 +252,15 @@ const Country: React.FC = () => {
             >
               Export
             </Button>
-            <Button
-              variant="primary"
-              onClick={handleAdd}
-              leftIcon={<Plus size={18} />}
-            >
-              Add Country
-            </Button>
+            {canCreate ? (
+              <Button
+                variant="primary"
+                onClick={handleAdd}
+                leftIcon={<Plus size={18} />}
+              >
+                Add Country
+              </Button>
+            ) : null}
           </div>
         }
         renderRow={(country, index) => (
@@ -263,7 +269,6 @@ const Country: React.FC = () => {
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {/* 9. S.N. Calculation */}
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
@@ -278,20 +283,24 @@ const Country: React.FC = () => {
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(country)} />
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleEdit(country)}
-                >
-                  <Edit size={14} />
-                </Button>
-                <Button
-                  variant="danger"
-                  size="xs"
-                  onClick={() => setDeleteId(country.id!)}
-                >
-                  <Trash size={14} />
-                </Button>
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleEdit(country)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={() => setDeleteId(country.id!)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
               </div>
             </td>
           </tr>
