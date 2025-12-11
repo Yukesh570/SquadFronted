@@ -44,6 +44,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
   });
 
   const [quillContent, setQuillContent] = useState("");
+  // Gatekeeper state: Keeps the editor hidden until data is fully loaded
   const [isDataReady, setIsDataReady] = useState(false);
 
   const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
@@ -108,7 +109,9 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
           setScheduleDate(new Date(editingCampaign.schedule));
           setFormData((prev) => ({ ...prev, scheduleType: "datetime" }));
         }
-        setIsDataReady(true);
+        setTimeout(() => {
+          setIsDataReady(true);
+        }, 100);
       } else {
         setFormData({
           campaignName: "",
@@ -121,7 +124,10 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
         setQuillContent("");
         setScheduleDate(null);
         setCsvFile(null);
-        setIsDataReady(true);
+
+        setTimeout(() => {
+          setIsDataReady(true);
+        }, 100);
       }
     }
   }, [isOpen, editingCampaign]);
@@ -150,11 +156,8 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
   };
 
   const downloadSample = () => {
-    const csvContent =
-      "data:text/csv;charset=utf-8,PhoneNumber\n9800000000\n9811111111";
-    const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.href = "/sample_contacts.csv";
     link.setAttribute("download", "sample_contacts.csv");
     document.body.appendChild(link);
     link.click();
@@ -165,6 +168,16 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     const doc = new DOMParser().parseFromString(html, "text/html");
     const text = doc.body.textContent || "";
     return text.trim().length === 0;
+  };
+
+  const formatLocalTime = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -190,14 +203,14 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
       if (formData.template) dataToUpload.append("template", formData.template);
 
-      let scheduleTimestamp = new Date().toISOString();
+      let scheduleString = "";
       if (formData.scheduleType === "datetime" && scheduleDate) {
-        scheduleTimestamp = scheduleDate.toISOString();
+        scheduleString = formatLocalTime(scheduleDate);
+      } else {
+        scheduleString = formatLocalTime(new Date());
       }
-      dataToUpload.append(
-        "schedule",
-        scheduleTimestamp.substring(0, 19).replace("T", " ")
-      );
+
+      dataToUpload.append("schedule", scheduleString);
 
       if (!editingCampaign) {
         if (formData.audienceType === "specify") {
@@ -367,7 +380,6 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
               Content <span className="text-red-500">*</span>
             </label>
 
-            {/* 4. FIX: Gatekeeper logic to ensure content is ready */}
             {isDataReady ? (
               <ReactQuill
                 theme="snow"
@@ -391,6 +403,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
             onChange={(v) =>
               setFormData({ ...formData, scheduleType: v as any })
             }
+            disabled={isViewMode}
           />
           {formData.scheduleType === "datetime" && (
             <CustomDatePicker
@@ -398,6 +411,8 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
               selected={scheduleDate}
               onChange={(date: Date | null) => setScheduleDate(date)}
               showTimeSelect
+              disabled={isViewMode}
+              isClearable={false}
             />
           )}
         </div>

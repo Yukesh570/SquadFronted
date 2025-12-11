@@ -38,6 +38,15 @@ const CampaignList: React.FC = () => {
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
 
+  const formatContent = (content: string) => {
+    if (!content) return "";
+    const strippedContent = content.replace(/<[^>]*>/g, "");
+    const limit = 15;
+    return strippedContent.length > limit
+      ? `${strippedContent.substring(0, limit)}...`
+      : strippedContent;
+  };
+
   const fetchCampaigns = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
@@ -122,7 +131,14 @@ const CampaignList: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const headers = ["S.N.", "Name", "Objective", "Schedule", "Actions"];
+  const headers = [
+    "S.N.",
+    "Name",
+    "Objective",
+    "Content",
+    "Schedule",
+    "Actions",
+  ];
   const objectiveOptions = [
     { label: "All", value: "" },
     { label: "Promotion", value: "Promotion" },
@@ -199,6 +215,12 @@ const CampaignList: React.FC = () => {
                 <Megaphone size={14} /> {campaign.objective}
               </span>
             </td>
+            <td
+              className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300"
+              title={campaign.content?.replace(/<[^>]*>/g, "")}
+            >
+              {formatContent(campaign.content)}
+            </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               <span className="flex items-center gap-2">
                 <Calendar size={14} /> {campaign.schedule}
@@ -212,6 +234,7 @@ const CampaignList: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(campaign)}
+                    title="Edit Campaign"
                   >
                     <Edit size={14} />
                   </Button>
@@ -221,6 +244,7 @@ const CampaignList: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(campaign.id!)}
+                    title="Delete Campaign"
                   >
                     <Trash size={14} />
                   </Button>
