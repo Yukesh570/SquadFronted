@@ -161,21 +161,21 @@ const Smpp: React.FC = () => {
           label="Search Host"
           value={hostFilter}
           onChange={(e) => setHostFilter(e.target.value)}
-          placeholder="SMPP Host..."
+          placeholder="SMPP Host"
           className="md:col-span-2"
         />
         <Input
           label="Search Port"
           value={portFilter}
           onChange={(e) => setPortFilter(e.target.value)}
-          placeholder="SMPP Port..."
+          placeholder="SMPP Port"
           className="md:col-span-2"
         />
         <Input
           label="Search System ID"
           value={systemIDFilter}
           onChange={(e) => setSystemIDFilter(e.target.value)}
-          placeholder="System ID..."
+          placeholder="System ID"
           className="md:col-span-2"
         />
         <Select
@@ -183,7 +183,7 @@ const Smpp: React.FC = () => {
           value={modeFilter}
           onChange={setModeFilter}
           options={bindModeOptions}
-          placeholder="Bind Mode..."
+          placeholder="Bind Mode"
         />
       </FilterCard>
 
@@ -236,6 +236,7 @@ const Smpp: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(item)}
+                    title="Edit SMPP"
                   >
                     <Edit size={14} />
                   </Button>
@@ -245,6 +246,7 @@ const Smpp: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(item.id!)}
+                    title="Delete SMPP"
                   >
                     <Trash size={14} />
                   </Button>

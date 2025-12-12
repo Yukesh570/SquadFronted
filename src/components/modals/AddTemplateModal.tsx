@@ -157,7 +157,7 @@ export const AddTemplateModal: React.FC<AddTemplateModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingTemplate
                 ? "Save Changes"
                 : "Save Template"}

@@ -196,7 +196,7 @@ export const SmtpModal: React.FC<SmtpModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingServer
                 ? "Save Changes"
                 : "Save Host"}

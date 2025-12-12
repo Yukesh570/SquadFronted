@@ -93,6 +93,10 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute path="setting/timezone" />}>
           <Route path="setting/timezone" element={<Timezone />} />
         </Route>
+        <Route element={<ProtectedRoute path="setting/operator" />}>
+          <Route path="setting/operator" element={<Operators />} />
+        </Route>
+
         <Route element={<ProtectedRoute path="company" />}>
           <Route path="company" element={<Company />} />
         </Route>
@@ -121,12 +125,6 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute path="mappingSetup" />}>
           <Route path="mappingSetup" element={<MappingSetup />} />
         </Route>
-
-        {/* Operator */}
-        <Route element={<ProtectedRoute path="operator" />}>
-          <Route path="operator" element={<Operators />} />
-        </Route>
-
         <Route path="change-password" element={<ChangePassword />} />
 
         <Route path="*" element={<NotFound />} />

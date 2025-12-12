@@ -143,14 +143,14 @@ const State: React.FC = () => {
           label="Search State"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="State Name..."
+          placeholder="State Name"
           className="md:col-span-2"
         />
         <Input
           label="Search Country"
           value={countryFilter}
           onChange={(e) => setCountryFilter(e.target.value)}
-          placeholder="Country Name..."
+          placeholder="Country Name"
           className="md:col-span-2"
         />
       </FilterCard>
@@ -201,6 +201,7 @@ const State: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(state)}
+                    title="Edit State"
                   >
                     <Edit size={14} />
                   </Button>
@@ -210,6 +211,7 @@ const State: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(state.id!)}
+                    title="Delete State"
                   >
                     <Trash size={14} />
                   </Button>

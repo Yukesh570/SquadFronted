@@ -270,7 +270,7 @@ const PermissionsTable = () => {
           disabled={isSaving}
           className="px-8"
         >
-          {isSaving ? "Saving Changes..." : "Save Changes"}
+          {isSaving ? "Saving Changes" : "Save Changes"}
         </Button>
       </div>
     </div>

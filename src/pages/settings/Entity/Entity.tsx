@@ -143,7 +143,7 @@ const Entity: React.FC = () => {
           label="Search Entity"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Entity Name..."
+          placeholder="Entity Name"
           className="md:col-span-2"
         />
       </FilterCard>
@@ -188,6 +188,7 @@ const Entity: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(entity)}
+                    title="Edit Entity"
                   >
                     <Edit size={14} />
                   </Button>
@@ -197,6 +198,7 @@ const Entity: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(entity.id!)}
+                    title="Delete Entity"
                   >
                     <Trash size={14} />
                   </Button>

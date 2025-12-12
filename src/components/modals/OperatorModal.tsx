@@ -191,7 +191,7 @@ export const OperatorModal: React.FC<OperatorModalProps> = ({
           </Button>
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : editingOperator ? "Update" : "Save"}
+              {isSubmitting ? "Saving" : editingOperator ? "Update" : "Save"}
             </Button>
           )}
         </div>

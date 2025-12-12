@@ -312,7 +312,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
           onChange={handleChange}
           disabled={isViewMode}
           rows={2}
-          placeholder="Optional remarks..."
+          placeholder="Optional remarks"
         />
 
         {isCreateMode && (
@@ -329,7 +329,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingRate
                 ? "Update Rate"
                 : "Create Plan"}

@@ -145,7 +145,7 @@ const CompanyCategory: React.FC = () => {
           label="Search Company Category"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Company Category Name..."
+          placeholder="Company Category Name"
           className="md:col-span-2"
         />
       </FilterCard>
@@ -190,6 +190,7 @@ const CompanyCategory: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(CompanyCategory)}
+                    title="Edit Company Category"
                   >
                     <Edit size={14} />
                   </Button>
@@ -199,6 +200,7 @@ const CompanyCategory: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(CompanyCategory.id!)}
+                    title="Delete Company Category"
                   >
                     <Trash size={14} />
                   </Button>

@@ -264,7 +264,7 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
             {!isViewMode && (
               <Button type="submit" variant="primary" disabled={isSubmitting}>
                 {isSubmitting
-                  ? "Saving..."
+                  ? "Saving"
                   : editingModule
                   ? "Save Changes"
                   : "Add Module"}
@@ -286,7 +286,7 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
             label="Search Icons"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Type to filter..."
+            placeholder="Type to filter"
             autoFocus
           />
 

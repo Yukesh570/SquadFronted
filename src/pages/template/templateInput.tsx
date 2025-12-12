@@ -212,6 +212,7 @@ const CampaignTemplatePage: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(template)}
+                    title="Edit Template"
                   >
                     <Edit size={14} />
                   </Button>
@@ -221,6 +222,7 @@ const CampaignTemplatePage: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(template.id!)}
+                    title="Delete Template"
                   >
                     <Trash size={14} />
                   </Button>

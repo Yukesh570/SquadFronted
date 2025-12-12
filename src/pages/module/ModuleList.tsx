@@ -118,8 +118,8 @@ const ModuleList: React.FC = () => {
     "Label",
     "URL",
     "Icon",
-    // "Order",
-    "Status",
+    "Order",
+    // "Status",
     "Actions",
   ];
 
@@ -187,10 +187,10 @@ const ModuleList: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {module.icon}
             </td>
-            {/* <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {module.order}
-            </td> */}
-            <td className="px-4 py-4 text-sm">
+            </td>
+            {/* <td className="px-4 py-4 text-sm">
               {module.is_active ? (
                 <span className="px-2.5 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
                   Active
@@ -200,7 +200,7 @@ const ModuleList: React.FC = () => {
                   Inactive
                 </span>
               )}
-            </td>
+            </td> */}
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(module)} />
@@ -209,6 +209,7 @@ const ModuleList: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(module)}
+                    title="Edit Module"
                   >
                     <Edit size={14} />
                   </Button>
@@ -218,6 +219,7 @@ const ModuleList: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(module.id!)}
+                    title="Delete Module"
                   >
                     <Trash size={14} />
                   </Button>

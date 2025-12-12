@@ -20,7 +20,7 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// GET
+// GET LIST
 export const getSmppApi = async (
   module: string,
   page: number = 1,
@@ -32,7 +32,15 @@ export const getSmppApi = async (
     page_size: pageSize,
     ...searchParams
   }
-  const response = await api.get(`/connectivity/${module}/`, { params });
+  const response = await api.get(`/smpp/${module}/`, { params });
+  return response.data;
+};
+
+export const getSmppByIdApi = async (
+  id: number,
+  module: string
+): Promise<SmppData> => {
+  const response = await api.get(`/smpp/${module}/${id}/`);
   return response.data;
 };
 
@@ -41,7 +49,7 @@ export const createSmppApi = async (
   data: any, 
   module: string
 ): Promise<SmppData> => {
-  const response = await api.post(`/connectivity/${module}/`, data);
+  const response = await api.post(`/smpp/${module}/`, data);
   return response.data;
 };
 
@@ -51,7 +59,7 @@ export const updateSmppApi = async (
   data: any, 
   module: string
 ): Promise<SmppData> => {
-  const response = await api.patch(`/connectivity/${module}/${id}/`, data);
+  const response = await api.patch(`/smpp/${module}/${id}/`, data);
   return response.data;
 };
 
@@ -60,5 +68,5 @@ export const deleteSmppApi = async (
   id: number, 
   module: string
 ): Promise<void> => {
-  await api.delete(`/connectivity/${module}/${id}/`);
+  await api.delete(`/smpp/${module}/${id}/`);
 };

@@ -174,7 +174,7 @@ export const CurrencyModal: React.FC<CurrencyModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingCurrency
                 ? "Save Changes"
                 : "Add Currency"}

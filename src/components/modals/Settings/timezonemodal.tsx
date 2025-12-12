@@ -119,7 +119,7 @@ export const TimezoneModal: React.FC<TimezoneModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingTimezone
                 ? "Save Changes"
                 : "Add Timezone"}

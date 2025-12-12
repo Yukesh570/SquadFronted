@@ -94,7 +94,7 @@ const Login = () => {
             leftIcon={<LogIn className="mr-2" size={20} />}
             disabled={loading}
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? "Signing in" : "Sign in"}
           </Button>
         </form>
       </div>

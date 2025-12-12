@@ -179,7 +179,7 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingTemplate
                 ? "Save Changes"
                 : "Save Template"}

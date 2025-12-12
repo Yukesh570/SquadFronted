@@ -123,7 +123,7 @@ export const CompanyCategoryModal: React.FC<CompanyCategoryModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingCompanyCategory
                 ? "Save Changes"
                 : "Add Company Category"}

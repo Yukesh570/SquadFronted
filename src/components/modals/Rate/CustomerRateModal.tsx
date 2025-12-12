@@ -311,7 +311,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
               onChange={handleChange}
               disabled={isViewMode}
               rows={2}
-              placeholder="Optional remarks..."
+              placeholder="Optional remarks"
             />
           </>
         ) : (
@@ -327,7 +327,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingRate
                 ? "Save Details"
                 : "Create Plan"}

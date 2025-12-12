@@ -146,7 +146,7 @@ export function DataTable<T extends { id?: number | string }>({
                   colSpan={headers.length}
                   className="px-4 py-12 text-center text-text-secondary"
                 >
-                  Loading...
+                  Loading
                 </td>
               </tr>
             ) : displayData.length === 0 ? (

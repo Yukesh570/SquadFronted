@@ -41,7 +41,7 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
             disabled={isDeleting}
             className="w-1/2"
           >
-            {isDeleting ? "Deleting..." : "Delete"}
+            {isDeleting ? "Deleting" : "Delete"}
           </Button>
         </div>
       </div>

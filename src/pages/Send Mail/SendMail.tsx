@@ -277,7 +277,7 @@ const SendMailPage: React.FC = () => {
               leftIcon={<Send size={20} />}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Sending..." : "Send Mail"}
+              {isSubmitting ? "Sending" : "Send Mail"}
             </Button>
           </div>
         </form>

@@ -173,7 +173,7 @@ export const StateModal: React.FC<StateModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingState
                 ? "Save Changes"
                 : "Add State"}

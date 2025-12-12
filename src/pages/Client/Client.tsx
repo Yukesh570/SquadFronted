@@ -162,7 +162,7 @@ const Client: React.FC = () => {
           label="Search Name"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Client Name..."
+          placeholder="Client Name"
           className="md:col-span-2"
         />
         <Select
@@ -236,6 +236,7 @@ const Client: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(client)}
+                    title="Edit Client"
                   >
                     <Edit size={14} />
                   </Button>
@@ -245,6 +246,7 @@ const Client: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(client.id!)}
+                    title="Delete Client"
                   >
                     <Trash size={14} />
                   </Button>

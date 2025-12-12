@@ -207,7 +207,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
         throw new Error("No Task ID returned.");
       }
 
-      toast.info("Import started...");
+      toast.info("Import started");
 
       checkStatus(task_id, 1);
     } catch (error: any) {
@@ -235,7 +235,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
             value={selectedMappingId}
             onChange={setSelectedMappingId}
             options={mappingOptions}
-            placeholder="Choose a mapping..."
+            placeholder="Choose a mapping"
             disabled={isSubmitting}
           />
 
@@ -369,7 +369,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
               style={{ width: `${progress || 5}%` }}
             ></div>
             <p className="text-xs text-center text-gray-500 mt-1">
-              Processing... {progress ? `${progress}%` : ""}
+              Processing {progress ? `${progress}%` : ""}
             </p>
           </div>
         )}
@@ -390,7 +390,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
           >
             {isSubmitting ? (
               <>
-                <Loader2 size={16} className="animate-spin mr-2" /> Importing...
+                <Loader2 size={16} className="animate-spin mr-2" /> Importing
               </>
             ) : (
               "Start Import"

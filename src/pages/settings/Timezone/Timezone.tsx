@@ -141,7 +141,7 @@ const Timezone: React.FC = () => {
           label="Search Timezone"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Timezone Name..."
+          placeholder="Timezone Name"
           className="md:col-span-2"
         />
       </FilterCard>
@@ -186,6 +186,7 @@ const Timezone: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(timezone)}
+                    title="Edit Timezone"
                   >
                     <Edit size={14} />
                   </Button>
@@ -195,6 +196,7 @@ const Timezone: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(timezone.id!)}
+                    title="Delete Timezone"
                   >
                     <Trash size={14} />
                   </Button>

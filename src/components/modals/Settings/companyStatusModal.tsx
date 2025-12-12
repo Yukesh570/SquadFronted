@@ -123,7 +123,7 @@ export const CompanyStatusModal: React.FC<CompanyStatusModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingCompanyStatus
                 ? "Save Changes"
                 : "Add Company Status"}

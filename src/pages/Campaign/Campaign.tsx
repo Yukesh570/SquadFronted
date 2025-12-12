@@ -167,7 +167,7 @@ const CampaignList: React.FC = () => {
           label="Search Name"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Campaign Name..."
+          placeholder="Campaign Name"
         />
         <Select
           label="Search Objective"

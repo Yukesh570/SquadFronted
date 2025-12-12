@@ -194,7 +194,7 @@ const CustomerRate: React.FC = () => {
           label="Search by RatePlan"
           value={planNameFilter}
           onChange={(e) => setPlanNameFilter(e.target.value)}
-          placeholder="RatePlan..."
+          placeholder="RatePlan"
           className="md:col-span-2"
         />
       </FilterCard>
@@ -257,6 +257,7 @@ const CustomerRate: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(item)}
+                    title="Edit Customer Rate"
                   >
                     <Edit size={14} />
                   </Button>
@@ -266,6 +267,7 @@ const CustomerRate: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(item.id!)}
+                    title="Delete Customer Rate"
                   >
                     <Trash size={14} />
                   </Button>

@@ -57,7 +57,7 @@ const CompanyList: React.FC = () => {
       let attempts = 0;
       const maxAttempts = 5;
 
-      toast.info("Export started. Please wait...");
+      toast.info("Export started. Please wait");
 
       const checkStatus = setInterval(async () => {
         attempts += 1;
@@ -199,7 +199,7 @@ const CompanyList: React.FC = () => {
           label="Search Company"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Company Name..."
+          placeholder="Company Name"
           className="md:col-span-2"
         />
       </FilterCard>
@@ -262,6 +262,7 @@ const CompanyList: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(company)}
+                    title="Edit Company"
                   >
                     <Edit size={14} />
                   </Button>
@@ -271,6 +272,7 @@ const CompanyList: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(company.id!)}
+                    title="Delete Company"
                   >
                     <Trash size={14} />
                   </Button>

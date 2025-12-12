@@ -153,7 +153,7 @@ const MappingSetup: React.FC = () => {
           label="Search by RatePlan"
           value={headerFilter}
           onChange={(e) => setHeaderFilter(e.target.value)}
-          placeholder="RatePlan..."
+          placeholder="RatePlan"
           className="md:col-span-2"
         />
       </FilterCard>

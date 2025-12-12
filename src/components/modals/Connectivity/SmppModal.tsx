@@ -243,7 +243,7 @@ export const SmppModal: React.FC<SmppModalProps> = ({
           </Button>
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save"}
+              {isSubmitting ? "Saving" : "Save"}
             </Button>
           )}
         </div>

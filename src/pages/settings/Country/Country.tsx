@@ -64,7 +64,7 @@ const Country: React.FC = () => {
       let attempts = 0;
       const maxAttempts = 5;
 
-      toast.info("Export started. Please wait...");
+      toast.info("Export started. Please wait");
 
       const checkStatus = setInterval(async () => {
         attempts += 1;
@@ -214,21 +214,21 @@ const Country: React.FC = () => {
           label="Search Country"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Country Name..."
+          placeholder="Country Name"
           className="md:col-span-2"
         />
         <Input
           label="Search Code"
           value={codeFilter}
           onChange={(e) => setCodeFilter(e.target.value)}
-          placeholder="Country Code..."
+          placeholder="Country Code"
           className="md:col-span-2"
         />
         <Input
           label="Search MCC"
           value={mccFilter}
           onChange={(e) => setMccFilter(e.target.value)}
-          placeholder="MCC..."
+          placeholder="MCC"
           className="md:col-span-2"
         />
       </FilterCard>
@@ -288,6 +288,7 @@ const Country: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(country)}
+                    title="Edit Country"
                   >
                     <Edit size={14} />
                   </Button>
@@ -297,6 +298,7 @@ const Country: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(country.id!)}
+                    title="Delete Country"
                   >
                     <Trash size={14} />
                   </Button>

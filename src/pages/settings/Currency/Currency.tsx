@@ -148,7 +148,7 @@ const Currency: React.FC = () => {
           label="Search Currency"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Currency Name..."
+          placeholder="Currency Name"
           className="md:col-span-2"
         />
       </FilterCard>
@@ -199,6 +199,7 @@ const Currency: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(currency)}
+                    title="Edit Currency"
                   >
                     <Edit size={14} />
                   </Button>
@@ -208,6 +209,7 @@ const Currency: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(currency.id!)}
+                    title="Delete Currency"
                   >
                     <Trash size={14} />
                   </Button>

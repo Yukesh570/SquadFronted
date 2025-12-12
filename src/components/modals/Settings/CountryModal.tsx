@@ -137,7 +137,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingCountry
                 ? "Save Changes"
                 : "Add Country"}

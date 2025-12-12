@@ -119,7 +119,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingEntity
                 ? "Save Changes"
                 : "Add Entity"}

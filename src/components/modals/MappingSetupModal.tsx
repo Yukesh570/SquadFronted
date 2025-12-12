@@ -203,7 +203,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
           </Button>
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : editingMapping ? "Save" : "Save"}
+              {isSubmitting ? "Saving" : editingMapping ? "Save" : "Save"}
             </Button>
           )}
         </div>

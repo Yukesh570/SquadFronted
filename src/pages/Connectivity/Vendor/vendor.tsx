@@ -126,13 +126,8 @@ const Vendor: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const headers = [
-    "S.N.",
-    "Profile Name",
-    "Company Name",
-    "Connection Type",
-    "Actions",
-  ];
+  const headers = ["S.N.", "Profile Name", "Company Name", "Type", "Actions"];
+
   const connectionTypeOptions = [
     { label: "SMPP", value: "SMPP" },
     { label: "HTTP", value: "HTTP" },
@@ -159,14 +154,14 @@ const Vendor: React.FC = () => {
           label="Search Profile"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Profile Name..."
+          placeholder="Profile Name"
           className="md:col-span-2"
         />
         <Input
           label="Search Company Name"
           value={companyNameFilter}
           onChange={(e) => setCompanyNameFilter(e.target.value)}
-          placeholder="Company Name..."
+          placeholder="Company Name"
           className="md:col-span-2"
         />
         <Select
@@ -199,7 +194,7 @@ const Vendor: React.FC = () => {
             </Button>
           ) : null
         }
-        renderRow={(vendor, index) => (
+        renderRow={(vendor: any, index) => (
           <tr
             key={vendor.id || index}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
@@ -214,10 +209,17 @@ const Vendor: React.FC = () => {
               {vendor.companyName}
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
+              <span
+                className={`px-2 py-1 rounded text-xs font-medium ${
+                  vendor.connectionType === "SMPP"
+                    ? "bg-blue-100 text-blue-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
                 {vendor.connectionType}
               </span>
             </td>
+
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(vendor)} />
@@ -226,6 +228,7 @@ const Vendor: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(vendor)}
+                    title="Edit Vendor"
                   >
                     <Edit size={14} />
                   </Button>
@@ -235,6 +238,7 @@ const Vendor: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(vendor.id!)}
+                    title="Delete Vendor"
                   >
                     <Trash size={14} />
                   </Button>

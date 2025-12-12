@@ -147,14 +147,14 @@ const SmtpServer: React.FC = () => {
           label="Search Name"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Name..."
+          placeholder="Name"
           className="md:col-span-2"
         />
         <Input
           label="Search Host"
           value={hostFilter}
           onChange={(e) => setHostFilter(e.target.value)}
-          placeholder="Host..."
+          placeholder="Host"
           className="md:col-span-2"
         />
       </FilterCard>
@@ -211,6 +211,7 @@ const SmtpServer: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(server)}
+                    title="Edit Server"
                   >
                     <Edit size={14} />
                   </Button>
@@ -220,6 +221,7 @@ const SmtpServer: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(server.id!)}
+                    title="Delete Server"
                   >
                     <Trash size={14} />
                   </Button>

@@ -429,7 +429,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
               leftIcon={<Send size={18} />}
             >
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingCampaign
                 ? "Update Campaign"
                 : "Create Campaign"}

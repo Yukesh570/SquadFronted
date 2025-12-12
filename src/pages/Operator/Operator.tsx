@@ -175,7 +175,7 @@ const Operators: React.FC = () => {
           label="Search by Name"
           value={searchName}
           onChange={(e) => setSearchName(e.target.value)}
-          placeholder="Operator Name..."
+          placeholder="Operator Name"
           className="md:col-span-2"
         />
       </FilterCard>
@@ -229,7 +229,7 @@ const Operators: React.FC = () => {
                     variant="secondary"
                     size="xs"
                     onClick={() => handleEdit(item)}
-                    title="Edit"
+                    title="Edit Operator"
                   >
                     <Edit size={14} />
                   </Button>
@@ -239,7 +239,7 @@ const Operators: React.FC = () => {
                     variant="danger"
                     size="xs"
                     onClick={() => setDeleteId(item.id!)}
-                    title="Delete"
+                    title="Delete Operator"
                   >
                     <Trash size={14} />
                   </Button>

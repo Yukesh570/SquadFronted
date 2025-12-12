@@ -54,7 +54,7 @@ export const NavItemProvider = ({
 
   // Helper to wipe data
   const clearNavItems = () => {
-    console.log("Clearing Nav Items (Logout)...");
+    console.log("Clearing Nav Items (Logout)");
     setNavItems(initialData);
   };
 

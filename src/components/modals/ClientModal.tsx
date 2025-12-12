@@ -357,7 +357,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving..."
+                ? "Saving"
                 : editingClient
                 ? "Update Client"
                 : "Add Client"}
