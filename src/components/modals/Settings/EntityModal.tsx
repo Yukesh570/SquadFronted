@@ -107,7 +107,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="e.g., Head Office"
+          placeholder="Head Office"
           required
           disabled={isViewMode}
         />

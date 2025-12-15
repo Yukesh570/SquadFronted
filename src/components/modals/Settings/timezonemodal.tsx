@@ -107,7 +107,7 @@ export const TimezoneModal: React.FC<TimezoneModalProps> = ({
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="e.g., Asia/Kathmandu"
+          placeholder="Asia/Kathmandu"
           required
           disabled={isViewMode}
         />

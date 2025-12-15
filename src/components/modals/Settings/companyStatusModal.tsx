@@ -111,7 +111,7 @@ export const CompanyStatusModal: React.FC<CompanyStatusModalProps> = ({
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="e.g., Active"
+          placeholder="Active"
           required
           disabled={isViewMode}
         />

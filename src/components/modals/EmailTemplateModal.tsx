@@ -147,7 +147,7 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="e.g., Welcome Email"
+          placeholder="Welcome Email"
           required
           disabled={isViewMode}
         />

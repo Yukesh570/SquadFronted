@@ -153,7 +153,7 @@ export const CurrencyModal: React.FC<CurrencyModalProps> = ({
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="e.g., US Dollar"
+          placeholder="US Dollar"
           required
           disabled={isViewMode}
         />

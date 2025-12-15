@@ -251,13 +251,13 @@ const UserLog: React.FC = () => {
           label="Search Browser"
           value={browserFilter}
           onChange={(e) => setBrowserFilter(e.target.value)}
-          placeholder="e.g. Chrome"
+          placeholder="Chrome"
         />
         <Input
           label="Search Device"
           value={deviceFilter}
           onChange={(e) => setDeviceFilter(e.target.value)}
-          placeholder="e.g. Mobile"
+          placeholder="Mobile"
         />
       </FilterCard>
 

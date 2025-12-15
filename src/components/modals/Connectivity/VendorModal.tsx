@@ -280,7 +280,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             name="profileName"
             value={formData.profileName}
             onChange={handleChange}
-            placeholder="e.g., Vendor A"
+            placeholder="Vendor A"
             required
             disabled={isViewMode}
           />

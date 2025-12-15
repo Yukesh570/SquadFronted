@@ -227,7 +227,7 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
             name="label"
             value={formData.label}
             onChange={handleChange}
-            placeholder="e.g., Dashboard"
+            placeholder="Dashboard"
             required
             disabled={isViewMode}
           />
@@ -259,7 +259,7 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
             name="url"
             value={formData.url}
             onChange={handleChange}
-            placeholder="e.g., dashboard"
+            placeholder="dashboard"
             required
             disabled={isViewMode}
           />

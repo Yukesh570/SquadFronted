@@ -106,7 +106,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="e.g., Nepal"
+          placeholder="Nepal"
           required
           disabled={isViewMode}
         />
@@ -115,7 +115,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
           name="countryCode"
           value={formData.countryCode}
           onChange={handleChange}
-          placeholder="e.g., NP"
+          placeholder="NP"
           required
           disabled={isViewMode}
         />
@@ -124,7 +124,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
           name="MCC"
           value={formData.MCC}
           onChange={handleChange}
-          placeholder="e.g., 429"
+          placeholder="429"
           required
           disabled={isViewMode}
         />

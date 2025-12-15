@@ -231,7 +231,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
             name="ratePlan"
             value={formData.ratePlan}
             onChange={handleChange}
-            placeholder="e.g., Gold Plan"
+            placeholder="Gold Plan"
             required
             disabled={isViewMode}
           />
@@ -270,7 +270,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
                 type="number"
                 value={formData.countryCode}
                 onChange={handleChange}
-                placeholder="e.g., 977"
+                placeholder="977"
                 disabled={isViewMode}
               />
               <Select

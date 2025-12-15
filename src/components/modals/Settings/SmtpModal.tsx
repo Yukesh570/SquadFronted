@@ -164,7 +164,7 @@ export const SmtpModal: React.FC<SmtpModalProps> = ({
           type="text"
           value={formData.name}
           onChange={handleChange}
-          placeholder="e.g., Work Email"
+          placeholder="Work Email"
           required
           disabled={isViewMode}
         />

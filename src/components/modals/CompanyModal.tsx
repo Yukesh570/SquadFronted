@@ -276,7 +276,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="e.g., ACME TECHNOLOGIES"
+              placeholder="ACME TECHNOLOGIES"
               required
               disabled={isViewMode}
             />
@@ -285,7 +285,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               name="shortName"
               value={formData.shortName}
               onChange={handleChange}
-              placeholder="e.g., ACME"
+              placeholder="ACME"
               required
               disabled={isViewMode}
             />
@@ -294,7 +294,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              placeholder="e.g., +977 9800000000"
+              placeholder="+977 9800000000"
               disabled={isViewMode}
             />
             <Input
@@ -303,7 +303,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               type="email"
               value={formData.companyEmail}
               onChange={handleChange}
-              placeholder="e.g., contact@acme.com"
+              placeholder="contact@acme.com"
               disabled={isViewMode}
             />
             <Input
@@ -312,7 +312,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               type="email"
               value={formData.supportEmail}
               onChange={handleChange}
-              placeholder="e.g., support@acme.com"
+              placeholder="support@acme.com"
               disabled={isViewMode}
             />
             <Input
@@ -321,7 +321,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               type="email"
               value={formData.billingEmail}
               onChange={handleChange}
-              placeholder="e.g., billing@acme.com"
+              placeholder="billing@acme.com"
               disabled={isViewMode}
             />
             <Input
@@ -330,7 +330,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               type="email"
               value={formData.ratesEmail}
               onChange={handleChange}
-              placeholder="e.g., rates@acme.com"
+              placeholder="rates@acme.com"
               disabled={isViewMode}
             />
             <Input
@@ -339,7 +339,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               type="email"
               value={formData.lowBalanceAlertEmail}
               onChange={handleChange}
-              placeholder="e.g., finance@acme.com"
+              placeholder="finance@acme.com"
               disabled={isViewMode}
             />
           </div>
@@ -414,7 +414,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               type="number"
               value={formData.customerCreditLimit}
               onChange={handleChange}
-              placeholder="e.g., 5000.00"
+              placeholder="5000.00"
               disabled={isViewMode}
             />
             <Input
@@ -423,7 +423,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               type="number"
               value={formData.vendorCreditLimit}
               onChange={handleChange}
-              placeholder="e.g., 10000.00"
+              placeholder="10000.00"
               disabled={isViewMode}
             />
             <Input
@@ -432,7 +432,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               type="number"
               value={formData.balanceAlertAmount}
               onChange={handleChange}
-              placeholder="e.g., 500.00"
+              placeholder="500.00"
               disabled={isViewMode}
             />
             <Input
@@ -440,7 +440,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               name="referenceNumber"
               value={formData.referenceNumber}
               onChange={handleChange}
-              placeholder="e.g., REF-2024-001"
+              placeholder="REF-2024-001"
               disabled={isViewMode}
             />
           </div>
@@ -465,7 +465,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               name="vatNumber"
               value={formData.vatNumber}
               onChange={handleChange}
-              placeholder="e.g., VAT12345678"
+              placeholder="VAT12345678"
               disabled={isViewMode}
             />
           </div>
@@ -483,7 +483,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             onChange={(e) =>
               setFormData({ ...formData, address: e.target.value })
             }
-            placeholder="e.g., Koteshwor, Kathmandu, Nepal"
+            placeholder="Koteshwor, Kathmandu, Nepal"
             disabled={isViewMode}
           />
         </fieldset>

@@ -152,7 +152,7 @@ export const StateModal: React.FC<StateModalProps> = ({
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="e.g., Bagmati"
+          placeholder="Bagmati"
           required
           disabled={isViewMode}
         />

@@ -111,7 +111,7 @@ export const CompanyCategoryModal: React.FC<CompanyCategoryModalProps> = ({
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="e.g., Manufacturing"
+          placeholder="Manufacturing"
           required
           disabled={isViewMode}
         />

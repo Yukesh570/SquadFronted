@@ -224,7 +224,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
             name="ratePlan"
             value={formData.ratePlan}
             onChange={handleChange}
-            placeholder="e.g., Premium Plan"
+            placeholder="Premium Plan"
             required
             disabled={isViewMode}
           />
@@ -253,7 +253,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
                 type="number"
                 value={formData.countryCode}
                 onChange={handleChange}
-                placeholder="e.g. 977"
+                placeholder="977"
                 disabled={isViewMode}
               />
               <Input
@@ -261,7 +261,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
                 name="network"
                 value={formData.network}
                 onChange={handleChange}
-                placeholder="e.g. NTC"
+                placeholder="NTC"
                 disabled={isViewMode}
               />
               <Select
@@ -280,7 +280,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
                 type="number"
                 value={formData.MNC}
                 onChange={handleChange}
-                placeholder="e.g. 10"
+                placeholder="10"
                 disabled={isViewMode}
               />
               <Input
