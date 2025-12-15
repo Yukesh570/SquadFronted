@@ -1,4 +1,4 @@
-import  { createContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useEffect, useState, type ReactNode } from "react";
 
 interface ThemeContextProps {
   theme: "light" | "dark";
@@ -13,12 +13,14 @@ export const ThemeContext = createContext<ThemeContextProps>({
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
-  // Initialize theme from localStorage or system preference
   useEffect(() => {
-    const storedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const storedTheme = localStorage.getItem("theme") as
+      | "light"
+      | "dark"
+      | null;
 
-    const initialTheme = storedTheme || (prefersDark ? "dark" : "light");
+    const initialTheme = storedTheme || "light";
+
     setTheme(initialTheme);
 
     if (initialTheme === "dark") {
