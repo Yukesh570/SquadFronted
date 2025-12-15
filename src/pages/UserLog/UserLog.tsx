@@ -245,7 +245,7 @@ const UserLog: React.FC = () => {
           label="Search IP"
           value={ipFilter}
           onChange={(e) => setIpFilter(e.target.value)}
-          placeholder="e.g. 192.168"
+          placeholder="IP Address"
         />
         <Input
           label="Search Browser"
