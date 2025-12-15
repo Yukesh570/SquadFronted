@@ -28,6 +28,7 @@ import VendorRate from "../pages/Rate/VendorRate";
 import CustomerRate from "../pages/Rate/CustomerRate";
 import MappingSetup from "../pages/MappingSetup/MappingSetup";
 import Operators from "../pages/Operator/Operator";
+import UserLog from "../pages/UserLog/UserLog";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -119,6 +120,11 @@ const AppRoutes = () => {
         </Route>
         <Route element={<ProtectedRoute path="connectivity/smpp" />}>
           <Route path="connectivity/smpp" element={<Smpp />} />
+        </Route>
+
+        {/* UserLog */}
+        <Route element={<ProtectedRoute path="userLog" />}>
+          <Route path="userLog" element={<UserLog />} />
         </Route>
 
         {/* Mapping */}

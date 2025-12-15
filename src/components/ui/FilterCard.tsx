@@ -6,16 +6,20 @@ interface FilterCardProps {
   children: React.ReactNode;
   onSearch: () => void;
   onClear: () => void;
+  hideSearchButton?: boolean;
 }
 
 const FilterCard: React.FC<FilterCardProps> = ({
   children,
   onSearch,
   onClear,
+  hideSearchButton = false,
 }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch();
+    if (!hideSearchButton) {
+      onSearch();
+    }
   };
 
   return (
@@ -23,21 +27,21 @@ const FilterCard: React.FC<FilterCardProps> = ({
       onSubmit={handleSubmit}
       className="mb-6 rounded-xl bg-white p-5 shadow-card dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
     >
-      {/* Grid layout fixed to make inputs smaller (4 cols on medium, 6 on large) */}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-4 lg:grid-cols-6">
         {children}
       </div>
 
-      {/* Buttons aligned Left */}
       <div className="mt-5 flex justify-start space-x-3">
-        <Button
-          type="submit"
-          variant="primary"
-          // onClick={onSearch}
-          leftIcon={<Search size={16} />}
-        >
-          Search
-        </Button>
+        {!hideSearchButton && (
+          <Button
+            type="submit"
+            variant="primary"
+            leftIcon={<Search size={16} />}
+          >
+            Search
+          </Button>
+        )}
+
         <Button
           type="button"
           variant="secondary"
