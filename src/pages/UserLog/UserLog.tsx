@@ -83,14 +83,7 @@ const UserLog: React.FC = () => {
     fetchUserLogs({ ipAddress: "", browser: "" });
   };
 
-  const headers = [
-    "S.N.",
-    "IP Address",
-    "Browser",
-    "Device",
-    "User Agent",
-    "Logged At",
-  ];
+  const headers = ["S.N.", "IP Address", "Browser", "Device", "Logged At"];
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
@@ -254,12 +247,7 @@ const UserLog: React.FC = () => {
                 {log.device}
               </div>
             </td>
-            <td
-              className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 max-w-xs truncate"
-              title={log.userAgent}
-            >
-              {log.userAgent}
-            </td>
+
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               <div className="flex items-center gap-2">
                 <History size={14} className="text-orange-400" />

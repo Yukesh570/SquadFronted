@@ -41,11 +41,13 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
     url: "",
     icon: "HelpCircle",
     parent: "",
-    order: 0,
+    order: "",
     is_active: true,
   });
 
   const [parentOptions, setParentOptions] = useState<Option[]>([]);
+  const [allModules, setAllModules] = useState<SideBarApi[]>([]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showIconModal, setShowIconModal] = useState(false);
   const [search, setSearch] = useState("");
@@ -69,6 +71,8 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
         if (res && res.results) list = res.results;
         else if (Array.isArray(res)) list = res;
 
+        setAllModules(list);
+
         setParentOptions(
           list.map((m) => ({ label: m.label, value: String(m.id) }))
         );
@@ -83,7 +87,10 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
         url: editingModule.url,
         icon: editingModule.icon || "HelpCircle",
         parent: editingModule.parent ? String(editingModule.parent) : "",
-        order: editingModule.order || 0,
+        order:
+          editingModule.order !== undefined && editingModule.order !== null
+            ? String(editingModule.order)
+            : "",
         is_active: editingModule.is_active ?? true,
       });
     } else if (isOpen) {
@@ -92,7 +99,7 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
         url: "",
         icon: "HelpCircle",
         parent: "",
-        order: 0,
+        order: "",
         is_active: true,
       });
     }
@@ -103,10 +110,42 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
   };
 
   const handleSelect = (name: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    if (name === "parent") {
+      let newUrl = formData.url;
+
+      if (formData.url) {
+        // 1. Extract "Leaf" slug (e.g., "settings/test" -> "test")
+        const parts = formData.url.split("/").filter((p) => p !== "");
+        const leafSlug =
+          parts.length > 0 ? parts[parts.length - 1] : formData.url;
+
+        if (value) {
+          // 2. Parent Selected: Prepend Parent URL
+          const parentMod = allModules.find((m) => String(m.id) === value);
+          if (parentMod) {
+            // Clean parent url (remove any stray slashes)
+            const parentPath = parentMod.url.replace(/^\/+|\/+$/g, "");
+            // Combine: parent/child (No leading slash per your request)
+            newUrl = `${parentPath}/${leafSlug}`;
+          }
+        } else {
+          // 3. Parent Deselected: Just the leaf slug (No leading slash)
+          newUrl = leafSlug;
+        }
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        parent: value,
+        url: newUrl, // Auto-updated URL
+        order: "", // Reset order to null (empty string)
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleOpenIconModal = (e: React.MouseEvent) => {
@@ -133,11 +172,13 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
 
     setIsSubmitting(true);
 
+    const finalOrder = formData.order === "" ? null : Number(formData.order);
+
     const payload: any = {
       label: formData.label,
       url: formData.url,
       icon: formData.icon,
-      order: Number(formData.order),
+      order: finalOrder,
       is_active: formData.is_active,
       parent: formData.parent ? Number(formData.parent) : null,
       module: moduleName,
@@ -206,9 +247,10 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
               label="Order"
               type="number"
               name="order"
-              value={formData.order}
+              value={String(formData.order)}
               onChange={handleChange}
               disabled={isViewMode}
+              placeholder="Auto (Last)"
             />
           </div>
 
