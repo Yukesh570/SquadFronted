@@ -14,8 +14,9 @@ import {
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
+  getUserInformationApi,
   getUserLogApi,
-  type UserLogData,
+  type UserInformationData,
   type LoginHistoryItem,
 } from "../../api/userLogApi/userLogApi";
 import DataTable from "../../components/ui/DataTable";
@@ -27,43 +28,78 @@ interface LogItemWithId extends LoginHistoryItem {
 }
 
 const UserLog: React.FC = () => {
-  const [userData, setUserData] = useState<UserLogData | null>(null);
+  const [userData, setUserData] = useState<UserInformationData | null>(null);
   const [logs, setLogs] = useState<LogItemWithId[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Filter States
   const [ipFilter, setIpFilter] = useState("");
   const [browserFilter, setBrowserFilter] = useState("");
+  const [deviceFilter, setDeviceFilter] = useState("");
 
+  // 1. Fetch User Profile
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const data = await getUserInformationApi();
+        setUserData(data);
+      } catch (error) {
+        console.error("Profile fetch error:", error);
+        toast.error("Failed to fetch user profile.");
+      }
+    };
+    fetchUserInfo();
+  }, []);
+
+  // 2. Fetch User Logs
   const fetchUserLogs = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
       const currentSearchParams = overrideParams || {
         ipAddress: ipFilter,
         browser: browserFilter,
+        device: deviceFilter,
       };
 
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
       );
 
-      const response = await getUserLogApi(cleanParams);
+      const response: any = await getUserLogApi(
+        currentPage,
+        rowsPerPage,
+        cleanParams
+      );
 
-      if (response) {
-        setUserData(response);
+      let rawList: LoginHistoryItem[] = [];
+      let totalCount = 0;
 
-        if (response.loginHistory) {
-          const logsWithIds = response.loginHistory.map((item, index) => ({
-            ...item,
-            id: index + 1,
-          }));
-          setLogs(logsWithIds);
-        } else {
-          setLogs([]);
-        }
+      if (Array.isArray(response)) {
+        rawList = response;
+        totalCount = response.length;
+      } else if (response && Array.isArray(response.results)) {
+        rawList = response.results;
+        totalCount = response.count || 0;
+      }
+
+      if (rawList.length > 0) {
+        const logsWithIds: LogItemWithId[] = rawList.map((item, index) => ({
+          ...item,
+          id: (currentPage - 1) * rowsPerPage + index + 1,
+        }));
+        setLogs(logsWithIds);
+        setTotalItems(totalCount);
+      } else {
+        setLogs([]);
+        setTotalItems(0);
       }
     } catch (error) {
-      console.error("Fetch error:", error);
-      toast.error("Failed to fetch user logs.");
+      console.error("Log fetch error:", error);
+      toast.error("Failed to fetch login history.");
     } finally {
       setIsLoading(false);
     }
@@ -71,16 +107,26 @@ const UserLog: React.FC = () => {
 
   useEffect(() => {
     fetchUserLogs();
-  }, []);
+  }, [currentPage, rowsPerPage]);
 
   const handleSearch = () => {
+    setCurrentPage(1);
     fetchUserLogs();
   };
 
   const handleClearFilters = () => {
     setIpFilter("");
     setBrowserFilter("");
-    fetchUserLogs({ ipAddress: "", browser: "" });
+    setDeviceFilter("");
+    setCurrentPage(1);
+    fetchUserLogs({ ipAddress: "", browser: "", device: "" });
+  };
+
+  const getLatestLoginDisplay = () => {
+    if (logs.length > 0) {
+      return logs[0].loggedAt;
+    }
+    return userData?.last_login;
   };
 
   const headers = ["S.N.", "IP Address", "Browser", "Device", "Logged At"];
@@ -90,14 +136,8 @@ const UserLog: React.FC = () => {
     return new Date(dateString).toLocaleString();
   };
 
-  const getLatestLogin = () => {
-    if (logs.length > 0) return logs[0].loggedAt;
-    if (userData?.last_login) return userData.last_login;
-    return "";
-  };
-
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto px-4 pb-6 sm:px-6 lg:px-8">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           User Log & Profile
@@ -192,7 +232,7 @@ const UserLog: React.FC = () => {
                   Last Login
                 </p>
                 <p className="text-gray-800 dark:text-gray-200 font-medium text-sm">
-                  {formatDate(getLatestLogin())}
+                  {formatDate(getLatestLoginDisplay())}
                 </p>
               </div>
             </div>
@@ -213,11 +253,22 @@ const UserLog: React.FC = () => {
           onChange={(e) => setBrowserFilter(e.target.value)}
           placeholder="e.g. Chrome"
         />
+        <Input
+          label="Search Device"
+          value={deviceFilter}
+          onChange={(e) => setDeviceFilter(e.target.value)}
+          placeholder="e.g. Mobile"
+        />
       </FilterCard>
 
       <DataTable
-        serverSide={false}
+        serverSide={true}
         data={logs}
+        totalItems={totalItems}
+        currentPage={currentPage}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={setRowsPerPage}
         headers={headers}
         isLoading={isLoading}
         renderRow={(log, index) => (
@@ -226,7 +277,7 @@ const UserLog: React.FC = () => {
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {index + 1}
+              {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 font-mono">
               {log.ipAddress}
@@ -247,7 +298,6 @@ const UserLog: React.FC = () => {
                 {log.device}
               </div>
             </td>
-
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               <div className="flex items-center gap-2">
                 <History size={14} className="text-orange-400" />
