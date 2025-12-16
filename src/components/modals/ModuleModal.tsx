@@ -7,7 +7,7 @@ import {
   getSideBarApi,
   type SideBarApi,
 } from "../../api/sidebarApi/sideBarApi";
-import { createNavUserRelation } from "../../api/navUserRelationApi/navUserRelationApi";
+// import { createNavUserRelation } from "../../api/navUserRelationApi/navUserRelationApi";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import Select from "../ui/Select";
@@ -190,7 +190,7 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
         toast.success("Module updated successfully!");
       } else {
         await createSideBarApi(payload, moduleName);
-        await createNavUserRelation({ label: formData.label });
+        // await createNavUserRelation({ label: formData.label });
         toast.success("Module created successfully!");
       }
       onSuccess();

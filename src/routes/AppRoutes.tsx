@@ -29,6 +29,7 @@ import CustomerRate from "../pages/Rate/CustomerRate";
 import MappingSetup from "../pages/MappingSetup/MappingSetup";
 import Operators from "../pages/Operator/Operator";
 import UserLog from "../pages/UserLog/UserLog";
+import CustomRoute from "../pages/RouteManager/CustomRoute";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -125,6 +126,11 @@ const AppRoutes = () => {
         {/* UserLog */}
         <Route element={<ProtectedRoute path="userLog" />}>
           <Route path="userLog" element={<UserLog />} />
+        </Route>
+
+        {/* RouteManager */}
+        <Route element={<ProtectedRoute path="routeManager/customRoute" />}>
+          <Route path="routeManager/customRoute" element={<CustomRoute />} />
         </Route>
 
         {/* Mapping */}
