@@ -16,6 +16,7 @@ interface SelectProps {
   error?: string;
   clearable?: boolean;
   disabled?: boolean;
+  placement?: "top" | "bottom";
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -27,6 +28,7 @@ const Select: React.FC<SelectProps> = ({
   error,
   clearable = true,
   disabled = false,
+  placement = "bottom",
 }) => {
   const selectedOption =
     options.find((option) => option.value === value) || null;
@@ -107,7 +109,11 @@ const Select: React.FC<SelectProps> = ({
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Listbox.Options className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700">
+              <Listbox.Options
+                className={`absolute z-20 w-full overflow-auto rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700
+                max-h-60 
+                ${placement === "top" ? "bottom-full mb-1" : "mt-1"}`}
+              >
                 {options.map((option) => (
                   <Listbox.Option
                     key={option.value}

@@ -319,6 +319,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               options={countryOptions}
               placeholder="Select Country"
               disabled={isViewMode || isFetchingOptions}
+              placement="top"
             />
             <Select
               label="Operator"
@@ -348,6 +349,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               options={companyOptions}
               placeholder="Select Company"
               disabled={isViewMode || isFetchingOptions}
+              placement="top"
             />
             <Select
               label="Terminating Vendor"
@@ -360,6 +362,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               options={vendorOptions}
               placeholder="Select Vendor"
               disabled={isViewMode || isFetchingOptions}
+              placement="top"
             />
           </div>
         </fieldset>
