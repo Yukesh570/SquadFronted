@@ -106,7 +106,6 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         ? "justify-center py-3 px-0 w-full"
         : `justify-between py-2.5 px-3`;
 
-      // ✅ Uses the DYNAMIC THEME variables
       const colorClasses = isActive
         ? "bg-sidebar-active-bg text-sidebar-active-text font-medium"
         : "text-text-secondary hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white";
