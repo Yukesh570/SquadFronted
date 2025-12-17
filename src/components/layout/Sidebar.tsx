@@ -106,8 +106,9 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         ? "justify-center py-3 px-0 w-full"
         : `justify-between py-2.5 px-3`;
 
+      // ✅ Uses the DYNAMIC THEME variables
       const colorClasses = isActive
-        ? "bg-primary/10 text-primary font-medium dark:bg-primary/20"
+        ? "bg-sidebar-active-bg text-sidebar-active-text font-medium"
         : "text-text-secondary hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white";
 
       const paddingLeftStyle = !isCollapsed
@@ -129,7 +130,6 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
             }}
             onMouseEnter={(e) => handleMouseEnter(e, item.label)}
             onMouseLeave={handleMouseLeave}
-            data-testid={`sidebar-item-${item.label}`}
           >
             <div
               className={`flex items-center ${
@@ -165,8 +165,8 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
                 overflow-hidden transition-all duration-300
                 ${
                   isCollapsed
-                    ? "bg-gray-100 dark:bg-gray-800/50 rounded-xl mx-1 mb-2 py-1 border border-gray-100 dark:border-gray-700" // "Pod" style for collapsed
-                    : "border-l-2 border-gray-100 dark:border-gray-700 ml-5 my-1" // Tree line for expanded
+                    ? "bg-gray-100 dark:bg-gray-800/50 rounded-xl mx-1 mb-2 py-1 border border-gray-100 dark:border-gray-700"
+                    : "border-l-2 border-gray-100 dark:border-gray-700 ml-5 my-1"
                 }
               `}
             >
@@ -192,7 +192,6 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         className={`flex flex-col h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-sm transition-all duration-300 ease-in-out ${
           isCollapsed ? "w-[88px]" : "w-64"
         }`}
-        data-testid="sidebar"
       >
         {/* Logo Area */}
         <div className="h-16 flex-shrink-0 flex items-center justify-center border-b border-gray-100 dark:border-gray-800 mb-2">

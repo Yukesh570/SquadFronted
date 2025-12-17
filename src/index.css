@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary: #7F58D8;       /* Base Purple */
+  --color-primary-dark: #6A49BC;  /* Darker Purple (Hover) */
+  --color-primary-light: #EDE9FE; /* Very Light Purple (Backgrounds) */
+}
+
 body {
   @apply bg-white text-text-primary antialiased;
 }
@@ -12,7 +18,7 @@ body {
 
 .react-datepicker {
   font-family: inherit !important;
-  border-radius: 0.75rem !important; /* rounded-xl */
+  border-radius: 0.75rem !important;
   border: 1px solid #e5e7eb !important;
   box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.07) !important;
 }
@@ -26,19 +32,19 @@ body {
 
 .react-datepicker__current-month,
 .react-datepicker__day-name {
-  color: #212529 !important; /* text-primary */
+  color: #212529 !important;
   font-weight: 500 !important;
 }
 
 .react-datepicker__day--selected {
-  background-color: #4F46E5 !important; /* primary */
+  background-color: var(--color-primary) !important;
   color: white !important;
   border-radius: 0.5rem !important;
 }
 
 .react-datepicker__day--keyboard-selected {
-  background-color: #eef2ff !important; /* sidebar-active-bg */
-  color: #4F46E5 !important; /* primary */
+  background-color: var(--color-primary-light) !important;
+  color: var(--color-primary) !important;
   border-radius: 0.5rem !important;
 }
 

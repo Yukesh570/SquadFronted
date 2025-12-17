@@ -8,35 +8,33 @@ export default {
   theme: {
     extend: {
       colors: {
-        // --- PRIMARY INTERACTIVE PALETTE (Purple) ---
-        'primary': '#7F58D8',        // Base Purple: Main color for buttons, links, and focus states.
-        'primary-dark': '#6A49BC',   // Darker Purple: Used for hover and active states of primary buttons.
-        // ------------------------------------------
+        // --- PRIMARY INTERACTIVE PALETTE (Dynamic) ---
+        'primary': 'var(--color-primary)',           
+        'primary-dark': 'var(--color-primary-dark)', 
+        'primary-light': 'var(--color-primary-light)', 
 
-        // --- ACCENT/STATUS PALETTE (Green) ---
-        'accent': '#10B981',         // Accent Green: For success messages, indicators, and badges.
-        'accent-dark': '#059669',    // Darker Green: Accent hover states.
-        // -------------------------------------
+        // ... (keep accent, secondary, text colors same as before) ...
+        'accent': '#10B981',
+        'accent-dark': '#059669',
+        'secondary': '#f7f7f8',
+        'text-primary': '#212529',
+        'text-secondary': '#6c757d',
 
-        // --- BASE & TEXT COLORS ---
-        'secondary': '#f7f7f8',      // Background: Light gray color for the main content areas.
-        'text-primary': '#212529',   // Text: High-contrast, near-black color for titles and main body text.
-        'text-secondary': '#6c757d', // Text: Lighter gray for labels, placeholders, and supporting text.
-        // --------------------------
-
-        // --- SIDEBAR ACTIVE/HOVER COLORS ---
-        'sidebar-active-bg': '#EDE9FE', // Active BG: Very light purple background for the selected menu item.
-        'sidebar-active-text': '#7F58D8', // Active Text: Uses the Base Primary Purple for the active link's text/icon color.
-        // -----------------------------------
+        // --- SIDEBAR ACTIVE/HOVER COLORS (FIXED) ---
+        // Active BG: Uses the light variant we calculate
+        'sidebar-active-bg': 'var(--color-primary-light)', 
+        
+        // Active Text: Uses the base primary color (Dark Purple)
+        'sidebar-active-text': 'var(--color-primary)',
       },
+      // ... keep existing boxShadow, borderRadius etc. ...
       boxShadow: {
-        'card': '0 4px 12px 0 rgba(0, 0, 0, 0.07)', // Lifted shadow for cards and modals.
-        'input': '0 1px 3px 0 rgba(0, 0, 0, 0.05)', // Subtle shadow for form input fields.
+        'card': '0 4px 12px 0 rgba(0, 0, 0, 0.07)', 
+        'input': '0 1px 3px 0 rgba(0, 0, 0, 0.05)', 
       },
       borderRadius: {
-        'xl': '0.75rem', // Consistent 12px border radius.
+        'xl': '0.75rem', 
       },
-      transform: ['active'],
     },
   },
   plugins: [],
