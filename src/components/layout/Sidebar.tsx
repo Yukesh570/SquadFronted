@@ -107,7 +107,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         : `justify-between py-2.5 px-3`;
 
       const colorClasses = isActive
-        ? "bg-sidebar-active-bg text-sidebar-active-text font-medium"
+        ? "bg-sidebar-active-bg dark:bg-transparent text-sidebar-active-text font-medium"
         : "text-text-secondary hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white";
 
       const paddingLeftStyle = !isCollapsed
