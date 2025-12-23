@@ -11,6 +11,8 @@ import type { PaginatedResponse } from "../../api/sidebarApi/sideBarApi";
 
 interface SidebarProps {
   isCollapsed: boolean;
+  isMobileOpen: boolean;
+  closeMobileSidebar: () => void;
 }
 
 const Tooltip = ({
@@ -34,7 +36,11 @@ const Tooltip = ({
   );
 };
 
-const Sidebar = ({ isCollapsed }: SidebarProps) => {
+const Sidebar = ({
+  isCollapsed,
+  isMobileOpen,
+  closeMobileSidebar,
+}: SidebarProps) => {
   const { navItems } = useContext(NavItemsContext);
   const [openItems, setOpenItems] = useState<Record<number, boolean>>({});
   const location = useLocation();
@@ -74,7 +80,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
   };
 
   const handleMouseEnter = (e: React.MouseEvent, label: string) => {
-    if (isCollapsed) {
+    if (isCollapsed && window.innerWidth >= 768) {
       const rect = e.currentTarget.getBoundingClientRect();
       setHoveredItem({
         label,
@@ -102,7 +108,10 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
 
       const baseClasses =
         "group flex items-center rounded-lg transition-all duration-200 mb-1 relative cursor-pointer select-none";
-      const layoutClasses = isCollapsed
+
+      const isActuallyCollapsed = isCollapsed && window.innerWidth >= 768;
+
+      const layoutClasses = isActuallyCollapsed
         ? "justify-center py-3 px-0 w-full"
         : `justify-between py-2.5 px-3`;
 
@@ -110,7 +119,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         ? "bg-sidebar-active-bg dark:bg-transparent text-sidebar-active-text font-medium"
         : "text-text-secondary hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white";
 
-      const paddingLeftStyle = !isCollapsed
+      const paddingLeftStyle = !isActuallyCollapsed
         ? { paddingLeft: `${level * 12 + 12}px` }
         : {};
       const iconSize = level === 0 ? 20 : 18;
@@ -125,6 +134,8 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
               if (hasChildren) {
                 e.preventDefault();
                 toggleItem(item.id);
+              } else {
+                if (window.innerWidth < 768) closeMobileSidebar();
               }
             }}
             onMouseEnter={(e) => handleMouseEnter(e, item.label)}
@@ -132,17 +143,17 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
           >
             <div
               className={`flex items-center ${
-                isCollapsed ? "justify-center" : "gap-3"
+                isActuallyCollapsed ? "justify-center" : "gap-3"
               }`}
             >
               {renderIcon(item.icon, iconSize)}
-              {!isCollapsed && (
+              {!isActuallyCollapsed && (
                 <span className="truncate text-sm">{item.label}</span>
               )}
             </div>
 
             {/* Chevron */}
-            {!isCollapsed && hasChildren && (
+            {!isActuallyCollapsed && hasChildren && (
               <div className="text-gray-400">
                 {isOpen ? (
                   <Icons.ChevronDown size={15} />
@@ -152,7 +163,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
               </div>
             )}
 
-            {isCollapsed && isActive && (
+            {isActuallyCollapsed && isActive && (
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-l-full"></div>
             )}
           </NavLink>
@@ -163,7 +174,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
               className={`
                 overflow-hidden transition-all duration-300
                 ${
-                  isCollapsed
+                  isActuallyCollapsed
                     ? "bg-gray-100 dark:bg-gray-800/50 rounded-xl mx-1 mb-2 py-1 border border-gray-100 dark:border-gray-700"
                     : "border-l-2 border-gray-100 dark:border-gray-700 ml-5 my-1"
                 }
@@ -187,18 +198,42 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
 
   return (
     <>
+      {/* Mobile Backdrop */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={closeMobileSidebar}
+        />
+      )}
+
+      {/* Sidebar Element */}
       <aside
-        className={`flex flex-col h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-sm transition-all duration-300 ease-in-out ${
-          isCollapsed ? "w-[88px]" : "w-64"
-        }`}
+        className={`
+          fixed md:static inset-y-0 left-0 z-50
+          flex flex-col h-screen 
+          bg-white dark:bg-gray-900 
+          border-r border-gray-200 dark:border-gray-800 
+          shadow-xl md:shadow-sm 
+          transition-all duration-300 ease-in-out transform
+          ${
+            isMobileOpen
+              ? "translate-x-0"
+              : "-translate-x-full md:translate-x-0"
+          }
+          ${isCollapsed ? "md:w-[88px]" : "md:w-64"}
+          w-64 
+        `}
       >
         {/* Logo Area */}
         <div className="h-16 flex-shrink-0 flex items-center justify-center border-b border-gray-100 dark:border-gray-800 mb-2">
           <NavLink
             to="/dashboard"
             className="flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+            onClick={() => {
+              if (window.innerWidth < 768) closeMobileSidebar();
+            }}
           >
-            {isCollapsed ? (
+            {isCollapsed && window.innerWidth >= 768 ? (
               <img
                 src={IconLogo}
                 alt="Logo"

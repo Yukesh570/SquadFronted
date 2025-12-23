@@ -16,7 +16,7 @@ import ViewButton from "../../../components/ui/ViewButton";
 import { TimezoneModal } from "../../../components/modals/Settings/timezonemodal";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 
-const Timezone: React.FC = () => {
+const TimeZone: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [timezones, setTimezones] = useState<TimezoneData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -225,4 +225,4 @@ const Timezone: React.FC = () => {
   );
 };
 
-export default Timezone;
+export default TimeZone;

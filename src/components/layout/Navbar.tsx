@@ -157,6 +157,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
             variant="ghost"
             onClick={handleFullscreen}
             title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+            className="hidden md:flex"
           >
             {isFullscreen ? (
               <Minimize className="text-gray-900 dark:text-white" size={20} />
@@ -230,13 +231,13 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
             )}
           </Popover>
 
-          <Button variant="ghost">
+          <Button variant="ghost" className="hidden md:flex">
             <HelpCircle
               className="text-gray-900 dark:text-white transition-colors duration-300"
               size={20}
             />
           </Button>
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-3" />
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-3 hidden md:block" />
 
           {/* User Dropdown */}
           <HeadlessMenu as="div" className="relative">
@@ -306,8 +307,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                             : "text-gray-900 dark:text-white"
                         } group flex w-full items-center rounded-md px-2 py-2 text-sm transition-colors`}
                       >
-                        <Clock className="mr-2 h-5 w-5" /> Login duration:
-                        08h:00m
+                        <Clock className="mr-2 h-5 w-5" /> Login: 08h:00m
                       </button>
                     )}
                   </HeadlessMenu.Item>
@@ -334,6 +334,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
         </div>
       </header>
 
+      {/* Theme Modal */}
       <Transition appear show={isThemeModalOpen} as={Fragment}>
         <Dialog
           as="div"

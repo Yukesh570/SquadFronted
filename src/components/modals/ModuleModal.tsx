@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import * as Icons from "lucide-react";
+import { Lock } from "lucide-react";
 import {
   createSideBarApi,
   updateSideBarApi,
   getSideBarApi,
   type SideBarApi,
 } from "../../api/sidebarApi/sideBarApi";
-// import { createNavUserRelation } from "../../api/navUserRelationApi/navUserRelationApi";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import Select from "../ui/Select";
@@ -114,22 +114,17 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
       let newUrl = formData.url;
 
       if (formData.url) {
-        // 1. Extract "Leaf" slug (e.g., "settings/test" -> "test")
         const parts = formData.url.split("/").filter((p) => p !== "");
         const leafSlug =
           parts.length > 0 ? parts[parts.length - 1] : formData.url;
 
         if (value) {
-          // 2. Parent Selected: Prepend Parent URL
           const parentMod = allModules.find((m) => String(m.id) === value);
           if (parentMod) {
-            // Clean parent url (remove any stray slashes)
             const parentPath = parentMod.url.replace(/^\/+|\/+$/g, "");
-            // Combine: parent/child (No leading slash per your request)
             newUrl = `${parentPath}/${leafSlug}`;
           }
         } else {
-          // 3. Parent Deselected: Just the leaf slug (No leading slash)
           newUrl = leafSlug;
         }
       }
@@ -137,8 +132,8 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
       setFormData((prev) => ({
         ...prev,
         parent: value,
-        url: newUrl, // Auto-updated URL
-        order: "", // Reset order to null (empty string)
+        url: newUrl,
+        order: "",
       }));
     } else {
       setFormData((prev) => ({
@@ -190,7 +185,6 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
         toast.success("Module updated successfully!");
       } else {
         await createSideBarApi(payload, moduleName);
-        // await createNavUserRelation({ label: formData.label });
         toast.success("Module created successfully!");
       }
       onSuccess();
@@ -206,6 +200,8 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
   if (!isOpen) return null;
 
   const SelectedIcon = (Icons as any)[formData.icon] || Icons.HelpCircle;
+
+  const isUrlLocked = !!editingModule || isViewMode;
 
   return (
     <>
@@ -261,7 +257,12 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
             onChange={handleChange}
             placeholder="dashboard"
             required
-            disabled={isViewMode}
+            disabled={isUrlLocked}
+            rightIcon={
+              isUrlLocked ? (
+                <Lock size={16} className="text-gray-400" />
+              ) : undefined
+            }
           />
 
           <div className="flex flex-col">
