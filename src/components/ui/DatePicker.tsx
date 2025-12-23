@@ -7,11 +7,14 @@ const customDatePickerStyles = `
   .react-datepicker-wrapper {
     width: 100%;
   }
+  .react-datepicker-popper {
+    z-index: 9999 !important; /* Forces it above the Modal */
+  }
   .react-datepicker {
     font-family: inherit;
     border: 1px solid #e5e7eb;
     border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     overflow: hidden;
   }
   .dark .react-datepicker {
@@ -62,7 +65,7 @@ const customDatePickerStyles = `
   }
   .react-datepicker__day--selected, 
   .react-datepicker__day--keyboard-selected {
-    background-color: #7c3aed !important;
+    background-color: var(--color-primary) !important; 
     color: white !important;
     font-weight: 500;
   }
@@ -94,7 +97,7 @@ const customDatePickerStyles = `
     background-color: #374151;
   }
   .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item--selected {
-    background-color: #7c3aed !important;
+    background-color: var(--color-primary) !important;
     color: white !important;
   }
   .react-datepicker__header--time {
@@ -146,7 +149,7 @@ const CustomInput = forwardRef<HTMLInputElement, any>(
         ${
           disabled
             ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500"
-            : "bg-white border-gray-200 text-gray-900 group-hover:border-primary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+            : "bg-white border-gray-200 text-text-primary group-hover:border-primary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:bg-gray-800 dark:border-gray-700 dark:text-white"
         } 
         ${className}`}
       />
@@ -228,6 +231,10 @@ const CustomDatePicker: React.FC<DatePickerProps> = ({
           minDate={minDate}
           showPopperArrow={false}
           autoComplete="off"
+          popperPlacement="bottom-start"
+          popperProps={{
+            strategy: "fixed",
+          }}
           isClearable={false}
           renderCustomHeader={({
             date,

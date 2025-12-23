@@ -12,6 +12,7 @@ import Button from "../../ui/Button";
 import Select from "../../ui/Select";
 import Modal from "../../ui/Modal";
 import TextArea from "../../ui/TextArea";
+import CustomDatePicker from "../../ui/DatePicker";
 
 interface VendorRateModalProps {
   isOpen: boolean;
@@ -50,9 +51,10 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
     MCC: "",
     MNC: "",
     rate: "",
-    dateTime: "",
     remark: "",
   });
+
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const [timezoneOptions, setTimezoneOptions] = useState<Option[]>([]);
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
@@ -114,9 +116,13 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
         MCC: editingRate.MCC ? String(editingRate.MCC) : "",
         MNC: editingRate.MNC ? String(editingRate.MNC) : "",
         rate: editingRate.rate ? String(editingRate.rate) : "",
-        dateTime: editingRate.dateTime ? editingRate.dateTime.slice(0, 16) : "", // Format for input
         remark: editingRate.remark || "",
       });
+      if (editingRate.dateTime) {
+        setSelectedDate(new Date(editingRate.dateTime));
+      } else {
+        setSelectedDate(null);
+      }
     } else if (isOpen) {
       // Reset
       setFormData({
@@ -128,9 +134,9 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
         MCC: "",
         MNC: "",
         rate: "",
-        dateTime: "",
         remark: "",
       });
+      setSelectedDate(null);
     }
   }, [isOpen, editingRate]);
 
@@ -155,9 +161,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
 
     setIsSubmitting(true);
 
-    const formattedDateTime = formData.dateTime
-      ? new Date(formData.dateTime).toISOString()
-      : null;
+    const formattedDateTime = selectedDate ? selectedDate.toISOString() : null;
 
     const payload: any = {
       ratePlan: formData.ratePlan,
@@ -293,13 +297,15 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
                 placeholder="0.0000"
                 disabled={isViewMode}
               />
-              <Input
+
+              <CustomDatePicker
                 label="DateTime"
-                name="dateTime"
-                type="datetime-local"
-                value={formData.dateTime}
-                onChange={handleChange}
+                selected={selectedDate}
+                onChange={(date) => setSelectedDate(date)}
+                showTimeSelect
                 disabled={isViewMode}
+                placeholder="Select Date & Time"
+                isClearable
               />
             </>
           )}

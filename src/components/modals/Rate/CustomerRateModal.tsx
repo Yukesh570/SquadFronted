@@ -12,6 +12,7 @@ import Button from "../../ui/Button";
 import Select from "../../ui/Select";
 import Modal from "../../ui/Modal";
 import TextArea from "../../ui/TextArea";
+import CustomDatePicker from "../../ui/DatePicker";
 
 interface CustomerRateModalProps {
   isOpen: boolean;
@@ -45,13 +46,14 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
     ratePlan: "",
     currencyCode: "",
     timeZone: "",
-    effectiveFrom: "",
     country: "",
     MCC: "",
     countryCode: "",
     rate: "",
     remark: "",
   });
+
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const [timezoneOptions, setTimezoneOptions] = useState<Option[]>([]);
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
@@ -111,37 +113,39 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
 
   useEffect(() => {
     if (isOpen && editingRate) {
-      let dateString = "";
-      if (editingRate.dateTime) {
-        const d = new Date(editingRate.dateTime);
-        if (!isNaN(d.getTime())) {
-          dateString = d.toISOString().slice(0, 16);
-        }
-      }
-
       setFormData({
         ratePlan: editingRate.ratePlan,
         currencyCode: editingRate.currencyCode,
         timeZone: String(editingRate.timeZone || ""),
-        effectiveFrom: dateString,
         country: String(editingRate.country || ""),
         MCC: String(editingRate.MCC || ""),
         countryCode: String(editingRate.countryCode || ""),
         rate: String(editingRate.rate || ""),
         remark: editingRate.remark || "",
       });
+
+      if (editingRate.dateTime) {
+        const d = new Date(editingRate.dateTime);
+        if (!isNaN(d.getTime())) {
+          setSelectedDate(d);
+        } else {
+          setSelectedDate(null);
+        }
+      } else {
+        setSelectedDate(null);
+      }
     } else if (isOpen) {
       setFormData({
         ratePlan: "",
         currencyCode: "",
         timeZone: "",
-        effectiveFrom: "",
         country: "",
         MCC: "",
         countryCode: "",
         rate: "",
         remark: "",
       });
+      setSelectedDate(null);
     }
   }, [isOpen, editingRate]);
 
@@ -177,9 +181,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       ratePlan: formData.ratePlan,
       currencyCode: formData.currencyCode,
       timeZone: Number(formData.timeZone),
-      dateTime: formData.effectiveFrom
-        ? new Date(formData.effectiveFrom).toISOString()
-        : null,
+      dateTime: selectedDate ? selectedDate.toISOString() : null,
     };
 
     if (formData.country) payload.country = Number(formData.country);
@@ -295,13 +297,14 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
                 disabled={isViewMode}
               />
 
-              <Input
+              <CustomDatePicker
                 label="Effective From (Date & Time)"
-                name="effectiveFrom"
-                type="datetime-local"
-                value={formData.effectiveFrom}
-                onChange={handleChange}
+                selected={selectedDate}
+                onChange={(date) => setSelectedDate(date)}
+                showTimeSelect
                 disabled={isViewMode}
+                placeholder="Select Date & Time"
+                isClearable
               />
             </div>
             <TextArea
