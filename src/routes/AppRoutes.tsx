@@ -91,8 +91,9 @@ const AppRoutes = () => {
   if (
     isLoading ||
     !navItems ||
-    !navItems.results ||
-    navItems.results.length === 0
+    !navItems.results
+    // ||
+    // navItems.results.length === 0
   ) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
@@ -117,7 +118,7 @@ const AppRoutes = () => {
           const Component = componentMap[item.url.split("/").pop()!]; // Get last segment of url  as key like setting/role become role
           return <Route key={item.url} path={item.url} element={Component} />;
         })}
-        <Route path="*" element={<NotFound />} />
+        {/* <Route path="*" element={<NotFound />} /> */}
       </Route>
     </Routes>
   );
