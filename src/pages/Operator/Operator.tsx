@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Home, Plus, Edit, Trash } from "lucide-react";
+import { Home, Plus, Edit, Trash, Upload } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   getOperatorsApi,
   deleteOperatorApi,
+  importOperatorApi,
+  getImportStatusApi,
   type OperatorData,
 } from "../../api/operatorApi/operatorApi";
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 import { OperatorModal } from "../../components/modals/OperatorModal";
+import { ImportModal } from "../../components/modals/ImportModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import DataTable from "../../components/ui/DataTable";
@@ -26,6 +29,7 @@ const Operators: React.FC = () => {
   const [countryMap, setCountryMap] = useState<Record<number, string>>({});
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingOperator, setEditingOperator] = useState<OperatorData | null>(
     null
   );
@@ -192,15 +196,26 @@ const Operators: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          canCreate ? (
-            <Button
-              variant="primary"
-              onClick={handleAdd}
-              leftIcon={<Plus size={18} />}
-            >
-              Add Operator
-            </Button>
-          ) : null
+          <div className="flex gap-2">
+            {canCreate && (
+              <Button
+                variant="secondary"
+                onClick={() => setIsImportModalOpen(true)}
+                leftIcon={<Upload size={18} />}
+              >
+                Import
+              </Button>
+            )}
+            {canCreate && (
+              <Button
+                variant="primary"
+                onClick={handleAdd}
+                leftIcon={<Plus size={18} />}
+              >
+                Add Operator
+              </Button>
+            )}
+          </div>
         }
         renderRow={(item: OperatorData, index: number) => (
           <tr
@@ -257,6 +272,17 @@ const Operators: React.FC = () => {
         moduleName={routeName}
         editingOperator={editingOperator}
         isViewMode={isViewMode}
+      />
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={fetchOperators}
+        importApi={importOperatorApi}
+        checkStatusApi={getImportStatusApi}
+        title="Import Operators"
+        sampleFileLink="/operator_sample.csv"
+        sampleFileName="operator_sample.csv"
+        fileKey="file"
       />
 
       <DeleteModal

@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { Home, Plus, Edit, Trash, Download } from "lucide-react";
+import { Home, Plus, Edit, Trash, Download, Upload } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   getCountriesApi,
   deleteCountryApi,
+  importCountryApi,
+  getImportStatusApi,
   type CountryData,
 } from "../../../api/settingApi/countryApi/countryApi";
 import { CountryModal } from "../../../components/modals/Settings/CountryModal";
+import { ImportModal } from "../../../components/modals/ImportModal";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ViewButton from "../../../components/ui/ViewButton";
-// import Select from "../../components/ui/Select";
 import {
   countryCsv,
   downloadStatus,
@@ -27,23 +29,27 @@ const Country: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingCountry, setEditingCountry] = useState<CountryData | null>(
     null
   );
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
+  // Filters
   const [nameFilter, setNameFilter] = useState("");
   const [codeFilter, setCodeFilter] = useState("");
   const [mccFilter, setMccFilter] = useState("");
 
-  // 4. Pagination State
+  // Pagination
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
+
   const handleExport = async () => {
     try {
       const data: any = await countryCsv(
@@ -83,7 +89,6 @@ const Country: React.FC = () => {
               toast.error("Export generated but URL is missing.");
             }
           } else if (attempts >= maxAttempts) {
-            // Stop after 5 attempts
             clearInterval(checkStatus);
             toast.error(
               "Export timed out after 5 attempts. Please try again later."
@@ -91,7 +96,6 @@ const Country: React.FC = () => {
           }
         } catch (error) {
           console.error("Error checking CSV status:", error);
-          // Ensure we stop if there is a hard error, or you can let it retry until maxAttempts
           if (attempts >= maxAttempts) {
             clearInterval(checkStatus);
             toast.error("Failed to check export status.");
@@ -122,7 +126,6 @@ const Country: React.FC = () => {
         cleanParams
       );
 
-      // 6. Handle response safely
       if (response && response.results) {
         setCountries(response.results);
         setTotalItems(response.count);
@@ -145,7 +148,8 @@ const Country: React.FC = () => {
 
   useEffect(() => {
     fetchCountries();
-  }, [routeName, currentPage, rowsPerPage]); // 7. Refetch on change
+  }, [routeName, currentPage, rowsPerPage]);
+
   const handleSearch = () => {
     setCurrentPage(1);
     fetchCountries();
@@ -252,6 +256,15 @@ const Country: React.FC = () => {
             >
               Export
             </Button>
+            {canCreate && (
+              <Button
+                variant="secondary"
+                onClick={() => setIsImportModalOpen(true)}
+                leftIcon={<Upload size={18} />}
+              >
+                Import
+              </Button>
+            )}
             {canCreate ? (
               <Button
                 variant="primary"
@@ -316,6 +329,18 @@ const Country: React.FC = () => {
         moduleName={routeName}
         editingCountry={editingCountry}
         isViewMode={isViewMode}
+      />
+
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={fetchCountries}
+        importApi={importCountryApi}
+        checkStatusApi={getImportStatusApi}
+        title="Import Countries"
+        sampleFileLink="/country_sample.csv"
+        sampleFileName="country_sample.csv"
+        fileKey="file"
       />
 
       <DeleteModal

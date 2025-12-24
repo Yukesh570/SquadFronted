@@ -84,6 +84,6 @@ export const importVendorRatesApi = async (
 
 // STATUS
 export const getImportStatusApi = async (taskId: string): Promise<any> => {
-  const response = await api.get(`/vendor-rate/import/status/${taskId}/`);
+  const response = await api.get(`/status/${taskId}/`);
   return response.data;
 };

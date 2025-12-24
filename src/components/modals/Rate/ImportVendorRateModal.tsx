@@ -136,8 +136,29 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
   const checkStatus = async (taskId: string, attempt = 1) => {
     if (!isMounted.current) return;
 
+    let statusRes: any = null;
+
     try {
-      const statusRes = await getImportStatusApi(taskId);
+      statusRes = await getImportStatusApi(taskId);
+    } catch (err: any) {
+      if (err.response && err.response.data) {
+        statusRes = err.response.data;
+      } else {
+        console.error("Polling error", err);
+        if (attempt >= MAX_ATTEMPTS) {
+          setIsSubmitting(false);
+          toast.error("Network error checking status.");
+          return;
+        }
+        timeoutRef.current = window.setTimeout(
+          () => checkStatus(taskId, attempt + 1),
+          POLL_INTERVAL_MS
+        );
+        return;
+      }
+    }
+
+    if (statusRes) {
       console.log(
         `Polling Status (Attempt ${attempt}/${MAX_ATTEMPTS}):`,
         statusRes
@@ -146,7 +167,12 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
       const state =
         statusRes?.state?.toUpperCase() || statusRes?.status?.toUpperCase();
 
-      if (state === "SUCCESS" || state === "COMPLETED") {
+      // 1. Success
+      if (
+        state === "SUCCESS" ||
+        state === "COMPLETED" ||
+        state === "FINISHED"
+      ) {
         setIsSubmitting(false);
         setProgress(100);
         toast.success("Import completed successfully!");
@@ -155,12 +181,39 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
         return;
       }
 
+      // 2. Completed with Errors
+      if (state === "COMPLETED_WITH_ERRORS") {
+        setIsSubmitting(false);
+        setProgress(100);
+
+        const resultErrors = statusRes.result?.errors || statusRes.errors;
+
+        if (
+          resultErrors &&
+          Array.isArray(resultErrors) &&
+          resultErrors.length > 0
+        ) {
+          const firstError = resultErrors[0];
+          const errorMsg =
+            typeof firstError === "string"
+              ? firstError
+              : `Row ${firstError.row}: ${firstError.error}`;
+
+          toast.error(errorMsg);
+        } else {
+          toast.error("Import finished with errors.");
+        }
+        return;
+      }
+
+      // 3. Hard Failure
       if (state === "FAILURE" || state === "FAILED") {
         setIsSubmitting(false);
         toast.error(statusRes?.error || "Import failed.");
         return;
       }
 
+      // 4. Timeout
       if (attempt >= MAX_ATTEMPTS) {
         setIsSubmitting(false);
         setProgress(null);
@@ -168,18 +221,8 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
         return;
       }
 
+      // 5. Still Processing
       setProgress((prev) => (prev && prev < 90 ? prev + 15 : 90));
-      timeoutRef.current = window.setTimeout(
-        () => checkStatus(taskId, attempt + 1),
-        POLL_INTERVAL_MS
-      );
-    } catch (err) {
-      console.error("Polling error", err);
-      if (attempt >= MAX_ATTEMPTS) {
-        setIsSubmitting(false);
-        toast.error("Network error checking status.");
-        return;
-      }
       timeoutRef.current = window.setTimeout(
         () => checkStatus(taskId, attempt + 1),
         POLL_INTERVAL_MS
@@ -198,22 +241,44 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
     setProgress(0);
 
     try {
-      const { task_id } = await importVendorRatesApi(
+      const response = (await importVendorRatesApi(
         csvFile,
         selectedMappingId
-      );
+      )) as any;
+
+      const task_id = response.task_id;
 
       if (!task_id) {
+        if (
+          response.status === "completed_with_errors" &&
+          response.result?.errors
+        ) {
+          const err = response.result.errors[0];
+          toast.error(`Row ${err.row}: ${err.error}`);
+          setIsSubmitting(false);
+          return;
+        }
         throw new Error("No Task ID returned.");
       }
 
       toast.info("Import started");
-
       checkStatus(task_id, 1);
     } catch (error: any) {
       console.error(error);
-      const msg = error.response?.data?.error || "Failed to start import.";
-      toast.error(msg);
+      const data = error.response?.data;
+
+      if (data) {
+        if (data.status === "completed_with_errors" && data.result?.errors) {
+          const err = data.result.errors[0];
+          toast.error(`Row ${err.row}: ${err.error}`);
+        } else {
+          const msg = data.error || data.message || "Failed to start import.";
+          toast.error(msg);
+        }
+      } else {
+        toast.error("Failed to start import.");
+      }
+
       setIsSubmitting(false);
       setProgress(null);
     }

@@ -44,7 +44,6 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
   });
 
   const [quillContent, setQuillContent] = useState("");
-  // Gatekeeper state: Keeps the editor hidden until data is fully loaded
   const [isDataReady, setIsDataReady] = useState(false);
 
   const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
@@ -349,15 +348,15 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
                   {csvFile ? csvFile.name : "No file selected"}
                 </div>
 
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
                   onClick={downloadSample}
-                  title="Download Sample"
-                  className="text-primary"
+                  className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                  title="Download Sample Format"
                 >
+                  <span className="hidden sm:inline">Sample Format:</span>
                   <FileSpreadsheet size={18} />
-                </Button>
+                </button>
               </div>
             )}
           </div>

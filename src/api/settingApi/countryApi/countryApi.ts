@@ -5,7 +5,7 @@ export interface CountryData {
   name: string;
   countryCode: string;
   MCC: string;
-} 
+}
 
 export interface PaginatedResponse<T> {
   count: number;
@@ -13,17 +13,18 @@ export interface PaginatedResponse<T> {
   previous: string | null;
   results: T[];
 }
+
 export const getCountriesApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
 ): Promise<PaginatedResponse<CountryData>> => {
-    const params: any = {
-      page: page,
+  const params: any = {
+    page: page,
     page_size: pageSize,
-    ...searchParams
-    };
+    ...searchParams,
+  };
   const response = await api.get(`/country/${module}/`, { params });
   return response.data;
 };
@@ -50,4 +51,20 @@ export const deleteCountryApi = async (
   module: string
 ): Promise<void> => {
   await api.delete(`/country/${module}/${id}/`);
+};
+
+// Import API 
+export const importCountryApi = async (formData: FormData): Promise<any> => {
+  const response = await api.post(`/country/import`, formData, {
+    headers: {
+      "Content-Type": undefined,
+    },
+  });
+  return response.data;
+};
+
+// Status API
+export const getImportStatusApi = async (taskId: string): Promise<any> => {
+  const response = await api.get(`/status/${taskId}/`);
+  return response.data;
 };
