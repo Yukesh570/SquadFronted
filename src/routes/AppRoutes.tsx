@@ -3,7 +3,6 @@ import Layout from "../components/layout/Layout";
 import Login from "../pages/Auth/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import CreateSidebar from "../pages/module/ModuleList";
-import NotFound from "../pages/error/notFound";
 import PermissionsTable from "../pages/role/role";
 import { useAuth } from "../context/AuthContext";
 import ChangePassword from "../pages/Auth/ChangePassword";
@@ -31,6 +30,7 @@ import CustomRoute from "../pages/RouteManager/CustomRoute";
 import { NavItemsContext } from "../context/navItemsContext";
 import { useContext, type JSX } from "react";
 import TimeZone from "../pages/settings/Timezone/Timezone";
+import NotFound from "../pages/error/notFound";
 
 const componentMap: Record<string, JSX.Element> = {
   dashboard: <Dashboard />,
