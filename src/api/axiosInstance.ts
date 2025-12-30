@@ -23,6 +23,7 @@ api.interceptors.response.use(
       // 1. Clear the bad token from storage
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("sidebar_collapsed");
 
       // 2. Redirect to login
       window.location.href = "/login";

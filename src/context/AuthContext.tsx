@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
       }
     };
-    
+
     checkAuth();
 
     // Listen for changes in other tabs
@@ -78,6 +78,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Create the LOGOUT function
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("sidebar_collapsed");
     setIsAuthenticated(false);
     setPayload(null);
     window.dispatchEvent(new Event("storage")); // Trigger sync
@@ -86,7 +88,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Provide all values to children
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, payload, login, logout }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, isLoading, payload, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
