@@ -5,13 +5,24 @@ import Navbar from "./Navbar";
 import { NavItemsContext } from "../../context/navItemsContext";
 
 const Layout = () => {
-  // Desktop: Collapsed/Expanded state
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
-  // Mobile: Open/Closed (Drawer) state
+  // If no saved state found, default to 'false' (Expanded) as you requested.
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    const savedState = localStorage.getItem("sidebar_collapsed");
+    return savedState ? JSON.parse(savedState) : false;
+  });
+
+  // Mobile: Open/Closed (Drawer) state (No need to persist this usually)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const location = useLocation();
   const { navItems } = useContext(NavItemsContext);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "sidebar_collapsed",
+      JSON.stringify(isSidebarCollapsed)
+    );
+  }, [isSidebarCollapsed]);
 
   // Intelligent Toggle: Works for both Mobile and Desktop
   const toggleSidebar = () => {
