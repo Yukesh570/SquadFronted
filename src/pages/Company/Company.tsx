@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Home, Plus, Edit, Trash, Download } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -12,6 +12,9 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
+import AdvancedFilter, {
+  type FilterColumn,
+} from "../../components/ui/AdvancedFilter";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import ViewButton from "../../components/ui/ViewButton";
 import { companyCsv, downloadStatus } from "../../api/downloadApi/downloadApi";
@@ -31,14 +34,24 @@ const CompanyList: React.FC = () => {
   const [isViewMode, setIsViewMode] = useState(false);
 
   const [nameFilter, setNameFilter] = useState("");
+  const [activeColumns, setActiveColumns] = useState<string[]>([]);
 
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const routeName = pathSegments[pathSegments.length - 1] || "company";
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const filterColumns: FilterColumn[] = [
+    { key: "name", label: "Company Name", type: "text" },
+    { key: "shortName", label: "Short Name", type: "text" },
+    { key: "companyEmail", label: "Email", type: "text" },
+    { key: "phone", label: "Phone", type: "text" },
+  ];
+
   const handleExport = async () => {
     try {
       const data: any = await companyCsv(
@@ -61,28 +74,21 @@ const CompanyList: React.FC = () => {
 
       const checkStatus = setInterval(async () => {
         attempts += 1;
-
         try {
           const res = await downloadStatus(routeName, taskId);
-
           if (res && res.ready) {
             clearInterval(checkStatus);
-
             if (res.download_url) {
               window.location.href = res.download_url;
               toast.success("Export successful!");
             } else {
-              console.error("Download URL is missing from response:", res);
               toast.error("Export generated but URL is missing.");
             }
           } else if (attempts >= maxAttempts) {
             clearInterval(checkStatus);
-            toast.error(
-              "Export timed out after 5 attempts. Please try again later."
-            );
+            toast.error("Export timed out. Please try again later.");
           }
         } catch (error) {
-          console.error("Error checking CSV status:", error);
           if (attempts >= maxAttempts) {
             clearInterval(checkStatus);
             toast.error("Failed to check export status.");
@@ -90,27 +96,51 @@ const CompanyList: React.FC = () => {
         }
       }, 2000);
     } catch (error) {
-      console.error("Export API failed:", error);
       toast.error("Failed to initiate export.");
     }
   };
+
   const fetchCompanies = async (overrideParams?: Record<string, any>) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const newController = new AbortController();
+    abortControllerRef.current = newController;
+
     setIsLoading(true);
     try {
-      const currentSearchParams = overrideParams || {
-        name: nameFilter,
-      };
+      const currentSearchParams: Record<string, string> = {};
 
-      const cleanParams = Object.fromEntries(
-        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
-      );
+      const searchValue =
+        overrideParams && overrideParams.search !== undefined
+          ? overrideParams.search
+          : nameFilter;
+
+      if (searchValue) {
+        currentSearchParams["search"] = searchValue;
+      }
+
+      if (activeColumns.length > 0 && searchValue) {
+        currentSearchParams["search_fields"] = activeColumns.join(",");
+      }
+
+      if (overrideParams) {
+        Object.keys(overrideParams).forEach((key) => {
+          if (key !== "search") {
+            currentSearchParams[key] = overrideParams[key];
+          }
+        });
+      }
 
       const response: any = await getCompaniesApi(
         routeName,
         currentPage,
         rowsPerPage,
-        cleanParams
+        currentSearchParams
       );
+
+      if (newController.signal.aborted) return;
+
       if (response && response.results) {
         setCompanies(response.results);
         setTotalItems(response.count);
@@ -121,26 +151,36 @@ const CompanyList: React.FC = () => {
         setCompanies([]);
         setTotalItems(0);
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === "AbortError" || error.message === "canceled") {
+        return;
+      }
       console.error("Fetch error:", error);
       toast.error("Failed to fetch companies.");
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === newController) {
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchCompanies();
-  }, [routeName, currentPage, rowsPerPage]);
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, [routeName, currentPage, rowsPerPage, activeColumns]);
 
   const handleSearch = () => {
     setCurrentPage(1);
     fetchCompanies();
   };
+
   const handleClearFilters = () => {
     setNameFilter("");
+    setActiveColumns([]);
     setCurrentPage(1);
-    fetchCompanies({ name: "" });
+    fetchCompanies({ search: "" });
   };
 
   const handleDelete = async () => {
@@ -180,6 +220,7 @@ const CompanyList: React.FC = () => {
 
   return (
     <div className="container mx-auto">
+      {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Companies
@@ -194,16 +235,27 @@ const CompanyList: React.FC = () => {
         </div>
       </div>
 
+      {/* FilterCard */}
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search Company"
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Company Name"
+          placeholder="Search"
           className="md:col-span-2"
         />
+        <div className="flex items-end mb-[2px]">
+          <AdvancedFilter
+            columns={filterColumns}
+            selectedColumns={activeColumns}
+            onFilter={setActiveColumns}
+            onClear={() => setActiveColumns([])}
+            isLoading={isLoading}
+          />
+        </div>
       </FilterCard>
 
+      {/* DataTable */}
       <DataTable
         serverSide={true}
         data={companies}
@@ -282,6 +334,7 @@ const CompanyList: React.FC = () => {
           </tr>
         )}
       />
+
       <CompanyModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
