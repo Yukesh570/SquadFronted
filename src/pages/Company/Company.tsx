@@ -221,7 +221,7 @@ const CompanyList: React.FC = () => {
   return (
     <div className="container mx-auto">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Companies
         </h1>
@@ -289,7 +289,7 @@ const CompanyList: React.FC = () => {
         renderRow={(company, index) => (
           <tr
             key={company.id || index}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}

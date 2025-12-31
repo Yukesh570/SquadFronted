@@ -97,8 +97,8 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
             className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-300 focus:outline-none shadow-sm
               ${
                 open || selectedColumns.length > 0
-                  ? "border-primary text-primary bg-blue-50 dark:bg-gray-800 dark:text-primary dark:border-primary" // Active State (Keep dark mode support here for contrast)
-                  : "bg-white text-text-secondary border-gray-300 hover:border-primary hover:text-primary" // Default State (Matches Clear/Export - White background)
+                  ? "border-primary text-primary bg-primary/10 dark:text-primary dark:border-primary"
+                  : "bg-white text-text-secondary border-gray-300 hover:border-primary hover:text-primary dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
               }`}
           >
             <Filter size={16} />
@@ -197,17 +197,14 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                               className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md transition-colors mb-0.5 group
                                 ${
                                   isSelected
-                                    ? "bg-blue-50 dark:bg-blue-900/20 text-primary dark:text-blue-400 font-medium"
+                                    ? "bg-primary/10 text-primary dark:text-primary font-medium"
                                     : "text-text-secondary dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                                 }
                               `}
                             >
                               <div className="flex items-center justify-center w-4 h-4">
                                 {isSelected && (
-                                  <Check
-                                    size={16}
-                                    className="text-primary dark:text-blue-400"
-                                  />
+                                  <Check size={16} className="text-primary" />
                                 )}
                               </div>
 
