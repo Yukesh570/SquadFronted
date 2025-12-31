@@ -94,21 +94,14 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
             ref={buttonRef}
             onClick={updatePosition}
             title="Select columns to filter search"
-            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition duration-150 ease-in-out focus:outline-none focus:ring-1 
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-300 focus:outline-none shadow-sm
               ${
                 open || selectedColumns.length > 0
-                  ? "border-primary ring-primary bg-gray-50 dark:bg-gray-700 text-primary dark:text-white"
-                  : "border-gray-200 focus:border-primary focus:ring-primary bg-white text-text-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  ? "border-primary text-primary bg-blue-50 dark:bg-gray-800 dark:text-primary dark:border-primary" // Active State (Keep dark mode support here for contrast)
+                  : "bg-white text-text-secondary border-gray-300 hover:border-primary hover:text-primary" // Default State (Matches Clear/Export - White background)
               }`}
           >
-            <Filter
-              size={16}
-              className={
-                selectedColumns.length > 0
-                  ? "text-primary dark:text-white"
-                  : "text-gray-500"
-              }
-            />
+            <Filter size={16} />
             <span>Filters</span>
             {selectedColumns.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-bold text-white bg-primary rounded-full">
