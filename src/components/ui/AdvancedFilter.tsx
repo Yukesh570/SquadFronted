@@ -93,6 +93,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
           <Popover.Button
             ref={buttonRef}
             onClick={updatePosition}
+            title="Select columns to filter search"
             className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition duration-150 ease-in-out focus:outline-none focus:ring-1 
               ${
                 open || selectedColumns.length > 0
@@ -138,27 +139,27 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                     leaveFrom="opacity-100 translate-y-0"
                     leaveTo="opacity-0 translate-y-1"
                   >
-                    <div className="w-80 overflow-hidden rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div className="w-72 overflow-hidden rounded-lg bg-white dark:bg-gray-800 py-1 text-base shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700 flex flex-col">
                       {/* Header */}
-                      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-2">
+                      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-2 bg-gray-50/30 dark:bg-gray-800">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-medium text-text-secondary dark:text-gray-300">
-                            Select In Columns
+                          <span className="text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-300">
+                            Search In Columns
                           </span>
                           <button
                             type="button"
                             onClick={() => close()}
-                            className="text-gray-400 hover:text-red-500 transition-colors"
+                            className="text-gray-400 hover:text-red-500 transition-colors p-1"
                           >
-                            <X size={16} />
+                            <X size={14} />
                           </button>
                         </div>
                         <div className="relative">
-                          <Search className="absolute left-2 top-2 h-4 w-4 text-gray-400" />
+                          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
                           <input
                             type="text"
                             placeholder="Find column..."
-                            className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-primary text-text-primary dark:text-white"
+                            className="w-full pl-8 pr-3 py-1.5 text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-primary text-text-primary dark:text-white"
                             value={columnSearch}
                             onChange={(e) => setColumnSearch(e.target.value)}
                           />
@@ -166,29 +167,33 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                       </div>
 
                       {/* Select All */}
-                      <div className="px-1 py-1 border-b border-gray-100 dark:border-gray-700">
+                      <div className="border-b border-gray-100 dark:border-gray-700">
                         <button
                           type="button"
                           onClick={handleSelectAll}
-                          className="w-full text-left px-3 py-2 text-xs font-medium text-primary hover:text-primary-dark dark:text-blue-400 transition-colors rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-text-secondary hover:text-primary hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50 transition-colors"
                         >
-                          <span
-                            className={
+                          <div
+                            className={`flex items-center justify-center w-4 h-4 rounded border transition-colors ${
                               tempSelectedKeys.length === columns.length
-                                ? "opacity-100"
-                                : "opacity-0"
-                            }
+                                ? "bg-primary border-primary text-white"
+                                : "border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-800"
+                            }`}
                           >
-                            <Check size={14} />
+                            {tempSelectedKeys.length === columns.length && (
+                              <Check size={10} />
+                            )}
+                          </div>
+                          <span>
+                            {tempSelectedKeys.length === columns.length
+                              ? "Deselect All"
+                              : "Select All"}
                           </span>
-                          {tempSelectedKeys.length === columns.length
-                            ? "Deselect All"
-                            : "Select All"}
                         </button>
                       </div>
 
                       {/* List */}
-                      <div className="flex-1 overflow-y-auto max-h-60">
+                      <div className="flex-1 overflow-y-auto max-h-60 p-1">
                         {filteredColumns.map((col) => {
                           const isSelected = tempSelectedKeys.includes(col.key);
                           return (
@@ -196,42 +201,40 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                               key={col.key}
                               type="button"
                               onClick={() => handleToggleColumn(col.key)}
-                              className={`relative w-full cursor-pointer select-none py-2 pl-10 pr-4 text-left transition-colors
+                              className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md transition-colors mb-0.5 group
                                 ${
                                   isSelected
-                                    ? "bg-gray-100 dark:bg-gray-700 text-primary dark:text-white"
+                                    ? "bg-blue-50 dark:bg-blue-900/20 text-primary dark:text-blue-400 font-medium"
                                     : "text-text-secondary dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                                 }
                               `}
                             >
-                              <span
-                                className={`block truncate ${
-                                  isSelected ? "font-medium" : "font-normal"
-                                }`}
-                              >
-                                {col.label}
-                              </span>
-                              {isSelected && (
-                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary dark:text-white">
-                                  <Check size={16} aria-hidden="true" />
-                                </span>
-                              )}
+                              <div className="flex items-center justify-center w-4 h-4">
+                                {isSelected && (
+                                  <Check
+                                    size={16}
+                                    className="text-primary dark:text-blue-400"
+                                  />
+                                )}
+                              </div>
+
+                              <span className="truncate">{col.label}</span>
                             </button>
                           );
                         })}
                         {filteredColumns.length === 0 && (
-                          <div className="py-2 px-4 text-center text-gray-500 text-sm">
+                          <div className="py-4 px-4 text-center text-gray-400 text-xs">
                             No columns found
                           </div>
                         )}
                       </div>
 
                       {/* Footer */}
-                      <div className="p-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center gap-2">
+                      <div className="p-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-end items-center gap-2">
                         <button
                           type="button"
                           onClick={() => handleClearAll(close)}
-                          className="text-xs font-medium text-gray-500 hover:text-text-primary dark:text-gray-400 dark:hover:text-white transition-colors px-3 py-1"
+                          className="px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-text-primary dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
                         >
                           Clear
                         </button>
@@ -241,9 +244,9 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                           size="sm"
                           disabled={isLoading}
                           onClick={() => handleApply(close)}
-                          className="px-4 py-1.5 h-auto text-xs"
+                          className="px-4 py-1.5 h-auto text-xs min-w-[70px]"
                         >
-                          {isLoading ? "Applying..." : "Apply"}
+                          {isLoading ? "..." : "Apply"}
                         </Button>
                       </div>
                     </div>
