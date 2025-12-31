@@ -24,7 +24,7 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
         {/* The track (background) */}
         <div
           className={`block w-10 h-5 rounded-full transition ${
-            checked ? "bg-primary" : "bg-gray-300 dark:bg-gray-600"
+            checked ? "bg-primary" : "bg-gray-300 dark:bg-gray-700"
           }`}
         ></div>
         {/* The circle (knob) */}
@@ -36,7 +36,7 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
       </div>
 
       {label && (
-        <span className="ml-3 text-sm font-medium text-gray-900 dark:text-white">
+        <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
           {label}
         </span>
       )}

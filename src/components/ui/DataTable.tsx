@@ -92,7 +92,9 @@ export function DataTable<T extends { id?: number | string }>({
       <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-text-secondary">Rows per page:</span>
+            <span className="text-sm text-text-secondary dark:text-gray-400">
+              Rows per page:
+            </span>
             <div className="w-20">
               <Select
                 value={String(activeRows)}
@@ -102,17 +104,19 @@ export function DataTable<T extends { id?: number | string }>({
               />
             </div>
           </div>
-          <span className="text-sm text-text-secondary">{paginationLabel}</span>
+          <span className="text-sm text-text-secondary dark:text-gray-400">
+            {paginationLabel}
+          </span>
           <div className="flex items-center space-x-2">
             <button
-              className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               onClick={handlePrev}
               disabled={activePage === 1 || isLoading}
             >
               <ChevronLeft size={20} />
             </button>
             <button
-              className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               onClick={handleNext}
               disabled={
                 activePage >= totalPages || activeTotal === 0 || isLoading
@@ -127,12 +131,12 @@ export function DataTable<T extends { id?: number | string }>({
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-900/50">
             <tr>
               {headers.map((header, i) => (
                 <th
                   key={i}
-                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-secondary dark:text-gray-300"
+                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-secondary dark:text-gray-400"
                 >
                   {header}
                 </th>
@@ -144,7 +148,7 @@ export function DataTable<T extends { id?: number | string }>({
               <tr>
                 <td
                   colSpan={headers.length}
-                  className="px-4 py-12 text-center text-text-secondary"
+                  className="px-4 py-12 text-center text-text-secondary dark:text-gray-400"
                 >
                   Loading
                 </td>
@@ -153,10 +157,13 @@ export function DataTable<T extends { id?: number | string }>({
               <tr>
                 <td
                   colSpan={headers.length}
-                  className="px-4 py-12 text-center text-text-secondary"
+                  className="px-4 py-12 text-center text-text-secondary dark:text-gray-400"
                 >
                   <div className="flex flex-col items-center justify-center">
-                    <Database size={32} className="text-gray-300 mb-2" />
+                    <Database
+                      size={32}
+                      className="text-gray-300 dark:text-gray-600 mb-2"
+                    />
                     <span>No records found.</span>
                   </div>
                 </td>

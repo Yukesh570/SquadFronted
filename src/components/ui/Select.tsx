@@ -43,7 +43,7 @@ const Select: React.FC<SelectProps> = ({
     <Listbox value={value} onChange={onChange} disabled={disabled}>
       <div className={`flex flex-col ${hasLabel ? "" : "justify-end"}`}>
         {hasLabel && (
-          <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-300">
+          <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400">
             {label}
           </label>
         )}
@@ -58,15 +58,15 @@ const Select: React.FC<SelectProps> = ({
             ${
               disabled
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-500"
-                : "bg-white text-text-primary dark:bg-gray-700 dark:text-white"
+                : "bg-white text-text-primary dark:bg-gray-800 dark:text-white"
             }
-            dark:border-gray-600 
+            dark:border-gray-700 
             ${hasLabel ? "py-2.5" : "py-2"}`}
           >
             <span
               className={`block truncate ${
                 !selectedOption
-                  ? "text-gray-400 dark:text-gray-400"
+                  ? "text-gray-400 dark:text-gray-500"
                   : disabled
                   ? "text-gray-400"
                   : "text-text-primary dark:text-white"
@@ -120,7 +120,7 @@ const Select: React.FC<SelectProps> = ({
                     className={({ active }) =>
                       `relative cursor-default select-none py-2 pl-10 pr-4 ${
                         active
-                          ? "bg-gray-100 dark:bg-gray-700 text-primary dark:text-white"
+                          ? "bg-primary/10 text-primary dark:text-primary dark:bg-primary/20"
                           : "text-text-secondary dark:text-gray-300"
                       }`
                     }
@@ -131,14 +131,14 @@ const Select: React.FC<SelectProps> = ({
                         <span
                           className={`block truncate ${
                             selected
-                              ? "font-medium text-primary dark:text-white"
+                              ? "font-medium text-primary dark:text-primary"
                               : "font-normal"
                           }`}
                         >
                           {option.label}
                         </span>
                         {selected ? (
-                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary dark:text-white">
+                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary dark:text-primary">
                             <Check size={16} aria-hidden="true" />
                           </span>
                         ) : null}
