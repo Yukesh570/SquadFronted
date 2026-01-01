@@ -26,16 +26,17 @@ const CompanyList: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<CompanyData | null>(
     null
   );
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+  const [activeColumns, setActiveColumns] = useState<string[]>(["name"]);
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
-  const [nameFilter, setNameFilter] = useState("");
-  const [activeColumns, setActiveColumns] = useState<string[]>([]);
-
+  // Pagination State
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -52,13 +53,21 @@ const CompanyList: React.FC = () => {
     { key: "phone", label: "Phone", type: "text" },
   ];
 
+  const handleFilterChange = (key: string, value: string) => {
+    setFilterValues((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
   const handleExport = async () => {
     try {
+      const searchParam = filterValues["name"] || "";
       const data: any = await companyCsv(
         routeName,
         currentPage,
         rowsPerPage,
-        nameFilter
+        searchParam
       );
 
       if (!data || !data.task_id) {
@@ -111,24 +120,22 @@ const CompanyList: React.FC = () => {
     try {
       const currentSearchParams: Record<string, string> = {};
 
-      const searchValue =
-        overrideParams && overrideParams.search !== undefined
-          ? overrideParams.search
-          : nameFilter;
+      activeColumns.forEach((key) => {
+        const value = filterValues[key];
+        if (value) {
+          const columnDef = filterColumns.find((c) => c.key === key);
+          if (columnDef?.type === "text") {
+            currentSearchParams[`${key}__icontains`] = value;
+          } else {
+            currentSearchParams[key] = value;
+          }
+        }
+      });
 
-      if (searchValue) {
-        currentSearchParams["search"] = searchValue;
-      }
-
-      if (activeColumns.length > 0 && searchValue) {
-        currentSearchParams["search_fields"] = activeColumns.join(",");
-      }
-
+      // Merge with any overrides
       if (overrideParams) {
         Object.keys(overrideParams).forEach((key) => {
-          if (key !== "search") {
-            currentSearchParams[key] = overrideParams[key];
-          }
+          currentSearchParams[key] = overrideParams[key];
         });
       }
 
@@ -170,17 +177,15 @@ const CompanyList: React.FC = () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [routeName, currentPage, rowsPerPage, activeColumns]);
-
   const handleSearch = () => {
     setCurrentPage(1);
     fetchCompanies();
   };
 
   const handleClearFilters = () => {
-    setNameFilter("");
-    setActiveColumns([]);
+    setFilterValues({});
+    setActiveColumns(["name"]); // Reset to just Name or empty
     setCurrentPage(1);
-    fetchCompanies({ search: "" });
   };
 
   const handleDelete = async () => {
@@ -235,21 +240,40 @@ const CompanyList: React.FC = () => {
         </div>
       </div>
 
-      {/* FilterCard */}
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
-        <Input
-          label="Search Company"
-          value={nameFilter}
-          onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Search"
-          className="md:col-span-2"
-        />
+        {activeColumns.map((colKey) => {
+          const colDef = filterColumns.find((c) => c.key === colKey);
+          if (!colDef) return null;
+
+          return (
+            <Input
+              key={colKey}
+              label={colDef.label}
+              value={filterValues[colKey] || ""}
+              onChange={(e) => handleFilterChange(colKey, e.target.value)}
+              placeholder={`Search ${colDef.label}`}
+            />
+          );
+        })}
+
         <div className="flex items-end mb-[2px]">
           <AdvancedFilter
             columns={filterColumns}
             selectedColumns={activeColumns}
-            onFilter={setActiveColumns}
-            onClear={() => setActiveColumns([])}
+            onFilter={(newCols) => {
+              setActiveColumns(newCols);
+              setFilterValues((prev) => {
+                const next = { ...prev };
+                Object.keys(next).forEach((k) => {
+                  if (!newCols.includes(k)) delete next[k];
+                });
+                return next;
+              });
+            }}
+            onClear={() => {
+              setActiveColumns([]);
+              setFilterValues({});
+            }}
             isLoading={isLoading}
           />
         </div>
