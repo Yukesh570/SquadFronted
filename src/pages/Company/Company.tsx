@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Home, Plus, Edit, Trash, Download } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
+
 import {
   getCompaniesApi,
   deleteCompanyApi,
@@ -41,7 +42,8 @@ interface ColumnConfig extends FilterColumn {
 }
 
 // Default columns ONLY for the very first load
-const INITIAL_COLUMNS = ["name", "shortName", "companyEmail", "phone"];
+const DEFAULT_SEARCH_COLUMNS = ["name"];
+const DEFAULT_TABLE_COLUMNS = ["name", "shortName", "companyEmail", "phone"];
 
 const CompanyList: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -66,9 +68,15 @@ const CompanyList: React.FC = () => {
   const [timeZones, setTimeZones] = useState<Option[]>([]);
   const [entities, setEntities] = useState<Option[]>([]);
 
-  // --- Dynamic Filter State (With Persistence) ---
-  const [activeColumns, setActiveColumns] = useState<string[]>(() => {
-    const saved = localStorage.getItem("company_active_columns");
+  // --- FILTER 1: SEARCH COLUMNS (Input Fields) ---
+  const [searchColumns, setSearchColumns] = useState<string[]>(
+    DEFAULT_SEARCH_COLUMNS
+  );
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+
+  // --- FILTER 2: TABLE COLUMNS (Table Visibility) ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("company_table_columns");
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -76,16 +84,13 @@ const CompanyList: React.FC = () => {
         console.error("Failed to parse saved columns", e);
       }
     }
-    return INITIAL_COLUMNS;
+    return DEFAULT_TABLE_COLUMNS;
   });
 
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  // Save Table Columns Preference
   useEffect(() => {
-    localStorage.setItem(
-      "company_active_columns",
-      JSON.stringify(activeColumns)
-    );
-  }, [activeColumns]);
+    localStorage.setItem("company_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
 
   // --- Pagination ---
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -145,7 +150,6 @@ const CompanyList: React.FC = () => {
 
   // --- Master Column Config ---
   const allColumns: ColumnConfig[] = [
-    // Identity
     { key: "name", label: "Company Name", type: "text" },
     { key: "shortName", label: "Short Name", type: "text" },
     { key: "phone", label: "Phone", type: "text" },
@@ -154,8 +158,6 @@ const CompanyList: React.FC = () => {
     { key: "billingEmail", label: "Billing Email", type: "text" },
     { key: "ratesEmail", label: "Rates Email", type: "text" },
     { key: "lowBalanceAlertEmail", label: "Low Bal. Email", type: "text" },
-
-    // Classification
     {
       key: "country",
       label: "Country",
@@ -184,8 +186,6 @@ const CompanyList: React.FC = () => {
       options: statuses,
       filterKey: "status__name",
     },
-
-    // Finance
     {
       key: "currency",
       label: "Currency",
@@ -204,8 +204,6 @@ const CompanyList: React.FC = () => {
     { key: "vendorCreditLimit", label: "Vend. Credit", type: "number" },
     { key: "balanceAlertAmount", label: "Bal. Alert", type: "number" },
     { key: "referencNumber", label: "Ref. Number", type: "text" },
-
-    // Legal & Address
     {
       key: "businessEntity",
       label: "Entity",
@@ -215,8 +213,6 @@ const CompanyList: React.FC = () => {
     },
     { key: "vatNumber", label: "VAT Number", type: "text" },
     { key: "address", label: "Address", type: "text" },
-
-    // Policies
     {
       key: "validityPeriod",
       label: "Validity",
@@ -286,15 +282,15 @@ const CompanyList: React.FC = () => {
     },
   ];
 
-  const visibleColumns = allColumns.filter((col) =>
-    activeColumns.includes(col.key)
+  const visibleSearchFields = allColumns.filter((col) =>
+    searchColumns.includes(col.key)
+  );
+  const visibleTableFields = allColumns.filter((col) =>
+    tableColumns.includes(col.key)
   );
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilterValues((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleExport = async () => {
@@ -306,17 +302,14 @@ const CompanyList: React.FC = () => {
         rowsPerPage,
         searchParam
       );
-
       if (!data || !data.task_id) {
         toast.error("Failed to start export process.");
         return;
       }
-
       const taskId = data.task_id;
       let attempts = 0;
       const maxAttempts = 5;
       toast.info("Export started. Please wait");
-
       const checkStatus = setInterval(async () => {
         attempts += 1;
         try {
@@ -346,17 +339,14 @@ const CompanyList: React.FC = () => {
   };
 
   const fetchCompanies = async (overrideParams?: Record<string, any>) => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+    if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
-
     setIsLoading(true);
     try {
       const currentSearchParams: Record<string, string> = {};
-
-      activeColumns.forEach((key) => {
+      // Use SEARCH COLUMNS for filtering
+      searchColumns.forEach((key) => {
         const value = filterValues[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
@@ -365,8 +355,9 @@ const CompanyList: React.FC = () => {
               const selectedOption = columnDef.options.find(
                 (opt) => opt.value === value
               );
-              const labelToSend = selectedOption ? selectedOption.label : value;
-              currentSearchParams[columnDef.filterKey] = labelToSend;
+              currentSearchParams[columnDef.filterKey] = selectedOption
+                ? selectedOption.label
+                : value;
             } else {
               currentSearchParams[key] = value;
             }
@@ -377,12 +368,10 @@ const CompanyList: React.FC = () => {
           }
         }
       });
-
-      if (overrideParams) {
+      if (overrideParams)
         Object.keys(overrideParams).forEach((key) => {
           currentSearchParams[key] = overrideParams[key];
         });
-      }
 
       const response: any = await getCompaniesApi(
         routeName,
@@ -390,9 +379,7 @@ const CompanyList: React.FC = () => {
         rowsPerPage,
         currentSearchParams
       );
-
       if (newController.signal.aborted) return;
-
       if (response && response.results) {
         setCompanies(response.results);
         setTotalItems(response.count);
@@ -404,13 +391,10 @@ const CompanyList: React.FC = () => {
         setTotalItems(0);
       }
     } catch (error: any) {
-      if (error.name === "AbortError" || error.message === "canceled") return;
-      console.error("Fetch error:", error);
-      toast.error("Failed to fetch companies.");
+      if (error.name !== "AbortError")
+        toast.error("Failed to fetch companies.");
     } finally {
-      if (abortControllerRef.current === newController) {
-        setIsLoading(false);
-      }
+      if (abortControllerRef.current === newController) setIsLoading(false);
     }
   };
 
@@ -419,13 +403,12 @@ const CompanyList: React.FC = () => {
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [routeName, currentPage, rowsPerPage, activeColumns]);
+  }, [routeName, currentPage, rowsPerPage, searchColumns]);
 
   const handleSearch = () => {
     setCurrentPage(1);
     fetchCompanies();
   };
-
   const handleClearFilters = () => {
     setFilterValues({});
     setCurrentPage(1);
@@ -464,16 +447,53 @@ const CompanyList: React.FC = () => {
 
   const tableHeaders = [
     "S.N.",
-    ...visibleColumns.map((col) => col.label),
+    ...visibleTableFields.map((col) => col.label),
     "Actions",
   ];
 
   return (
     <div className="container mx-auto">
+      {/* HEADER SECTION */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
-          Companies
-        </h1>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
+            Companies
+          </h1>
+
+          {/* 1. SEARCH FIELDS FILTER */}
+          <div className="relative z-20">
+            <AdvancedFilter
+              columns={allColumns}
+              selectedColumns={searchColumns}
+              onFilter={(newCols) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
+            />
+          </div>
+
+          {/* 2. TABLE COLUMNS FILTER */}
+          <div className="relative z-20">
+            <AdvancedFilter
+              columns={allColumns}
+              selectedColumns={tableColumns}
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+            />
+          </div>
+        </div>
+
+        {/* RIGHT: Breadcrumbs */}
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
           <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">
@@ -485,7 +505,7 @@ const CompanyList: React.FC = () => {
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
-        {visibleColumns.map((col) => {
+        {visibleSearchFields.map((col) => {
           if (col.options) {
             return (
               <Select
@@ -508,28 +528,6 @@ const CompanyList: React.FC = () => {
             />
           );
         })}
-
-        <div className="flex items-end mb-[2px]">
-          <AdvancedFilter
-            columns={allColumns}
-            selectedColumns={activeColumns}
-            onFilter={(newCols) => {
-              setActiveColumns(newCols);
-              setFilterValues((prev) => {
-                const next = { ...prev };
-                Object.keys(next).forEach((k) => {
-                  if (!newCols.includes(k)) delete next[k];
-                });
-                return next;
-              });
-            }}
-            onClear={() => {
-              setActiveColumns([]);
-              setFilterValues({});
-            }}
-            isLoading={isLoading}
-          />
-        </div>
       </FilterCard>
 
       <DataTable
@@ -571,9 +569,8 @@ const CompanyList: React.FC = () => {
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
 
-            {visibleColumns.map((col) => {
+            {visibleTableFields.map((col) => {
               let cellData = (company as any)[col.key];
-
               if (col.render) {
                 return (
                   <td
@@ -584,28 +581,18 @@ const CompanyList: React.FC = () => {
                   </td>
                 );
               }
-
               if (col.options) {
                 const match = col.options.find(
                   (opt) => opt.value === String(cellData)
                 );
                 cellData = match ? match.label : cellData;
               }
-
-              if (
-                cellData === null ||
-                cellData === undefined ||
-                cellData === ""
-              ) {
-                cellData = "-";
-              }
-
               return (
                 <td
                   key={col.key}
                   className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
                 >
-                  {cellData}
+                  {cellData || "-"}
                 </td>
               );
             })}

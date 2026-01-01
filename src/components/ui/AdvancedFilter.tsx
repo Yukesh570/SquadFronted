@@ -16,6 +16,7 @@ export interface AdvancedFilterProps {
   onFilter: (selectedColumns: string[]) => void;
   onClear: () => void;
   isLoading?: boolean;
+  buttonLabel?: string;
 }
 
 const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
@@ -24,13 +25,14 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   onFilter,
   onClear,
   isLoading = false,
+  buttonLabel = "Filters", // Default value
 }) => {
   const [tempSelectedKeys, setTempSelectedKeys] = useState<string[]>([]);
   const [columnSearch, setColumnSearch] = useState("");
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const DROPDOWN_WIDTH = 290;
+  const DROPDOWN_WIDTH = 280;
 
   useEffect(() => {
     setTempSelectedKeys(selectedColumns);
@@ -81,6 +83,21 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
     c.label.toLowerCase().includes(columnSearch.toLowerCase())
   );
 
+  let topPosition = 0;
+  let leftPosition = 0;
+  let maxDropdownHeight = 400;
+
+  if (buttonRect) {
+    const windowHeight = window.innerHeight;
+    const spaceBelow = windowHeight - buttonRect.bottom - 20;
+    topPosition = buttonRect.bottom + 8;
+    maxDropdownHeight = Math.min(400, Math.max(200, spaceBelow));
+    leftPosition =
+      buttonRect.left + DROPDOWN_WIDTH > window.innerWidth
+        ? buttonRect.right - DROPDOWN_WIDTH
+        : buttonRect.left;
+  }
+
   return (
     <Popover className="relative">
       {({ open, close }) => (
@@ -95,7 +112,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
           <Popover.Button
             ref={buttonRef}
             onClick={updatePosition}
-            title="Select columns to filter search"
+            title={buttonLabel}
             className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-300 focus:outline-none shadow-sm
               ${
                 open || selectedColumns.length > 0
@@ -104,7 +121,8 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
               }`}
           >
             <Filter size={16} />
-            <span>Filters</span>
+            <span className="whitespace-nowrap">{buttonLabel}</span>{" "}
+            {/* Use prop here */}
             {selectedColumns.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-bold text-white bg-primary rounded-full">
                 {selectedColumns.length}
@@ -116,13 +134,11 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
             <Portal>
               <div className="fixed inset-0 z-[9999]" onClick={() => close()}>
                 <div
-                  className="absolute"
+                  className="absolute flex flex-col"
                   style={{
-                    top: buttonRect.bottom + 8,
-                    left:
-                      buttonRect.left + DROPDOWN_WIDTH > window.innerWidth
-                        ? buttonRect.right - DROPDOWN_WIDTH
-                        : buttonRect.left,
+                    top: topPosition,
+                    left: leftPosition,
+                    maxHeight: maxDropdownHeight,
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -131,18 +147,21 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                     show={true}
                     as={Fragment}
                     enter="transition ease-out duration-200"
-                    enterFrom="opacity-0 translate-y-1"
-                    enterTo="opacity-100 translate-y-0"
+                    enterFrom="opacity-0 translate-y-1 scale-95"
+                    enterTo="opacity-100 translate-y-0 scale-100"
                     leave="transition ease-in duration-150"
-                    leaveFrom="opacity-100 translate-y-0"
-                    leaveTo="opacity-0 translate-y-1"
+                    leaveFrom="opacity-100 translate-y-0 scale-100"
+                    leaveTo="opacity-0 translate-y-1 scale-95"
                   >
-                    <div className="w-72 overflow-hidden rounded-lg bg-white dark:bg-gray-800 py-1 text-base shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+                    <div
+                      className="w-[280px] rounded-lg bg-white dark:bg-gray-800 shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden"
+                      style={{ maxHeight: "inherit" }}
+                    >
                       {/* Header */}
-                      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-2 bg-gray-50/30 dark:bg-gray-800">
+                      <div className="flex-none px-3 py-2 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-2 bg-gray-50/30 dark:bg-gray-800">
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-300">
-                            Search In Columns
+                            Search {buttonLabel} {/* Use prop here */}
                           </span>
                           <button
                             type="button"
@@ -156,7 +175,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                           <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
                           <input
                             type="text"
-                            placeholder="Find column..."
+                            placeholder="Find..."
                             className="w-full pl-8 pr-3 py-1.5 text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-primary text-text-primary dark:text-white"
                             value={columnSearch}
                             onChange={(e) => setColumnSearch(e.target.value)}
@@ -165,7 +184,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                       </div>
 
                       {/* Select All */}
-                      <div className="border-b border-gray-100 dark:border-gray-700">
+                      <div className="flex-none border-b border-gray-100 dark:border-gray-700">
                         <button
                           type="button"
                           onClick={handleSelectAll}
@@ -191,7 +210,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                       </div>
 
                       {/* List */}
-                      <div className="flex-1 overflow-y-auto max-h-60 p-1">
+                      <div className="flex-1 overflow-y-auto min-h-0 p-1">
                         {filteredColumns.map((col) => {
                           const isSelected = tempSelectedKeys.includes(col.key);
                           return (
@@ -207,7 +226,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                                 }
                               `}
                             >
-                              <div className="flex items-center justify-center w-4 h-4">
+                              <div className="flex items-center justify-center w-4 h-4 flex-shrink-0">
                                 {isSelected && (
                                   <Check size={16} className="text-primary" />
                                 )}
@@ -219,13 +238,13 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                         })}
                         {filteredColumns.length === 0 && (
                           <div className="py-4 px-4 text-center text-gray-400 text-xs">
-                            No columns found
+                            No items found
                           </div>
                         )}
                       </div>
 
                       {/* Footer */}
-                      <div className="p-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-end items-center gap-2">
+                      <div className="flex-none p-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-end items-center gap-2">
                         <button
                           type="button"
                           onClick={() => handleClearAll(close)}
