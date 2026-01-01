@@ -17,6 +17,7 @@ interface SelectProps {
   clearable?: boolean;
   disabled?: boolean;
   placement?: "top" | "bottom";
+  className?: string;
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -29,6 +30,7 @@ const Select: React.FC<SelectProps> = ({
   clearable = true,
   disabled = false,
   placement = "bottom",
+  className = "",
 }) => {
   const selectedOption =
     options.find((option) => option.value === value) || null;
@@ -41,7 +43,11 @@ const Select: React.FC<SelectProps> = ({
 
   return (
     <Listbox value={value} onChange={onChange} disabled={disabled}>
-      <div className={`flex flex-col ${hasLabel ? "" : "justify-end"}`}>
+      <div
+        className={`flex flex-col ${
+          hasLabel ? "" : "justify-end"
+        } ${className}`}
+      >
         {hasLabel && (
           <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400">
             {label}

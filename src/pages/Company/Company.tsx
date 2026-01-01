@@ -7,9 +7,17 @@ import {
   deleteCompanyApi,
   type CompanyData,
 } from "../../api/companyApi/companyApi";
+import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
+import { getStateApi } from "../../api/settingApi/stateApi/stateApi";
+import { getCompanyCategoryApi } from "../../api/settingApi/companyCategoryApi/companyCategoryApi";
+import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
+import { getEntityApi } from "../../api/settingApi/entityApi/entityApi";
+import { getCompanyStatusApi } from "../../api/settingApi/companyStatusApi/companyStatusApi";
+import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
 import { CompanyModal } from "../../components/modals/CompanyModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import Select from "../../components/ui/Select";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import AdvancedFilter, {
@@ -20,23 +28,66 @@ import ViewButton from "../../components/ui/ViewButton";
 import { companyCsv, downloadStatus } from "../../api/downloadApi/downloadApi";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 
+// --- Interfaces ---
+interface Option {
+  label: string;
+  value: string;
+}
+
+interface ColumnConfig extends FilterColumn {
+  render?: (data: CompanyData) => React.ReactNode;
+  options?: Option[];
+  filterKey?: string;
+}
+
+// Default columns ONLY for the very first load
+const INITIAL_COLUMNS = ["name", "shortName", "companyEmail", "phone"];
+
 const CompanyList: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [companies, setCompanies] = useState<CompanyData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modal States
+  // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<CompanyData | null>(
     null
   );
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
-  const [activeColumns, setActiveColumns] = useState<string[]>(["name"]);
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
-  // Pagination State
+  // --- Dropdown Options State ---
+  const [countries, setCountries] = useState<Option[]>([]);
+  const [states, setStates] = useState<Option[]>([]);
+  const [categories, setCategories] = useState<Option[]>([]);
+  const [statuses, setStatuses] = useState<Option[]>([]);
+  const [currencies, setCurrencies] = useState<Option[]>([]);
+  const [timeZones, setTimeZones] = useState<Option[]>([]);
+  const [entities, setEntities] = useState<Option[]>([]);
+
+  // --- Dynamic Filter State (With Persistence) ---
+  const [activeColumns, setActiveColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("company_active_columns");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse saved columns", e);
+      }
+    }
+    return INITIAL_COLUMNS;
+  });
+
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  useEffect(() => {
+    localStorage.setItem(
+      "company_active_columns",
+      JSON.stringify(activeColumns)
+    );
+  }, [activeColumns]);
+
+  // --- Pagination ---
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -46,12 +97,198 @@ const CompanyList: React.FC = () => {
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const filterColumns: FilterColumn[] = [
+  // --- Fetch Dropdowns ---
+  useEffect(() => {
+    const loadOptions = async (apiCall: any, module: string, setter: any) => {
+      try {
+        const res = await apiCall(module, 1, 1000);
+        const list = res.results || (Array.isArray(res) ? res : []);
+        setter(
+          list.map((item: any) => ({
+            label: item.name,
+            value: String(item.id),
+          }))
+        );
+      } catch (e) {
+        console.error(`Failed to load ${module}`, e);
+      }
+    };
+
+    loadOptions(getCountriesApi, "country", setCountries);
+    loadOptions(getStateApi, "state", setStates);
+    loadOptions(getCompanyCategoryApi, "companyCategory", setCategories);
+    loadOptions(getCurrenciesApi, "currency", setCurrencies);
+    loadOptions(getEntityApi, "entity", setEntities);
+    if (typeof getCompanyStatusApi === "function")
+      loadOptions(getCompanyStatusApi, "companyStatus", setStatuses);
+    if (typeof getTimezoneApi === "function")
+      loadOptions(getTimezoneApi, "timeZone", setTimeZones);
+  }, []);
+
+  // --- Helper for Badges ---
+  const renderBooleanBadge = (value: boolean) => (
+    <span
+      className={`px-2 py-0.5 rounded text-xs font-medium ${
+        value
+          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+          : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+      }`}
+    >
+      {value ? "Yes" : "No"}
+    </span>
+  );
+
+  const booleanOptions: Option[] = [
+    { label: "Yes", value: "true" },
+    { label: "No", value: "false" },
+  ];
+
+  // --- Master Column Config ---
+  const allColumns: ColumnConfig[] = [
+    // Identity
     { key: "name", label: "Company Name", type: "text" },
     { key: "shortName", label: "Short Name", type: "text" },
-    { key: "companyEmail", label: "Email", type: "text" },
     { key: "phone", label: "Phone", type: "text" },
+    { key: "companyEmail", label: "Company Email", type: "text" },
+    { key: "supportEmail", label: "Support Email", type: "text" },
+    { key: "billingEmail", label: "Billing Email", type: "text" },
+    { key: "ratesEmail", label: "Rates Email", type: "text" },
+    { key: "lowBalanceAlertEmail", label: "Low Bal. Email", type: "text" },
+
+    // Classification
+    {
+      key: "country",
+      label: "Country",
+      type: "text",
+      options: countries,
+      filterKey: "country__name__icontains",
+    },
+    {
+      key: "state",
+      label: "State",
+      type: "text",
+      options: states,
+      filterKey: "state__name",
+    },
+    {
+      key: "category",
+      label: "Category",
+      type: "text",
+      options: categories,
+      filterKey: "category__name",
+    },
+    {
+      key: "status",
+      label: "Status",
+      type: "text",
+      options: statuses,
+      filterKey: "status__name",
+    },
+
+    // Finance
+    {
+      key: "currency",
+      label: "Currency",
+      type: "text",
+      options: currencies,
+      filterKey: "currency__name",
+    },
+    {
+      key: "timeZone",
+      label: "Time Zone",
+      type: "text",
+      options: timeZones,
+      filterKey: "timeZone__name",
+    },
+    { key: "customerCreditLimit", label: "Cust. Credit", type: "number" },
+    { key: "vendorCreditLimit", label: "Vend. Credit", type: "number" },
+    { key: "balanceAlertAmount", label: "Bal. Alert", type: "number" },
+    { key: "referencNumber", label: "Ref. Number", type: "text" },
+
+    // Legal & Address
+    {
+      key: "businessEntity",
+      label: "Entity",
+      type: "text",
+      options: entities,
+      filterKey: "businessEntity__name",
+    },
+    { key: "vatNumber", label: "VAT Number", type: "text" },
+    { key: "address", label: "Address", type: "text" },
+
+    // Policies
+    {
+      key: "validityPeriod",
+      label: "Validity",
+      type: "text",
+      options: [
+        { label: "Limited", value: "LTD" },
+        { label: "Unlimited", value: "UNL" },
+      ],
+    },
+    {
+      key: "defaultEmail",
+      label: "Default Email",
+      type: "text",
+      options: [
+        { label: "Company", value: "CMP" },
+        { label: "Support", value: "SUP" },
+      ],
+    },
+    {
+      key: "onlinePayment",
+      label: "Online Payment",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.onlinePayment),
+    },
+    {
+      key: "companyBlocked",
+      label: "Blocked",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.companyBlocked),
+    },
+    {
+      key: "allowWhiteListedCards",
+      label: "Whitelist Cards",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.allowWhiteListedCards),
+    },
+    {
+      key: "sendDailyReports",
+      label: "Daily Reports",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.sendDailyReports),
+    },
+    {
+      key: "allowNetting",
+      label: "Netting",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.allowNetting),
+    },
+    {
+      key: "showHlrApi",
+      label: "HLR API",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.showHlrApi),
+    },
+    {
+      key: "enableVendorPanel",
+      label: "Vendor Panel",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.enableVendorPanel),
+    },
   ];
+
+  const visibleColumns = allColumns.filter((col) =>
+    activeColumns.includes(col.key)
+  );
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({
@@ -78,7 +315,6 @@ const CompanyList: React.FC = () => {
       const taskId = data.task_id;
       let attempts = 0;
       const maxAttempts = 5;
-
       toast.info("Export started. Please wait");
 
       const checkStatus = setInterval(async () => {
@@ -123,8 +359,18 @@ const CompanyList: React.FC = () => {
       activeColumns.forEach((key) => {
         const value = filterValues[key];
         if (value) {
-          const columnDef = filterColumns.find((c) => c.key === key);
-          if (columnDef?.type === "text") {
+          const columnDef = allColumns.find((c) => c.key === key);
+          if (columnDef?.options) {
+            if (columnDef.filterKey) {
+              const selectedOption = columnDef.options.find(
+                (opt) => opt.value === value
+              );
+              const labelToSend = selectedOption ? selectedOption.label : value;
+              currentSearchParams[columnDef.filterKey] = labelToSend;
+            } else {
+              currentSearchParams[key] = value;
+            }
+          } else if (columnDef?.type === "text") {
             currentSearchParams[`${key}__icontains`] = value;
           } else {
             currentSearchParams[key] = value;
@@ -132,7 +378,6 @@ const CompanyList: React.FC = () => {
         }
       });
 
-      // Merge with any overrides
       if (overrideParams) {
         Object.keys(overrideParams).forEach((key) => {
           currentSearchParams[key] = overrideParams[key];
@@ -159,9 +404,7 @@ const CompanyList: React.FC = () => {
         setTotalItems(0);
       }
     } catch (error: any) {
-      if (error.name === "AbortError" || error.message === "canceled") {
-        return;
-      }
+      if (error.name === "AbortError" || error.message === "canceled") return;
       console.error("Fetch error:", error);
       toast.error("Failed to fetch companies.");
     } finally {
@@ -177,6 +420,7 @@ const CompanyList: React.FC = () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [routeName, currentPage, rowsPerPage, activeColumns]);
+
   const handleSearch = () => {
     setCurrentPage(1);
     fetchCompanies();
@@ -184,7 +428,6 @@ const CompanyList: React.FC = () => {
 
   const handleClearFilters = () => {
     setFilterValues({});
-    setActiveColumns(["name"]); // Reset to just Name or empty
     setCurrentPage(1);
   };
 
@@ -207,25 +450,26 @@ const CompanyList: React.FC = () => {
     setIsViewMode(false);
     setIsModalOpen(true);
   };
-
   const handleAdd = () => {
     if (!canCreate) return;
     setEditingCompany(null);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
-
   const handleView = (company: CompanyData) => {
     setEditingCompany(company);
     setIsViewMode(true);
     setIsModalOpen(true);
   };
 
-  const headers = ["S.N.", "Name", "Short Name", "Email", "Phone", "Actions"];
+  const tableHeaders = [
+    "S.N.",
+    ...visibleColumns.map((col) => col.label),
+    "Actions",
+  ];
 
   return (
     <div className="container mx-auto">
-      {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Companies
@@ -241,24 +485,33 @@ const CompanyList: React.FC = () => {
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
-        {activeColumns.map((colKey) => {
-          const colDef = filterColumns.find((c) => c.key === colKey);
-          if (!colDef) return null;
-
+        {visibleColumns.map((col) => {
+          if (col.options) {
+            return (
+              <Select
+                key={col.key}
+                label={col.label}
+                value={filterValues[col.key] || ""}
+                onChange={(val) => handleFilterChange(col.key, val)}
+                options={col.options}
+                placeholder={`Select ${col.label}`}
+              />
+            );
+          }
           return (
             <Input
-              key={colKey}
-              label={colDef.label}
-              value={filterValues[colKey] || ""}
-              onChange={(e) => handleFilterChange(colKey, e.target.value)}
-              placeholder={`Search ${colDef.label}`}
+              key={col.key}
+              label={col.label}
+              value={filterValues[col.key] || ""}
+              onChange={(e) => handleFilterChange(col.key, e.target.value)}
+              placeholder={`Search ${col.label}`}
             />
           );
         })}
 
         <div className="flex items-end mb-[2px]">
           <AdvancedFilter
-            columns={filterColumns}
+            columns={allColumns}
             selectedColumns={activeColumns}
             onFilter={(newCols) => {
               setActiveColumns(newCols);
@@ -279,7 +532,6 @@ const CompanyList: React.FC = () => {
         </div>
       </FilterCard>
 
-      {/* DataTable */}
       <DataTable
         serverSide={true}
         data={companies}
@@ -288,7 +540,7 @@ const CompanyList: React.FC = () => {
         rowsPerPage={rowsPerPage}
         onPageChange={setCurrentPage}
         onRowsPerPageChange={setRowsPerPage}
-        headers={headers}
+        headers={tableHeaders}
         isLoading={isLoading}
         headerActions={
           <div className="flex gap-2">
@@ -318,18 +570,46 @@ const CompanyList: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {company.name}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {company.shortName}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {company.companyEmail}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {company.phone}
-            </td>
+
+            {visibleColumns.map((col) => {
+              let cellData = (company as any)[col.key];
+
+              if (col.render) {
+                return (
+                  <td
+                    key={col.key}
+                    className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+                  >
+                    {col.render(company)}
+                  </td>
+                );
+              }
+
+              if (col.options) {
+                const match = col.options.find(
+                  (opt) => opt.value === String(cellData)
+                );
+                cellData = match ? match.label : cellData;
+              }
+
+              if (
+                cellData === null ||
+                cellData === undefined ||
+                cellData === ""
+              ) {
+                cellData = "-";
+              }
+
+              return (
+                <td
+                  key={col.key}
+                  className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+                >
+                  {cellData}
+                </td>
+              );
+            })}
+
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <ViewButton onClick={() => handleView(company)} />

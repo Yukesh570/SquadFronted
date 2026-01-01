@@ -30,6 +30,8 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
+  const DROPDOWN_WIDTH = 290;
+
   useEffect(() => {
     setTempSelectedKeys(selectedColumns);
   }, [selectedColumns]);
@@ -117,7 +119,10 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                   className="absolute"
                   style={{
                     top: buttonRect.bottom + 8,
-                    left: buttonRect.left,
+                    left:
+                      buttonRect.left + DROPDOWN_WIDTH > window.innerWidth
+                        ? buttonRect.right - DROPDOWN_WIDTH
+                        : buttonRect.left,
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
