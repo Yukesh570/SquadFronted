@@ -50,7 +50,7 @@ const statusOptions: Option[] = [
 
 // --- 2. CONFIGURATION: STRICTLY SEPARATED LISTS ---
 
-// LIST A: Filter Options (Client Requirement: "Filter by...")
+// LIST A: Filter Options
 const filterOptionsConfig: ColumnConfig[] = [
   {
     key: "timeRange",
@@ -68,7 +68,7 @@ const filterOptionsConfig: ColumnConfig[] = [
   { key: "status", label: "Status", type: "text", options: statusOptions },
 ];
 
-// LIST B: Table Columns (Client Requirement: "Table columns...")
+// LIST B: Table Columns
 const tableColumnsConfig: ColumnConfig[] = [
   {
     key: "messageId",
@@ -139,12 +139,8 @@ const tableColumnsConfig: ColumnConfig[] = [
   { key: "cost", label: "Cost", type: "number" },
 ];
 
-// --- 3. DEFAULTS (What happens when you click "Clear") ---
-
-// Default Filters: Just the basics
+// --- 3. DEFAULTS ---
 const DEFAULT_SEARCH_COLUMNS = ["timeRange", "status", "client"];
-
-// Default Table Columns: Important ones only (Hidden: Latency, Error, SenderID)
 const DEFAULT_TABLE_COLUMNS = [
   "time",
   "messageId",
@@ -165,12 +161,12 @@ const LiveTraffic: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Filter Visibility State
+  // Filter Visibility
   const [searchColumns, setSearchColumns] = useState<string[]>(
     DEFAULT_SEARCH_COLUMNS,
   );
 
-  // Table Visibility State
+  // Table Visibility
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("traffic_table_columns");
     return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
@@ -181,7 +177,7 @@ const LiveTraffic: React.FC = () => {
     timeRange: "24h", // Mandatory default
   });
 
-  // Modal State
+  // Modal
   const [isTraceModalOpen, setIsTraceModalOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<TrafficLogData | null>(null);
 
@@ -190,17 +186,15 @@ const LiveTraffic: React.FC = () => {
   const moduleName = location.pathname.split("/").pop() || "liveTraffic";
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Save Table Preference
+  // Persist Table Preference
   useEffect(() => {
     localStorage.setItem("traffic_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
 
-  // Derived Visible Lists
+  // Derived Lists
   const visibleSearchFields = filterOptionsConfig.filter((col) =>
     searchColumns.includes(col.key),
   );
-
-  // Sort visible table columns to match the order in tableColumnsConfig
   const visibleTableFields = tableColumnsConfig.filter((col) =>
     tableColumns.includes(col.key),
   );
@@ -307,7 +301,6 @@ const LiveTraffic: React.FC = () => {
               selectedColumns={searchColumns}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
-                // Clean up removed filter values
                 setFilterValues((prev) => {
                   const next = { ...prev };
                   Object.keys(next).forEach((k) => {
@@ -317,7 +310,6 @@ const LiveTraffic: React.FC = () => {
                   return next;
                 });
               }}
-              // FIX: Reset to Default "Important" Filters
               onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
               isLoading={isLoading}
               buttonLabel="Search Fields"
@@ -330,14 +322,26 @@ const LiveTraffic: React.FC = () => {
               columns={tableColumnsConfig}
               selectedColumns={tableColumns}
               onFilter={setTableColumns}
-              // FIX: Reset to Default "Important" Table Columns
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
             />
           </div>
+
+          {/* 3. SAVE PRESET BUTTON (Replaced with proper Button component) */}
+          <div className="relative z-20">
+            <Button
+              variant="secondary"
+              onClick={() => toast.info("Filter Preset Saved")}
+              title="Save filter presets"
+              // Square-ish shape to match dropdown buttons
+              className="!px-3"
+            >
+              <Save size={18} />
+            </Button>
+          </div>
         </div>
 
-        {/* Breadcrumbs */}
+        {/* BREADCRUMBS */}
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
           <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">
@@ -390,13 +394,6 @@ const LiveTraffic: React.FC = () => {
           <div className="flex gap-2">
             <Button
               variant="secondary"
-              onClick={() => toast.info("Filter Preset Saved")}
-              leftIcon={<Save size={18} />}
-            >
-              Save Preset
-            </Button>
-            <Button
-              variant="secondary"
               onClick={handleExport}
               leftIcon={<Download size={18} />}
             >
@@ -411,12 +408,22 @@ const LiveTraffic: React.FC = () => {
           >
             {visibleTableFields.map((col) => {
               const cellData = (log as any)[col.key];
+              if (col.render) {
+                return (
+                  <td
+                    key={col.key}
+                    className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+                  >
+                    {col.render(log)}
+                  </td>
+                );
+              }
               return (
                 <td
                   key={col.key}
                   className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
                 >
-                  {col.render ? col.render(log) : cellData || "-"}
+                  {cellData || "-"}
                 </td>
               );
             })}
