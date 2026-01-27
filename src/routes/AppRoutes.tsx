@@ -31,6 +31,7 @@ import { NavItemsContext } from "../context/navItemsContext";
 import { useContext, type JSX } from "react";
 import TimeZone from "../pages/settings/Timezone/Timezone";
 import NotFound from "../pages/error/notFound";
+import LiveTraffic from "../pages/Report/LiveTraffic";
 
 const componentMap: Record<string, JSX.Element> = {
   dashboard: <Dashboard />,
@@ -59,6 +60,7 @@ const componentMap: Record<string, JSX.Element> = {
   operators: <Operators />,
   userLog: <UserLog />,
   customRoute: <CustomRoute />,
+  liveTraffic: <LiveTraffic />,
 };
 
 const AppRoutes = () => {

@@ -79,12 +79,12 @@ export function DataTable<T extends { id?: number | string }>({
     activeTotal === 0
       ? 0
       : serverSide
-      ? (activePage - 1) * activeRows + 1
-      : startIndex + 1
+        ? (activePage - 1) * activeRows + 1
+        : startIndex + 1
   }-${Math.min(
     (serverSide ? (activePage - 1) * activeRows : startIndex) +
       displayData.length,
-    activeTotal
+    activeTotal,
   )} of ${activeTotal}`;
 
   return (
