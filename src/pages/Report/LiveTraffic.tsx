@@ -1,16 +1,23 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Home, Download, Eye, Save } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
-// API
+// --- API Imports (Traffic) ---
 import {
   getTrafficLogsApi,
   exportTrafficLogsApi,
   type TrafficLogData,
 } from "../../api/reportApi/liveTrafficApi";
 
-// Components
+// --- API Imports (Dropdown Data) ---
+import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
+import { getOperatorsApi } from "../../api/operatorApi/operatorApi";
+import { getClientsApi } from "../../api/clientApi/clientApi";
+import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
+import { getCustomRoutesApi } from "../../api/routeManagerApi/customRouteApi";
+
+// --- Components ---
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -20,6 +27,7 @@ import AdvancedFilter, {
   type FilterColumn,
 } from "../../components/ui/AdvancedFilter";
 import TraceModal from "../../components/modals/Report/TraceModal";
+import CustomDatePicker from "../../components/ui/DatePicker";
 
 // --- Interfaces ---
 interface Option {
@@ -31,115 +39,21 @@ interface ColumnConfig extends FilterColumn {
   render?: (data: TrafficLogData) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
+  type: "text" | "number" | "date";
 }
 
-// --- 1. Static Options ---
-const timeRangeOptions: Option[] = [
-  { label: "Last 1 Hour", value: "1h" },
-  { label: "Last 24 Hours", value: "24h" },
-  { label: "Last 7 Days", value: "7d" },
-  { label: "Last 30 Days", value: "30d" },
-];
-
-const statusOptions: Option[] = [
+// --- 1. STATIC STATUS OPTIONS (Strictly for Traffic Delivery) ---
+// Do NOT use Company Status API here. Messages are Delivered/Failed, not "Registered/Closed".
+const deliveryStatusOptions: Option[] = [
   { label: "Delivered", value: "DELIVERED" },
   { label: "Failed", value: "FAILED" },
   { label: "Pending", value: "PENDING" },
   { label: "Undelivered", value: "UNDELIVERED" },
+  { label: "Rejected", value: "REJECTED" },
+  { label: "Expired", value: "EXPIRED" },
 ];
 
-// --- 2. CONFIGURATION: STRICTLY SEPARATED LISTS ---
-
-// LIST A: Filter Options
-const filterOptionsConfig: ColumnConfig[] = [
-  {
-    key: "timeRange",
-    label: "Time Range",
-    type: "text",
-    options: timeRangeOptions,
-  },
-  { key: "client", label: "Client", type: "text" },
-  { key: "vendor", label: "Vendor", type: "text" },
-  { key: "route", label: "Route", type: "text" },
-  { key: "country", label: "Country", type: "text" },
-  { key: "operator", label: "Operator", type: "text" },
-  { key: "senderId", label: "Sender ID", type: "text" },
-  { key: "messageType", label: "Message Type", type: "text" },
-  { key: "status", label: "Status", type: "text", options: statusOptions },
-];
-
-// LIST B: Table Columns
-const tableColumnsConfig: ColumnConfig[] = [
-  {
-    key: "messageId",
-    label: "Message ID",
-    type: "text",
-    render: (log) => (
-      <span className="font-mono text-xs text-primary">{log.messageId}</span>
-    ),
-  },
-  {
-    key: "time",
-    label: "Time",
-    type: "text",
-    render: (log) => (
-      <span className="text-xs text-text-secondary">
-        {new Date(log.time).toLocaleString()}
-      </span>
-    ),
-  },
-  { key: "client", label: "Client", type: "text" },
-  {
-    key: "vendorRoute",
-    label: "Vendor/Route",
-    type: "text",
-    render: (log) => (
-      <div className="flex flex-col">
-        <span className="font-medium text-text-primary dark:text-white">
-          {log.vendor}
-        </span>
-        <span className="text-xs text-text-secondary">{log.route}</span>
-      </div>
-    ),
-  },
-  { key: "msisdn", label: "MSISDN", type: "text" },
-  { key: "senderId", label: "Sender ID", type: "text" },
-  {
-    key: "status",
-    label: "Status",
-    type: "text",
-    render: (log) => {
-      const colors: Record<string, string> = {
-        DELIVERED:
-          "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-        FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-        PENDING:
-          "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-        UNDELIVERED:
-          "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
-      };
-      return (
-        <span
-          className={`px-2 py-0.5 rounded text-xs font-medium ${colors[log.status] || "bg-gray-100 text-gray-600"}`}
-        >
-          {log.status}
-        </span>
-      );
-    },
-  },
-  {
-    key: "error",
-    label: "Error",
-    type: "text",
-    render: (log) => (
-      <span className="text-red-500 text-xs">{log.error || "-"}</span>
-    ),
-  },
-  { key: "latency", label: "Latency", type: "text" },
-  { key: "cost", label: "Cost", type: "number" },
-];
-
-// --- 3. DEFAULTS ---
+// --- Defaults ---
 const DEFAULT_SEARCH_COLUMNS = ["timeRange", "status", "client"];
 const DEFAULT_TABLE_COLUMNS = [
   "time",
@@ -161,20 +75,25 @@ const LiveTraffic: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Filter Visibility
+  // --- Dynamic Dropdown Data ---
+  const [clientOptions, setClientOptions] = useState<Option[]>([]);
+  const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
+  const [countryOptions, setCountryOptions] = useState<Option[]>([]);
+  const [operatorOptions, setOperatorOptions] = useState<Option[]>([]);
+  const [routeOptions, setRouteOptions] = useState<Option[]>([]);
+
+  // Filter & Column Visibility
   const [searchColumns, setSearchColumns] = useState<string[]>(
     DEFAULT_SEARCH_COLUMNS,
   );
-
-  // Table Visibility
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("traffic_table_columns");
     return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
   });
 
-  // Filter Values
   const [filterValues, setFilterValues] = useState<Record<string, string>>({
-    timeRange: "24h", // Mandatory default
+    startDate: "",
+    endDate: "",
   });
 
   // Modal
@@ -186,12 +105,175 @@ const LiveTraffic: React.FC = () => {
   const moduleName = location.pathname.split("/").pop() || "liveTraffic";
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Persist Table Preference
+  // --- 2. Fetch Dynamic Options (Clients, Vendors, etc.) ---
+  const extractOptions = (response: any, labelKey: string = "name") => {
+    let data = [];
+    if (response && response.results) {
+      data = response.results;
+    } else if (Array.isArray(response)) {
+      data = response;
+    } else if (response && Array.isArray(response.data)) {
+      data = response.data;
+    }
+    return data.map((item: any) => ({
+      label: item[labelKey] || item.name || "Unknown",
+      value: String(item.id),
+    }));
+  };
+
+  useEffect(() => {
+    const fetchAllOptions = async () => {
+      try {
+        const [clientsRes, countriesRes, operatorsRes, vendorsRes, routesRes] =
+          await Promise.all([
+            getClientsApi("client", 1, 1000),
+            getCountriesApi("country", 1, 1000),
+            getOperatorsApi("operator", 1, 1000),
+            getVendorsApi("vendor", 1, 1000),
+            getCustomRoutesApi("customRoute", 1, 1000),
+          ]);
+
+        setClientOptions(extractOptions(clientsRes, "name"));
+        setCountryOptions(extractOptions(countriesRes, "name"));
+        setOperatorOptions(extractOptions(operatorsRes, "name"));
+        setVendorOptions(extractOptions(vendorsRes, "profileName"));
+        setRouteOptions(extractOptions(routesRes, "name"));
+      } catch (error) {
+        console.error("Failed to load filter options", error);
+      }
+    };
+
+    fetchAllOptions();
+  }, []);
+
+  // --- 3. Configuration ---
+  const filterOptionsConfig: ColumnConfig[] = useMemo(
+    () => [
+      { key: "timeRange", label: "Time Range", type: "date" },
+
+      // Dynamic Dropdowns (Fetched from API)
+      { key: "client", label: "Client", type: "text", options: clientOptions },
+      { key: "vendor", label: "Vendor", type: "text", options: vendorOptions },
+      { key: "route", label: "Route", type: "text", options: routeOptions },
+      {
+        key: "country",
+        label: "Country",
+        type: "text",
+        options: countryOptions,
+      },
+      {
+        key: "operator",
+        label: "Operator",
+        type: "text",
+        options: operatorOptions,
+      },
+
+      // Static Inputs
+      { key: "senderId", label: "Sender ID", type: "text" },
+      { key: "messageType", label: "Message Type", type: "text" },
+
+      // Static Status (Delivery Status Only)
+      {
+        key: "status",
+        label: "Status",
+        type: "text",
+        options: deliveryStatusOptions,
+      },
+    ],
+    [
+      clientOptions,
+      vendorOptions,
+      countryOptions,
+      operatorOptions,
+      routeOptions,
+    ],
+  );
+
+  const tableColumnsConfig: ColumnConfig[] = useMemo(
+    () => [
+      {
+        key: "messageId",
+        label: "Message ID",
+        type: "text",
+        render: (log) => (
+          <span className="font-mono text-xs text-primary">
+            {log.messageId}
+          </span>
+        ),
+      },
+      {
+        key: "time",
+        label: "Time",
+        type: "text",
+        render: (log) => (
+          <span className="text-xs text-text-secondary">
+            {new Date(log.time).toLocaleString()}
+          </span>
+        ),
+      },
+      { key: "client", label: "Client", type: "text" },
+      {
+        key: "vendorRoute",
+        label: "Vendor/Route",
+        type: "text",
+        render: (log) => (
+          <div className="flex flex-col">
+            <span className="font-medium text-text-primary dark:text-white">
+              {log.vendor}
+            </span>
+            <span className="text-xs text-text-secondary">{log.route}</span>
+          </div>
+        ),
+      },
+      { key: "msisdn", label: "MSISDN", type: "text" },
+      { key: "senderId", label: "Sender ID", type: "text" },
+      {
+        key: "status",
+        label: "Status",
+        type: "text",
+        render: (log) => {
+          const colors: Record<string, string> = {
+            DELIVERED:
+              "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+            FAILED:
+              "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+            PENDING:
+              "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+            UNDELIVERED:
+              "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+            REJECTED:
+              "bg-red-200 text-red-900 dark:bg-red-900 dark:text-red-300",
+            EXPIRED:
+              "bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-300",
+          };
+          return (
+            <span
+              className={`px-2 py-0.5 rounded text-xs font-medium ${colors[log.status] || "bg-gray-100 text-gray-600"}`}
+            >
+              {log.status}
+            </span>
+          );
+        },
+      },
+      {
+        key: "error",
+        label: "Error",
+        type: "text",
+        render: (log) => (
+          <span className="text-red-500 text-xs">{log.error || "-"}</span>
+        ),
+      },
+      { key: "latency", label: "Latency", type: "text" },
+      { key: "cost", label: "Cost", type: "number" },
+    ],
+    [],
+  );
+
+  // --- Effects & Logic ---
   useEffect(() => {
     localStorage.setItem("traffic_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
 
-  // Derived Lists
   const visibleSearchFields = filterOptionsConfig.filter((col) =>
     searchColumns.includes(col.key),
   );
@@ -199,7 +281,6 @@ const LiveTraffic: React.FC = () => {
     tableColumns.includes(col.key),
   );
 
-  // --- API Logic ---
   const fetchLogs = async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
@@ -243,7 +324,13 @@ const LiveTraffic: React.FC = () => {
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [moduleName, currentPage, rowsPerPage, filterValues.timeRange]);
+  }, [
+    moduleName,
+    currentPage,
+    rowsPerPage,
+    filterValues.startDate,
+    filterValues.endDate,
+  ]);
 
   // --- Handlers ---
   const handleFilterChange = (key: string, value: string) => {
@@ -256,7 +343,7 @@ const LiveTraffic: React.FC = () => {
   };
 
   const handleClearFilters = () => {
-    setFilterValues({ timeRange: "24h" });
+    setFilterValues({ startDate: "", endDate: "" });
     setCurrentPage(1);
     setTimeout(() => fetchLogs(), 0);
   };
@@ -287,14 +374,14 @@ const LiveTraffic: React.FC = () => {
 
   return (
     <div className="container mx-auto">
-      {/* HEADER SECTION */}
+      {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
             Live Traffic Monitor
           </h1>
 
-          {/* 1. SEARCH FIELDS FILTER */}
+          {/* Search Fields Dropdown */}
           <div className="relative z-20">
             <AdvancedFilter
               columns={filterOptionsConfig}
@@ -304,7 +391,11 @@ const LiveTraffic: React.FC = () => {
                 setFilterValues((prev) => {
                   const next = { ...prev };
                   Object.keys(next).forEach((k) => {
-                    if (!newCols.includes(k) && k !== "timeRange")
+                    if (
+                      !newCols.includes(k) &&
+                      k !== "startDate" &&
+                      k !== "endDate"
+                    )
                       delete next[k];
                   });
                   return next;
@@ -316,7 +407,7 @@ const LiveTraffic: React.FC = () => {
             />
           </div>
 
-          {/* 2. TABLE COLUMNS FILTER */}
+          {/* Table Columns Dropdown */}
           <div className="relative z-20">
             <AdvancedFilter
               columns={tableColumnsConfig}
@@ -327,13 +418,12 @@ const LiveTraffic: React.FC = () => {
             />
           </div>
 
-          {/* 3. SAVE PRESET BUTTON (Replaced with proper Button component) */}
+          {/* Save Preset Button */}
           <div className="relative z-20">
             <Button
               variant="secondary"
               onClick={() => toast.info("Filter Preset Saved")}
               title="Save filter presets"
-              // Square-ish shape to match dropdown buttons
               className="!px-3"
             >
               <Save size={18} />
@@ -341,7 +431,6 @@ const LiveTraffic: React.FC = () => {
           </div>
         </div>
 
-        {/* BREADCRUMBS */}
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
           <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">
@@ -352,9 +441,50 @@ const LiveTraffic: React.FC = () => {
         </div>
       </div>
 
-      {/* DYNAMIC FILTER CARD */}
+      {/* Dynamic Filter Card */}
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
+          // 1. Time Range Logic (Dual DatePicker)
+          if (col.key === "timeRange") {
+            return (
+              <React.Fragment key="timeRange-group">
+                <CustomDatePicker
+                  label="Start Time"
+                  selected={
+                    filterValues.startDate
+                      ? new Date(filterValues.startDate)
+                      : null
+                  }
+                  onChange={(date) =>
+                    handleFilterChange(
+                      "startDate",
+                      date ? date.toISOString() : "",
+                    )
+                  }
+                  showTimeSelect={true}
+                  placeholder="Select Start"
+                  isClearable={true}
+                />
+                <CustomDatePicker
+                  label="End Time"
+                  selected={
+                    filterValues.endDate ? new Date(filterValues.endDate) : null
+                  }
+                  onChange={(date) =>
+                    handleFilterChange(
+                      "endDate",
+                      date ? date.toISOString() : "",
+                    )
+                  }
+                  showTimeSelect={true}
+                  placeholder="Select End"
+                  isClearable={true}
+                />
+              </React.Fragment>
+            );
+          }
+
+          // 2. Dropdown Logic
           if (col.options) {
             return (
               <Select
@@ -367,6 +497,8 @@ const LiveTraffic: React.FC = () => {
               />
             );
           }
+
+          // 3. Default Input
           return (
             <Input
               key={col.key}
@@ -379,7 +511,7 @@ const LiveTraffic: React.FC = () => {
         })}
       </FilterCard>
 
-      {/* DATA TABLE */}
+      {/* Data Table */}
       <DataTable
         serverSide={true}
         data={logs}
@@ -427,8 +559,6 @@ const LiveTraffic: React.FC = () => {
                 </td>
               );
             })}
-
-            {/* ACTION COLUMN */}
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
                 <Button
@@ -445,7 +575,6 @@ const LiveTraffic: React.FC = () => {
         )}
       />
 
-      {/* TRACE MODAL */}
       <TraceModal
         isOpen={isTraceModalOpen}
         onClose={() => setIsTraceModalOpen(false)}
