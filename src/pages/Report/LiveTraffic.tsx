@@ -42,8 +42,7 @@ interface ColumnConfig extends FilterColumn {
   type: "text" | "number" | "date";
 }
 
-// --- 1. STATIC STATUS OPTIONS (Strictly for Traffic Delivery) ---
-// Do NOT use Company Status API here. Messages are Delivered/Failed, not "Registered/Closed".
+// --- Static Options (Delivery Status) ---
 const deliveryStatusOptions: Option[] = [
   { label: "Delivered", value: "DELIVERED" },
   { label: "Failed", value: "FAILED" },
@@ -66,7 +65,7 @@ const DEFAULT_TABLE_COLUMNS = [
 ];
 
 const LiveTraffic: React.FC = () => {
-  // --- State ---
+  // --- 1. State Management ---
   const [logs, setLogs] = useState<TrafficLogData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,10 +81,15 @@ const LiveTraffic: React.FC = () => {
   const [operatorOptions, setOperatorOptions] = useState<Option[]>([]);
   const [routeOptions, setRouteOptions] = useState<Option[]>([]);
 
-  // Filter & Column Visibility
-  const [searchColumns, setSearchColumns] = useState<string[]>(
-    DEFAULT_SEARCH_COLUMNS,
-  );
+  // --- Filter & Column Visibility (With LocalStorage Persistence) ---
+
+  // 1. Search Fields Persistence
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("traffic_search_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+  });
+
+  // 2. Table Columns Persistence
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("traffic_table_columns");
     return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
@@ -105,7 +109,7 @@ const LiveTraffic: React.FC = () => {
   const moduleName = location.pathname.split("/").pop() || "liveTraffic";
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // --- 2. Fetch Dynamic Options (Clients, Vendors, etc.) ---
+  // --- 2. Fetch Dropdown Options ---
   const extractOptions = (response: any, labelKey: string = "name") => {
     let data = [];
     if (response && response.results) {
@@ -150,8 +154,6 @@ const LiveTraffic: React.FC = () => {
   const filterOptionsConfig: ColumnConfig[] = useMemo(
     () => [
       { key: "timeRange", label: "Time Range", type: "date" },
-
-      // Dynamic Dropdowns (Fetched from API)
       { key: "client", label: "Client", type: "text", options: clientOptions },
       { key: "vendor", label: "Vendor", type: "text", options: vendorOptions },
       { key: "route", label: "Route", type: "text", options: routeOptions },
@@ -167,12 +169,8 @@ const LiveTraffic: React.FC = () => {
         type: "text",
         options: operatorOptions,
       },
-
-      // Static Inputs
       { key: "senderId", label: "Sender ID", type: "text" },
       { key: "messageType", label: "Message Type", type: "text" },
-
-      // Static Status (Delivery Status Only)
       {
         key: "status",
         label: "Status",
@@ -269,10 +267,18 @@ const LiveTraffic: React.FC = () => {
     [],
   );
 
-  // --- Effects & Logic ---
+  // --- Effects: Save Preferences ---
   useEffect(() => {
     localStorage.setItem("traffic_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
+
+  // FIX: Added Persistence for Search Fields
+  useEffect(() => {
+    localStorage.setItem(
+      "traffic_search_columns",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
 
   const visibleSearchFields = filterOptionsConfig.filter((col) =>
     searchColumns.includes(col.key),
@@ -444,7 +450,6 @@ const LiveTraffic: React.FC = () => {
       {/* Dynamic Filter Card */}
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          // 1. Time Range Logic (Dual DatePicker)
           if (col.key === "timeRange") {
             return (
               <React.Fragment key="timeRange-group">
@@ -484,7 +489,6 @@ const LiveTraffic: React.FC = () => {
             );
           }
 
-          // 2. Dropdown Logic
           if (col.options) {
             return (
               <Select
@@ -498,7 +502,6 @@ const LiveTraffic: React.FC = () => {
             );
           }
 
-          // 3. Default Input
           return (
             <Input
               key={col.key}
