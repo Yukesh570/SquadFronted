@@ -32,6 +32,7 @@ import { useContext, type JSX } from "react";
 import TimeZone from "../pages/settings/Timezone/Timezone";
 import NotFound from "../pages/error/notFound";
 import LiveTraffic from "../pages/Report/LiveTraffic";
+import MessageReport from "../pages/Report/MessageReport";
 
 const componentMap: Record<string, JSX.Element> = {
   dashboard: <Dashboard />,
@@ -61,6 +62,7 @@ const componentMap: Record<string, JSX.Element> = {
   userLog: <UserLog />,
   customRoute: <CustomRoute />,
   liveTraffic: <LiveTraffic />,
+  messageReport: <MessageReport />,
 };
 
 const AppRoutes = () => {
