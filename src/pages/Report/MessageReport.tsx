@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Home, Download, Eye, Save } from "lucide-react";
+import { Home, Download, Save } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -10,6 +10,11 @@ import {
   type MessageLogData,
 } from "../../api/reportApi/messageReportApi";
 
+// --- Dropdown APIs ---
+import { getClientsApi } from "../../api/clientApi/clientApi";
+import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
+import { getSmppApi } from "../../api/connectivityApi/smppApi";
+
 // --- Components ---
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -19,8 +24,6 @@ import FilterCard from "../../components/ui/FilterCard";
 import AdvancedFilter, {
   type FilterColumn,
 } from "../../components/ui/AdvancedFilter";
-import CustomDatePicker from "../../components/ui/DatePicker";
-import MessageDetailsModal from "../../components/modals/Report/MessageDetailsModal";
 
 // --- Interfaces ---
 interface Option {
@@ -35,22 +38,24 @@ interface ColumnConfig extends FilterColumn {
   type: "text" | "number" | "date";
 }
 
-// --- Static Options (Based on Screenshot) ---
+// --- Static Options ---
 const statusOptions: Option[] = [
-  { label: "Queued", value: "Queued" },
-  { label: "Sent", value: "Sent" },
-  { label: "Delivered", value: "Delivered" },
-  { label: "Failed", value: "Failed" },
+  { label: "Queued", value: "queued" },
+  { label: "Sent", value: "sent" },
+  { label: "Failed", value: "failed" },
+  { label: "Delivered", value: "delivered" },
 ];
 
 // --- Defaults ---
-const DEFAULT_SEARCH_COLUMNS = ["timeRange", "status", "text"];
+const DEFAULT_SEARCH_COLUMNS = ["destination", "clientName", "status"];
 const DEFAULT_TABLE_COLUMNS = [
-  "id",
+  "destination",
   "text",
   "status",
-  "createdAt",
-  "updatedAt",
+  "clientName",
+  "vendorName",
+  "smppName",
+  "systemId",
 ];
 
 const MessageReport: React.FC = () => {
@@ -63,7 +68,12 @@ const MessageReport: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Filter & Column Visibility (Persistence)
+  // Dynamic Options
+  const [clientOptions, setClientOptions] = useState<Option[]>([]);
+  const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
+  const [smppOptions, setSmppOptions] = useState<Option[]>([]);
+
+  // Filter & Column Visibility
   const [searchColumns, setSearchColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("msg_search_columns");
     return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
@@ -74,40 +84,85 @@ const MessageReport: React.FC = () => {
     return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
   });
 
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({
-    startDate: "",
-    endDate: "",
-  });
-
-  // Modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<MessageLogData | null>(null);
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   // Routing
   const location = useLocation();
-  const moduleName = location.pathname.split("/").pop() || "messageLog";
+  const moduleName = location.pathname.split("/").pop() || "messageReport";
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // --- Helper: Extract Options ---
+  const extractOptions = (
+    response: any,
+    labelKey: string,
+    valueKey: string,
+  ) => {
+    let data = [];
+    if (response && response.results) data = response.results;
+    else if (Array.isArray(response)) data = response;
+    else if (response && Array.isArray(response.data)) data = response.data;
+
+    return data.map((item: any) => ({
+      label: item[labelKey] || item.name || "Unknown",
+      value: item[valueKey] || item.name || String(item.id),
+    }));
+  };
+
+  useEffect(() => {
+    const fetchAllOptions = async () => {
+      try {
+        const [clientsRes, vendorsRes, smppRes] = await Promise.all([
+          getClientsApi("client", 1, 1000),
+          getVendorsApi("vendor", 1, 1000),
+          typeof getSmppApi === "function"
+            ? getSmppApi("smpp", 1, 1000)
+            : Promise.resolve([]),
+        ]);
+
+        setClientOptions(extractOptions(clientsRes, "name", "name"));
+        setVendorOptions(
+          extractOptions(vendorsRes, "profileName", "profileName"),
+        );
+        setSmppOptions(extractOptions(smppRes, "systemID", "systemID"));
+      } catch (error) {
+        console.error("Failed to load filter options", error);
+      }
+    };
+    fetchAllOptions();
+  }, []);
 
   // --- Configuration ---
   const filterOptionsConfig: ColumnConfig[] = useMemo(
     () => [
-      { key: "timeRange", label: "Date Range", type: "date" },
-      { key: "text", label: "Message Text", type: "text" },
+      { key: "destination", label: "Destination", type: "text" },
+      {
+        key: "clientName",
+        label: "Client",
+        type: "text",
+        options: clientOptions,
+      },
+      {
+        key: "vendorName",
+        label: "Vendor",
+        type: "text",
+        options: vendorOptions,
+      },
+      { key: "smppName", label: "SMPP", type: "text", options: smppOptions },
+      { key: "systemId", label: "System ID", type: "text" },
       { key: "status", label: "Status", type: "text", options: statusOptions },
-      { key: "id", label: "ID", type: "number" },
     ],
-    [],
+    [clientOptions, vendorOptions, smppOptions],
   );
 
   const tableColumnsConfig: ColumnConfig[] = useMemo(
     () => [
       {
-        key: "id",
-        label: "ID",
-        type: "number",
+        key: "destination",
+        label: "Destination",
+        type: "text",
         render: (log) => (
-          <span className="font-mono text-xs text-text-secondary">
-            {log.id}
+          <span className="text-sm font-medium text-text-primary dark:text-white">
+            {log.destination}
           </span>
         ),
       },
@@ -117,7 +172,7 @@ const MessageReport: React.FC = () => {
         type: "text",
         render: (log) => (
           <div
-            className="max-w-md truncate text-sm text-text-primary dark:text-white"
+            className="max-w-xs truncate text-sm text-text-secondary"
             title={log.text}
           >
             {log.text}
@@ -129,44 +184,29 @@ const MessageReport: React.FC = () => {
         label: "Status",
         type: "text",
         render: (log) => {
+          const statusKey = log.status?.toLowerCase();
           const colors: Record<string, string> = {
-            Delivered:
+            delivered:
               "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-            Failed:
+            failed:
               "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-            Sent: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-            Queued:
+            sent: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+            queued:
               "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
           };
           return (
             <span
-              className={`px-2 py-0.5 rounded text-xs font-medium ${colors[log.status] || "bg-gray-100 text-gray-600"}`}
+              className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${colors[statusKey] || "bg-gray-100 text-gray-600"}`}
             >
               {log.status}
             </span>
           );
         },
       },
-      {
-        key: "createdAt",
-        label: "Created At",
-        type: "date",
-        render: (log) => (
-          <span className="text-xs text-text-secondary">
-            {new Date(log.createdAt).toLocaleString()}
-          </span>
-        ),
-      },
-      {
-        key: "updatedAt",
-        label: "Updated At",
-        type: "date",
-        render: (log) => (
-          <span className="text-xs text-text-secondary">
-            {new Date(log.updatedAt).toLocaleString()}
-          </span>
-        ),
-      },
+      { key: "clientName", label: "Client", type: "text" },
+      { key: "vendorName", label: "Vendor", type: "text" },
+      { key: "smppName", label: "SMPP", type: "text" },
+      { key: "systemId", label: "System ID", type: "text" },
     ],
     [],
   );
@@ -187,7 +227,7 @@ const MessageReport: React.FC = () => {
     tableColumns.includes(col.key),
   );
 
-  const fetchLogs = async () => {
+  const fetchLogs = async (overrideParams?: Record<string, any>) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
@@ -195,7 +235,10 @@ const MessageReport: React.FC = () => {
     setIsLoading(true);
     try {
       const currentSearchParams: Record<string, any> = {};
-      Object.entries(filterValues).forEach(([key, val]) => {
+      // Use passed params (for Search button) or fallback (for pagination/init)
+      const sourceFilters = overrideParams || filterValues;
+
+      Object.entries(sourceFilters).forEach(([key, val]) => {
         if (val) currentSearchParams[key] = val;
       });
 
@@ -225,18 +268,13 @@ const MessageReport: React.FC = () => {
     }
   };
 
+  // Only re-fetch on Page/Rows change. Filters are manual.
   useEffect(() => {
     fetchLogs();
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [
-    moduleName,
-    currentPage,
-    rowsPerPage,
-    filterValues.startDate,
-    filterValues.endDate,
-  ]);
+  }, [moduleName, currentPage, rowsPerPage]);
 
   // --- Handlers ---
   const handleFilterChange = (key: string, value: string) => {
@@ -249,9 +287,9 @@ const MessageReport: React.FC = () => {
   };
 
   const handleClearFilters = () => {
-    setFilterValues({ startDate: "", endDate: "" });
+    setFilterValues({});
     setCurrentPage(1);
-    setTimeout(() => fetchLogs(), 0);
+    setTimeout(() => fetchLogs({}), 0);
   };
 
   const handleExport = async () => {
@@ -268,15 +306,8 @@ const MessageReport: React.FC = () => {
     }
   };
 
-  const handleViewDetails = (log: MessageLogData) => {
-    setSelectedLog(log);
-    setIsModalOpen(true);
-  };
-
-  const tableHeaders = [
-    ...visibleTableFields.map((col) => col.label),
-    "Action",
-  ];
+  // Removed Action Column
+  const tableHeaders = [...visibleTableFields.map((col) => col.label)];
 
   return (
     <div className="container mx-auto">
@@ -287,7 +318,6 @@ const MessageReport: React.FC = () => {
             Message Report
           </h1>
 
-          {/* Search Fields Dropdown */}
           <div className="relative z-20">
             <AdvancedFilter
               columns={filterOptionsConfig}
@@ -297,12 +327,7 @@ const MessageReport: React.FC = () => {
                 setFilterValues((prev) => {
                   const next = { ...prev };
                   Object.keys(next).forEach((k) => {
-                    if (
-                      !newCols.includes(k) &&
-                      k !== "startDate" &&
-                      k !== "endDate"
-                    )
-                      delete next[k];
+                    if (!newCols.includes(k)) delete next[k];
                   });
                   return next;
                 });
@@ -313,7 +338,6 @@ const MessageReport: React.FC = () => {
             />
           </div>
 
-          {/* Table Columns Dropdown */}
           <div className="relative z-20">
             <AdvancedFilter
               columns={tableColumnsConfig}
@@ -324,7 +348,6 @@ const MessageReport: React.FC = () => {
             />
           </div>
 
-          {/* Save Preset Button */}
           <div className="relative z-20">
             <Button
               variant="secondary"
@@ -343,55 +366,12 @@ const MessageReport: React.FC = () => {
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary dark:text-white">
-            Message Report
-          </span>
+          <span className="text-text-primary dark:text-white">Report</span>
         </div>
       </div>
 
-      {/* Dynamic Filter Card */}
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          // Time Range Logic
-          if (col.key === "timeRange") {
-            return (
-              <React.Fragment key="timeRange-group">
-                <CustomDatePicker
-                  label="Start Date"
-                  selected={
-                    filterValues.startDate
-                      ? new Date(filterValues.startDate)
-                      : null
-                  }
-                  onChange={(date) =>
-                    handleFilterChange(
-                      "startDate",
-                      date ? date.toISOString() : "",
-                    )
-                  }
-                  showTimeSelect={true}
-                  placeholder="Select Start"
-                  isClearable={true}
-                />
-                <CustomDatePicker
-                  label="End Date"
-                  selected={
-                    filterValues.endDate ? new Date(filterValues.endDate) : null
-                  }
-                  onChange={(date) =>
-                    handleFilterChange(
-                      "endDate",
-                      date ? date.toISOString() : "",
-                    )
-                  }
-                  showTimeSelect={true}
-                  placeholder="Select End"
-                  isClearable={true}
-                />
-              </React.Fragment>
-            );
-          }
-
           if (col.options) {
             return (
               <Select
@@ -404,7 +384,6 @@ const MessageReport: React.FC = () => {
               />
             );
           }
-
           return (
             <Input
               key={col.key}
@@ -417,7 +396,6 @@ const MessageReport: React.FC = () => {
         })}
       </FilterCard>
 
-      {/* Data Table */}
       <DataTable
         serverSide={true}
         data={logs}
@@ -465,26 +443,8 @@ const MessageReport: React.FC = () => {
                 </td>
               );
             })}
-            <td className="px-4 py-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  onClick={() => handleViewDetails(log)}
-                  title="View Details"
-                >
-                  <Eye size={14} />
-                </Button>
-              </div>
-            </td>
           </tr>
         )}
-      />
-
-      <MessageDetailsModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        data={selectedLog}
       />
     </div>
   );
