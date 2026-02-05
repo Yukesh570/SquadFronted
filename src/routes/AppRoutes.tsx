@@ -64,7 +64,7 @@ const componentMap: Record<string, JSX.Element> = {
   customRoute: <CustomRoute />,
   liveTraffic: <LiveTraffic />,
   messageReport: <MessageReport />,
-  WhiteListIP: <WhiteListIP />,
+  whiteListIP: <WhiteListIP />,
 };
 
 const AppRoutes = () => {
