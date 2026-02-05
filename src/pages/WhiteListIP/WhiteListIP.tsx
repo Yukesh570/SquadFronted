@@ -21,9 +21,9 @@ import AdvancedFilter, {
   type FilterColumn,
 } from "../../components/ui/AdvancedFilter";
 import ViewButton from "../../components/ui/ViewButton";
-import IpWhitelistModal from "../../components/modals/IpWhiteListModal";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
+import IpWhitelistModal from "../../components/modals/WhiteListIPModal";
 
 // --- Interfaces ---
 interface Option {
@@ -41,7 +41,7 @@ interface ColumnConfig extends FilterColumn {
 const DEFAULT_SEARCH_COLUMNS = ["ip", "client"];
 const DEFAULT_TABLE_COLUMNS = ["ip", "clientName", "createdAt"];
 
-const IpWhitelist: React.FC = () => {
+const WhiteListIP: React.FC = () => {
   // Permissions
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
 
@@ -430,4 +430,4 @@ const IpWhitelist: React.FC = () => {
   );
 };
 
-export default IpWhitelist;
+export default WhiteListIP;
