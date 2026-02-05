@@ -33,6 +33,7 @@ import TimeZone from "../pages/settings/Timezone/Timezone";
 import NotFound from "../pages/error/notFound";
 import LiveTraffic from "../pages/Report/LiveTraffic";
 import MessageReport from "../pages/Report/MessageReport";
+import IpWhitelist from "../pages/IpWhitelist/IpWhitelist";
 
 const componentMap: Record<string, JSX.Element> = {
   dashboard: <Dashboard />,
@@ -63,6 +64,7 @@ const componentMap: Record<string, JSX.Element> = {
   customRoute: <CustomRoute />,
   liveTraffic: <LiveTraffic />,
   messageReport: <MessageReport />,
+  IpWhitelist: <IpWhitelist />,
 };
 
 const AppRoutes = () => {
