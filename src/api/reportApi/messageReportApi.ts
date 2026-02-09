@@ -1,17 +1,20 @@
 import api from "../../api/axiosInstance";
 
 export interface MessageLogData {
-  id?: number;
+  id: number;
   destination: string;
   text: string;
   status: "queued" | "sent" | "failed" | "delivered";
-  // Read-only fields from GET response
+  
+  encoding?: string; 
+  segmentNumber?: string;  
+  characterCount?: string; 
+  
   clientName?: string;
   vendorName?: string;
   smppName?: string;
-  // Writable fields for POST/PUT
-  systemId: string;
-  createdAt?: string;
+  systemId?: string;
+  createdAt?: string; 
 }
 
 export interface PaginatedResponse<T> {
@@ -21,7 +24,6 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// GET
 export const getMessageLogsApi = async (
   module: string,
   page: number = 1,
@@ -37,34 +39,6 @@ export const getMessageLogsApi = async (
   return response.data;
 };
 
-// POST
-export const createMessageLogApi = async (
-  data: any,
-  module: string
-): Promise<MessageLogData> => {
-  const response = await api.post(`/smppSMS/${module}/`, data);
-  return response.data;
-};
-
-// PATCH (Update)
-export const updateMessageLogApi = async (
-  id: number,
-  data: any,
-  module: string
-): Promise<MessageLogData> => {
-  const response = await api.patch(`/smppSMS/${module}/${id}/`, data);
-  return response.data;
-};
-
-// DELETE
-export const deleteMessageLogApi = async (
-  id: number,
-  module: string
-): Promise<void> => {
-  await api.delete(`/smppSMS/${module}/${id}/`);
-};
-
-// EXPORT
 export const exportMessageLogsApi = async (
   module: string,
   searchParams?: Record<string, any>

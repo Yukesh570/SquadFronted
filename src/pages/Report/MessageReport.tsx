@@ -46,16 +46,25 @@ const statusOptions: Option[] = [
   { label: "Delivered", value: "delivered" },
 ];
 
+const encodingOptions: Option[] = [
+  { label: "GSM-7", value: "GSM-7" },
+  { label: "UCS-2", value: "UCS-2" },
+];
+
 // --- Defaults ---
 const DEFAULT_SEARCH_COLUMNS = ["destination", "clientName", "status"];
 const DEFAULT_TABLE_COLUMNS = [
   "destination",
   "text",
   "status",
+  "encoding",
+  "segmentNumber",
   "clientName",
+  "characterCount",
   "vendorName",
   "smppName",
   "systemId",
+  // "createdAt",
 ];
 
 const MessageReport: React.FC = () => {
@@ -150,6 +159,16 @@ const MessageReport: React.FC = () => {
       { key: "smppName", label: "SMPP", type: "text", options: smppOptions },
       { key: "systemId", label: "System ID", type: "text" },
       { key: "status", label: "Status", type: "text", options: statusOptions },
+
+      // --- New Search Fields ---
+      {
+        key: "encoding",
+        label: "Encoding",
+        type: "text",
+        options: encodingOptions,
+      },
+      { key: "segmentNumber", label: "Segment Number", type: "text" },
+      { key: "characterCount", label: "Character Count", type: "text" },
     ],
     [clientOptions, vendorOptions, smppOptions],
   );
@@ -203,10 +222,23 @@ const MessageReport: React.FC = () => {
           );
         },
       },
+      { key: "encoding", label: "Encoding", type: "text" },
+      { key: "segmentNumber", label: "Segment", type: "text" },
+      { key: "characterCount", label: "Chars", type: "text" },
       { key: "clientName", label: "Client", type: "text" },
       { key: "vendorName", label: "Vendor", type: "text" },
       { key: "smppName", label: "SMPP", type: "text" },
       { key: "systemId", label: "System ID", type: "text" },
+      {
+        key: "createdAt",
+        label: "Created At",
+        type: "date",
+        render: (log) => (
+          <span className="text-xs text-text-secondary">
+            {log.createdAt ? new Date(log.createdAt).toLocaleString() : "-"}
+          </span>
+        ),
+      },
     ],
     [],
   );
@@ -235,7 +267,6 @@ const MessageReport: React.FC = () => {
     setIsLoading(true);
     try {
       const currentSearchParams: Record<string, any> = {};
-      // Use passed params (for Search button) or fallback (for pagination/init)
       const sourceFilters = overrideParams || filterValues;
 
       Object.entries(sourceFilters).forEach(([key, val]) => {
@@ -268,7 +299,6 @@ const MessageReport: React.FC = () => {
     }
   };
 
-  // Only re-fetch on Page/Rows change. Filters are manual.
   useEffect(() => {
     fetchLogs();
     return () => {
@@ -306,7 +336,7 @@ const MessageReport: React.FC = () => {
     }
   };
 
-  // Removed Action Column
+  // No Action Column
   const tableHeaders = [...visibleTableFields.map((col) => col.label)];
 
   return (
