@@ -1,30 +1,23 @@
-import api from "../axiosInstance";
+import api from "../../api/axiosInstance";
 
 export interface ClientData {
   id?: number;
-  // Identity
-  company: number; // Integer as per Schema
-  companyName?: string; // Read-only string
+  company: number; 
+  companyName?: string; 
   name: string;
   status: "ACTIVE" | "TRIAL" | "SUSPENDED";
   route: "DIRECT" | "HIGH QUALITY" | "SIM" | "WHOLESALE" | "FULL" | "SPAM";
-
-  // Commercials & Credit
   paymentTerms: "PREPAID" | "POSTPAID" | "NET7" | "NET15" | "NET30";
-  creditLimit: string; // String/Decimal
-  balanceAlertAmount: string; // String/Decimal
+  creditLimit: string; 
+  balanceAlertAmount: string; 
   allowNetting: boolean;
 
-  // Connectivity & Security
-  ipWhitelist: string;
+  ipWhitelist: string | string[]; 
+  
   smppUsername?: string;
-  smppPassword?: string; // Write-only generally, but part of request body
-
-  // Notes
-  internalNotes?: string; // Matched strictly to "internalNotes"
-
-  // System
-  createdAt?: string; // Added based on response schema
+  smppPassword?: string; 
+  internalNotes?: string; 
+  createdAt?: string; 
 }
 
 export interface PaginatedResponse<T> {
@@ -34,7 +27,7 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// GET /client/{module}/
+// GET
 export const getClientsApi = async (
   module: string,
   page: number = 1,
@@ -50,7 +43,7 @@ export const getClientsApi = async (
   return response.data;
 };
 
-// POST /client/{module}/
+// POST
 export const createClientApi = async (
   data: any,
   module: string
@@ -59,7 +52,7 @@ export const createClientApi = async (
   return response.data;
 };
 
-// PUT /client/{module}/{id}/
+// PUT
 export const putClientApi = async (
   id: number,
   data: any,
@@ -69,7 +62,7 @@ export const putClientApi = async (
   return response.data;
 };
 
-// PATCH /client/{module}/{id}/
+// PATCH
 export const updateClientApi = async (
   id: number,
   data: any,
@@ -79,7 +72,7 @@ export const updateClientApi = async (
   return response.data;
 };
 
-// DELETE /client/{module}/{id}/
+// DELETE
 export const deleteClientApi = async (
   id: number,
   module: string

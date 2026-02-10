@@ -1,18 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import { Eye, EyeOff } from "lucide-react";
+
+// --- APIs ---
 import {
   createClientApi,
   updateClientApi,
   type ClientData,
 } from "../../api/clientApi/clientApi";
 import { getCompaniesApi } from "../../api/companyApi/companyApi";
+import {
+  getIpWhitelistApi,
+  createIpWhitelistApi,
+  deleteIpWhitelistApi,
+} from "../../api/ipWhitelistApi/ipWhitelistApi";
+
+// --- Components ---
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import Select from "../ui/Select";
 import Modal from "../ui/Modal";
 import ToggleSwitch from "../ui/ToggleSwitch";
 import TextArea from "../ui/TextArea";
-import { Eye, EyeOff } from "lucide-react";
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -36,9 +45,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   editingClient,
   isViewMode = false,
 }) => {
-  // Initial State
+  // --- State ---
   const [formData, setFormData] = useState({
-    company: "", // Managed as string for Select input, converted to number on submit
+    company: "",
     name: "",
     status: "ACTIVE",
     route: "DIRECT",
@@ -46,17 +55,17 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     creditLimit: "",
     balanceAlertAmount: "",
     allowNetting: false,
-    ipWhitelist: "",
+    ipWhitelist: "", // Managed as string in UI
     smppUsername: "",
     smppPassword: "",
-    internalNotes: "", // UPDATED: Strictly matches API
+    internalNotes: "",
   });
 
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Options
+  // --- Static Options ---
   const statusOptions = [
     { label: "Active", value: "ACTIVE" },
     { label: "Trial", value: "TRIAL" },
@@ -80,7 +89,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     { label: "Net 30", value: "NET30" },
   ];
 
-  // Load Companies on Open
+  // --- 1. Load Companies ---
   useEffect(() => {
     if (isOpen) {
       getCompaniesApi("company", 1, 1000)
@@ -90,14 +99,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           else if (Array.isArray(res)) list = res;
 
           setCompanyOptions(
-            list.map((c: any) => ({ label: c.name, value: String(c.id) }))
+            list.map((c: any) => ({ label: c.name, value: String(c.id) })),
           );
         })
         .catch((err) => console.error("Failed to load companies", err));
     }
   }, [isOpen]);
 
-  // Load Data for Edit
+  // --- 2. Load Client Data & Fetch IPs ---
   useEffect(() => {
     if (isOpen && editingClient) {
       setFormData({
@@ -109,11 +118,24 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         creditLimit: editingClient.creditLimit,
         balanceAlertAmount: editingClient.balanceAlertAmount,
         allowNetting: editingClient.allowNetting,
-        ipWhitelist: editingClient.ipWhitelist || "",
+        ipWhitelist: "", // Will fill below
         smppUsername: editingClient.smppUsername || "",
         smppPassword: editingClient.smppPassword || "",
-        internalNotes: editingClient.internalNotes || "", // UPDATED
+        internalNotes: editingClient.internalNotes || "",
       });
+
+      // Fetch Actual IPs from IP Whitelist API
+      if (editingClient.id) {
+        getIpWhitelistApi("ipWhitelist", 1, 1000, { client: editingClient.id })
+          .then((res) => {
+            const myIps = (res.results || []).filter(
+              (r: any) => r.client === editingClient.id,
+            );
+            const ipString = myIps.map((item) => item.ip).join(", ");
+            setFormData((prev) => ({ ...prev, ipWhitelist: ipString }));
+          })
+          .catch((err) => console.error("Failed to fetch IPs", err));
+      }
     } else if (isOpen) {
       // Reset
       setFormData({
@@ -128,13 +150,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         ipWhitelist: "",
         smppUsername: "",
         smppPassword: "",
-        internalNotes: "", // UPDATED
+        internalNotes: "",
       });
     }
   }, [isOpen, editingClient]);
 
+  // --- Handlers ---
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -145,6 +168,40 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
   const handleToggle = (name: string, value: boolean) => {
     setFormData({ ...formData, [name]: value });
+  };
+
+  // --- IP SYNC LOGIC (CRITICAL FIX) ---
+  const handleIpSync = async (clientId: number, ipString: string) => {
+    const currentIps = ipString
+      .split(/[\n,]+/)
+      .map((ip) => ip.trim())
+      .filter((ip) => ip !== "");
+
+    // 1. Fetch Existing IPs from Backend
+    const existingRes = await getIpWhitelistApi("ipWhitelist", 1, 1000, {
+      client: clientId,
+    });
+
+    const allFetched = existingRes.results || [];
+
+    // FIX: STRICTLY FILTER BY CLIENT ID
+    // This prevents deleting or mixing up other clients' IPs if the API returns broad results.
+    const existingRecords = allFetched.filter((r) => r.client === clientId);
+    const existingIpSet = new Set(existingRecords.map((r) => r.ip));
+
+    // 2. Determine Add vs Delete
+    const toAdd = currentIps.filter((ip) => !existingIpSet.has(ip));
+    const toDelete = existingRecords.filter((r) => !currentIps.includes(r.ip));
+
+    // 3. Execute API Calls
+    const promises = [
+      ...toAdd.map((ip) =>
+        createIpWhitelistApi({ ip, client: clientId }, "ipWhitelist"),
+      ),
+      ...toDelete.map((r) => deleteIpWhitelistApi(r.id!, "ipWhitelist")),
+    ];
+
+    await Promise.all(promises);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -158,20 +215,28 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
     setIsSubmitting(true);
 
-    // Strict Type Conversion
     const payload = {
       ...formData,
       company: Number(formData.company),
+      ipWhitelist: [], // Send empty array to main client API
     };
 
     try {
+      let savedClientId: number;
+
       if (editingClient) {
         await updateClientApi(editingClient.id!, payload, moduleName);
+        savedClientId = editingClient.id!;
         toast.success("Client updated successfully!");
       } else {
-        await createClientApi(payload, moduleName);
+        const newClient = await createClientApi(payload, moduleName);
+        savedClientId = newClient.id!;
         toast.success("Client created successfully!");
       }
+
+      // --- Trigger IP Sync ---
+      await handleIpSync(savedClientId, formData.ipWhitelist);
+
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -179,7 +244,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       const serverError = error.response?.data;
       if (serverError && typeof serverError === "object") {
         Object.entries(serverError).forEach(([key, msgs]) => {
-          toast.error(`${key}: ${Array.isArray(msgs) ? msgs[0] : msgs}`);
+          const msgText = Array.isArray(msgs) ? msgs.join(", ") : String(msgs);
+          toast.error(`${key}: ${msgText}`);
         });
       } else {
         toast.error("Failed to save client.");
@@ -199,8 +265,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         isViewMode
           ? "View Client"
           : editingClient
-          ? "Edit Client"
-          : "Add New Client"
+            ? "Edit Client"
+            : "Add New Client"
       }
       className="max-w-4xl"
     >
@@ -327,15 +393,19 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 name="ipWhitelist"
                 value={formData.ipWhitelist}
                 onChange={handleChange}
-                placeholder="Enter IPs separated by commas or new lines"
+                placeholder="Enter IPs separated by commas or new lines (e.g. 192.168.1.1, 10.0.0.1)"
                 disabled={isViewMode}
                 rows={3}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                IPs are managed automatically. Add/remove IPs here and save to
+                update the whitelist.
+              </p>
             </div>
           </div>
         </fieldset>
 
-        {/* Notes - Updated Name */}
+        {/* Notes */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Notes
@@ -359,8 +429,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               {isSubmitting
                 ? "Saving"
                 : editingClient
-                ? "Update Client"
-                : "Add Client"}
+                  ? "Update Client"
+                  : "Add Client"}
             </Button>
           )}
         </div>

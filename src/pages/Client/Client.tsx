@@ -7,7 +7,7 @@ import {
   deleteClientApi,
   type ClientData,
 } from "../../api/clientApi/clientApi";
-import { ClientModal } from "../../components/modals/ClientModal";
+import { ClientModal } from "../../components/modals/ClientModal"; // Using the updated modal
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import DataTable from "../../components/ui/DataTable";
@@ -48,14 +48,14 @@ const Client: React.FC = () => {
       };
 
       const cleanParams = Object.fromEntries(
-        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== ""),
       );
 
       const response: any = await getClientsApi(
         routeName,
         currentPage,
         rowsPerPage,
-        cleanParams
+        cleanParams,
       );
 
       if (response && response.results) {
@@ -215,8 +215,8 @@ const Client: React.FC = () => {
                   client.status === "ACTIVE"
                     ? "bg-green-100 text-green-800"
                     : client.status === "TRIAL"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-red-100 text-red-800"
+                      ? "bg-blue-100 text-blue-800"
+                      : "bg-red-100 text-red-800"
                 }`}
               >
                 {client.status}
