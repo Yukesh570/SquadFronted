@@ -52,15 +52,20 @@ const encodingOptions: Option[] = [
 ];
 
 // --- Defaults ---
-const DEFAULT_SEARCH_COLUMNS = ["destination", "clientName", "status"];
+const DEFAULT_SEARCH_COLUMNS = [
+  "destination",
+  "clientName",
+  "status",
+  "message_id",
+];
 const DEFAULT_TABLE_COLUMNS = [
+  "message_id",
   "destination",
   "text",
   "status",
   "encoding",
   "segmentNumber",
   "clientName",
-  "characterCount",
   "vendorName",
   "smppName",
   "systemId",
@@ -143,6 +148,7 @@ const MessageReport: React.FC = () => {
   // --- Configuration ---
   const filterOptionsConfig: ColumnConfig[] = useMemo(
     () => [
+      { key: "message_id", label: "Message ID", type: "text" }, // Added Search Field
       { key: "destination", label: "Destination", type: "text" },
       {
         key: "clientName",
@@ -159,8 +165,6 @@ const MessageReport: React.FC = () => {
       { key: "smppName", label: "SMPP", type: "text", options: smppOptions },
       { key: "systemId", label: "System ID", type: "text" },
       { key: "status", label: "Status", type: "text", options: statusOptions },
-
-      // --- New Search Fields ---
       {
         key: "encoding",
         label: "Encoding",
@@ -175,6 +179,16 @@ const MessageReport: React.FC = () => {
 
   const tableColumnsConfig: ColumnConfig[] = useMemo(
     () => [
+      {
+        key: "message_id",
+        label: "Message ID",
+        type: "text",
+        render: (log) => (
+          <span className="font-mono text-xs text-primary">
+            {log.message_id}
+          </span>
+        ),
+      },
       {
         key: "destination",
         label: "Destination",

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Home, Plus, Edit, Trash } from "lucide-react";
+import { Home, Plus, Edit, Trash, ShieldPlus } from "lucide-react"; // Import ShieldPlus icon
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -7,7 +7,9 @@ import {
   deleteClientApi,
   type ClientData,
 } from "../../api/clientApi/clientApi";
-import { ClientModal } from "../../components/modals/ClientModal"; // Using the updated modal
+import { ClientModal } from "../../components/modals/ClientModal";
+// IMPORT THE RESTORED MODAL
+import IpWhitelistModal from "../../components/modals/WhiteListIPModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import DataTable from "../../components/ui/DataTable";
@@ -23,10 +25,18 @@ const Client: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Client Modal States
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClientData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+
+  // IP Whitelist Modal States
+  const [isIpModalOpen, setIsIpModalOpen] = useState(false);
+  const [ipModalClient, setIpModalClient] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
 
   // Filters
   const [nameFilter, setNameFilter] = useState("");
@@ -109,20 +119,27 @@ const Client: React.FC = () => {
     if (!canUpdate) return;
     setEditingClient(client);
     setIsViewMode(false);
-    setIsModalOpen(true);
+    setIsClientModalOpen(true);
   };
 
   const handleAdd = () => {
     if (!canCreate) return;
     setEditingClient(null);
     setIsViewMode(false);
-    setIsModalOpen(true);
+    setIsClientModalOpen(true);
   };
 
   const handleView = (client: ClientData) => {
     setEditingClient(client);
     setIsViewMode(true);
-    setIsModalOpen(true);
+    setIsClientModalOpen(true);
+  };
+
+  // --- NEW HANDLER FOR ADDING IP ---
+  const handleAddIp = (client: ClientData) => {
+    if (!client.id) return;
+    setIpModalClient({ id: client.id, name: client.name });
+    setIsIpModalOpen(true);
   };
 
   const headers = [
@@ -230,6 +247,19 @@ const Client: React.FC = () => {
             </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
+                {/* --- ADD IP BUTTON --- */}
+                {canUpdate && (
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleAddIp(client)}
+                    title="Add IP Whitelist"
+                  >
+                    <ShieldPlus size={14} />
+                  </Button>
+                )}
+                {/* --------------------- */}
+
                 <ViewButton onClick={() => handleView(client)} />
                 {canUpdate && (
                   <Button
@@ -257,13 +287,24 @@ const Client: React.FC = () => {
         )}
       />
 
+      {/* Main Client Create/Edit Modal */}
       <ClientModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isClientModalOpen}
+        onClose={() => setIsClientModalOpen(false)}
         onSuccess={fetchClients}
         moduleName={routeName}
         editingClient={editingClient}
         isViewMode={isViewMode}
+      />
+
+      {/* New IP Whitelist Modal (Locked to selected client) */}
+      <IpWhitelistModal
+        isOpen={isIpModalOpen}
+        onClose={() => setIsIpModalOpen(false)}
+        onSuccess={() => {}} // No need to refresh Client table
+        moduleName="ipWhitelist"
+        editingData={null} // Always Add mode
+        fixedClient={ipModalClient}
       />
 
       <DeleteModal

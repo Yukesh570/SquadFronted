@@ -5,7 +5,7 @@ export interface MessageLogData {
   destination: string;
   text: string;
   status: "queued" | "sent" | "failed" | "delivered";
-  
+  message_id: string;
   encoding?: string; 
   segmentNumber?: string;  
   characterCount?: string; 
