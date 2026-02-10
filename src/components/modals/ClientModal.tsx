@@ -55,7 +55,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     creditLimit: "",
     balanceAlertAmount: "",
     allowNetting: false,
-    ipWhitelist: "", // Managed as string in UI
+    ipWhitelist: "",
     smppUsername: "",
     smppPassword: "",
     internalNotes: "",
@@ -64,6 +64,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // --- Helper: Validate IP ---
+  const isValidIp = (ip: string) => {
+    // IPv4 Regex
+    const ipv4Regex =
+      /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    // Basic IPv6 check
+    const ipv6Check = ip.includes(":");
+    return ipv4Regex.test(ip) || ipv6Check;
+  };
 
   // --- Static Options ---
   const statusOptions = [
@@ -89,7 +99,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     { label: "Net 30", value: "NET30" },
   ];
 
-  // --- 1. Load Companies ---
+  // --- Effects ---
   useEffect(() => {
     if (isOpen) {
       getCompaniesApi("company", 1, 1000)
@@ -106,7 +116,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     }
   }, [isOpen]);
 
-  // --- 2. Load Client Data & Fetch IPs ---
   useEffect(() => {
     if (isOpen && editingClient) {
       setFormData({
@@ -118,16 +127,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         creditLimit: editingClient.creditLimit,
         balanceAlertAmount: editingClient.balanceAlertAmount,
         allowNetting: editingClient.allowNetting,
-        ipWhitelist: "", // Will fill below
+        ipWhitelist: "",
         smppUsername: editingClient.smppUsername || "",
         smppPassword: editingClient.smppPassword || "",
         internalNotes: editingClient.internalNotes || "",
       });
 
-      // Fetch Actual IPs from IP Whitelist API
       if (editingClient.id) {
         getIpWhitelistApi("ipWhitelist", 1, 1000, { client: editingClient.id })
           .then((res) => {
+            // Strict filter for current client only
             const myIps = (res.results || []).filter(
               (r: any) => r.client === editingClient.id,
             );
@@ -137,7 +146,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           .catch((err) => console.error("Failed to fetch IPs", err));
       }
     } else if (isOpen) {
-      // Reset
       setFormData({
         company: "",
         name: "",
@@ -170,30 +178,19 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     setFormData({ ...formData, [name]: value });
   };
 
-  // --- IP SYNC LOGIC (CRITICAL FIX) ---
-  const handleIpSync = async (clientId: number, ipString: string) => {
-    const currentIps = ipString
-      .split(/[\n,]+/)
-      .map((ip) => ip.trim())
-      .filter((ip) => ip !== "");
-
-    // 1. Fetch Existing IPs from Backend
+  const handleIpSync = async (clientId: number, ipList: string[]) => {
     const existingRes = await getIpWhitelistApi("ipWhitelist", 1, 1000, {
       client: clientId,
     });
-
     const allFetched = existingRes.results || [];
 
-    // FIX: STRICTLY FILTER BY CLIENT ID
-    // This prevents deleting or mixing up other clients' IPs if the API returns broad results.
+    // Strict Filter
     const existingRecords = allFetched.filter((r) => r.client === clientId);
     const existingIpSet = new Set(existingRecords.map((r) => r.ip));
 
-    // 2. Determine Add vs Delete
-    const toAdd = currentIps.filter((ip) => !existingIpSet.has(ip));
-    const toDelete = existingRecords.filter((r) => !currentIps.includes(r.ip));
+    const toAdd = ipList.filter((ip) => !existingIpSet.has(ip));
+    const toDelete = existingRecords.filter((r) => !ipList.includes(r.ip));
 
-    // 3. Execute API Calls
     const promises = [
       ...toAdd.map((ip) =>
         createIpWhitelistApi({ ip, client: clientId }, "ipWhitelist"),
@@ -213,40 +210,69 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       return;
     }
 
+    // --- 1. VALIDATE IPs FIRST (Stop if invalid) ---
+    const ipList = formData.ipWhitelist
+      .split(/[\n,]+/)
+      .map((ip) => ip.trim())
+      .filter((ip) => ip !== "");
+
+    for (const ip of ipList) {
+      if (!isValidIp(ip)) {
+        toast.error(`Invalid IP address format: "${ip}"`);
+        return; // HALT SUBMISSION
+      }
+    }
+
     setIsSubmitting(true);
 
-    const payload = {
-      ...formData,
-      company: Number(formData.company),
-      ipWhitelist: [], // Send empty array to main client API
-    };
-
     try {
+      const { ipWhitelist, ...clientPayload } = formData;
+      const payload = {
+        ...clientPayload,
+        company: Number(formData.company),
+        ipWhitelist: [], // Empty array for client API compliance
+      };
+
       let savedClientId: number;
 
+      // --- 2. SAVE CLIENT ---
       if (editingClient) {
         await updateClientApi(editingClient.id!, payload, moduleName);
         savedClientId = editingClient.id!;
-        toast.success("Client updated successfully!");
       } else {
         const newClient = await createClientApi(payload, moduleName);
         savedClientId = newClient.id!;
-        toast.success("Client created successfully!");
       }
 
-      // --- Trigger IP Sync ---
-      await handleIpSync(savedClientId, formData.ipWhitelist);
+      // --- 3. SYNC IPs ---
+      await handleIpSync(savedClientId, ipList);
+
+      // --- 4. SUCCESS MESSAGE (Only if both steps pass) ---
+      toast.success(
+        editingClient
+          ? "Client updated successfully!"
+          : "Client created successfully!",
+      );
 
       onSuccess();
       onClose();
     } catch (error: any) {
       console.error(error);
       const serverError = error.response?.data;
+
+      // Handle Errors
       if (serverError && typeof serverError === "object") {
-        Object.entries(serverError).forEach(([key, msgs]) => {
-          const msgText = Array.isArray(msgs) ? msgs.join(", ") : String(msgs);
-          toast.error(`${key}: ${msgText}`);
-        });
+        // If the error came from the IP sync step (rare since we validate frontend first now)
+        if (serverError.ip) {
+          toast.error(`IP Error: ${serverError.ip[0]}`);
+        } else {
+          Object.entries(serverError).forEach(([key, msgs]) => {
+            const msgText = Array.isArray(msgs)
+              ? msgs.join(", ")
+              : String(msgs);
+            toast.error(`${key}: ${msgText}`);
+          });
+        }
       } else {
         toast.error("Failed to save client.");
       }
@@ -314,7 +340,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           </div>
         </fieldset>
 
-        {/* Commercials & Credit */}
+        {/* Commercials */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Commercials & Credit
@@ -357,7 +383,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           </div>
         </fieldset>
 
-        {/* Connectivity & Security */}
+        {/* Connectivity */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Connectivity & Security
@@ -393,7 +419,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 name="ipWhitelist"
                 value={formData.ipWhitelist}
                 onChange={handleChange}
-                placeholder="Enter IPs separated by commas or new lines (e.g. 192.168.1.1, 10.0.0.1)"
+                placeholder="Enter IPs separated by commas or new lines"
                 disabled={isViewMode}
                 rows={3}
               />
