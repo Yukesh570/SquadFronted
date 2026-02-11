@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Home, Plus, Edit, Trash, ShieldPlus } from "lucide-react"; // Import ShieldPlus icon
+import { Home, Plus, Edit, Trash, ShieldPlus, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
+
+// --- APIs ---
 import {
   getClientsApi,
   deleteClientApi,
   type ClientData,
 } from "../../api/clientApi/clientApi";
+
+// --- Components ---
 import { ClientModal } from "../../components/modals/ClientModal";
-// IMPORT THE RESTORED MODAL
+// FIX 1: Make sure this file exists at this exact path!
 import IpWhitelistModal from "../../components/modals/WhiteListIPModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -17,6 +21,10 @@ import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import ViewButton from "../../components/ui/ViewButton";
 import Select from "../../components/ui/Select";
+// FIX 2: Added 'type' keyword here
+import ContextMenu, {
+  type ContextMenuItem,
+} from "../../components/ui/ContextMenu";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 
 const Client: React.FC = () => {
@@ -25,20 +33,28 @@ const Client: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Client Modal States
+  // --- Modal States ---
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClientData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
-  // IP Whitelist Modal States
   const [isIpModalOpen, setIsIpModalOpen] = useState(false);
   const [ipModalClient, setIpModalClient] = useState<{
     id: number;
     name: string;
   } | null>(null);
 
-  // Filters
+  // --- Context Menu State ---
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [selectedRowClient, setSelectedRowClient] = useState<ClientData | null>(
+    null,
+  );
+
+  // --- Filters ---
   const [nameFilter, setNameFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
@@ -46,9 +62,9 @@ const Client: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const pathSegments = location.pathname.split("/").filter(Boolean);
-  const routeName = pathSegments[pathSegments.length - 1] || "client";
+  const routeName = location.pathname.split("/").pop() || "client";
 
+  // --- Fetch Data ---
   const fetchClients = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
@@ -56,30 +72,23 @@ const Client: React.FC = () => {
         name: nameFilter,
         status: statusFilter,
       };
-
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== ""),
       );
-
       const response: any = await getClientsApi(
         routeName,
         currentPage,
         rowsPerPage,
         cleanParams,
       );
-
       if (response && response.results) {
         setClients(response.results);
         setTotalItems(response.count);
-      } else if (Array.isArray(response)) {
-        setClients(response);
-        setTotalItems(response.length);
       } else {
         setClients([]);
         setTotalItems(0);
       }
     } catch (error) {
-      console.error("Fetch error:", error);
       toast.error("Failed to fetch clients.");
     } finally {
       setIsLoading(false);
@@ -90,11 +99,11 @@ const Client: React.FC = () => {
     fetchClients();
   }, [routeName, currentPage, rowsPerPage]);
 
+  // --- Handlers ---
   const handleSearch = () => {
     setCurrentPage(1);
     fetchClients();
   };
-
   const handleClearFilters = () => {
     setNameFilter("");
     setStatusFilter("");
@@ -121,27 +130,70 @@ const Client: React.FC = () => {
     setIsViewMode(false);
     setIsClientModalOpen(true);
   };
-
   const handleAdd = () => {
     if (!canCreate) return;
     setEditingClient(null);
     setIsViewMode(false);
     setIsClientModalOpen(true);
   };
-
   const handleView = (client: ClientData) => {
     setEditingClient(client);
     setIsViewMode(true);
     setIsClientModalOpen(true);
   };
-
-  // --- NEW HANDLER FOR ADDING IP ---
   const handleAddIp = (client: ClientData) => {
     if (!client.id) return;
     setIpModalClient({ id: client.id, name: client.name });
     setIsIpModalOpen(true);
   };
 
+  // --- Context Menu Logic ---
+  const handleContextMenu = (e: React.MouseEvent, client: ClientData) => {
+    e.preventDefault(); // Disable default browser menu
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRowClient(client);
+  };
+
+  // Build menu items based on permissions
+  const menuItems: ContextMenuItem[] = selectedRowClient
+    ? [
+        ...(canUpdate
+          ? [
+              {
+                label: "Add IP Whitelist",
+                icon: <ShieldPlus size={16} />,
+                onClick: () => handleAddIp(selectedRowClient),
+              },
+            ]
+          : []),
+        {
+          label: "View Details",
+          icon: <Eye size={16} />,
+          onClick: () => handleView(selectedRowClient),
+        },
+        ...(canUpdate
+          ? [
+              {
+                label: "Edit Client",
+                icon: <Edit size={16} />,
+                onClick: () => handleEdit(selectedRowClient),
+              },
+            ]
+          : []),
+        ...(canDelete
+          ? [
+              {
+                label: "Delete Client",
+                icon: <Trash size={16} />,
+                variant: "danger" as const,
+                onClick: () => setDeleteId(selectedRowClient.id!),
+              },
+            ]
+          : []),
+      ]
+    : [];
+
+  // --- Render ---
   const headers = [
     "S.N.",
     "Client Name",
@@ -151,7 +203,6 @@ const Client: React.FC = () => {
     "Credit Limit",
     "Actions",
   ];
-
   const statusOptions = [
     { label: "Active", value: "ACTIVE" },
     { label: "Trial", value: "TRIAL" },
@@ -159,7 +210,7 @@ const Client: React.FC = () => {
   ];
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Clients
@@ -215,7 +266,8 @@ const Client: React.FC = () => {
         renderRow={(client, index) => (
           <tr
             key={client.id || index}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            onContextMenu={(e) => handleContextMenu(e, client)} // RIGHT CLICK HANDLER
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
@@ -228,13 +280,7 @@ const Client: React.FC = () => {
             </td>
             <td className="px-4 py-4 text-sm">
               <span
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  client.status === "ACTIVE"
-                    ? "bg-green-100 text-green-800"
-                    : client.status === "TRIAL"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-red-100 text-red-800"
-                }`}
+                className={`px-2 py-1 rounded-full text-xs font-medium ${client.status === "ACTIVE" ? "bg-green-100 text-green-800" : client.status === "TRIAL" ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-800"}`}
               >
                 {client.status}
               </span>
@@ -247,18 +293,7 @@ const Client: React.FC = () => {
             </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
-                {/* --- ADD IP BUTTON --- */}
-                {canUpdate && (
-                  <Button
-                    variant="secondary"
-                    size="xs"
-                    onClick={() => handleAddIp(client)}
-                    title="Add IP Whitelist"
-                  >
-                    <ShieldPlus size={14} />
-                  </Button>
-                )}
-                {/* --------------------- */}
+                {/* --- Add IP Button REMOVED (Moved to Right Click) --- */}
 
                 <ViewButton onClick={() => handleView(client)} />
                 {canUpdate && (
@@ -287,7 +322,13 @@ const Client: React.FC = () => {
         )}
       />
 
-      {/* Main Client Create/Edit Modal */}
+      {/* --- CUSTOM CONTEXT MENU --- */}
+      <ContextMenu
+        position={contextMenuPos}
+        items={menuItems}
+        onClose={() => setContextMenuPos(null)}
+      />
+
       <ClientModal
         isOpen={isClientModalOpen}
         onClose={() => setIsClientModalOpen(false)}
@@ -297,13 +338,12 @@ const Client: React.FC = () => {
         isViewMode={isViewMode}
       />
 
-      {/* New IP Whitelist Modal (Locked to selected client) */}
       <IpWhitelistModal
         isOpen={isIpModalOpen}
         onClose={() => setIsIpModalOpen(false)}
-        onSuccess={() => {}} // No need to refresh Client table
+        onSuccess={() => {}}
         moduleName="ipWhitelist"
-        editingData={null} // Always Add mode
+        editingData={null}
         fixedClient={ipModalClient}
       />
 
