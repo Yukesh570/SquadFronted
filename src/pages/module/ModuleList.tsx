@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { Plus, Edit, Trash, Home } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -16,6 +16,7 @@ import { DeleteModal } from "../../components/modals/DeleteModal";
 import { NavItemsContext } from "../../context/navItemsContext";
 import ViewButton from "../../components/ui/ViewButton";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
+import { actionHelper } from "../../helper/action";
 
 const ModuleList: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -112,6 +113,18 @@ const ModuleList: React.FC = () => {
     setIsViewMode(true);
     setIsModalOpen(true);
   };
+
+const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      hasLoggedOpening.current = true;
+    }
+  }, []);
 
   const headers = [
     "S.N.",

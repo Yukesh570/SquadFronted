@@ -28,6 +28,7 @@ import { DeleteModal } from "../../components/modals/DeleteModal";
 import ViewButton from "../../components/ui/ViewButton";
 import { companyCsv, downloadStatus } from "../../api/downloadApi/downloadApi";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
+import { actionHelper } from "../../helper/action";
 
 // --- Interfaces ---
 interface Option {
@@ -101,6 +102,18 @@ const CompanyList: React.FC = () => {
   const routeName = pathSegments[pathSegments.length - 1] || "company";
 
   const abortControllerRef = useRef<AbortController | null>(null);
+
+const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      hasLoggedOpening.current = true;
+    }
+  }, []);
 
   // --- Fetch Dropdowns ---
   useEffect(() => {

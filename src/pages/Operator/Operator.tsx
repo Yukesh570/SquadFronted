@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Home, Plus, Edit, Trash, Upload } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -19,6 +19,7 @@ import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 import ViewButton from "../../components/ui/ViewButton";
+import { actionHelper } from "../../helper/action";
 
 const Operators: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -154,6 +155,17 @@ const Operators: React.FC = () => {
     setIsModalOpen(true);
   };
 
+const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      hasLoggedOpening.current = true;
+    }
+  }, []);
   const headers = ["S.N.", "Operator Name", "Country", "MNC", "Actions"];
 
   return (

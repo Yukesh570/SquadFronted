@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Home, Plus, Edit, Trash, ShieldPlus, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -12,7 +12,6 @@ import {
 
 // --- Components ---
 import { ClientModal } from "../../components/modals/ClientModal";
-// FIX 1: Make sure this file exists at this exact path!
 import IpWhitelistModal from "../../components/modals/WhiteListIPModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -21,11 +20,11 @@ import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import ViewButton from "../../components/ui/ViewButton";
 import Select from "../../components/ui/Select";
-// FIX 2: Added 'type' keyword here
 import ContextMenu, {
   type ContextMenuItem,
 } from "../../components/ui/ContextMenu";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
+import { actionHelper } from "../../helper/action";
 
 const Client: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -64,6 +63,7 @@ const Client: React.FC = () => {
   const location = useLocation();
   const routeName = location.pathname.split("/").pop() || "client";
 
+  
   // --- Fetch Data ---
   const fetchClients = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
@@ -94,6 +94,17 @@ const Client: React.FC = () => {
       setIsLoading(false);
     }
   };
+const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      hasLoggedOpening.current = true;
+    }
+  }, []);
 
   useEffect(() => {
     fetchClients();
@@ -116,6 +127,7 @@ const Client: React.FC = () => {
       try {
         await deleteClientApi(deleteId, routeName);
         toast.success("Client deleted successfully.");
+        // ACTION LOG REMOVED: Backend handles internally now
         fetchClients();
       } catch (error) {
         toast.error("Failed to delete client.");
@@ -149,12 +161,11 @@ const Client: React.FC = () => {
 
   // --- Context Menu Logic ---
   const handleContextMenu = (e: React.MouseEvent, client: ClientData) => {
-    e.preventDefault(); // Disable default browser menu
+    e.preventDefault(); 
     setContextMenuPos({ x: e.clientX, y: e.clientY });
     setSelectedRowClient(client);
   };
 
-  // Build menu items based on permissions
   const menuItems: ContextMenuItem[] = selectedRowClient
     ? [
         ...(canUpdate
@@ -193,7 +204,6 @@ const Client: React.FC = () => {
       ]
     : [];
 
-  // --- Render ---
   const headers = [
     "S.N.",
     "Client Name",
@@ -266,7 +276,7 @@ const Client: React.FC = () => {
         renderRow={(client, index) => (
           <tr
             key={client.id || index}
-            onContextMenu={(e) => handleContextMenu(e, client)} // RIGHT CLICK HANDLER
+            onContextMenu={(e) => handleContextMenu(e, client)}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
@@ -293,8 +303,6 @@ const Client: React.FC = () => {
             </td>
             <td className="px-4 py-4 text-sm">
               <div className="flex items-center space-x-2">
-                {/* --- Add IP Button REMOVED (Moved to Right Click) --- */}
-
                 <ViewButton onClick={() => handleView(client)} />
                 {canUpdate && (
                   <Button
@@ -322,7 +330,6 @@ const Client: React.FC = () => {
         )}
       />
 
-      {/* --- CUSTOM CONTEXT MENU --- */}
       <ContextMenu
         position={contextMenuPos}
         items={menuItems}

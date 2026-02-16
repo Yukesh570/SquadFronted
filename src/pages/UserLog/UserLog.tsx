@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Home,
   History,
@@ -22,6 +22,7 @@ import {
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import Input from "../../components/ui/Input";
+import { actionHelper } from "../../helper/action";
 
 interface LogItemWithId extends LoginHistoryItem {
   id: number;
@@ -128,6 +129,18 @@ const UserLog: React.FC = () => {
     }
     return userData?.last_login;
   };
+
+const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      hasLoggedOpening.current = true;
+    }
+  }, []);
 
   const headers = ["S.N.", "IP Address", "Browser", "Device", "Logged At"];
 

@@ -16,6 +16,7 @@ import "../../quillDark.css";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import Select from "../../components/ui/Select";
+import { actionHelper } from "../../helper/action";
 
 interface Option {
   label: string;
@@ -168,6 +169,18 @@ const SendMailPage: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      hasLoggedOpening.current = true;
+    }
+  }, []);
 
   return (
     <div className="container mx-auto">

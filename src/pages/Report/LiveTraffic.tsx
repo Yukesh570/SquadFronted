@@ -28,6 +28,7 @@ import AdvancedFilter, {
 } from "../../components/ui/AdvancedFilter";
 import TraceModal from "../../components/modals/Report/TraceModal";
 import CustomDatePicker from "../../components/ui/DatePicker";
+import { actionHelper } from "../../helper/action";
 
 // --- Interfaces ---
 interface Option {
@@ -148,6 +149,18 @@ const LiveTraffic: React.FC = () => {
     };
 
     fetchAllOptions();
+  }, []);
+
+const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      hasLoggedOpening.current = true;
+    }
   }, []);
 
   // --- 3. Configuration ---

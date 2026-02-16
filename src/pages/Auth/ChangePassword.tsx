@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { changePasswordApi } from "../../api/userApi/userApi";
 import { toast } from "react-toastify";
@@ -10,6 +10,7 @@ import PasswordStrength, {
   validatePassword,
   type ValidationCriteria,
 } from "../../components/ui/PasswordStrength";
+import { actionHelper } from "../../helper/action";
 
 const ChangePassword = () => {
   const { logout } = useAuth();
@@ -45,6 +46,18 @@ const ChangePassword = () => {
       setPasswordsMatch(null);
     }
   }, [newPassword, confirmPassword]);
+
+const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      hasLoggedOpening.current = true;
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

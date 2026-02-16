@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Home, History, Globe } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -10,6 +10,7 @@ import {
   getUserActionApi,
   type UserActionData,
 } from "../../api/userActionApi/LogApi";
+import { actionHelper } from "../../helper/action";
 
 const UserAction: React.FC = () => {
   const [logs, setLogs] = useState<UserActionData[]>([]);
@@ -104,6 +105,17 @@ const UserAction: React.FC = () => {
     setCurrentPage(1);
     fetchUserLogs({ ipAddress: "", browser: "", device: "" });
   };
+const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      hasLoggedOpening.current = true;
+    }
+  }, []);
 
   const headers = ["S.N.", "UserName", "Title", "Action", "Time"];
 

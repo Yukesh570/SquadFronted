@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, Fragment } from "react";
+import { useContext, useEffect, useState, Fragment, useRef } from "react";
 import {
   getNavByUserType,
   type navUserData,
@@ -10,6 +10,7 @@ import { toast } from "react-toastify";
 import ToggleSwitch from "../../components/ui/ToggleSwitch";
 import { NavItemsContext } from "../../context/navItemsContext";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { actionHelper } from "../../helper/action";
 
 const userTypeOptions = [
   { value: "ADMIN", label: "ADMIN" },
@@ -128,6 +129,17 @@ const PermissionsTable = () => {
       setIsSaving(false);
     }
   };
+const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      hasLoggedOpening.current = true;
+    }
+  }, []);
 
   const renderRows = (items: navUserData[], level = 0) => {
     return items.map((item) => {

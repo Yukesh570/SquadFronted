@@ -24,6 +24,7 @@ import FilterCard from "../../components/ui/FilterCard";
 import AdvancedFilter, {
   type FilterColumn,
 } from "../../components/ui/AdvancedFilter";
+import { actionHelper } from "../../helper/action";
 
 // --- Interfaces ---
 interface Option {
@@ -350,6 +351,17 @@ const MessageReport: React.FC = () => {
     }
   };
 
+const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      hasLoggedOpening.current = true;
+    }
+  }, []);
   // No Action Column
   const tableHeaders = [...visibleTableFields.map((col) => col.label)];
 
