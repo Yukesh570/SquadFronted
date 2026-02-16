@@ -2,10 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Home, History, Globe } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
-import {
-  getUserInformationApi,
-  type UserInformationData,
-} from "../../api/userLogApi/userLogApi";
+import { getUserInformationApi } from "../../api/userLogApi/userLogApi";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import Input from "../../components/ui/Input";
