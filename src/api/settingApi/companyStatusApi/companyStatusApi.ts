@@ -1,6 +1,4 @@
 import api from "../../axiosInstance";
-import { actionHelper } from "../../sidebarApi/sideBarApi";
-
 export interface CompanyStatusData {
   id?: number;
   name: string;
@@ -35,12 +33,6 @@ export const createCompanyStatusApi = async (
   module: string,
 ): Promise<CompanyStatusData> => {
   const response = await api.post(`/companyStatus/${module}/`, data);
-  actionHelper(
-    "Company Status",
-    "Company Status created successfully!",
-    "Company Status",
-    "Company Status created successfully!",
-  );
   return response.data;
 };
 
@@ -51,12 +43,6 @@ export const updateCompanyStatusApi = async (
   module: string,
 ): Promise<CompanyStatusData> => {
   const response = await api.patch(`/companyStatus/${module}/${id}/`, data);
-  actionHelper(
-    "Company Status",
-    "Company Status updated successfully!",
-    "Company Status",
-    "Company Status updated successfully!",
-  );
   return response.data;
 };
 
@@ -66,10 +52,4 @@ export const deleteCompanyStatusApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/companyStatus/${module}/${id}/`);
-  actionHelper(
-    "Company Status",
-    "Company Status deleted!",
-    "Company Status",
-    "Company Status deleted!",
-  );
 };

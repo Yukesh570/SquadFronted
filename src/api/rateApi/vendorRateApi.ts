@@ -1,6 +1,4 @@
 import api from "../axiosInstance";
-import { actionHelper } from "../sidebarApi/sideBarApi";
-
 export interface VendorRateData {
   id?: number;
   country: number | string;
@@ -47,12 +45,6 @@ export const createVendorRateApi = async (
   module: string,
 ): Promise<VendorRateData> => {
   const response = await api.post(`/vendorRate/${module}/`, data);
-  actionHelper(
-    "Vendor Rate",
-    "Vendor Rate created successfully!",
-    "Vendor Rate",
-    "Vendor Rate created successfully!",
-  );
   return response.data;
 };
 
@@ -63,12 +55,6 @@ export const updateVendorRateApi = async (
   module: string,
 ): Promise<VendorRateData> => {
   const response = await api.patch(`/vendorRate/${module}/${id}/`, data);
-  actionHelper(
-    "Vendor Rate",
-    "Vendor Rate updated successfully!",
-    "Vendor Rate",
-    "Vendor Rate updated successfully!",
-  );
   return response.data;
 };
 
@@ -78,12 +64,6 @@ export const deleteVendorRateApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/vendorRate/${module}/${id}/`);
-  actionHelper(
-    "Vendor Rate",
-    "Vendor Rate deleted!",
-    "Vendor Rate",
-    "Vendor Rate deleted!",
-  );
 };
 
 // IMPORT
@@ -98,12 +78,6 @@ export const importVendorRatesApi = async (
   const response = await api.post(`/vendor-rate/import/`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-  actionHelper(
-    "Vendor Rate",
-    "Vendor Rate imported!",
-    "Vendor Rate",
-    "Vendor Rate imported!",
-  );
   return response.data;
 };
 

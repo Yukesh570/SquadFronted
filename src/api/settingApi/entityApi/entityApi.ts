@@ -1,6 +1,4 @@
 import api from "../../axiosInstance";
-import { actionHelper } from "../../sidebarApi/sideBarApi";
-
 export interface EntityData {
   id?: number;
   name: string;
@@ -35,12 +33,6 @@ export const createEntityApi = async (
   module: string,
 ): Promise<EntityData> => {
   const response = await api.post(`/entity/${module}/`, data);
-  actionHelper(
-    "Entity",
-    "Entity created successfully!",
-    "Entity",
-    "Entity created successfully!",
-  );
   return response.data;
 };
 
@@ -51,12 +43,6 @@ export const updateEntityApi = async (
   module: string,
 ): Promise<EntityData> => {
   const response = await api.patch(`/entity/${module}/${id}/`, data);
-  actionHelper(
-    "Entity",
-    "Entity updated successfully!",
-    "Entity",
-    "Entity updated successfully!",
-  );
   return response.data;
 };
 
@@ -66,5 +52,4 @@ export const deleteEntityApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/entity/${module}/${id}/`);
-  actionHelper("Entity", "Entity deleted!", "Entity", "Entity deleted!");
 };

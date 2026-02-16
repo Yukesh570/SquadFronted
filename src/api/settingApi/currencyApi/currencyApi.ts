@@ -1,5 +1,4 @@
 import api from "../../axiosInstance";
-import { actionHelper } from "../../sidebarApi/sideBarApi";
 
 export interface CurrencyData {
   id?: number;
@@ -37,12 +36,6 @@ export const createCurrencyApi = async (
   module: string,
 ): Promise<CurrencyData> => {
   const response = await api.post(`/currency/${module}/`, data);
-  actionHelper(
-    "Currency",
-    "Currency created successfully!",
-    "Currency",
-    "Currency created successfully!",
-  );
   return response.data;
 };
 
@@ -53,12 +46,6 @@ export const updateCurrencyApi = async (
   module: string,
 ): Promise<CurrencyData> => {
   const response = await api.patch(`/currency/${module}/${id}/`, data);
-  actionHelper(
-    "Currency",
-    "Currency updated successfully!",
-    "Currency",
-    "Currency updated successfully!",
-  );
   return response.data;
 };
 
@@ -68,10 +55,4 @@ export const deleteCurrencyApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/currency/${module}/${id}/`);
-  actionHelper(
-    "Currency",
-    "Currency deleted!",
-    "Currency",
-    "Currency deleted!",
-  );
 };

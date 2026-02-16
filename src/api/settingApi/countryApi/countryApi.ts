@@ -1,5 +1,4 @@
 import api from "../../axiosInstance";
-import { actionHelper } from "../../sidebarApi/sideBarApi";
 
 export interface CountryData {
   id?: number;
@@ -35,12 +34,6 @@ export const createCountryApi = async (
   module: string,
 ): Promise<CountryData> => {
   const response = await api.post(`/country/${module}/`, data);
-  actionHelper(
-    "Country",
-    "Country created successfully!",
-    "Country",
-    "Country created successfully!",
-  );
   return response.data;
 };
 
@@ -50,12 +43,6 @@ export const updateCountryApi = async (
   module: string,
 ): Promise<CountryData> => {
   const response = await api.patch(`/country/${module}/${id}/`, data);
-  actionHelper(
-    "Country",
-    "Country updated successfully!",
-    "Country",
-    "Country updated successfully!",
-  );
   return response.data;
 };
 
@@ -64,7 +51,6 @@ export const deleteCountryApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/country/${module}/${id}/`);
-  actionHelper("Country", "Country deleted!", "Country", "Country deleted!");
 };
 
 // Import API
@@ -74,12 +60,6 @@ export const importCountryApi = async (formData: FormData): Promise<any> => {
       "Content-Type": undefined,
     },
   });
-  actionHelper(
-    "Country",
-    "Country imported successfully!",
-    "Country",
-    "Country imported successfully!",
-  );
   return response.data;
 };
 

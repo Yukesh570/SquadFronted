@@ -1,6 +1,4 @@
 import api from "../../axiosInstance";
-import { actionHelper } from "../../sidebarApi/sideBarApi";
-
 export interface TimezoneData {
   id?: number;
   name: string;
@@ -35,13 +33,6 @@ export const createTimezoneApi = async (
   module: string,
 ): Promise<TimezoneData> => {
   const response = await api.post(`/timeZone/${module}/`, data);
-  actionHelper(
-    "TimeZone",
-    "TimeZone added successfully!",
-    "TimeZone",
-    "TimeZone added successfully!",
-  );
-
   return response.data;
 };
 
@@ -52,13 +43,6 @@ export const updateTimezoneApi = async (
   module: string,
 ): Promise<TimezoneData> => {
   const response = await api.patch(`/timeZone/${module}/${id}/`, data);
-  actionHelper(
-    "TimeZone",
-    "TimeZone edited successfully!",
-    "TimeZone",
-    "TimeZone edited successfully!",
-  );
-
   return response.data;
 };
 
@@ -68,10 +52,4 @@ export const deleteTimezoneApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/timeZone/${module}/${id}/`);
-  actionHelper(
-    "TimeZone",
-    "TimeZone deleted!",
-    "TimeZone",
-    "TimeZone deleted!",
-  );
 };

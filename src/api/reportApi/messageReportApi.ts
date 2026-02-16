@@ -1,6 +1,4 @@
 import api from "../../api/axiosInstance";
-import { actionHelper } from "../sidebarApi/sideBarApi";
-
 export interface MessageLogData {
   id: number;
   destination: string;
@@ -48,11 +46,5 @@ export const exportMessageLogsApi = async (
     params: searchParams,
     responseType: "blob",
   });
-  actionHelper(
-    "Message Logs",
-    "Message Logs exported successfully!",
-    "Message Logs",
-    "Message Logs exported successfully!",
-  );
   return response.data;
 };

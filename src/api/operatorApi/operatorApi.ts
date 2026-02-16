@@ -1,6 +1,4 @@
 import api from "../axiosInstance";
-import { actionHelper } from "../sidebarApi/sideBarApi";
-
 export interface OperatorData {
   id?: number;
   name: string;
@@ -38,12 +36,6 @@ export const createOperatorApi = async (
   module: string,
 ): Promise<OperatorData> => {
   const response = await api.post(`/operator/${module}/`, data);
-  actionHelper(
-    "Operator",
-    "Operator created successfully!",
-    "Operator",
-    "Operator created successfully!",
-  );
   return response.data;
 };
 
@@ -54,12 +46,6 @@ export const updateOperatorApi = async (
   module: string,
 ): Promise<OperatorData> => {
   const response = await api.patch(`/operator/${module}/${id}/`, data);
-  actionHelper(
-    "Operator",
-    "Operator updated successfully!",
-    "Operator",
-    "Operator updated successfully!",
-  );
   return response.data;
 };
 
@@ -69,12 +55,6 @@ export const deleteOperatorApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/operator/${module}/${id}/`);
-  actionHelper(
-    "Operator",
-    "Operator deleted!",
-    "Operator",
-    "Operator deleted!",
-  );
 };
 
 // IMPORT
@@ -84,12 +64,6 @@ export const importOperatorApi = async (formData: FormData): Promise<any> => {
       "Content-Type": undefined,
     },
   });
-           actionHelper(
-    "Operator",
-    "Operator imported!",
-    "Operator",
-    "Operator imported!",
-  );
   return response.data;
 };
 

@@ -1,6 +1,4 @@
 import api from "../../axiosInstance";
-import { actionHelper } from "../../sidebarApi/sideBarApi";
-
 export interface SmtpServerData {
   id?: number;
   name: string;
@@ -38,12 +36,6 @@ export const createSmtpServerApi = async (
   module: string,
 ): Promise<SmtpServerData> => {
   const response = await api.post(`/emailHost/${module}/`, data);
-  actionHelper(
-    "SMTP",
-    "SMTP added successfully!",
-    "SMTP",
-    "SMTP added successfully!",
-  );
   return response.data;
 };
 
@@ -53,12 +45,6 @@ export const updateSmtpServerApi = async (
   module: string,
 ): Promise<SmtpServerData> => {
   const response = await api.patch(`/emailHost/${module}/${id}/`, data);
-  actionHelper(
-    "SMTP",
-    "SMTP updated successfully!",
-    "SMTP",
-    "SMTP updated successfully!",
-  );
   return response.data;
 };
 
@@ -67,5 +53,4 @@ export const deleteSmtpServerApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/emailHost/${module}/${id}/`);
-  actionHelper("SMTP", "SMTP deleted!", "SMTP", "SMTP deleted!");
 };

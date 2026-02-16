@@ -1,13 +1,4 @@
 import api from "../axiosInstance";
-import {
-  createUserActionApi,
-  type UserActionData,
-} from "../userActionApi/LogApi";
-import {
-  createNotificationApi,
-  type NotificationData,
-} from "../userActionApi/notificationApi";
-
 export interface SideBarApi {
   id?: number;
   label: string;
@@ -51,22 +42,9 @@ export const createSideBarApi = async (
   if (data.parent === 0) {
     const { parent, ...rest } = data;
     const response = await api.post(`/navItem/${module}/`, rest);
-    actionHelper(
-      "Module",
-      "Module created successfully!,",
-      "Module",
-      "Module created successfully!",
-    );
-
     return response.data;
   } else {
     const response = await api.post(`/navItem/${module}/`, data);
-    actionHelper(
-      "Module",
-      "Module created successfully!,",
-      "Module",
-      "Module created successfully!",
-    );
     return response.data;
   }
 };
@@ -77,13 +55,6 @@ export const updateSideBarApi = async (
   module: string,
 ): Promise<SideBarApi> => {
   const response = await api.patch(`/navItem/${module}/${id}/`, data);
-  actionHelper(
-    "Module",
-    "Module updated successfully!,",
-    "Module",
-    "Module updated successfully!",
-  );
-
   return response.data;
 };
 
@@ -92,23 +63,4 @@ export const deleteSideBarApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/navItem/${module}/${id}/`);
-  actionHelper("Module", "Module Deleted!,", "Module", "Module Deleted!");
-};
-
-export const actionHelper = async (
-  title: string,
-  description: string,
-  title2: string,
-  action: string,
-) => {
-  const notidata: NotificationData = {
-    title: title,
-    description: description,
-  };
-  const userActionData: UserActionData = {
-    title: title2,
-    action: action,
-  };
-  await createNotificationApi(notidata);
-  await createUserActionApi(userActionData);
 };

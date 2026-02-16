@@ -1,6 +1,4 @@
 import api from "../../axiosInstance";
-import { actionHelper } from "../../sidebarApi/sideBarApi";
-
 export interface StateData {
   id?: number;
   name: string;
@@ -37,12 +35,6 @@ export const createStateApi = async (
   module: string,
 ): Promise<StateData> => {
   const response = await api.post(`/state/${module}/`, data);
-  actionHelper(
-    "State",
-    "State added successfully!",
-    "State",
-    "State added successfully!",
-  );
   return response.data;
 };
 
@@ -53,12 +45,6 @@ export const updateStateApi = async (
   module: string,
 ): Promise<StateData> => {
   const response = await api.patch(`/state/${module}/${id}/`, data);
-  actionHelper(
-    "State",
-    "State updated successfully!",
-    "State",
-    "State updated successfully!",
-  );
   return response.data;
 };
 
@@ -68,5 +54,4 @@ export const deleteStateApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/state/${module}/${id}/`);
-  actionHelper("State", "State deleted!", "State", "State deleted!");
 };

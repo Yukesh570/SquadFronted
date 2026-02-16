@@ -1,6 +1,4 @@
 import api from "../axiosInstance";
-import { actionHelper } from "../sidebarApi/sideBarApi";
-
 export interface CustomRouteData {
   id?: number;
   name: string;
@@ -56,12 +54,6 @@ export const createCustomRouteApi = async (
   module: string,
 ): Promise<CustomRouteData> => {
   const response = await api.post(`/customRoute/${module}/`, data);
-  actionHelper(
-    "Custom Route",
-    "Custom Route created successfully!",
-    "Custom Route",
-    "Custom Route created successfully!",
-  );
   return response.data;
 };
 
@@ -72,12 +64,6 @@ export const putCustomRouteApi = async (
   module: string,
 ): Promise<CustomRouteData> => {
   const response = await api.put(`/customRoute/${module}/${id}/`, data);
-  actionHelper(
-    "Custom Route",
-    "Custom Route updated successfully!",
-    "Custom Route",
-    "Custom Route updated successfully!",
-  );
   return response.data;
 };
 
@@ -88,12 +74,6 @@ export const updateCustomRouteApi = async (
   module: string,
 ): Promise<CustomRouteData> => {
   const response = await api.patch(`/customRoute/${module}/${id}/`, data);
-  actionHelper(
-    "Custom Route",
-    "Custom Route updated successfully!",
-    "Custom Route",
-    "Custom Route updated successfully!",
-  );
   return response.data;
 };
 
@@ -103,10 +83,4 @@ export const deleteCustomRouteApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/customRoute/${module}/${id}/`);
-  actionHelper(
-    "Custom Route",
-    "Custom Route deleted!",
-    "Custom Route",
-    "Custom Route deleted!",
-  );
 };

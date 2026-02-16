@@ -1,6 +1,4 @@
 import api from "../../axiosInstance";
-import { actionHelper } from "../../sidebarApi/sideBarApi";
-
 export interface CompanyCategoryData {
   id?: number;
   name: string;
@@ -35,12 +33,6 @@ export const createCompanyCategoryApi = async (
   module: string,
 ): Promise<CompanyCategoryData> => {
   const response = await api.post(`/companyCategory/${module}/`, data);
-  actionHelper(
-    "Company Category Status",
-    "Company Category Status created successfully!",
-    "Company Category Status",
-    "Company Category Status created successfully!",
-  );
   return response.data;
 };
 
@@ -51,12 +43,6 @@ export const updateCompanyCategoryApi = async (
   module: string,
 ): Promise<CompanyCategoryData> => {
   const response = await api.patch(`/companyCategory/${module}/${id}/`, data);
-  actionHelper(
-    "Company Category Status",
-    "Company Category Status updated successfully!",
-    "Company Category Status",
-    "Company Category Status updated successfully!",
-  );
   return response.data;
 };
 
@@ -66,10 +52,4 @@ export const deleteCompanyCategoryApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/companyCategory/${module}/${id}/`);
-  actionHelper(
-    "Company Category Status",
-    "Company Category Status deleted!",
-    "Company Category Status",
-    "Company Category Status deleted!",
-  );
 };
