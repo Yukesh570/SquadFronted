@@ -15,7 +15,6 @@ import {
 } from "../../api/userActionApi/LogApi";
 
 const UserAction: React.FC = () => {
-  const [userData, setUserData] = useState<UserInformationData | null>(null);
   const [logs, setLogs] = useState<UserActionData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,8 +31,7 @@ const UserAction: React.FC = () => {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const data = await getUserInformationApi();
-        setUserData(data);
+        await getUserInformationApi();
       } catch (error) {
         console.error("Profile fetch error:", error);
         toast.error("Failed to fetch user profile.");
