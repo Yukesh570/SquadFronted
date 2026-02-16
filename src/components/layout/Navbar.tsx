@@ -46,11 +46,10 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [localColor, setLocalColor] = useState(primaryColor);
-  // const [isLoading, setIsLoading] = useState(true);
 
   const [recentColors, setRecentColors] = useState<string[]>([]);
+
   const fetchNotifications = async () => {
-    // setIsLoading(true);
     try {
       const response: any = await getNotificationApi();
       if (response && response.results) {
@@ -58,10 +57,9 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
       }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
-    } finally {
-      // setIsLoading(false);
     }
   };
+
   useEffect(() => {
     const savedRecents = localStorage.getItem("recentThemeColors");
     if (savedRecents) {
@@ -71,6 +69,8 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
         console.error("Failed to parse recent colors");
       }
     }
+    // Initial fetch
+    fetchNotifications();
   }, []);
 
   useEffect(() => {
@@ -114,14 +114,11 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
 
   const handleSaveAndClose = () => {
     changePrimaryColor(localColor);
-
     let newRecents = [localColor, ...recentColors];
     newRecents = [...new Set(newRecents)];
     newRecents = newRecents.slice(0, 5);
-
     setRecentColors(newRecents);
     localStorage.setItem("recentThemeColors", JSON.stringify(newRecents));
-
     setIsThemeModalOpen(false);
   };
 
@@ -141,49 +138,26 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
 
   return (
     <>
-      <header
-        className="h-16 flex justify-between items-center px-6 z-10 
-                   bg-white dark:bg-gray-900 shadow-sm transition-colors duration-300"
-      >
+      <header className="h-16 flex justify-between items-center px-6 z-10 bg-white dark:bg-gray-900 shadow-sm transition-colors duration-300">
         <div className="flex items-center">
           <Button variant="ghost" onClick={onToggleSidebar} className="mr-2">
-            <Menu
-              className="text-gray-900 dark:text-white transition-colors duration-300"
-              size={24}
-            />
+            <Menu className="text-gray-900 dark:text-white transition-colors duration-300" size={24} />
           </Button>
         </div>
 
         <div className="flex items-center space-x-2">
           <div className="text-sm text-gray-900 dark:text-white font-medium hidden md:block">
-            {currentTime.toLocaleDateString(undefined, {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-            })}{" "}
-            |{" "}
-            {currentTime.toLocaleTimeString(undefined, {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {currentTime.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} | {currentTime.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
           </div>
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2 hidden md:block" />
 
-          <Button
-            variant="ghost"
-            onClick={handleFullscreen}
-            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-            className="hidden md:flex"
-          >
-            {isFullscreen ? (
-              <Minimize className="text-gray-900 dark:text-white" size={20} />
-            ) : (
-              <Maximize className="text-gray-900 dark:text-white" size={20} />
-            )}
+          <Button variant="ghost" onClick={handleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"} className="hidden md:flex">
+            {isFullscreen ? <Minimize className="text-gray-900 dark:text-white" size={20} /> : <Maximize className="text-gray-900 dark:text-white" size={20} />}
           </Button>
 
           <ThemeToggle />
 
+          {/* Improved Notification Popover */}
           <Popover className="relative">
             {({ open }) => (
               <>
@@ -191,73 +165,72 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                   as={Button}
                   variant="ghost"
                   onClick={fetchNotifications}
-                  className={`relative ${
-                    open ? "bg-gray-100 dark:bg-gray-700" : ""
-                  }`}
+                  className={`relative transition-all duration-200 ${open ? "bg-gray-100 dark:bg-gray-700" : ""}`}
                 >
-                  <Bell
-                    className="text-gray-900 dark:text-white transition-colors duration-300"
-                    size={20}
-                  />
-                  <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-900" />
+                  <Bell className="text-gray-900 dark:text-white" size={20} />
+                  {notificationData.length > 0 && (
+                    <span className="absolute top-2 right-2 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-900 animate-pulse" />
+                  )}
                 </Popover.Button>
 
                 <Transition
                   as={Fragment}
                   enter="transition ease-out duration-200"
-                  enterFrom="opacity-0 translate-y-1"
-                  enterTo="opacity-100 translate-y-0"
+                  enterFrom="opacity-0 translate-y-1 scale-95"
+                  enterTo="opacity-100 translate-y-0 scale-100"
                   leave="transition ease-in duration-150"
-                  leaveFrom="opacity-100 translate-y-0"
-                  leaveTo="opacity-0 translate-y-1"
+                  leaveFrom="opacity-100 translate-y-0 scale-100"
+                  leaveTo="opacity-0 translate-y-1 scale-95"
                 >
-                  <Popover.Panel className="absolute right-0 z-10 mt-2 w-80 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-100 dark:border-gray-700">
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                        Notifications
-                      </h3>
+                  <Popover.Panel className="absolute right-0 z-50 mt-3 w-80 sm:w-96 origin-top-right rounded-xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 focus:outline-none border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white">Notifications</h3>
+                      <span className="text-xs font-semibold px-2 py-1 bg-primary/10 text-primary rounded-full">
+                        {notificationData.length} New
+                      </span>
                     </div>
-                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                      {notificationData.map((notification) => (
-                        <div
-                          key={notification.id}
-                          className="flex items-start p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b last:border-0 border-gray-100 dark:border-gray-700"
-                        >
-                          <div className="flex-shrink-0 mt-1">
-                            <div className="bg-blue-100 dark:bg-blue-900/30 p-1.5 rounded-full">
-                              <Archive
-                                size={16}
-                                className="text-blue-600 dark:text-blue-400"
-                              />
+
+                    <div className="max-h-[420px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700/50 custom-scrollbar">
+                      {notificationData.length > 0 ? (
+                        notificationData.map((notification) => (
+                          <div key={notification.id} className="group relative flex items-start p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all cursor-pointer">
+                            <div className="flex-shrink-0 mt-1">
+                              <div className="bg-primary/10 p-2 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                <Archive size={16} className="text-primary" />
+                              </div>
+                            </div>
+                            <div className="ml-4 w-0 flex-1">
+                              <div className="flex justify-between items-start">
+                                <p className="text-sm font-bold text-gray-900 dark:text-white truncate pr-4">
+                                  {notification.title || "Module Update"}
+                                </p>
+                                <div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+                              </div>
+                              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                {notification.description}
+                              </p>
+                              <div className="mt-2 flex items-center text-[11px] text-gray-400 dark:text-gray-500 font-medium">
+                                <Clock size={12} className="mr-1" />
+                                {notification.createdAt ? new Date(notification.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Just now"}
+                              </div>
                             </div>
                           </div>
-                          <div className="ml-3 w-0 flex-1">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {notification.title || "System Update"}
-                            </p>
-
-                            <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400 leading-snug">
-                              {notification.description}
-                            </p>
-
-                            {notification.createdAt && (
-                              <p className="mt-1 text-xs text-gray-500">
-                                {new Date(
-                                  notification.createdAt,
-                                ).toLocaleString("en-US", {
-                                  dateStyle: "medium",
-                                  timeStyle: "short",
-                                })}
-                              </p>
-                            )}
+                        ))
+                      ) : (
+                        <div className="py-12 flex flex-col items-center justify-center text-center px-4">
+                          <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-full mb-4">
+                            <Bell size={32} className="text-gray-400" />
                           </div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">All caught up!</p>
+                          <p className="text-xs text-gray-500 mt-1">No new notifications to show.</p>
                         </div>
-                      ))}
+                      )}
                     </div>
-                    <div className="p-2 bg-gray-50 dark:bg-gray-700">
-                      <Button variant="ghost" className="w-full">
-                        View all notifications
-                      </Button>
+
+                    <div className="p-3 border-t border-gray-100 dark:border-gray-700 text-center bg-white dark:bg-gray-800">
+                      <Link to="/notifications" className="text-xs font-bold text-primary hover:underline transition-all block py-1">
+                        View All Notifications
+                      </Link>
                     </div>
                   </Popover.Panel>
                 </Transition>
@@ -266,21 +239,14 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
           </Popover>
 
           <Button variant="ghost" className="hidden md:flex">
-            <HelpCircle
-              className="text-gray-900 dark:text-white transition-colors duration-300"
-              size={20}
-            />
+            <HelpCircle className="text-gray-900 dark:text-white transition-colors duration-300" size={20} />
           </Button>
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-3 hidden md:block" />
 
           {/* User Dropdown */}
           <HeadlessMenu as="div" className="relative">
             <div>
-              <HeadlessMenu.Button
-                as={Button}
-                variant="ghost"
-                className="flex items-center gap-2"
-              >
+              <HeadlessMenu.Button as={Button} variant="ghost" className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
                   <User size={18} />
                 </div>
@@ -304,44 +270,15 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                 <div className="px-1 py-1">
                   <HeadlessMenu.Item>
                     {({ active }) => (
-                      <Link
-                        to="/change-password"
-                        className={`${
-                          active
-                            ? "bg-primary text-white"
-                            : "text-gray-900 dark:text-white"
-                        } group flex w-full items-center rounded-md px-2 py-2 text-sm transition-colors`}
-                      >
+                      <Link to="/change-password" className={`${active ? "bg-primary text-white" : "text-gray-900 dark:text-white"} group flex w-full items-center rounded-md px-2 py-2 text-sm transition-colors`}>
                         <KeyRound className="mr-2 h-5 w-5" /> Change Password
                       </Link>
                     )}
                   </HeadlessMenu.Item>
-
                   <HeadlessMenu.Item>
                     {({ active }) => (
-                      <button
-                        onClick={() => setIsThemeModalOpen(true)}
-                        className={`${
-                          active
-                            ? "bg-primary text-white"
-                            : "text-gray-900 dark:text-white"
-                        } group flex w-full items-center rounded-md px-2 py-2 text-sm transition-colors`}
-                      >
+                      <button onClick={() => setIsThemeModalOpen(true)} className={`${active ? "bg-primary text-white" : "text-gray-900 dark:text-white"} group flex w-full items-center rounded-md px-2 py-2 text-sm transition-colors`}>
                         <Palette className="mr-2 h-5 w-5" /> Theme Change
-                      </button>
-                    )}
-                  </HeadlessMenu.Item>
-
-                  <HeadlessMenu.Item>
-                    {({ active }) => (
-                      <button
-                        className={`${
-                          active
-                            ? "bg-primary text-white"
-                            : "text-gray-900 dark:text-white"
-                        } group flex w-full items-center rounded-md px-2 py-2 text-sm transition-colors`}
-                      >
-                        <Clock className="mr-2 h-5 w-5" /> Login: 08h:00m
                       </button>
                     )}
                   </HeadlessMenu.Item>
@@ -349,14 +286,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                 <div className="px-1 py-1">
                   <HeadlessMenu.Item>
                     {({ active }) => (
-                      <button
-                        onClick={logout}
-                        className={`${
-                          active
-                            ? "bg-primary text-white"
-                            : "text-gray-900 dark:text-white"
-                        } group flex w-full items-center rounded-md px-2 py-2 text-sm transition-colors`}
-                      >
+                      <button onClick={logout} className={`${active ? "bg-primary text-white" : "text-gray-900 dark:text-white"} group flex w-full items-center rounded-md px-2 py-2 text-sm transition-colors`}>
                         <LogOut className="mr-2 h-5 w-5" /> Logout
                       </button>
                     )}
@@ -370,129 +300,54 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
 
       {/* Theme Modal */}
       <Transition appear show={isThemeModalOpen} as={Fragment}>
-        <Dialog
-          as="div"
-          className="relative z-50"
-          onClose={() => setIsThemeModalOpen(false)}
-        >
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
+        <Dialog as="div" className="relative z-50" onClose={() => setIsThemeModalOpen(false)}>
+          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
             <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
           </Transition.Child>
-
           <div className="fixed inset-0 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
+              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
                 <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-8 text-left align-middle shadow-2xl transition-all border border-gray-100 dark:border-gray-700">
                   <div className="flex justify-between items-center mb-6">
-                    <Dialog.Title
-                      as="h3"
-                      className="text-lg font-semibold leading-6 text-gray-900 dark:text-white"
-                    >
-                      Theme Color
-                    </Dialog.Title>
-                    <button
-                      onClick={handleResetTheme}
-                      className="text-xs text-gray-500 hover:text-primary flex items-center gap-1 transition-colors"
-                      title="Reset to default purple"
-                    >
+                    <Dialog.Title as="h3" className="text-lg font-semibold text-gray-900 dark:text-white">Theme Color</Dialog.Title>
+                    <button onClick={handleResetTheme} className="text-xs text-gray-500 hover:text-primary flex items-center gap-1 transition-colors">
                       <RefreshCcw size={12} /> Reset
                     </button>
                   </div>
-
                   <div className="flex flex-col items-center">
                     <div className="relative group mb-6">
-                      <div
-                        className="w-24 h-24 rounded-full shadow-lg border-[4px] border-white dark:border-gray-700 transition-transform group-hover:scale-105"
-                        style={{ backgroundColor: localColor }}
-                      ></div>
-
-                      <input
-                        type="color"
-                        value={localColor}
-                        onChange={handleColorChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
-                      />
-
+                      <div className="w-24 h-24 rounded-full shadow-lg border-[4px] border-white dark:border-gray-700 transition-transform group-hover:scale-105" style={{ backgroundColor: localColor }}></div>
+                      <input type="color" value={localColor} onChange={handleColorChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full" />
                       <div className="absolute bottom-0 right-0 bg-white dark:bg-gray-700 p-2 rounded-full shadow-md pointer-events-none">
-                        <Palette
-                          size={16}
-                          className="text-gray-600 dark:text-gray-300"
-                        />
+                        <Palette size={16} className="text-gray-600 dark:text-gray-300" />
                       </div>
                     </div>
-
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                      Click the circle to pick a color
-                    </p>
-
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Click the circle to pick a color</p>
                     <div className="w-full max-w-[200px] mb-6">
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                          #
-                        </span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">#</span>
                         <input
                           type="text"
                           value={localColor.replace("#", "")}
-                          onChange={(e) => {
-                            const val = "#" + e.target.value;
-                            if (/^#[0-9A-F]{6}$/i.test(val)) {
-                              setLocalColor(val);
-                            } else {
-                              setLocalColor(val);
-                            }
-                          }}
-                          className="w-full pl-7 pr-4 py-2 text-center text-sm font-mono border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none uppercase"
+                          onChange={(e) => setLocalColor("#" + e.target.value)}
+                          className="w-full pl-7 pr-4 py-2 text-center text-sm font-mono border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white outline-none uppercase"
                           maxLength={6}
                         />
                       </div>
                     </div>
-
                     {recentColors.length > 0 && (
                       <div className="w-full">
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 text-center">
-                          Recently Used
-                        </p>
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 text-center">Recently Used</p>
                         <div className="flex justify-center gap-3">
                           {recentColors.map((color, index) => (
-                            <button
-                              key={index}
-                              onClick={() => setLocalColor(color)}
-                              className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 shadow-sm transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-800"
-                              style={{ backgroundColor: color }}
-                              title={color}
-                            />
+                            <button key={index} onClick={() => setLocalColor(color)} className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 shadow-sm transition-transform hover:scale-110" style={{ backgroundColor: color }} />
                           ))}
                         </div>
                       </div>
                     )}
                   </div>
-
                   <div className="mt-8">
-                    <Button
-                      variant="primary"
-                      onClick={handleSaveAndClose}
-                      className="w-full justify-center transition-colors duration-200 shadow-md hover:shadow-lg"
-                      style={{
-                        backgroundColor: localColor,
-                        borderColor: localColor,
-                      }}
-                    >
+                    <Button variant="primary" onClick={handleSaveAndClose} className="w-full justify-center transition-all shadow-md" style={{ backgroundColor: localColor, borderColor: localColor }}>
                       Done
                     </Button>
                   </div>
