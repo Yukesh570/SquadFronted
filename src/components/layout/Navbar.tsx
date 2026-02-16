@@ -35,11 +35,6 @@ interface NavbarProps {
   onToggleSidebar: () => void;
 }
 
-const notifications = [
-  { id: 1, text: "New user 'Ujjwal' just registered.", time: "5m ago" },
-  { id: 2, text: "New campaign was created.", time: "45m ago" },
-];
-
 const Navbar = ({ onToggleSidebar }: NavbarProps) => {
   const { payload, logout } = useAuth();
   const { theme, toggleTheme, primaryColor, changePrimaryColor } =
@@ -51,11 +46,11 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [localColor, setLocalColor] = useState(primaryColor);
-  const [isLoading, setIsLoading] = useState(true);
+  // const [isLoading, setIsLoading] = useState(true);
 
   const [recentColors, setRecentColors] = useState<string[]>([]);
   const fetchNotifications = async () => {
-    setIsLoading(true);
+    // setIsLoading(true);
     try {
       const response: any = await getNotificationApi();
       if (response && response.results) {
@@ -64,7 +59,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     } finally {
-      setIsLoading(false);
+      // setIsLoading(false);
     }
   };
   useEffect(() => {

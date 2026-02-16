@@ -1,23 +1,10 @@
 import React, { useState, useEffect } from "react";
-import {
-  Home,
-  History,
-  Smartphone,
-  Globe,
-  Monitor,
-  User,
-  Phone,
-  Mail,
-  Shield,
-  Hash,
-} from "lucide-react";
+import { Home, History, Globe } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   getUserInformationApi,
-  getUserLogApi,
   type UserInformationData,
-  type LoginHistoryItem,
 } from "../../api/userLogApi/userLogApi";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";

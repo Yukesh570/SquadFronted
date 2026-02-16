@@ -1,13 +1,5 @@
 import api from "../../axiosInstance";
 import { actionHelper } from "../../sidebarApi/sideBarApi";
-import {
-  createUserActionApi,
-  type UserActionData,
-} from "../../userActionApi/LogApi";
-import {
-  createNotificationApi,
-  type NotificationData,
-} from "../../userActionApi/notificationApi";
 
 export interface TimezoneData {
   id?: number;
