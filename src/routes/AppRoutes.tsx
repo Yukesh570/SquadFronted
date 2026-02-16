@@ -33,6 +33,7 @@ import TimeZone from "../pages/settings/Timezone/Timezone";
 import NotFound from "../pages/error/notFound";
 import LiveTraffic from "../pages/Report/LiveTraffic";
 import MessageReport from "../pages/Report/MessageReport";
+import UserAction from "../pages/UserLog/UserAction";
 // import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
 
 const componentMap: Record<string, JSX.Element> = {
@@ -61,6 +62,7 @@ const componentMap: Record<string, JSX.Element> = {
   mappingSetup: <MappingSetup />,
   operators: <Operators />,
   userLog: <UserLog />,
+  userAction: <UserAction />,
   customRoute: <CustomRoute />,
   liveTraffic: <LiveTraffic />,
   messageReport: <MessageReport />,

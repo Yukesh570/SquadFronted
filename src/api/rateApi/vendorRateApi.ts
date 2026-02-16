@@ -1,18 +1,19 @@
 import api from "../axiosInstance";
+import { actionHelper } from "../sidebarApi/sideBarApi";
 
 export interface VendorRateData {
   id?: number;
   country: number | string;
-  countryName?: string; 
+  countryName?: string;
   ratePlan: string;
-  currencyCode: string; 
+  currencyCode: string;
   countryCode: number;
   timeZone: number | string;
-  timeZoneName?: string; 
+  timeZoneName?: string;
   network: string;
   MCC: number;
   MNC: number;
-  rate: number | string; 
+  rate: number | string;
   dateTime: string;
   remark: string;
 }
@@ -29,7 +30,7 @@ export const getVendorRatesApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<VendorRateData>> => {
   const params: any = {
     page: page,
@@ -43,9 +44,15 @@ export const getVendorRatesApi = async (
 // POST
 export const createVendorRateApi = async (
   data: any,
-  module: string
+  module: string,
 ): Promise<VendorRateData> => {
   const response = await api.post(`/vendorRate/${module}/`, data);
+  actionHelper(
+    "Vendor Rate",
+    "Vendor Rate created successfully!",
+    "Vendor Rate",
+    "Vendor Rate created successfully!",
+  );
   return response.data;
 };
 
@@ -53,32 +60,50 @@ export const createVendorRateApi = async (
 export const updateVendorRateApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<VendorRateData> => {
   const response = await api.patch(`/vendorRate/${module}/${id}/`, data);
+  actionHelper(
+    "Vendor Rate",
+    "Vendor Rate updated successfully!",
+    "Vendor Rate",
+    "Vendor Rate updated successfully!",
+  );
   return response.data;
 };
 
 // DELETE
 export const deleteVendorRateApi = async (
   id: number,
-  module: string
+  module: string,
 ): Promise<void> => {
   await api.delete(`/vendorRate/${module}/${id}/`);
+  actionHelper(
+    "Vendor Rate",
+    "Vendor Rate deleted!",
+    "Vendor Rate",
+    "Vendor Rate deleted!",
+  );
 };
 
 // IMPORT
 export const importVendorRatesApi = async (
   file: File,
-  mappingId: string
+  mappingId: string,
 ): Promise<{ task_id: string }> => {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("mapped", mappingId); 
+  formData.append("mapped", mappingId);
 
   const response = await api.post(`/vendor-rate/import/`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+  actionHelper(
+    "Vendor Rate",
+    "Vendor Rate imported!",
+    "Vendor Rate",
+    "Vendor Rate imported!",
+  );
   return response.data;
 };
 

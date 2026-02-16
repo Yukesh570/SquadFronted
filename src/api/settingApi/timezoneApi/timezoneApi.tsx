@@ -1,4 +1,13 @@
 import api from "../../axiosInstance";
+import { actionHelper } from "../../sidebarApi/sideBarApi";
+import {
+  createUserActionApi,
+  type UserActionData,
+} from "../../userActionApi/LogApi";
+import {
+  createNotificationApi,
+  type NotificationData,
+} from "../../userActionApi/notificationApi";
 
 export interface TimezoneData {
   id?: number;
@@ -17,7 +26,7 @@ export const getTimezoneApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<TimezoneData>> => {
   const params: any = {
     page: page,
@@ -31,9 +40,16 @@ export const getTimezoneApi = async (
 // POST
 export const createTimezoneApi = async (
   data: any,
-  module: string
+  module: string,
 ): Promise<TimezoneData> => {
   const response = await api.post(`/timeZone/${module}/`, data);
+  actionHelper(
+    "TimeZone",
+    "TimeZone added successfully!",
+    "TimeZone",
+    "TimeZone added successfully!",
+  );
+
   return response.data;
 };
 
@@ -41,16 +57,29 @@ export const createTimezoneApi = async (
 export const updateTimezoneApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<TimezoneData> => {
   const response = await api.patch(`/timeZone/${module}/${id}/`, data);
+  actionHelper(
+    "TimeZone",
+    "TimeZone edited successfully!",
+    "TimeZone",
+    "TimeZone edited successfully!",
+  );
+
   return response.data;
 };
 
 // DELETE
 export const deleteTimezoneApi = async (
   id: number,
-  module: string
+  module: string,
 ): Promise<void> => {
   await api.delete(`/timeZone/${module}/${id}/`);
+  actionHelper(
+    "TimeZone",
+    "TimeZone deleted!",
+    "TimeZone",
+    "TimeZone deleted!",
+  );
 };

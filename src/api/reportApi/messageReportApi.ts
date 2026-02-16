@@ -1,4 +1,5 @@
 import api from "../../api/axiosInstance";
+import { actionHelper } from "../sidebarApi/sideBarApi";
 
 export interface MessageLogData {
   id: number;
@@ -6,15 +7,15 @@ export interface MessageLogData {
   text: string;
   status: "queued" | "sent" | "failed" | "delivered";
   message_id: string;
-  encoding?: string; 
-  segmentNumber?: string;  
-  characterCount?: string; 
-  
+  encoding?: string;
+  segmentNumber?: string;
+  characterCount?: string;
+
   clientName?: string;
   vendorName?: string;
   smppName?: string;
   systemId?: string;
-  createdAt?: string; 
+  createdAt?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -28,7 +29,7 @@ export const getMessageLogsApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<MessageLogData>> => {
   const params: any = {
     page: page,
@@ -41,11 +42,17 @@ export const getMessageLogsApi = async (
 
 export const exportMessageLogsApi = async (
   module: string,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ) => {
   const response = await api.get(`/smppSMS/${module}/export/`, {
     params: searchParams,
     responseType: "blob",
   });
+  actionHelper(
+    "Message Logs",
+    "Message Logs exported successfully!",
+    "Message Logs",
+    "Message Logs exported successfully!",
+  );
   return response.data;
 };

@@ -1,10 +1,11 @@
 import api from "../../axiosInstance";
+import { actionHelper } from "../../sidebarApi/sideBarApi";
 
 export interface StateData {
   id?: number;
   name: string;
   country: number;
-  countryName?: string; 
+  countryName?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -19,12 +20,12 @@ export const getStateApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<StateData>> => {
   const params: any = {
     page: page,
     page_size: pageSize,
-    ...searchParams
+    ...searchParams,
   };
   const response = await api.get(`/state/${module}/`, { params });
   return response.data;
@@ -33,9 +34,15 @@ export const getStateApi = async (
 // POST
 export const createStateApi = async (
   data: any,
-  module: string
+  module: string,
 ): Promise<StateData> => {
   const response = await api.post(`/state/${module}/`, data);
+  actionHelper(
+    "State",
+    "State added successfully!",
+    "State",
+    "State added successfully!",
+  );
   return response.data;
 };
 
@@ -43,16 +50,23 @@ export const createStateApi = async (
 export const updateStateApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<StateData> => {
   const response = await api.patch(`/state/${module}/${id}/`, data);
+  actionHelper(
+    "State",
+    "State updated successfully!",
+    "State",
+    "State updated successfully!",
+  );
   return response.data;
 };
 
 // DELETE
 export const deleteStateApi = async (
   id: number,
-  module: string
+  module: string,
 ): Promise<void> => {
   await api.delete(`/state/${module}/${id}/`);
+  actionHelper("State", "State deleted!", "State", "State deleted!");
 };

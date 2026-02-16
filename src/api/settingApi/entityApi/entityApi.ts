@@ -1,4 +1,5 @@
 import api from "../../axiosInstance";
+import { actionHelper } from "../../sidebarApi/sideBarApi";
 
 export interface EntityData {
   id?: number;
@@ -17,13 +18,13 @@ export const getEntityApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<EntityData>> => {
-    const params: any = {
-      page: page,
+  const params: any = {
+    page: page,
     page_size: pageSize,
-    ...searchParams
-    };
+    ...searchParams,
+  };
   const response = await api.get(`/entity/${module}/`, { params });
   return response.data;
 };
@@ -31,9 +32,15 @@ export const getEntityApi = async (
 // POST
 export const createEntityApi = async (
   data: any,
-  module: string
+  module: string,
 ): Promise<EntityData> => {
   const response = await api.post(`/entity/${module}/`, data);
+  actionHelper(
+    "Entity",
+    "Entity created successfully!",
+    "Entity",
+    "Entity created successfully!",
+  );
   return response.data;
 };
 
@@ -41,16 +48,23 @@ export const createEntityApi = async (
 export const updateEntityApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<EntityData> => {
   const response = await api.patch(`/entity/${module}/${id}/`, data);
+  actionHelper(
+    "Entity",
+    "Entity updated successfully!",
+    "Entity",
+    "Entity updated successfully!",
+  );
   return response.data;
 };
 
 // DELETE
 export const deleteEntityApi = async (
   id: number,
-  module: string
+  module: string,
 ): Promise<void> => {
   await api.delete(`/entity/${module}/${id}/`);
+  actionHelper("Entity", "Entity deleted!", "Entity", "Entity deleted!");
 };

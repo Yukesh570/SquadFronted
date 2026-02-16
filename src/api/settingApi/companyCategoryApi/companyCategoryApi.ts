@@ -1,4 +1,5 @@
 import api from "../../axiosInstance";
+import { actionHelper } from "../../sidebarApi/sideBarApi";
 
 export interface CompanyCategoryData {
   id?: number;
@@ -17,13 +18,13 @@ export const getCompanyCategoryApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<CompanyCategoryData>> => {
-    const params: any = {
-      page: page,
+  const params: any = {
+    page: page,
     page_size: pageSize,
-    ...searchParams
-    };
+    ...searchParams,
+  };
   const response = await api.get(`/companyCategory/${module}/`, { params });
   return response.data;
 };
@@ -31,9 +32,15 @@ export const getCompanyCategoryApi = async (
 // POST
 export const createCompanyCategoryApi = async (
   data: any,
-  module: string
+  module: string,
 ): Promise<CompanyCategoryData> => {
   const response = await api.post(`/companyCategory/${module}/`, data);
+  actionHelper(
+    "Company Category Status",
+    "Company Category Status created successfully!",
+    "Company Category Status",
+    "Company Category Status created successfully!",
+  );
   return response.data;
 };
 
@@ -41,16 +48,28 @@ export const createCompanyCategoryApi = async (
 export const updateCompanyCategoryApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<CompanyCategoryData> => {
   const response = await api.patch(`/companyCategory/${module}/${id}/`, data);
+  actionHelper(
+    "Company Category Status",
+    "Company Category Status updated successfully!",
+    "Company Category Status",
+    "Company Category Status updated successfully!",
+  );
   return response.data;
 };
 
 // DELETE
 export const deleteCompanyCategoryApi = async (
   id: number,
-  module: string
+  module: string,
 ): Promise<void> => {
   await api.delete(`/companyCategory/${module}/${id}/`);
+  actionHelper(
+    "Company Category Status",
+    "Company Category Status deleted!",
+    "Company Category Status",
+    "Company Category Status deleted!",
+  );
 };

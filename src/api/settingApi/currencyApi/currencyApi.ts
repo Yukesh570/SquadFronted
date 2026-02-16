@@ -1,4 +1,5 @@
 import api from "../../axiosInstance";
+import { actionHelper } from "../../sidebarApi/sideBarApi";
 
 export interface CurrencyData {
   id?: number;
@@ -19,13 +20,13 @@ export const getCurrenciesApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<CurrencyData>> => {
-    const params: any = {
-      page: page,
+  const params: any = {
+    page: page,
     page_size: pageSize,
-    ...searchParams
-    };
+    ...searchParams,
+  };
   const response = await api.get(`/currency/${module}/`, { params });
   return response.data;
 };
@@ -33,9 +34,15 @@ export const getCurrenciesApi = async (
 // POST
 export const createCurrencyApi = async (
   data: any,
-  module: string
+  module: string,
 ): Promise<CurrencyData> => {
   const response = await api.post(`/currency/${module}/`, data);
+  actionHelper(
+    "Currency",
+    "Currency created successfully!",
+    "Currency",
+    "Currency created successfully!",
+  );
   return response.data;
 };
 
@@ -43,16 +50,28 @@ export const createCurrencyApi = async (
 export const updateCurrencyApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<CurrencyData> => {
   const response = await api.patch(`/currency/${module}/${id}/`, data);
+  actionHelper(
+    "Currency",
+    "Currency updated successfully!",
+    "Currency",
+    "Currency updated successfully!",
+  );
   return response.data;
 };
 
 // DELETE
 export const deleteCurrencyApi = async (
   id: number,
-  module: string
+  module: string,
 ): Promise<void> => {
   await api.delete(`/currency/${module}/${id}/`);
+  actionHelper(
+    "Currency",
+    "Currency deleted!",
+    "Currency",
+    "Currency deleted!",
+  );
 };

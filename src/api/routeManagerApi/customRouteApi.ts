@@ -1,4 +1,5 @@
 import api from "../axiosInstance";
+import { actionHelper } from "../sidebarApi/sideBarApi";
 
 export interface CustomRouteData {
   id?: number;
@@ -10,7 +11,7 @@ export interface CustomRouteData {
   orginatingClientName?: string;
   priority: string;
   status: "ACTIVE" | "INACTIVE";
-  
+
   // Destination
   country?: number;
   countryName?: string;
@@ -38,7 +39,7 @@ export const getCustomRoutesApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<CustomRouteData>> => {
   const params: any = {
     page: page,
@@ -52,9 +53,15 @@ export const getCustomRoutesApi = async (
 // POST
 export const createCustomRouteApi = async (
   data: any,
-  module: string
+  module: string,
 ): Promise<CustomRouteData> => {
   const response = await api.post(`/customRoute/${module}/`, data);
+  actionHelper(
+    "Custom Route",
+    "Custom Route created successfully!",
+    "Custom Route",
+    "Custom Route created successfully!",
+  );
   return response.data;
 };
 
@@ -62,9 +69,15 @@ export const createCustomRouteApi = async (
 export const putCustomRouteApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<CustomRouteData> => {
   const response = await api.put(`/customRoute/${module}/${id}/`, data);
+  actionHelper(
+    "Custom Route",
+    "Custom Route updated successfully!",
+    "Custom Route",
+    "Custom Route updated successfully!",
+  );
   return response.data;
 };
 
@@ -72,16 +85,28 @@ export const putCustomRouteApi = async (
 export const updateCustomRouteApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<CustomRouteData> => {
   const response = await api.patch(`/customRoute/${module}/${id}/`, data);
+  actionHelper(
+    "Custom Route",
+    "Custom Route updated successfully!",
+    "Custom Route",
+    "Custom Route updated successfully!",
+  );
   return response.data;
 };
 
 // DELETE
 export const deleteCustomRouteApi = async (
   id: number,
-  module: string
+  module: string,
 ): Promise<void> => {
   await api.delete(`/customRoute/${module}/${id}/`);
+  actionHelper(
+    "Custom Route",
+    "Custom Route deleted!",
+    "Custom Route",
+    "Custom Route deleted!",
+  );
 };

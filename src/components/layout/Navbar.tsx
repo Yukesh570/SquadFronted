@@ -26,6 +26,10 @@ import {
   Transition,
   Dialog,
 } from "@headlessui/react";
+import {
+  getNotificationApi,
+  type NotificationData,
+} from "../../api/userActionApi/notificationApi";
 
 interface NavbarProps {
   onToggleSidebar: () => void;
@@ -40,12 +44,29 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
   const { payload, logout } = useAuth();
   const { theme, toggleTheme, primaryColor, changePrimaryColor } =
     useContext(ThemeContext);
+  const [notificationData, setNotificationData] = useState<NotificationData[]>(
+    [],
+  );
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [localColor, setLocalColor] = useState(primaryColor);
-  const [recentColors, setRecentColors] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  const [recentColors, setRecentColors] = useState<string[]>([]);
+  const fetchNotifications = async () => {
+    setIsLoading(true);
+    try {
+      const response: any = await getNotificationApi();
+      if (response && response.results) {
+        setNotificationData(response.results);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   useEffect(() => {
     const savedRecents = localStorage.getItem("recentThemeColors");
     if (savedRecents) {
@@ -174,6 +195,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                 <Popover.Button
                   as={Button}
                   variant="ghost"
+                  onClick={fetchNotifications}
                   className={`relative ${
                     open ? "bg-gray-100 dark:bg-gray-700" : ""
                   }`}
@@ -201,21 +223,38 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                       </h3>
                     </div>
                     <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                      {notifications.map((notification) => (
+                      {notificationData.map((notification) => (
                         <div
                           key={notification.id}
-                          className="flex items-start p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          className="flex items-start p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b last:border-0 border-gray-100 dark:border-gray-700"
                         >
                           <div className="flex-shrink-0 mt-1">
-                            <Archive size={18} className="text-primary" />
+                            <div className="bg-blue-100 dark:bg-blue-900/30 p-1.5 rounded-full">
+                              <Archive
+                                size={16}
+                                className="text-blue-600 dark:text-blue-400"
+                              />
+                            </div>
                           </div>
                           <div className="ml-3 w-0 flex-1">
-                            <p className="text-sm text-gray-700 dark:text-gray-200">
-                              {notification.text}
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                              {notification.title || "System Update"}
                             </p>
-                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                              {notification.time}
+
+                            <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400 leading-snug">
+                              {notification.description}
                             </p>
+
+                            {notification.createdAt && (
+                              <p className="mt-1 text-xs text-gray-500">
+                                {new Date(
+                                  notification.createdAt,
+                                ).toLocaleString("en-US", {
+                                  dateStyle: "medium",
+                                  timeStyle: "short",
+                                })}
+                              </p>
+                            )}
                           </div>
                         </div>
                       ))}
