@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, History, Globe } from "lucide-react";
+import { Home, History } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getUserInformationApi } from "../../api/userLogApi/userLogApi";
@@ -20,12 +20,8 @@ const UserAction: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Filter States
-  const [ipFilter, setIpFilter] = useState("");
-  const [browserFilter, setBrowserFilter] = useState("");
-  const [deviceFilter, setDeviceFilter] = useState("");
+  const [titleFilter, setTitleFilter] = useState("");
 
-  // 1. Fetch User Profile
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
@@ -38,14 +34,11 @@ const UserAction: React.FC = () => {
     fetchUserInfo();
   }, []);
 
-  // 2. Fetch User Logs
   const fetchUserLogs = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
       const currentSearchParams = overrideParams || {
-        ipAddress: ipFilter,
-        browser: browserFilter,
-        device: deviceFilter,
+        title: titleFilter,
       };
 
       const cleanParams = Object.fromEntries(
@@ -57,7 +50,6 @@ const UserAction: React.FC = () => {
         rowsPerPage,
         cleanParams,
       );
-      console.log("11111111111111111111111", response.data);
 
       let rawList: UserActionData[] = [];
       let totalCount = 0;
@@ -83,7 +75,7 @@ const UserAction: React.FC = () => {
       }
     } catch (error) {
       console.error("Log fetch error:", error);
-      toast.error("Failed to fetch login history.");
+      toast.error("Failed to fetch user actions.");
     } finally {
       setIsLoading(false);
     }
@@ -99,13 +91,12 @@ const UserAction: React.FC = () => {
   };
 
   const handleClearFilters = () => {
-    setIpFilter("");
-    setBrowserFilter("");
-    setDeviceFilter("");
+    setTitleFilter("");
     setCurrentPage(1);
-    fetchUserLogs({ ipAddress: "", browser: "", device: "" });
+    fetchUserLogs({ title: "" });
   };
-const hasLoggedOpening = useRef(false);
+
+  const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
@@ -117,7 +108,7 @@ const hasLoggedOpening = useRef(false);
     }
   }, []);
 
-  const headers = ["S.N.", "UserName", "Title", "Action", "Time"];
+  const headers = ["S.N.", "UserName", "Module", "Action", "Time"];
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
@@ -136,28 +127,17 @@ const hasLoggedOpening = useRef(false);
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary dark:text-white">User Log</span>
+          <span className="text-text-primary dark:text-white">User Action</span>
         </div>
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
-          label="Search IP"
-          value={ipFilter}
-          onChange={(e) => setIpFilter(e.target.value)}
-          placeholder="IP Address"
-        />
-        <Input
-          label="Search Browser"
-          value={browserFilter}
-          onChange={(e) => setBrowserFilter(e.target.value)}
-          placeholder="Chrome"
-        />
-        <Input
-          label="Search Device"
-          value={deviceFilter}
-          onChange={(e) => setDeviceFilter(e.target.value)}
-          placeholder="Mobile"
+          label="Search Module"
+          value={titleFilter}
+          onChange={(e) => setTitleFilter(e.target.value)}
+          placeholder="Client"
+          className="md:col-span-3"
         />
       </FilterCard>
 
@@ -184,7 +164,6 @@ const hasLoggedOpening = useRef(false);
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               <div className="flex items-center gap-2">
-                <Globe size={14} className="text-blue-400" />
                 {log.title}
               </div>
             </td>
@@ -192,7 +171,7 @@ const hasLoggedOpening = useRef(false);
               <div className="flex items-center gap-2">{log.action}</div>
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-xs">
                 <History size={14} className="text-orange-400" />
                 {formatDate(log.createdAt)}
               </div>
