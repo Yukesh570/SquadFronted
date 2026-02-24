@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Download, Upload } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Home, Plus, Edit, Trash, Download, Upload, Eye } from "lucide-react"; // Added Eye icon
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -16,13 +16,14 @@ import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
-import ViewButton from "../../../components/ui/ViewButton";
+// ViewButton removed
 import {
   countryCsv,
   downloadStatus,
 } from "../../../api/downloadApi/downloadApi";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
-import { actionHelper } from "../../../helper/action";
+// NEW: Context Menu
+import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 
 const Country: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -33,11 +34,13 @@ const Country: React.FC = () => {
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [editingCountry, setEditingCountry] = useState<CountryData | null>(
-    null
-  );
+  const [editingCountry, setEditingCountry] = useState<CountryData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+
+  // --- Context Menu States ---
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRowCountry, setSelectedRowCountry] = useState<CountryData | null>(null);
 
   // Filters
   const [nameFilter, setNameFilter] = useState("");
@@ -49,7 +52,7 @@ const Country: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const routeName = location.pathname.split("/")[1] || "";
+  const routeName = location.pathname.split("/")[1] || "country"; // Adjusted routeName fallback if needed
 
   const handleExport = async () => {
     try {
@@ -160,7 +163,7 @@ const Country: React.FC = () => {
     setCodeFilter("");
     setMccFilter("");
     setCurrentPage(1);
-    fetchCountries();
+    fetchCountries({ name: "", countryCode: "", MCC: "" }); // Pass empty filters to clear immediately
   };
 
   const handleDelete = async () => {
@@ -176,42 +179,28 @@ const Country: React.FC = () => {
     }
   };
 
-  const handleEdit = (country: CountryData) => {
-    if (!canUpdate) return;
-    setEditingCountry(country);
-    setIsViewMode(false);
-    setIsModalOpen(true);
+  const handleEdit = (country: CountryData) => { if (!canUpdate) return; setEditingCountry(country); setIsViewMode(false); setIsModalOpen(true); };
+  const handleAdd = () => { if (!canCreate) return; setEditingCountry(null); setIsViewMode(false); setIsModalOpen(true); };
+  const handleView = (country: CountryData) => { setEditingCountry(country); setIsViewMode(true); setIsModalOpen(true); };
+
+  // --- Context Menu Handler ---
+  const handleContextMenu = (e: React.MouseEvent, item: CountryData) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRowCountry(item);
   };
 
-  const handleAdd = () => {
-    if (!canCreate) return;
-    setEditingCountry(null);
-    setIsViewMode(false);
-    setIsModalOpen(true);
-  };
+  const menuItems: ContextMenuItem[] = selectedRowCountry ? [
+    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowCountry) },
+    ...(canUpdate ? [{ label: "Edit Country", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowCountry) }] : []),
+    ...(canDelete ? [{ label: "Delete Country", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowCountry.id!) }] : []),
+  ] : [];
 
-  const handleView = (country: CountryData) => {
-    setEditingCountry(country);
-    setIsViewMode(true);
-    setIsModalOpen(true);
-  };
-
-const hasLoggedOpening = useRef(false);
-
-  useEffect(() => {
-    if (!hasLoggedOpening.current) {
-      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
-      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      hasLoggedOpening.current = true;
-    }
-  }, []);
-
-  const headers = ["S.N.", "Country", "Code", "MCC", "Actions"];
+  // Removed "Actions" from headers
+  const headers = ["S.N.", "Country", "Code", "MCC"];
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Country Settings
@@ -278,7 +267,7 @@ const hasLoggedOpening = useRef(false);
                 Import
               </Button>
             )}
-            {canCreate ? (
+            {canCreate && (
               <Button
                 variant="primary"
                 onClick={handleAdd}
@@ -286,13 +275,14 @@ const hasLoggedOpening = useRef(false);
               >
                 Add Country
               </Button>
-            ) : null}
+            )}
           </div>
         }
         renderRow={(country, index) => (
           <tr
             key={country.id || index}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            onContextMenu={(e) => handleContextMenu(e, country)} // Right Click Handler
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
@@ -306,34 +296,12 @@ const hasLoggedOpening = useRef(false);
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               {country.MCC}
             </td>
-            <td className="px-4 py-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(country)} />
-                {canUpdate && (
-                  <Button
-                    variant="secondary"
-                    size="xs"
-                    onClick={() => handleEdit(country)}
-                    title="Edit Country"
-                  >
-                    <Edit size={14} />
-                  </Button>
-                )}
-                {canDelete && (
-                  <Button
-                    variant="danger"
-                    size="xs"
-                    onClick={() => setDeleteId(country.id!)}
-                    title="Delete Country"
-                  >
-                    <Trash size={14} />
-                  </Button>
-                )}
-              </div>
-            </td>
+            {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />
+
+      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
 
       <CountryModal
         isOpen={isModalOpen}

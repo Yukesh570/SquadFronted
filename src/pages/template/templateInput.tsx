@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -13,9 +13,10 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
-import ViewButton from "../../components/ui/ViewButton";
+// ViewButton removed
 import { usePagePermissions } from "../../hooks/usePagePermissions";
-import { actionHelper } from "../../helper/action";
+// NEW: Context Menu
+import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 
 const stripHtml = (html: string) => {
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -29,11 +30,13 @@ const CampaignTemplatePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<templateData | null>(
-    null
-  );
+  const [editingTemplate, setEditingTemplate] = useState<templateData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+
+  // --- Context Menu States ---
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRowTemplate, setSelectedRowTemplate] = useState<templateData | null>(null);
 
   const [nameFilter, setNameFilter] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -105,41 +108,28 @@ const CampaignTemplatePage: React.FC = () => {
     }
   };
 
-  const handleEdit = (template: templateData) => {
-    if (!canUpdate) return;
-    setEditingTemplate(template);
-    setIsViewMode(false);
-    setIsModalOpen(true);
+  const handleEdit = (template: templateData) => { if (!canUpdate) return; setEditingTemplate(template); setIsViewMode(false); setIsModalOpen(true); };
+  const handleAdd = () => { if (!canCreate) return; setEditingTemplate(null); setIsViewMode(false); setIsModalOpen(true); };
+  const handleView = (template: templateData) => { setEditingTemplate(template); setIsViewMode(true); setIsModalOpen(true); };
+
+  // --- Context Menu Handler ---
+  const handleContextMenu = (e: React.MouseEvent, item: templateData) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRowTemplate(item);
   };
 
-  const handleAdd = () => {
-    if (!canCreate) return;
-    setEditingTemplate(null);
-    setIsViewMode(false);
-    setIsModalOpen(true);
-  };
+  const menuItems: ContextMenuItem[] = selectedRowTemplate ? [
+    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowTemplate) },
+    ...(canUpdate ? [{ label: "Edit Template", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowTemplate) }] : []),
+    ...(canDelete ? [{ label: "Delete Template", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowTemplate.id!) }] : []),
+  ] : [];
 
-  const handleView = (template: templateData) => {
-    setEditingTemplate(template);
-    setIsViewMode(true);
-    setIsModalOpen(true);
-  };
-const hasLoggedOpening = useRef(false);
-
-  useEffect(() => {
-    if (!hasLoggedOpening.current) {
-      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
-      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      hasLoggedOpening.current = true;
-    }
-  }, []);
-
-  const headers = ["S.N.", "Name", "Content", "Actions"];
+  // Removed "Actions" from headers
+  const headers = ["S.N.", "Name", "Content"];
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Manage Campaign Templates
@@ -190,7 +180,8 @@ const hasLoggedOpening = useRef(false);
         renderRow={(template, index) => (
           <tr
             key={template.id || index}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            onContextMenu={(e) => handleContextMenu(e, template)} // Right Click Handler
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
               {(currentPage - 1) * rowsPerPage + index + 1}
@@ -215,35 +206,12 @@ const hasLoggedOpening = useRef(false);
                 {stripHtml(template.content)}
               </div>
             </td>
-
-            <td className="px-4 py-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(template)} />
-                {canUpdate && (
-                  <Button
-                    variant="secondary"
-                    size="xs"
-                    onClick={() => handleEdit(template)}
-                    title="Edit Template"
-                  >
-                    <Edit size={14} />
-                  </Button>
-                )}
-                {canDelete && (
-                  <Button
-                    variant="danger"
-                    size="xs"
-                    onClick={() => setDeleteId(template.id!)}
-                    title="Delete Template"
-                  >
-                    <Trash size={14} />
-                  </Button>
-                )}
-              </div>
-            </td>
+            {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />
+
+      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
 
       <AddTemplateModal
         isOpen={isModalOpen}

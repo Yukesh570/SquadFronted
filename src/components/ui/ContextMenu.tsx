@@ -13,11 +13,7 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
-const ContextMenu: React.FC<ContextMenuProps> = ({
-  position,
-  items,
-  onClose,
-}) => {
+const ContextMenu: React.FC<ContextMenuProps> = ({ position, items, onClose }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ x: number; y: number } | null>(null);
 
@@ -56,7 +52,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 
     document.addEventListener("mousedown", handleClickOutside);
     window.addEventListener("scroll", handleScroll, true);
-
+    
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       window.removeEventListener("scroll", handleScroll, true);
@@ -68,11 +64,13 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   return (
     <div
       ref={menuRef}
+      // REMOVED: animate-in fade-in zoom-in-95 duration-75
       className="fixed z-[9999] min-w-[180px] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 overflow-hidden"
-      style={{
-        top: coords?.y ?? position.y,
+      style={{ 
+        top: coords?.y ?? position.y, 
         left: coords?.x ?? position.x,
-        opacity: coords ? 1 : 0,
+        // Keep opacity 0 initially to prevent flickering during calculation
+        opacity: coords ? 1 : 0 
       }}
     >
       {items.map((item, index) => (

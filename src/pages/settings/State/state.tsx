@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -13,10 +13,10 @@ import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
-import ViewButton from "../../../components/ui/ViewButton";
-// import Select from "../../components/ui/Select";
+// ViewButton removed
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
-import { actionHelper } from "../../../helper/action";
+// NEW: Context Menu
+import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 
 const State: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -28,6 +28,10 @@ const State: React.FC = () => {
   const [editingState, setEditingState] = useState<StateData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+
+  // --- Context Menu States ---
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRowState, setSelectedRowState] = useState<StateData | null>(null);
 
   const [nameFilter, setNameFilter] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
@@ -71,6 +75,7 @@ const State: React.FC = () => {
   useEffect(() => {
     fetchStates();
   }, [routeName, currentPage, rowsPerPage]);
+
   const handleSearch = () => {
     setCurrentPage(1);
     fetchStates();
@@ -95,47 +100,33 @@ const State: React.FC = () => {
     }
   };
 
-  const handleEdit = (state: StateData) => {
-    if (!canUpdate) return;
-    setEditingState(state);
-    setIsViewMode(false);
-    setIsModalOpen(true);
+  const handleEdit = (state: StateData) => { if (!canUpdate) return; setEditingState(state); setIsViewMode(false); setIsModalOpen(true); };
+  const handleAdd = () => { if (!canCreate) return; setEditingState(null); setIsViewMode(false); setIsModalOpen(true); };
+  const handleView = (state: StateData) => { setEditingState(state); setIsViewMode(true); setIsModalOpen(true); };
+
+  // --- Context Menu Handler ---
+  const handleContextMenu = (e: React.MouseEvent, item: StateData) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRowState(item);
   };
 
-  const handleAdd = () => {
-    if (!canCreate) return;
-    setEditingState(null);
-    setIsViewMode(false);
-    setIsModalOpen(true);
-  };
+  const menuItems: ContextMenuItem[] = selectedRowState ? [
+    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowState) },
+    ...(canUpdate ? [{ label: "Edit State", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowState) }] : []),
+    ...(canDelete ? [{ label: "Delete State", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowState.id!) }] : []),
+  ] : [];
 
-  const handleView = (state: StateData) => {
-    setEditingState(state);
-    setIsViewMode(true);
-    setIsModalOpen(true);
-  };
-const hasLoggedOpening = useRef(false);
-
-  useEffect(() => {
-    if (!hasLoggedOpening.current) {
-      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
-      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      hasLoggedOpening.current = true;
-    }
-  }, []);
-
+  // Removed "Actions" from headers
   const headers = [
     "S.N.",
     "State Name",
     "Country ID",
     "Country Name",
-    "Actions",
   ];
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           State Settings
@@ -191,7 +182,8 @@ const hasLoggedOpening = useRef(false);
         renderRow={(state, index) => (
           <tr
             key={state.id || index}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            onContextMenu={(e) => handleContextMenu(e, state)} // Right Click Handler
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
@@ -205,34 +197,13 @@ const hasLoggedOpening = useRef(false);
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               {state.countryName || "-"}
             </td>
-            <td className="px-4 py-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(state)} />
-                {canUpdate && (
-                  <Button
-                    variant="secondary"
-                    size="xs"
-                    onClick={() => handleEdit(state)}
-                    title="Edit State"
-                  >
-                    <Edit size={14} />
-                  </Button>
-                )}
-                {canDelete && (
-                  <Button
-                    variant="danger"
-                    size="xs"
-                    onClick={() => setDeleteId(state.id!)}
-                    title="Delete State"
-                  >
-                    <Trash size={14} />
-                  </Button>
-                )}
-              </div>
-            </td>
+            {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />
+
+      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+
       <StateModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

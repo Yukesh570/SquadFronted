@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -12,10 +12,11 @@ import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
-import ViewButton from "../../../components/ui/ViewButton";
+// ViewButton removed
 import { TimezoneModal } from "../../../components/modals/Settings/timezonemodal";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
-import { actionHelper } from "../../../helper/action";
+// NEW: Context Menu
+import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 
 const TimeZone: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -24,11 +25,13 @@ const TimeZone: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTimezone, setEditingTimezone] = useState<TimezoneData | null>(
-    null
-  );
+  const [editingTimezone, setEditingTimezone] = useState<TimezoneData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+
+  // --- Context Menu States ---
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRowTimezone, setSelectedRowTimezone] = useState<TimezoneData | null>(null);
 
   const [nameFilter, setNameFilter] = useState("");
 
@@ -76,6 +79,7 @@ const TimeZone: React.FC = () => {
   useEffect(() => {
     fetchTimezones();
   }, [routeName, currentPage, rowsPerPage]);
+
   const handleSearch = () => {
     setCurrentPage(1);
     fetchTimezones();
@@ -99,41 +103,28 @@ const TimeZone: React.FC = () => {
     }
   };
 
-  const handleEdit = (timezone: TimezoneData) => {
-    if (!canUpdate) return;
-    setEditingTimezone(timezone);
-    setIsViewMode(false);
-    setIsModalOpen(true);
+  const handleEdit = (timezone: TimezoneData) => { if (!canUpdate) return; setEditingTimezone(timezone); setIsViewMode(false); setIsModalOpen(true); };
+  const handleAdd = () => { if (!canCreate) return; setEditingTimezone(null); setIsViewMode(false); setIsModalOpen(true); };
+  const handleView = (timezone: TimezoneData) => { setEditingTimezone(timezone); setIsViewMode(true); setIsModalOpen(true); };
+
+  // --- Context Menu Handler ---
+  const handleContextMenu = (e: React.MouseEvent, item: TimezoneData) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRowTimezone(item);
   };
 
-  const handleAdd = () => {
-    if (!canCreate) return;
-    setEditingTimezone(null);
-    setIsViewMode(false);
-    setIsModalOpen(true);
-  };
+  const menuItems: ContextMenuItem[] = selectedRowTimezone ? [
+    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowTimezone) },
+    ...(canUpdate ? [{ label: "Edit Timezone", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowTimezone) }] : []),
+    ...(canDelete ? [{ label: "Delete Timezone", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowTimezone.id!) }] : []),
+  ] : [];
 
-  const handleView = (timezone: TimezoneData) => {
-    setEditingTimezone(timezone);
-    setIsViewMode(true);
-    setIsModalOpen(true);
-  };
-const hasLoggedOpening = useRef(false);
-
-  useEffect(() => {
-    if (!hasLoggedOpening.current) {
-      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
-      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      hasLoggedOpening.current = true;
-    }
-  }, []);
-
-  const headers = ["S.N.", "Timezone Name", "Actions"];
+  // Removed "Actions" from headers
+  const headers = ["S.N.", "Timezone Name"];
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Timezone Settings
@@ -182,7 +173,8 @@ const hasLoggedOpening = useRef(false);
         renderRow={(timezone, index) => (
           <tr
             key={timezone.id || index}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            onContextMenu={(e) => handleContextMenu(e, timezone)} // Right Click Handler
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
@@ -190,34 +182,13 @@ const hasLoggedOpening = useRef(false);
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
               {timezone.name}
             </td>
-            <td className="px-4 py-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(timezone)} />
-                {canUpdate && (
-                  <Button
-                    variant="secondary"
-                    size="xs"
-                    onClick={() => handleEdit(timezone)}
-                    title="Edit Timezone"
-                  >
-                    <Edit size={14} />
-                  </Button>
-                )}
-                {canDelete && (
-                  <Button
-                    variant="danger"
-                    size="xs"
-                    onClick={() => setDeleteId(timezone.id!)}
-                    title="Delete Timezone"
-                  >
-                    <Trash size={14} />
-                  </Button>
-                )}
-              </div>
-            </td>
+            {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />
+
+      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+
       <TimezoneModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -15,9 +15,10 @@ import Input from "../../components/ui/Input";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
-import ViewButton from "../../components/ui/ViewButton";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
-import { actionHelper } from "../../helper/action";
+// ViewButton removed
+// NEW: Context Menu
+import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 
 const CustomerRate: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -33,6 +34,10 @@ const CustomerRate: React.FC = () => {
   const [editingRate, setEditingRate] = useState<CustomerRateData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+
+  // --- Context Menu States ---
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRowRate, setSelectedRowRate] = useState<CustomerRateData | null>(null);
 
   const [planNameFilter, setPlanNameFilter] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -130,25 +135,22 @@ const CustomerRate: React.FC = () => {
     }
   };
 
-  const handleEdit = (rate: CustomerRateData) => {
-    if (!canUpdate) return;
-    setEditingRate(rate);
-    setIsViewMode(false);
-    setIsModalOpen(true);
+  const handleEdit = (rate: CustomerRateData) => { if (!canUpdate) return; setEditingRate(rate); setIsViewMode(false); setIsModalOpen(true); };
+  const handleAdd = () => { if (!canCreate) return; setEditingRate(null); setIsViewMode(false); setIsModalOpen(true); };
+  const handleView = (rate: CustomerRateData) => { setEditingRate(rate); setIsViewMode(true); setIsModalOpen(true); };
+
+  // --- Context Menu Handler ---
+  const handleContextMenu = (e: React.MouseEvent, item: CustomerRateData) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRowRate(item);
   };
 
-  const handleAdd = () => {
-    if (!canCreate) return;
-    setEditingRate(null);
-    setIsViewMode(false);
-    setIsModalOpen(true);
-  };
-
-  const handleView = (rate: CustomerRateData) => {
-    setEditingRate(rate);
-    setIsViewMode(true);
-    setIsModalOpen(true);
-  };
+  const menuItems: ContextMenuItem[] = selectedRowRate ? [
+    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowRate) },
+    ...(canUpdate ? [{ label: "Edit Rate", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowRate) }] : []),
+    ...(canDelete ? [{ label: "Delete Rate", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowRate.id!) }] : []),
+  ] : [];
 
   const renderCountry = (rate: CustomerRateData) => {
     if ((rate as any).countryName) return (rate as any).countryName;
@@ -160,18 +162,7 @@ const CustomerRate: React.FC = () => {
     return timezoneMap[String(rate.timeZone)] || rate.timeZone;
   };
 
- const hasLoggedOpening = useRef(false);
- 
-   useEffect(() => {
-     if (!hasLoggedOpening.current) {
-       const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
-       const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-       let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-       actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-       hasLoggedOpening.current = true;
-     }
-   }, []);
-
+  // Removed "Actions" from headers
   const headers = [
     "S.N.",
     "RatePlan",
@@ -181,11 +172,10 @@ const CustomerRate: React.FC = () => {
     "MCC",
     "Rate",
     "DateTime",
-    "Actions",
   ];
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Customer Rates
@@ -236,7 +226,8 @@ const CustomerRate: React.FC = () => {
         renderRow={(item, index) => (
           <tr
             key={item.id || index}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            onContextMenu={(e) => handleContextMenu(e, item)} // Right Click Handler
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
@@ -262,34 +253,12 @@ const CustomerRate: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               {item.dateTime ? new Date(item.dateTime).toLocaleString() : "-"}
             </td>
-            <td className="px-4 py-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(item)} />
-                {canUpdate && (
-                  <Button
-                    variant="secondary"
-                    size="xs"
-                    onClick={() => handleEdit(item)}
-                    title="Edit Customer Rate"
-                  >
-                    <Edit size={14} />
-                  </Button>
-                )}
-                {canDelete && (
-                  <Button
-                    variant="danger"
-                    size="xs"
-                    onClick={() => setDeleteId(item.id!)}
-                    title="Delete Customer Rate"
-                  >
-                    <Trash size={14} />
-                  </Button>
-                )}
-              </div>
-            </td>
+            {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />
+
+      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
 
       <CustomerRateModal
         isOpen={isModalOpen}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Upload } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Home, Plus, Edit, Trash, Upload, Eye } from "lucide-react"; // Added Eye icon
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -18,8 +18,9 @@ import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
-import ViewButton from "../../components/ui/ViewButton";
-import { actionHelper } from "../../helper/action";
+// ViewButton removed
+// NEW: Context Menu
+import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 
 const Operators: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -31,11 +32,13 @@ const Operators: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [editingOperator, setEditingOperator] = useState<OperatorData | null>(
-    null
-  );
+  const [editingOperator, setEditingOperator] = useState<OperatorData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+
+  // --- Context Menu States ---
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRowOperator, setSelectedRowOperator] = useState<OperatorData | null>(null);
 
   // Filters
   const [searchName, setSearchName] = useState("");
@@ -155,21 +158,24 @@ const Operators: React.FC = () => {
     setIsModalOpen(true);
   };
 
-const hasLoggedOpening = useRef(false);
+  // --- Context Menu Handler ---
+  const handleContextMenu = (e: React.MouseEvent, item: OperatorData) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRowOperator(item);
+  };
 
-  useEffect(() => {
-    if (!hasLoggedOpening.current) {
-      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
-      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      hasLoggedOpening.current = true;
-    }
-  }, []);
-  const headers = ["S.N.", "Operator Name", "Country", "MNC", "Actions"];
+  const menuItems: ContextMenuItem[] = selectedRowOperator ? [
+    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowOperator) },
+    ...(canUpdate ? [{ label: "Edit Operator", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowOperator) }] : []),
+    ...(canDelete ? [{ label: "Delete Operator", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowOperator.id!) }] : []),
+  ] : [];
+
+  // Removed "Actions" from headers
+  const headers = ["S.N.", "Operator Name", "Country", "MNC"];
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
@@ -232,7 +238,8 @@ const hasLoggedOpening = useRef(false);
         renderRow={(item: OperatorData, index: number) => (
           <tr
             key={item.id || index}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            onContextMenu={(e) => handleContextMenu(e, item)} // Right Click Handler
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
@@ -248,34 +255,12 @@ const hasLoggedOpening = useRef(false);
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               {item.MNC}
             </td>
-            <td className="px-4 py-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(item)} />
-                {canUpdate && (
-                  <Button
-                    variant="secondary"
-                    size="xs"
-                    onClick={() => handleEdit(item)}
-                    title="Edit Operator"
-                  >
-                    <Edit size={14} />
-                  </Button>
-                )}
-                {canDelete && (
-                  <Button
-                    variant="danger"
-                    size="xs"
-                    onClick={() => setDeleteId(item.id!)}
-                    title="Delete Operator"
-                  >
-                    <Trash size={14} />
-                  </Button>
-                )}
-              </div>
-            </td>
+            {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />
+
+      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
 
       <OperatorModal
         isOpen={isModalOpen}

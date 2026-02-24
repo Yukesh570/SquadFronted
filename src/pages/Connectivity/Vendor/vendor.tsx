@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -13,10 +13,11 @@ import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
-import ViewButton from "../../../components/ui/ViewButton";
+// ViewButton removed
 import Select from "../../../components/ui/Select";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
-import { actionHelper } from "../../../helper/action";
+// NEW: Context Menu
+import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 
 const Vendor: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -24,11 +25,17 @@ const Vendor: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<VendorData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
+  // --- Context Menu States ---
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRowVendor, setSelectedRowVendor] = useState<VendorData | null>(null);
+
+  // --- Filters ---
   const [nameFilter, setNameFilter] = useState("");
   const [companyNameFilter, setCompanyNameFilter] = useState("");
   const [connectionTypeFilter, setConnectionTypeFilter] = useState("");
@@ -107,39 +114,25 @@ const Vendor: React.FC = () => {
     }
   };
 
-  const handleEdit = (vendor: VendorData) => {
-    if (!canUpdate) return;
-    setEditingVendor(vendor);
-    setIsViewMode(false);
-    setIsModalOpen(true);
+  const handleEdit = (vendor: VendorData) => { if (!canUpdate) return; setEditingVendor(vendor); setIsViewMode(false); setIsModalOpen(true); };
+  const handleAdd = () => { if (!canCreate) return; setEditingVendor(null); setIsViewMode(false); setIsModalOpen(true); };
+  const handleView = (vendor: VendorData) => { setEditingVendor(vendor); setIsViewMode(true); setIsModalOpen(true); };
+
+  // --- Context Menu Handler ---
+  const handleContextMenu = (e: React.MouseEvent, vendor: VendorData) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRowVendor(vendor);
   };
 
-  const handleAdd = () => {
-    if (!canCreate) return;
-    setEditingVendor(null);
-    setIsViewMode(false);
-    setIsModalOpen(true);
-  };
+  const menuItems: ContextMenuItem[] = selectedRowVendor ? [
+    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowVendor) },
+    ...(canUpdate ? [{ label: "Edit Vendor", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowVendor) }] : []),
+    ...(canDelete ? [{ label: "Delete Vendor", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowVendor.id!) }] : []),
+  ] : [];
 
-  const handleView = (vendor: VendorData) => {
-    setEditingVendor(vendor);
-    setIsViewMode(true);
-    setIsModalOpen(true);
-  };
-
-const hasLoggedOpening = useRef(false);
-
-  useEffect(() => {
-    if (!hasLoggedOpening.current) {
-      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
-      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      hasLoggedOpening.current = true;
-    }
-  }, []);
-
-  const headers = ["S.N.", "Profile Name", "Company Name", "Type", "Actions"];
+  // Removed "Actions" from headers
+  const headers = ["S.N.", "Profile Name", "Company Name", "Type"];
 
   const connectionTypeOptions = [
     { label: "SMPP", value: "SMPP" },
@@ -147,7 +140,7 @@ const hasLoggedOpening = useRef(false);
   ];
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Vendor Profiles
@@ -163,27 +156,9 @@ const hasLoggedOpening = useRef(false);
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
-        <Input
-          label="Search Profile"
-          value={nameFilter}
-          onChange={(e) => setNameFilter(e.target.value)}
-          placeholder="Profile Name"
-          className="md:col-span-2"
-        />
-        <Input
-          label="Search Company Name"
-          value={companyNameFilter}
-          onChange={(e) => setCompanyNameFilter(e.target.value)}
-          placeholder="Company Name"
-          className="md:col-span-2"
-        />
-        <Select
-          label="Connection Type"
-          value={connectionTypeFilter}
-          onChange={setConnectionTypeFilter}
-          options={connectionTypeOptions}
-          placeholder="Select Type"
-        />
+        <Input label="Search Profile" value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} placeholder="Profile Name" className="md:col-span-2" />
+        <Input label="Search Company Name" value={companyNameFilter} onChange={(e) => setCompanyNameFilter(e.target.value)} placeholder="Company Name" className="md:col-span-2" />
+        <Select label="Connection Type" value={connectionTypeFilter} onChange={setConnectionTypeFilter} options={connectionTypeOptions} placeholder="Select Type" />
       </FilterCard>
 
       <DataTable
@@ -196,71 +171,32 @@ const hasLoggedOpening = useRef(false);
         onRowsPerPageChange={setRowsPerPage}
         headers={headers}
         isLoading={isLoading}
-        headerActions={
-          canCreate ? (
-            <Button
-              variant="primary"
-              onClick={handleAdd}
-              leftIcon={<Plus size={18} />}
-            >
-              Add Vendor
-            </Button>
-          ) : null
-        }
+        headerActions={canCreate ? (
+          <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>
+            Add Vendor
+          </Button>
+        ) : null}
         renderRow={(vendor: any, index) => (
           <tr
             key={vendor.id || index}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            onContextMenu={(e) => handleContextMenu(e, vendor)} // Right Click Handler
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {(currentPage - 1) * rowsPerPage + index + 1}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {vendor.profileName}
-            </td>
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">{vendor.profileName}</td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">{vendor.companyName}</td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {vendor.companyName}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <span
-                className={`px-2 py-1 rounded text-xs font-medium ${
-                  vendor.connectionType === "SMPP"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-gray-100 text-gray-800"
-                }`}
-              >
+              <span className={`px-2 py-1 rounded text-xs font-medium ${vendor.connectionType === "SMPP" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"}`}>
                 {vendor.connectionType}
               </span>
             </td>
-
-            <td className="px-4 py-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(vendor)} />
-                {canUpdate && (
-                  <Button
-                    variant="secondary"
-                    size="xs"
-                    onClick={() => handleEdit(vendor)}
-                    title="Edit Vendor"
-                  >
-                    <Edit size={14} />
-                  </Button>
-                )}
-                {canDelete && (
-                  <Button
-                    variant="danger"
-                    size="xs"
-                    onClick={() => setDeleteId(vendor.id!)}
-                    title="Delete Vendor"
-                  >
-                    <Trash size={14} />
-                  </Button>
-                )}
-              </div>
-            </td>
+            {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />
+
+      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+
       <VendorModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

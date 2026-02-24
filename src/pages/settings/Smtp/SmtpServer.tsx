@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -13,9 +13,10 @@ import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
-import ViewButton from "../../../components/ui/ViewButton";
+// ViewButton removed
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
-import { actionHelper } from "../../../helper/action";
+// NEW: Context Menu
+import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 
 const SmtpServer: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -24,11 +25,13 @@ const SmtpServer: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingServer, setEditingServer] = useState<SmtpServerData | null>(
-    null
-  );
+  const [editingServer, setEditingServer] = useState<SmtpServerData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+
+  // --- Context Menu States ---
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRowServer, setSelectedRowServer] = useState<SmtpServerData | null>(null);
 
   const [nameFilter, setNameFilter] = useState("");
   const [hostFilter, setHostFilter] = useState("");
@@ -72,6 +75,7 @@ const SmtpServer: React.FC = () => {
   useEffect(() => {
     fetchServers();
   }, [routeName, currentPage, rowsPerPage]);
+
   const handleSearch = () => {
     setCurrentPage(1);
     fetchServers();
@@ -97,38 +101,24 @@ const SmtpServer: React.FC = () => {
     }
   };
 
-  const handleEdit = (server: SmtpServerData) => {
-    if (!canUpdate) return;
-    setEditingServer(server);
-    setIsViewMode(false);
-    setIsModalOpen(true);
+  const handleEdit = (server: SmtpServerData) => { if (!canUpdate) return; setEditingServer(server); setIsViewMode(false); setIsModalOpen(true); };
+  const handleAdd = () => { if (!canCreate) return; setEditingServer(null); setIsViewMode(false); setIsModalOpen(true); };
+  const handleView = (server: SmtpServerData) => { setEditingServer(server); setIsViewMode(true); setIsModalOpen(true); };
+
+  // --- Context Menu Handler ---
+  const handleContextMenu = (e: React.MouseEvent, item: SmtpServerData) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRowServer(item);
   };
 
-  const handleAdd = () => {
-    if (!canCreate) return;
-    setEditingServer(null);
-    setIsViewMode(false);
-    setIsModalOpen(true);
-  };
+  const menuItems: ContextMenuItem[] = selectedRowServer ? [
+    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowServer) },
+    ...(canUpdate ? [{ label: "Edit Server", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowServer) }] : []),
+    ...(canDelete ? [{ label: "Delete Server", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowServer.id!) }] : []),
+  ] : [];
 
-  const handleView = (server: SmtpServerData) => {
-    setEditingServer(server);
-    setIsViewMode(true);
-    setIsModalOpen(true);
-  };
-
-const hasLoggedOpening = useRef(false);
-
-  useEffect(() => {
-    if (!hasLoggedOpening.current) {
-      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
-      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      hasLoggedOpening.current = true;
-    }
-  }, []);
-
+  // Removed "Actions" from headers
   const headers = [
     "S.N.",
     "Name",
@@ -136,11 +126,10 @@ const hasLoggedOpening = useRef(false);
     "Port",
     "User",
     "Security",
-    "Actions",
   ];
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Email Hosts (SMTP)
@@ -196,7 +185,8 @@ const hasLoggedOpening = useRef(false);
         renderRow={(server, index) => (
           <tr
             key={server.id}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            onContextMenu={(e) => handleContextMenu(e, server)} // Right Click Handler
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
@@ -216,34 +206,13 @@ const hasLoggedOpening = useRef(false);
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {server.security}
             </td>
-            <td className="px-4 py-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <ViewButton onClick={() => handleView(server)} />
-                {canUpdate && (
-                  <Button
-                    variant="secondary"
-                    size="xs"
-                    onClick={() => handleEdit(server)}
-                    title="Edit Server"
-                  >
-                    <Edit size={14} />
-                  </Button>
-                )}
-                {canDelete && (
-                  <Button
-                    variant="danger"
-                    size="xs"
-                    onClick={() => setDeleteId(server.id!)}
-                    title="Delete Server"
-                  >
-                    <Trash size={14} />
-                  </Button>
-                )}
-              </div>
-            </td>
+            {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />
+
+      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+
       <SmtpModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
