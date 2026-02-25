@@ -51,15 +51,8 @@ const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
-      setTimeout(() => {
-        const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
-        const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-        
-        actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
-      
+      // Direct tracking: No setTimeout or DOM reading needed since it's not in the sidebar
+      actionHelper("Change Password", "Opened Change Password Module", false);
       hasLoggedOpening.current = true;
     }
   }, []);
