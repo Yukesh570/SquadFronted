@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -17,6 +17,7 @@ import { TimezoneModal } from "../../../components/modals/Settings/timezonemodal
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 // NEW: Context Menu
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
+import { actionHelper } from "../../../helper/action";
 
 const TimeZone: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -122,6 +123,23 @@ const TimeZone: React.FC = () => {
 
   // Removed "Actions" from headers
   const headers = ["S.N.", "Timezone Name"];
+
+  const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      // The setTimeout is CRUCIAL here to wait for the sidebar to update
+      setTimeout(() => {
+        const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+        const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+        let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+        
+        actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      }, 100); // Waits 0.1 seconds
+      
+      hasLoggedOpening.current = true;
+    }
+  }, []);
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Home, Plus, Edit, Trash, ShieldPlus, Eye } from "lucide-react"; 
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -21,6 +21,7 @@ import { DeleteModal } from "../../components/modals/DeleteModal";
 import Select from "../../components/ui/Select";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu"; 
 import { usePagePermissions } from "../../hooks/usePagePermissions";
+import { actionHelper } from "../../helper/action";
 
 const Client: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -143,6 +144,23 @@ const Client: React.FC = () => {
   // REMOVED "Actions" from this array
   const headers = ["S.N.", "Client Name", "Company", "Status", "Route Type", "Credit Limit"];
   const statusOptions = [{ label: "Active", value: "ACTIVE" }, { label: "Trial", value: "TRIAL" }, { label: "Suspended", value: "SUSPENDED" }];
+
+  const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      // The setTimeout is CRUCIAL here to wait for the sidebar to update
+      setTimeout(() => {
+        const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+        const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+        let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+        
+        actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      }, 100); // Waits 0.1 seconds
+      
+      hasLoggedOpening.current = true;
+    }
+  }, []);
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>

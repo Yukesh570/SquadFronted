@@ -51,10 +51,15 @@ const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
-      const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-      let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-      actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      // The setTimeout is CRUCIAL here to wait for the sidebar to update
+      setTimeout(() => {
+        const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+        const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+        let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+        
+        actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      }, 100); // Waits 0.1 seconds
+      
       hasLoggedOpening.current = true;
     }
   }, []);
