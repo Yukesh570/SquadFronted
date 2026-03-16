@@ -1,0 +1,103 @@
+import React from "react";
+import Modal from "../../ui/Modal";
+import Button from "../../ui/Button";
+import { type DetailedReportData } from "../../../api/reportApi/detailedReportApi";
+
+interface DetailedReportModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  viewLog: DetailedReportData | null;
+}
+
+export const DetailedReportModal: React.FC<DetailedReportModalProps> = ({
+  isOpen,
+  onClose,
+  viewLog,
+}) => {
+  if (!isOpen || !viewLog) return null;
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Detailed Report Information"
+      className="max-w-4xl"
+    >
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Row 1 */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Text Message ID</label>
+            <div className="text-sm font-mono text-primary bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.text_message_id || "-"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Destination</label>
+            <div className="text-sm font-medium text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.destination || "-"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Status</label>
+            <div className="text-sm font-medium capitalize text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.submitStatus || "-"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Request Time</label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.request_time || "-"}</div>
+          </div>
+
+          {/* Row 2 */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Client</label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.client || "-"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Client Rate</label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.clientRate || "0"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Client Charge</label>
+            <div className="text-sm font-medium text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.client_charge || "0"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Sender ID</label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.senderId || "-"}</div>
+          </div>
+
+          {/* Row 3 */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Vendor</label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.vendor || "-"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Vendor Msg ID</label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.vendor_msg_id || "-"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Vendor Rate</label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.vendorRate || "0"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Vendor Charge</label>
+            <div className="text-sm font-medium text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.vendor_charge || "0"}</div>
+          </div>
+        </div>
+
+        {/* Message Content Area */}
+        <div className="mt-4">
+          <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1 flex justify-between">
+            <span>Message Content</span>
+            <span>Parts: {viewLog.part_total || 0}</span>
+          </label>
+          <div className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[100px] text-sm text-text-primary dark:text-white whitespace-pre-wrap break-words">
+            {viewLog.content || <span className="text-gray-400 italic">No message content available.</span>}
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+};

@@ -35,6 +35,7 @@ import LiveTraffic from "../pages/Report/LiveTraffic";
 import MessageReport from "../pages/Report/MessageReport";
 import UserAction from "../pages/UserLog/UserAction";
 import AddCredit from "../pages/Credit/AddCredit";
+import DetailedReport from "../pages/Report/DetailedReport";
 // import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
 
 const componentMap: Record<string, JSX.Element> = {
@@ -68,6 +69,7 @@ const componentMap: Record<string, JSX.Element> = {
   liveTraffic: <LiveTraffic />,
   messageReport: <MessageReport />,
   addCredit: <AddCredit />,
+  detailedReport: <DetailedReport/>,
   // whiteListIP: <WhiteListIP />,
 };
 
