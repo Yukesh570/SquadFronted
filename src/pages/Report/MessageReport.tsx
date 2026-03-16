@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Home, Download, Save } from "lucide-react";
+import { Home, Download, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -25,6 +25,8 @@ import AdvancedFilter, {
   type FilterColumn,
 } from "../../components/ui/AdvancedFilter";
 import { actionHelper } from "../../helper/action";
+import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
+import { MessageReportModal } from "../../components/modals/Report/MessageReportModal"; // Added Modal Import
 
 // --- Interfaces ---
 interface Option {
@@ -101,6 +103,12 @@ const MessageReport: React.FC = () => {
 
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
+  // --- View Modal & Context Menu States ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [viewLog, setViewLog] = useState<MessageLogData | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRowLog, setSelectedRowLog] = useState<MessageLogData | null>(null);
+
   // Routing
   const location = useLocation();
   const moduleName = location.pathname.split("/").pop() || "messageReport";
@@ -149,7 +157,7 @@ const MessageReport: React.FC = () => {
   // --- Configuration ---
   const filterOptionsConfig: ColumnConfig[] = useMemo(
     () => [
-      { key: "message_id", label: "Message ID", type: "text" }, // Added Search Field
+      { key: "message_id", label: "Message ID", type: "text" },
       { key: "destination", label: "Destination", type: "text" },
       {
         key: "clientName",
@@ -206,8 +214,13 @@ const MessageReport: React.FC = () => {
         type: "text",
         render: (log) => (
           <div
-            className="max-w-xs truncate text-sm text-text-secondary"
-            title={log.text}
+            className="max-w-xs truncate text-sm text-text-secondary cursor-pointer hover:text-primary transition-colors"
+            title="Click to view full message"
+            onClick={(e) => {
+              e.stopPropagation();
+              setViewLog(log);
+              setIsModalOpen(true);
+            }}
           >
             {log.text}
           </div>
@@ -351,27 +364,43 @@ const MessageReport: React.FC = () => {
     }
   };
 
-const hasLoggedOpening = useRef(false);
+  const handleContextMenu = (e: React.MouseEvent, log: MessageLogData) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRowLog(log);
+  };
+
+  const menuItems: ContextMenuItem[] = selectedRowLog ? [
+    { 
+      label: "View Full Message", 
+      icon: <Eye size={16} />, 
+      onClick: () => {
+        setViewLog(selectedRowLog);
+        setIsModalOpen(true);
+      } 
+    },
+  ] : [];
+
+  const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100); 
       
       hasLoggedOpening.current = true;
     }
   }, []);
-  // No Action Column
+
   const tableHeaders = [...visibleTableFields.map((col) => col.label)];
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -407,17 +436,6 @@ const hasLoggedOpening = useRef(false);
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
             />
-          </div>
-
-          <div className="relative z-20">
-            <Button
-              variant="secondary"
-              onClick={() => toast.info("Filter Preset Saved")}
-              title="Save filter presets"
-              className="!px-3"
-            >
-              <Save size={18} />
-            </Button>
           </div>
         </div>
 
@@ -481,7 +499,8 @@ const hasLoggedOpening = useRef(false);
         renderRow={(log, index) => (
           <tr
             key={log.id || index}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 transition-colors"
+            onContextMenu={(e) => handleContextMenu(e, log)}
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 transition-colors cursor-context-menu"
           >
             {visibleTableFields.map((col) => {
               const cellData = (log as any)[col.key];
@@ -507,6 +526,16 @@ const hasLoggedOpening = useRef(false);
           </tr>
         )}
       />
+
+      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+
+      {/* Clean Embedded Reusable Modal */}
+      <MessageReportModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        viewLog={viewLog} 
+      />
+
     </div>
   );
 };

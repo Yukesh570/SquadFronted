@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -10,14 +10,45 @@ import {
 import { SmppModal } from "../../../components/modals/Connectivity/SmppModal";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
+import Select from "../../../components/ui/Select";
+import DatePicker from "../../../components/ui/DatePicker";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
-import Select from "../../../components/ui/Select";
+import AdvancedFilter, {
+  type FilterColumn,
+} from "../../../components/ui/AdvancedFilter";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
-// NEW: Context Menu
-import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
+import ContextMenu, {
+  type ContextMenuItem,
+} from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
+
+// --- Interfaces ---
+interface Option {
+  label: string;
+  value: string;
+}
+
+interface ColumnConfig extends FilterColumn {
+  render?: (data: SmppData) => React.ReactNode;
+  options?: Option[];
+  filterKey?: string;
+  isSearchOnly?: boolean;
+  tableLabel?: string;
+}
+
+// --- Helper to fix UTC timezone offsets shifting the date backward ---
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+// --- Default Configuration ---
+const DEFAULT_SEARCH_COLUMNS = ["smppHost", "systemID", "bindMode"];
+const DEFAULT_TABLE_COLUMNS = ["smppHost", "smppPort", "systemID", "bindMode"];
 
 const Smpp: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -32,14 +63,26 @@ const Smpp: React.FC = () => {
   const [isViewMode, setIsViewMode] = useState(false);
 
   // --- Context Menu States ---
-  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const [selectedRowSmpp, setSelectedRowSmpp] = useState<SmppData | null>(null);
 
-  // --- Filters ---
-  const [hostFilter, setHostFilter] = useState("");
-  const [portFilter, setPortFilter] = useState("");
-  const [systemIDFilter, setSystemIDFilter] = useState("");
-  const [modeFilter, setModeFilter] = useState("");
+  // --- Dynamic Filters & Columns State ---
+  const [searchColumns, setSearchColumns] = useState<string[]>(
+    DEFAULT_SEARCH_COLUMNS
+  );
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("smpp_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("smpp_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
 
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,26 +90,154 @@ const Smpp: React.FC = () => {
   const location = useLocation();
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const routeName = pathSegments[pathSegments.length - 1] || "connectivity";
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchSmpp = async (overrideParams?: Record<string, string>) => {
+  // --- Tracking ---
+  const hasLoggedOpening = useRef(false);
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      setTimeout(() => {
+        const activeLinks = document.querySelectorAll(
+          "aside a.active, nav a.active"
+        );
+        const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+        let moduleLabel =
+          activeItem?.innerText?.split("\n")[0].trim() || "Module";
+
+        actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      }, 100);
+
+      hasLoggedOpening.current = true;
+    }
+  }, []);
+
+  // --- Column Configuration ---
+  const bindModeOptions: Option[] = [
+    { label: "Transmitter", value: "TRANSMITTER" },
+    { label: "Receiver", value: "RECEIVER" },
+    { label: "Transceiver", value: "TRANSCEIVER" },
+  ];
+
+  const allColumns: ColumnConfig[] = [
+    { key: "smppHost", label: "Host", type: "text", filterKey: "smppHost__icontains" },
+    { key: "smppPort", label: "Port", type: "text", filterKey: "smppPort__icontains" },
+    { key: "systemID", label: "System ID", type: "text", filterKey: "systemID__icontains" },
+    { key: "bindMode", label: "Bind Mode", type: "text", options: bindModeOptions },
+
+    // --- Source TON Variants ---
+    { key: "sourceTON", label: "Source TON (Exact)", tableLabel: "Source TON", type: "number" },
+    { key: "sourceTON__range", label: "Source TON (Range)", type: "number_range", isSearchOnly: true },
+    { key: "sourceTON__gt_lt", label: "Source TON (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
+
+    // --- Dest TON Variants ---
+    { key: "destTON", label: "Dest TON (Exact)", tableLabel: "Dest TON", type: "number" },
+    { key: "destTON__range", label: "Dest TON (Range)", type: "number_range", isSearchOnly: true },
+    { key: "destTON__gt_lt", label: "Dest TON (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
+
+    // --- Source NPI Variants ---
+    { key: "sourceNPI", label: "Source NPI (Exact)", tableLabel: "Source NPI", type: "number" },
+    { key: "sourceNPI__range", label: "Source NPI (Range)", type: "number_range", isSearchOnly: true },
+    { key: "sourceNPI__gt_lt", label: "Source NPI (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
+
+    // --- Dest NPI Variants ---
+    { key: "destNPI", label: "Dest NPI (Exact)", tableLabel: "Dest NPI", type: "number" },
+    { key: "destNPI__range", label: "Dest NPI (Range)", type: "number_range", isSearchOnly: true },
+    { key: "destNPI__gt_lt", label: "Dest NPI (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
+
+    // --- Created At Variants ---
+    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c: any) => (c.createdAt ? new Date(c.createdAt).toLocaleString() : "-") },
+    { key: "createdAt__range", label: "Created At (From/To)", type: "date_range", isSearchOnly: true },
+    { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
+  ];
+
+  const visibleSearchFields = allColumns.filter((col) =>
+    searchColumns.includes(col.key)
+  );
+  const visibleTableFields = allColumns.filter((col) =>
+    tableColumns.includes(col.key)
+  );
+
+  const tableFilterColumns = allColumns
+    .filter((c) => !c.isSearchOnly)
+    .map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilterValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // --- Fetch Data (Advanced Filter Logic) ---
+  const fetchSmpp = async (filters: Record<string, string> | null = null) => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const newController = new AbortController();
+    abortControllerRef.current = newController;
     setIsLoading(true);
+
     try {
-      const params = overrideParams || {
-        smppHost: hostFilter,
-        smppPort: portFilter,
-        systemID: systemIDFilter,
-        bindMode: modeFilter,
-      };
-      const cleanParams = Object.fromEntries(
-        Object.entries(params).filter(([_, v]) => v !== "")
-      );
+      const activeFilters = filters || filterValues;
+      const currentSearchParams: Record<string, string> = {};
+
+      searchColumns.forEach((key) => {
+        const value = activeFilters[key];
+        if (value) {
+          const columnDef = allColumns.find((c) => c.key === key);
+
+          if (columnDef?.options) {
+            const selectedOption = columnDef.options.find((opt) => opt.value === value);
+            currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
+          } 
+          else if (columnDef?.type === "date") {
+            currentSearchParams[`${key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
+          } 
+          else if (columnDef?.type === "date_range") {
+            const baseKey = key.split("__")[0];
+            const [start, end] = value.split(",");
+            if (start && end) {
+              currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
+            } else {
+              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
+              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
+            }
+          } 
+          else if (columnDef?.type === "date_gt_lt") {
+            const baseKey = key.replace("__gt_lt", "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
+          } 
+          else if (columnDef?.type === "number_range") {
+            const baseKey = key.split("__")[0];
+            const [start, end] = value.split(",");
+            if (start && end) {
+              currentSearchParams[key] = value;
+            } else {
+              if (start) currentSearchParams[`${baseKey}__gt`] = start;
+              if (end) currentSearchParams[`${baseKey}__lt`] = end;
+            }
+          } 
+          else if (columnDef?.type === "number_gt_lt") {
+            const baseKey = key.replace("__gt_lt", "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = lt;
+          } 
+          else if (columnDef?.type === "text") {
+            const filterKey = columnDef.filterKey || `${key}__icontains`;
+            currentSearchParams[filterKey] = value;
+          } 
+          else {
+            currentSearchParams[columnDef?.filterKey || key] = value;
+          }
+        }
+      });
 
       const response: any = await getSmppApi(
         routeName,
         currentPage,
         rowsPerPage,
-        cleanParams
+        currentSearchParams
       );
+
+      if (newController.signal.aborted) return;
 
       if (response && response.results) {
         setSmpps(response.results);
@@ -78,34 +249,31 @@ const Smpp: React.FC = () => {
         setSmpps([]);
         setTotalItems(0);
       }
-    } catch (error) {
-      toast.error("Failed to fetch SMPP configs.");
+    } catch (error: any) {
+      if (error.name !== "AbortError")
+        toast.error("Failed to fetch SMPP configs.");
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === newController) setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchSmpp();
-  }, [routeName, currentPage, rowsPerPage]);
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, [routeName, currentPage, rowsPerPage, searchColumns]);
 
+  // --- Handlers ---
   const handleSearch = () => {
     setCurrentPage(1);
     fetchSmpp();
   };
 
   const handleClear = () => {
-    setHostFilter("");
-    setPortFilter("");
-    setSystemIDFilter("");
-    setModeFilter("");
+    setFilterValues({});
     setCurrentPage(1);
-    fetchSmpp({
-      smppHost: "",
-      smppPort: "",
-      systemID: "",
-      bindMode: "",
-    });
+    fetchSmpp({});
   };
 
   const handleDelete = async () => {
@@ -121,9 +289,23 @@ const Smpp: React.FC = () => {
     }
   };
 
-  const handleEdit = (item: SmppData) => { if (!canUpdate) return; setEditingSmpp(item); setIsViewMode(false); setIsModalOpen(true); };
-  const handleAdd = () => { if (!canCreate) return; setEditingSmpp(null); setIsViewMode(false); setIsModalOpen(true); };
-  const handleView = (item: SmppData) => { setEditingSmpp(item); setIsViewMode(true); setIsModalOpen(true); };
+  const handleEdit = (item: SmppData) => {
+    if (!canUpdate) return;
+    setEditingSmpp(item);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+  const handleAdd = () => {
+    if (!canCreate) return;
+    setEditingSmpp(null);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+  const handleView = (item: SmppData) => {
+    setEditingSmpp(item);
+    setIsViewMode(true);
+    setIsModalOpen(true);
+  };
 
   // --- Context Menu Handler ---
   const handleContextMenu = (e: React.MouseEvent, item: SmppData) => {
@@ -132,43 +314,78 @@ const Smpp: React.FC = () => {
     setSelectedRowSmpp(item);
   };
 
-  const menuItems: ContextMenuItem[] = selectedRowSmpp ? [
-    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowSmpp) },
-    ...(canUpdate ? [{ label: "Edit SMPP", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowSmpp) }] : []),
-    ...(canDelete ? [{ label: "Delete SMPP", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowSmpp.id!) }] : []),
-  ] : [];
+  const menuItems: ContextMenuItem[] = selectedRowSmpp
+    ? [
+        {
+          label: "View Details",
+          icon: <Eye size={16} />,
+          onClick: () => handleView(selectedRowSmpp),
+        },
+        ...(canUpdate
+          ? [
+              {
+                label: "Edit SMPP",
+                icon: <Edit size={16} />,
+                onClick: () => handleEdit(selectedRowSmpp),
+              },
+            ]
+          : []),
+        ...(canDelete
+          ? [
+              {
+                label: "Delete SMPP",
+                icon: <Trash size={16} />,
+                variant: "danger" as const,
+                onClick: () => setDeleteId(selectedRowSmpp.id!),
+              },
+            ]
+          : []),
+      ]
+    : [];
 
-  const headers = ["S.N.", "Host", "Port", "System ID", "Mode"];
-  
-  const bindModeOptions = [
-    { label: "Transmitter", value: "TRANSMITTER" },
-    { label: "Receiver", value: "RECEIVER" },
-    { label: "Transceiver", value: "TRANSCEIVER" },
-  ];
+  const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
 
-  const hasLoggedOpening = useRef(false);
-
-  useEffect(() => {
-    if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
-      setTimeout(() => {
-        const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
-        const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-        
-        actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
-      
-      hasLoggedOpening.current = true;
-    }
-  }, []);
+  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
-          SMPP Connectivity
-        </h1>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
+            SMPP Connectivity
+          </h1>
+
+          <div className="relative z-20">
+            <AdvancedFilter
+              columns={allColumns}
+              selectedColumns={searchColumns}
+              onFilter={(newCols) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
+            />
+          </div>
+
+          <div className="relative z-20">
+            <AdvancedFilter
+              columns={tableFilterColumns}
+              selectedColumns={tableColumns}
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+            />
+          </div>
+        </div>
+
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
           <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">
@@ -180,10 +397,167 @@ const Smpp: React.FC = () => {
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClear}>
-        <Input label="Search Host" value={hostFilter} onChange={(e) => setHostFilter(e.target.value)} placeholder="SMPP Host" className="md:col-span-2" />
-        <Input label="Search Port" value={portFilter} onChange={(e) => setPortFilter(e.target.value)} placeholder="SMPP Port" className="md:col-span-2" />
-        <Input label="Search System ID" value={systemIDFilter} onChange={(e) => setSystemIDFilter(e.target.value)} placeholder="System ID" className="md:col-span-2" />
-        <Select label="Search Bind Mode" value={modeFilter} onChange={setModeFilter} options={bindModeOptions} placeholder="Bind Mode" />
+        {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label);
+
+          if (col.options) {
+            return (
+              <Select
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                value={filterValues[col.key] || ""}
+                onChange={(val) => handleFilterChange(col.key, val)}
+                options={col.options}
+                placeholder={`Select ${baseLabel}`}
+              />
+            );
+          }
+
+          if (col.type === "date") {
+            return (
+              <DatePicker
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
+                onChange={(val: Date | null) =>
+                  handleFilterChange(col.key, val ? formatLocalDate(val) : "")
+                }
+              />
+            );
+          }
+
+          // FIX: Replaced col-span-2 container with React.Fragment so elements act as single columns!
+          if (col.type === "date_range") {
+            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
+            return (
+              <React.Fragment key={col.key}>
+                <DatePicker
+                  label={`Search ${baseLabel} (From)`}
+                  selected={startStr ? new Date(startStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newStart = val ? formatLocalDate(val) : "";
+                    const currentEnd = endStr || "";
+                    const newVal = newStart || currentEnd ? `${newStart},${currentEnd}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (To)`}
+                  selected={endStr ? new Date(endStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newEnd = val ? formatLocalDate(val) : "";
+                    const currentStart = startStr || "";
+                    const newVal = currentStart || newEnd ? `${currentStart},${newEnd}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                />
+              </React.Fragment>
+            );
+          }
+
+          if (col.type === "date_gt_lt") {
+            const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
+            return (
+              <React.Fragment key={col.key}>
+                <DatePicker
+                  label={`Search ${baseLabel} (> After)`}
+                  selected={gtStr ? new Date(gtStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newGt = val ? formatLocalDate(val) : "";
+                    const currentLt = ltStr || "";
+                    const newVal = newGt || currentLt ? `${newGt},${currentLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (< Before)`}
+                  selected={ltStr ? new Date(ltStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newLt = val ? formatLocalDate(val) : "";
+                    const currentGt = gtStr || "";
+                    const newVal = currentGt || newLt ? `${currentGt},${newLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                />
+              </React.Fragment>
+            );
+          }
+
+          if (col.type === "number_range") {
+            const [minStr, maxStr] = (filterValues[col.key] || "").split(",");
+            return (
+              <React.Fragment key={col.key}>
+                <Input
+                  type="number"
+                  label={`Search ${baseLabel} (Min)`}
+                  value={minStr || ""}
+                  onChange={(e) => {
+                    const newMin = e.target.value;
+                    const currentMax = maxStr || "";
+                    const newVal = newMin || currentMax ? `${newMin},${currentMax}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`> Min`}
+                />
+                <Input
+                  type="number"
+                  label={`Search ${baseLabel} (Max)`}
+                  value={maxStr || ""}
+                  onChange={(e) => {
+                    const newMax = e.target.value;
+                    const currentMin = minStr || "";
+                    const newVal = currentMin || newMax ? `${currentMin},${newMax}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`< Max`}
+                />
+              </React.Fragment>
+            );
+          }
+
+          if (col.type === "number_gt_lt") {
+            const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
+            return (
+              <React.Fragment key={col.key}>
+                <Input
+                  type="number"
+                  label={`Search ${baseLabel} (> Greater)`}
+                  value={gtStr || ""}
+                  onChange={(e) => {
+                    const newGt = e.target.value;
+                    const currentLt = ltStr || "";
+                    const newVal = newGt || currentLt ? `${newGt},${currentLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`> Greater than`}
+                />
+                <Input
+                  type="number"
+                  label={`Search ${baseLabel} (< Less)`}
+                  value={ltStr || ""}
+                  onChange={(e) => {
+                    const newLt = e.target.value;
+                    const currentGt = gtStr || "";
+                    const newVal = currentGt || newLt ? `${currentGt},${newLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`< Less than`}
+                />
+              </React.Fragment>
+            );
+          }
+
+          return (
+            <Input
+              key={col.key}
+              type={col.type || "text"}
+              label={`Search ${baseLabel}`}
+              value={filterValues[col.key] || ""}
+              onChange={(e) => handleFilterChange(col.key, e.target.value)}
+              placeholder={`${baseLabel}`}
+            />
+          );
+        })}
       </FilterCard>
 
       <DataTable
@@ -194,29 +568,69 @@ const Smpp: React.FC = () => {
         rowsPerPage={rowsPerPage}
         onPageChange={setCurrentPage}
         onRowsPerPageChange={setRowsPerPage}
-        headers={headers}
+        headers={tableHeaders}
         isLoading={isLoading}
-        headerActions={canCreate ? (
-          <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>
-            Add Connectivity
-          </Button>
-        ) : null}
+        headerActions={
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Add Connectivity
+            </Button>
+          ) : null
+        }
         renderRow={(item, index) => (
           <tr
             key={item.id || index}
-            onContextMenu={(e) => handleContextMenu(e, item)} // Right Click Handler
+            onContextMenu={(e) => handleContextMenu(e, item)}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">{item.smppHost}</td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">{item.smppPort}</td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">{item.systemID}</td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">{item.bindMode}</td>
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
+              {(currentPage - 1) * rowsPerPage + index + 1}
+            </td>
+            {visibleTableFields.map((col) => {
+              let cellData = (item as any)[col.key];
+
+              if (col.render) {
+                return (
+                  <td
+                    key={col.key}
+                    className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+                  >
+                    {col.render(item)}
+                  </td>
+                );
+              }
+              if (col.options) {
+                const match = col.options.find(
+                  (opt) => opt.value === String(cellData)
+                );
+                cellData = match ? match.label : cellData;
+              }
+              return (
+                <td
+                  key={col.key}
+                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${
+                    col.key === "smppHost"
+                      ? "font-medium text-text-primary dark:text-white"
+                      : ""
+                  }`}
+                >
+                  {cellData || "-"}
+                </td>
+              );
+            })}
           </tr>
         )}
       />
 
-      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+      <ContextMenu
+        position={contextMenuPos}
+        items={menuItems}
+        onClose={() => setContextMenuPos(null)}
+      />
 
       <SmppModal
         isOpen={isModalOpen}

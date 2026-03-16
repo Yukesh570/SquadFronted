@@ -180,6 +180,14 @@ const IpWhitelistModal: React.FC<IpWhitelistModalProps> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 gap-4">
+          <Select
+            label="Client"
+            value={formData.client}
+            onChange={(v) => handleSelect("client", v)}
+            options={clientOptions}
+            placeholder="Select Client"
+            disabled={isViewMode || !!fixedClient}
+          />
           <Input
             label="IP Address"
             name="ip"
@@ -197,14 +205,6 @@ const IpWhitelistModal: React.FC<IpWhitelistModalProps> = ({
             </p>
           )}
 
-          <Select
-            label="Client"
-            value={formData.client}
-            onChange={(v) => handleSelect("client", v)}
-            options={clientOptions}
-            placeholder="Select Client"
-            disabled={isViewMode || !!fixedClient}
-          />
         </div>
 
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">

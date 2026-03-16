@@ -7,7 +7,8 @@ import Button from "./Button";
 export interface FilterColumn {
   key: string;
   label: string;
-  type: "text" | "number" | "date" | "boolean";
+  // ADDED the explicit gt_lt types
+  type?: "text" | "number" | "date" | "boolean" | "date_range" | "number_range" | "date_gt_lt" | "number_gt_lt";
 }
 
 export interface AdvancedFilterProps {
@@ -25,7 +26,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   onFilter,
   onClear,
   isLoading = false,
-  buttonLabel = "Filters", // Default value
+  buttonLabel = "Filters",
 }) => {
   const [tempSelectedKeys, setTempSelectedKeys] = useState<string[]>([]);
   const [columnSearch, setColumnSearch] = useState("");
@@ -121,8 +122,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
               }`}
           >
             <Filter size={16} />
-            <span className="whitespace-nowrap">{buttonLabel}</span>{" "}
-            {/* Use prop here */}
+            <span className="whitespace-nowrap">{buttonLabel}</span>
             {selectedColumns.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-bold text-white bg-primary rounded-full">
                 {selectedColumns.length}
@@ -161,7 +161,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                       <div className="flex-none px-3 py-2 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-2 bg-gray-50/30 dark:bg-gray-800">
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-300">
-                            Search {buttonLabel} {/* Use prop here */}
+                            Search {buttonLabel}
                           </span>
                           <button
                             type="button"
@@ -231,7 +231,6 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                                   <Check size={16} className="text-primary" />
                                 )}
                               </div>
-
                               <span className="truncate">{col.label}</span>
                             </button>
                           );
