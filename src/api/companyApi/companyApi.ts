@@ -91,3 +91,14 @@ export const deleteCompanyApi = async (
 ): Promise<void> => {
   await api.delete(`/company/${module}/${id}/`);
 };
+
+// --- NEW: Add Credit API ---
+// PATCH
+export const updateCompanyCreditApi = async (
+  id: number,
+  data: { customerCreditLimit?: number | string; vendorCreditLimit?: number | string },
+  module: string
+) => {
+  const response = await api.patch(`/company/addCredit/${module}/${id}/`, data);
+  return response.data;
+};
