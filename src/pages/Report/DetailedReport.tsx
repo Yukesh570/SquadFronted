@@ -42,7 +42,7 @@ const formatLocalDate = (date: Date) => {
 
 const DEFAULT_SEARCH_COLUMNS = ["client", "destination", "submitStatus"];
 const DEFAULT_TABLE_COLUMNS = [
-  "text_message_id", "destination", "content", "submitStatus", "client", "vendor", "request_time"
+  "text_message_id", "destination", "content", "submitStatus", "client", "vendor", "vendor_msg_id", "request_time"
 ];
 
 const DetailedReport: React.FC = () => {
@@ -99,6 +99,7 @@ const DetailedReport: React.FC = () => {
     { key: "client", label: "Client", type: "text", filterKey: "client__icontains" },
     { key: "vendor", label: "Vendor", type: "text", filterKey: "vendor__icontains" },
     { key: "senderId", label: "Sender ID", type: "text", filterKey: "senderId__icontains" },
+    { key: "vendor_msg_id", label: "Vendor Msg ID", type: "text", filterKey: "vendor_msg_id__icontains" },
     
     { key: "content", label: "Content", type: "text", filterKey: "text__icontains", render: (log) => (
       <div className="max-w-xs truncate text-sm text-text-secondary cursor-pointer hover:text-primary transition-colors" title="Click to view full message" onClick={(e) => { e.stopPropagation(); setViewLog(log); setIsModalOpen(true); }}>
