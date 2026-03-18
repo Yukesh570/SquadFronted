@@ -25,7 +25,7 @@ interface ColumnConfig extends FilterColumn {
 }
 
 const DEFAULT_SEARCH_COLUMNS = ["name", "companyEmail"];
-const DEFAULT_TABLE_COLUMNS = ["name", "companyEmail", "customerCreditLimit", "vendorCreditLimit", "status"];
+const DEFAULT_TABLE_COLUMNS = ["name", "companyEmail", "customerCreditLimit", "vendorCreditLimit"];
 
 const AddCredit: React.FC = () => {
   const { canUpdate } = usePagePermissions();
@@ -77,7 +77,7 @@ const AddCredit: React.FC = () => {
     { key: "companyEmail", label: "Email", type: "text", filterKey: "companyEmail__icontains" },
     { key: "customerCreditLimit", label: "Customer Limit", type: "number", filterKey: "customerCreditLimit" },
     { key: "vendorCreditLimit", label: "Vendor Limit", type: "number", filterKey: "vendorCreditLimit" },
-    { key: "status", label: "Status", type: "text", filterKey: "status" },
+    // { key: "status", label: "Status", type: "text", filterKey: "status" },
   ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
