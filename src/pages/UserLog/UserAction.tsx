@@ -33,7 +33,7 @@ const UserAction: React.FC = () => {
     };
     fetchUserInfo();
   }, []);
-
+  //push
   const fetchUserLogs = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
@@ -96,19 +96,22 @@ const UserAction: React.FC = () => {
     fetchUserLogs({ title: "" });
   };
 
- const hasLoggedOpening = useRef(false);
+  const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
       // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
-        const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+        const activeLinks = document.querySelectorAll(
+          "aside a.active, nav a.active",
+        );
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-        
+        let moduleLabel =
+          activeItem?.innerText?.split("\n")[0].trim() || "Module";
+
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100); // Waits 0.1 seconds
-      
+
       hasLoggedOpening.current = true;
     }
   }, []);
@@ -168,9 +171,7 @@ const UserAction: React.FC = () => {
               {log.username}
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <div className="flex items-center gap-2">
-                {log.title}
-              </div>
+              <div className="flex items-center gap-2">{log.title}</div>
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               <div className="flex items-center gap-2">{log.action}</div>
