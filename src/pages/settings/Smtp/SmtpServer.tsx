@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
+import { Home, Plus, Edit, Trash, Eye, Mail } from "lucide-react"; // Added Mail icon
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -8,14 +8,13 @@ import {
   type SmtpServerData,
 } from "../../../api/settingApi/smtpApi/smtpApi";
 import { SmtpModal } from "../../../components/modals/Settings/SmtpModal";
+import { TestEmailModal } from "../../../components/modals/Settings/TestEmailModal"; // Added Test Email Modal
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
-// ViewButton removed
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
-// NEW: Context Menu
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
 
@@ -25,7 +24,9 @@ const SmtpServer: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false); // New Test Modal State
   const [editingServer, setEditingServer] = useState<SmtpServerData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -115,11 +116,11 @@ const SmtpServer: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowServer ? [
     { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowServer) },
+    { label: "Send Test Email", icon: <Mail size={16} />, onClick: () => setIsTestModalOpen(true) }, // Added Action
     ...(canUpdate ? [{ label: "Edit Server", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowServer) }] : []),
     ...(canDelete ? [{ label: "Delete Server", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowServer.id!) }] : []),
   ] : [];
 
-  // Removed "Actions" from headers
   const headers = [
     "S.N.",
     "Name",
@@ -133,14 +134,13 @@ const SmtpServer: React.FC = () => {
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100); 
       
       hasLoggedOpening.current = true;
     }
@@ -203,7 +203,7 @@ const SmtpServer: React.FC = () => {
         renderRow={(server, index) => (
           <tr
             key={server.id}
-            onContextMenu={(e) => handleContextMenu(e, server)} // Right Click Handler
+            onContextMenu={(e) => handleContextMenu(e, server)} 
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
@@ -224,7 +224,6 @@ const SmtpServer: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {server.security}
             </td>
-            {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />
@@ -239,6 +238,14 @@ const SmtpServer: React.FC = () => {
         editingServer={editingServer}
         isViewMode={isViewMode}
       />
+      
+      {/* Test Email Modal */}
+      <TestEmailModal 
+        isOpen={isTestModalOpen} 
+        onClose={() => setIsTestModalOpen(false)} 
+        server={selectedRowServer} 
+      />
+
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}

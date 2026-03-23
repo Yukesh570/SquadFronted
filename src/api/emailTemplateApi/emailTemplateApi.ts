@@ -3,7 +3,9 @@ import api from "../axiosInstance";
 export interface EmailTemplateData {
   id?: number;
   name: string;
+  subject: string;
   content: string;
+  emailServer?: number | null; // Optional Foreign Key to SMTP Server
 }
 
 export interface PaginatedResponse<T> {

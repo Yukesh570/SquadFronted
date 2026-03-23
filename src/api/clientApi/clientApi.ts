@@ -79,3 +79,9 @@ export const deleteClientApi = async (
 ): Promise<void> => {
   await api.delete(`/client/${module}/${id}/`);
 };
+
+// --- NEW: Send Details Email API ---
+export const sendClientDetailsEmailApi = async (data: { templateName: string; clientId: number }) => {
+  const response = await api.post(`/sendMailToClient/`, data);
+  return response.data;
+};

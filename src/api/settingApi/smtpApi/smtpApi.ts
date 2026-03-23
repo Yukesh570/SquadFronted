@@ -1,4 +1,5 @@
 import api from "../../axiosInstance";
+
 export interface SmtpServerData {
   id?: number;
   name: string;
@@ -53,4 +54,18 @@ export const deleteSmtpServerApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/emailHost/${module}/${id}/`);
+};
+
+// --- NEW: Test Email API ---
+export interface TestEmailPayload {
+  emailHost: number;
+  fromEmail: string;
+  recipientEmail: string;
+  subject: string;
+  content: string;
+}
+
+export const sendTestEmailApi = async (data: FormData | Record<string, any>): Promise<any> => {
+  const response = await api.post(`/email/`, data);
+  return response.data;
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; 
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -7,15 +7,14 @@ import {
   deleteEmailTemplateApi,
   type EmailTemplateData,
 } from "../../api/emailTemplateApi/emailTemplateApi";
+import { getSmtpServersApi } from "../../api/settingApi/smtpApi/smtpApi"; // Added API Import
 import { EmailTemplateModal } from "../../components/modals/EmailTemplateModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
-// ViewButton removed
 import { usePagePermissions } from "../../hooks/usePagePermissions";
-// NEW: Context Menu
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
@@ -29,6 +28,9 @@ const EmailTemplatePage: React.FC = () => {
   const [templates, setTemplates] = useState<EmailTemplateData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+
+  // --- Map State for Translating Server ID to Name ---
+  const [serverMap, setServerMap] = useState<Record<number, string>>({});
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] =
@@ -46,6 +48,24 @@ const EmailTemplatePage: React.FC = () => {
 
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "emailTemplate";
+
+  // --- Fetch SMTP Servers to build the translation dictionary ---
+  useEffect(() => {
+    const loadServerDictionary = async () => {
+      try {
+        const res: any = await getSmtpServersApi(routeName, 1, 100);
+        const list = res.results || (Array.isArray(res) ? res : []);
+        const mapping: Record<number, string> = {};
+        list.forEach((item: any) => {
+          mapping[item.id] = item.name;
+        });
+        setServerMap(mapping);
+      } catch (error) {
+        console.error("Failed to load SMTP server dictionary", error);
+      }
+    };
+    loadServerDictionary();
+  }, [routeName]);
 
   const fetchTemplates = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
@@ -142,21 +162,19 @@ const EmailTemplatePage: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Template", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowTemplate.id!) }] : []),
   ] : [];
 
-  // Removed "Actions" from headers
-  const headers = ["S.N.", "Name", "Content"];
+  const headers = ["S.N.", "Name", "Subject", "Email Server", "Content"];
 
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100); 
       
       hasLoggedOpening.current = true;
     }
@@ -214,7 +232,7 @@ const EmailTemplatePage: React.FC = () => {
         renderRow={(template, index) => (
           <tr
             key={template.id || index}
-            onContextMenu={(e) => handleContextMenu(e, template)} // Right Click Handler
+            onContextMenu={(e) => handleContextMenu(e, template)} 
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 whitespace-nowrap text-sm text-text-primary dark:text-white">
@@ -222,6 +240,14 @@ const EmailTemplatePage: React.FC = () => {
             </td>
             <td className="px-4 py-4 whitespace-nowrap text-sm text-text-primary dark:text-white font-medium">
               {template.name}
+            </td>
+            <td className="px-4 py-4 whitespace-nowrap text-sm text-text-secondary dark:text-gray-300">
+              {template.subject || "-"}
+            </td>
+            
+            {/* FIX: Translated Email Server ID to Name */}
+            <td className="px-4 py-4 whitespace-nowrap text-sm text-text-secondary dark:text-gray-300">
+              {template.emailServer ? serverMap[template.emailServer] || `ID: ${template.emailServer}` : "-"}
             </td>
 
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
@@ -240,7 +266,6 @@ const EmailTemplatePage: React.FC = () => {
                 {stripHtml(template.content)}
               </div>
             </td>
-            {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />

@@ -9,8 +9,10 @@ import {
   updateEmailTemplateApi,
   type EmailTemplateData,
 } from "../../api/emailTemplateApi/emailTemplateApi";
+import { getSmtpServersApi } from "../../api/settingApi/smtpApi/smtpApi";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
+import Select from "../ui/Select";
 import Modal from "../ui/Modal";
 
 interface EmailTemplateModalProps {
@@ -32,11 +34,30 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
   editingTemplate,
   isViewMode = false,
 }) => {
-  const [formData, setFormData] = useState<FormData>({ name: "", content: "" });
+  const [formData, setFormData] = useState<FormData>({ name: "", subject: "", content: "", emailServer: null });
   const [quillContent, setQuillContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [isDataReady, setIsDataReady] = useState(false);
+
+  const [smtpOptions, setSmtpOptions] = useState<{label: string, value: string}[]>([]);
+
+  // Fetch SMTP servers for dropdown
+  useEffect(() => {
+    const loadSmtpServers = async () => {
+      try {
+        // FIX: Pass 'moduleName' dynamically instead of hardcoding "emailHost". 
+        // This matches CompanyModal and proves to the backend you are on a permitted page.
+        const res = await getSmtpServersApi(moduleName, 1, 100);
+        const list = res.results || (Array.isArray(res) ? res : []);
+        setSmtpOptions(list.map((item: any) => ({ label: item.name, value: String(item.id) })));
+      } catch (error) {
+        console.error("Failed to load SMTP servers", error);
+      }
+    };
+    if (isOpen) {
+      loadSmtpServers();
+    }
+  }, [isOpen, moduleName]);
 
   useEffect(() => {
     if (isOpen) {
@@ -45,12 +66,14 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
       if (editingTemplate) {
         setFormData({
           name: editingTemplate.name,
+          subject: editingTemplate.subject || "",
           content: editingTemplate.content,
+          emailServer: editingTemplate.emailServer || null,
         });
         setQuillContent(editingTemplate.content);
         setIsDataReady(true);
       } else {
-        setFormData({ name: "", content: "" });
+        setFormData({ name: "", subject: "", content: "", emailServer: null });
         setQuillContent("");
         setIsDataReady(true);
       }
@@ -62,6 +85,10 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, emailServer: value ? Number(value) : null }));
   };
 
   const isContentEmpty = (html: string) => {
@@ -76,6 +103,10 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
 
     if (!formData.name.trim()) {
       toast.error("Template Name is required.");
+      return;
+    }
+    if (!formData.subject.trim()) {
+      toast.error("Template Subject is required.");
       return;
     }
     if (isContentEmpty(quillContent)) {
@@ -141,22 +172,43 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
       className="max-w-3xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Input
+            label="Template Name"
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            placeholder="Welcome Email"
+            required
+            disabled={isViewMode}
+          />
+          <Select
+            label="Email Server (Optional)"
+            value={formData.emailServer ? String(formData.emailServer) : ""}
+            onChange={handleSelectChange}
+            options={smtpOptions}
+            placeholder="Select an Email Server"
+            disabled={isViewMode}
+          />
+        </div>
+        
         <Input
-          label="Template Name"
+          label="Subject"
           type="text"
-          name="name"
-          value={formData.name}
+          name="subject"
+          value={formData.subject}
           onChange={handleChange}
-          placeholder="Welcome Email"
+          placeholder="Enter Email Subject"
           required
           disabled={isViewMode}
         />
+
         <div>
           <label className="mb-1.5 text-xs font-medium text-text-secondary">
             Content <span className="text-red-500">*</span>
           </label>
           <div className="quill-container dark:quill-dark">
-            {/* FIX: Only render Quill when data is explicitly ready */}
             {isDataReady ? (
               <ReactQuill
                 theme="snow"

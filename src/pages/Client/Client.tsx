@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, ShieldPlus, Eye } from "lucide-react";
+import { Home, Plus, Edit, Trash, ShieldPlus, Eye, Mail } from "lucide-react"; // Added Mail icon
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import {
   getClientsApi,
   deleteClientApi,
+  sendClientDetailsEmailApi, // Imported new API
   type ClientData,
 } from "../../api/clientApi/clientApi";
 import { getCompaniesApi } from "../../api/companyApi/companyApi";
@@ -367,6 +368,36 @@ const Client: React.FC = () => {
     setIsIpModalOpen(true);
   };
 
+  // --- NEW: Send Details Handler ---
+  const handleSendDetails = async (client: ClientData) => {
+    if (!client.id) return;
+    
+    // Create a loading toast
+    const toastId = toast.loading("Sending client details...");
+    
+    try {
+      await sendClientDetailsEmailApi({
+        templateName: "Welcome Mail",
+        clientId: client.id
+      });
+      // Update toast to success state
+      toast.update(toastId, {
+        render: "Details sent successfully!",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
+    } catch (error: any) {
+      // Update toast to error state
+      toast.update(toastId, {
+        render: error.response?.data?.detail || "Failed to send details.",
+        type: "error",
+        isLoading: false,
+        autoClose: 4000,
+      });
+    }
+  };
+
   // --- Context Menu Logic ---
   const handleContextMenu = (e: React.MouseEvent, client: ClientData) => {
     e.preventDefault();
@@ -389,6 +420,12 @@ const Client: React.FC = () => {
           label: "View Details",
           icon: <Eye size={16} />,
           onClick: () => handleView(selectedRowClient),
+        },
+        // NEW: Send Details Action
+        {
+          label: "Send Details",
+          icon: <Mail size={16} />,
+          onClick: () => handleSendDetails(selectedRowClient),
         },
         ...(canUpdate
           ? [
@@ -495,7 +532,6 @@ const Client: React.FC = () => {
             );
           }
 
-          // FIX: Wrapped in React.Fragment to eliminate grid blank space!
           if (col.type === "date_range") {
             const [startStr, endStr] = (filterValues[col.key] || "").split(",");
             return (
