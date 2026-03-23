@@ -36,6 +36,8 @@ import MessageReport from "../pages/Report/MessageReport";
 import UserAction from "../pages/UserLog/UserAction";
 import AddCredit from "../pages/Credit/AddCredit";
 import DetailedReport from "../pages/Report/DetailedReport";
+import ClientTransaction from "../pages/Transaction/ClientTransaction";
+import VendorTransaction from "../pages/Transaction/VendorTransaction";
 // import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
 
 const componentMap: Record<string, JSX.Element> = {
@@ -70,6 +72,8 @@ const componentMap: Record<string, JSX.Element> = {
   messageReport: <MessageReport />,
   addCredit: <AddCredit />,
   detailedReport: <DetailedReport/>,
+  clientTransaction: <ClientTransaction />,
+  vendorTransaction: <VendorTransaction />,
   // whiteListIP: <WhiteListIP />,
 };
 
