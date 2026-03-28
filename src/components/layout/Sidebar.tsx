@@ -148,7 +148,7 @@ const Sidebar = ({
             >
               {renderIcon(item.icon, iconSize)}
               {!isActuallyCollapsed && (
-                <span className="truncate text-sm">{item.label}</span>
+                <span className="text-sm leading-tight">{item.label}</span>
               )}
             </div>
 

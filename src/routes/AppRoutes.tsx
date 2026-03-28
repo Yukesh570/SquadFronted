@@ -38,6 +38,9 @@ import AddCredit from "../pages/Credit/AddCredit";
 import DetailedReport from "../pages/Report/DetailedReport";
 import ClientTransaction from "../pages/Transaction/ClientTransaction";
 import VendorTransaction from "../pages/Transaction/VendorTransaction";
+import InvoiceSetup from "../pages/Finance/InvoiceSetup/InvoiceSetup";
+import ClientInvoice from "../pages/Finance/Invoice/ClientInvoice";
+import GenerateClientInvoice from "../pages/Finance/Invoice/GenerateClientInvoice";
 // import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
 
 const componentMap: Record<string, JSX.Element> = {
@@ -75,6 +78,9 @@ const componentMap: Record<string, JSX.Element> = {
   clientTransaction: <ClientTransaction />,
   vendorTransaction: <VendorTransaction />,
   // whiteListIP: <WhiteListIP />,
+  invoiceSetup: <InvoiceSetup />,
+  clientInvoice: <ClientInvoice />,
+  generateClientInvoice: <GenerateClientInvoice />,
 };
 
 const AppRoutes = () => {

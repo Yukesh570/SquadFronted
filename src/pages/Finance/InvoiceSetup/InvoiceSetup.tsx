@@ -1,0 +1,322 @@
+import React, { useState, useEffect, useRef } from "react";
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
+
+// --- APIs ---
+import { getInvoiceSetupsApi, deleteInvoiceSetupApi, type InvoiceSetupData } from "../../../api/financeApi/invoiceSetupApi";
+import { getCompaniesApi } from "../../../api/companyApi/companyApi";
+
+// --- Components ---
+import { InvoiceSetupModal } from "../../../components/modals/Finance/InvoiceSetupModal";
+import Button from "../../../components/ui/Button";
+import Select from "../../../components/ui/Select";
+import Input from "../../../components/ui/Input"; // FIXED: Added missing import
+import DataTable from "../../../components/ui/DataTable";
+import FilterCard from "../../../components/ui/FilterCard";
+import AdvancedFilter, { type FilterColumn } from "../../../components/ui/AdvancedFilter";
+import { DeleteModal } from "../../../components/modals/DeleteModal";
+import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
+import { usePagePermissions } from "../../../hooks/usePagePermissions";
+import { actionHelper } from "../../../helper/action";
+
+interface Option {
+  label: string;
+  value: string;
+}
+
+interface ColumnConfig extends FilterColumn {
+  render?: (data: any) => React.ReactNode;
+  options?: Option[];
+  filterKey?: string;
+}
+
+const DEFAULT_SEARCH_COLUMNS = ["companyName", "invoiceFrequency"];
+const DEFAULT_TABLE_COLUMNS = ["companyName", "businessEntity", "invoiceFrequency", "dueDays", "isTaxApplied"];
+
+const InvoiceSetup: React.FC = () => {
+  const { canCreate, canUpdate, canDelete } = usePagePermissions();
+  const [setups, setSetups] = useState<InvoiceSetupData[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [companies, setCompanies] = useState<Option[]>([]);
+
+  // --- Modal States ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSetup, setEditingSetup] = useState<InvoiceSetupData | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isViewMode, setIsViewMode] = useState(false);
+
+  // --- Context Menu State ---
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRow, setSelectedRow] = useState<InvoiceSetupData | null>(null);
+
+  // --- Filter States ---
+  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("invoiceSetup_table_columns_v2");
+    try {
+      return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+    } catch (e) {
+      return DEFAULT_TABLE_COLUMNS;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("invoiceSetup_table_columns_v2", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const location = useLocation();
+  const routeName = location.pathname.split("/").pop() || "invoiceSetup";
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const hasLoggedOpening = useRef(false);
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      setTimeout(() => { actionHelper("Invoice Setup", `Opened Invoice Setup Module`, false); }, 100);
+      hasLoggedOpening.current = true;
+    }
+  }, []);
+
+  // --- Fetch Companies for Filter ---
+  useEffect(() => {
+    const loadDropdowns = async () => {
+      try {
+        const compRes: any = await getCompaniesApi("company", 1, 1000);
+        const list = compRes.results || (Array.isArray(compRes) ? compRes : []);
+        setCompanies(list.map((c: any) => ({ label: c.name, value: String(c.id) })));
+      } catch (err) {
+        console.error("Failed to load companies for filter");
+      }
+    };
+    loadDropdowns();
+  }, []);
+
+  const frequencyOptions: Option[] = [
+    { label: "Weekly", value: "WEEKLY" },
+    { label: "Bi-weekly", value: "BI-WEEKLY" },
+    { label: "Monthly", value: "MONTHLY" },
+    { label: "3 Months", value: "QUARTERLY" },
+  ];
+
+  const booleanOptions: Option[] = [
+    { label: "Yes", value: "true" },
+    { label: "No", value: "false" },
+  ];
+
+  const renderBooleanBadge = (value: boolean) => (
+    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+        value ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+      }`}
+    >
+      {value ? "Yes" : "No"}
+    </span>
+  );
+
+  const allColumns: ColumnConfig[] = [
+    { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
+    { key: "businessEntity", label: "Entity", type: "text" },
+    { key: "invoiceFrequency", label: "Frequency", type: "text", options: frequencyOptions },
+    { key: "dueDays", label: "Due Days", type: "number" },
+    { key: "tax", label: "Tax Details", type: "text" },
+    { key: "isTaxApplied", label: "Tax Applied", type: "boolean", options: booleanOptions, render: (s: any) => renderBooleanBadge(s.isTaxApplied) },
+  ];
+
+  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
+  const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilterValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const fetchSetups = async (filters: Record<string, string> | null = null) => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const newController = new AbortController();
+    abortControllerRef.current = newController;
+    setIsLoading(true);
+
+    try {
+      const activeFilters = filters || filterValues;
+      const currentSearchParams: Record<string, string> = {};
+
+      searchColumns.forEach((key) => {
+        const value = activeFilters[key];
+        if (value) {
+          const columnDef = allColumns.find((c) => c.key === key);
+          if (columnDef?.options) {
+            const selectedOption = columnDef.options.find((opt: Option) => opt.value === value);
+            currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value; 
+          } else {
+            currentSearchParams[columnDef?.filterKey || key] = value;
+          }
+        }
+      });
+
+      const response: any = await getInvoiceSetupsApi(routeName, currentPage, rowsPerPage, currentSearchParams);
+
+      if (newController.signal.aborted) return;
+
+      if (response && response.results) {
+        setSetups(response.results);
+        setTotalItems(response.count);
+      } else {
+        setSetups([]);
+        setTotalItems(0);
+      }
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        setSetups([]);
+        setTotalItems(0);
+      }
+    } finally {
+      if (abortControllerRef.current === newController) setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSetups();
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, [currentPage, rowsPerPage, searchColumns]);
+
+  const handleSearch = () => { setCurrentPage(1); fetchSetups(); };
+  const handleClearFilters = () => { setFilterValues({}); setCurrentPage(1); fetchSetups({}); };
+
+  const handleDelete = async () => {
+    if (deleteId && canDelete) {
+      try {
+        await deleteInvoiceSetupApi(deleteId, routeName);
+        toast.success("Invoice Setup deleted successfully.");
+        fetchSetups();
+      } catch (error) {
+        toast.error("Failed to delete setup.");
+      }
+      setDeleteId(null);
+    }
+  };
+
+  const handleEdit = (setup: InvoiceSetupData) => { if (!canUpdate) return; setEditingSetup(setup); setIsViewMode(false); setIsModalOpen(true); };
+  const handleAdd = () => { if (!canCreate) return; setEditingSetup(null); setIsViewMode(false); setIsModalOpen(true); };
+  const handleView = (setup: InvoiceSetupData) => { setEditingSetup(setup); setIsViewMode(true); setIsModalOpen(true); };
+
+  const handleContextMenu = (e: React.MouseEvent, setup: InvoiceSetupData) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRow(setup);
+  };
+
+  const menuItems: ContextMenuItem[] = selectedRow ? [
+    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRow) },
+    ...(canUpdate ? [{ label: "Edit Setup", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRow) }] : []),
+    ...(canDelete ? [{ label: "Delete Setup", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRow.id!) }] : []),
+  ] : [];
+
+  const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.label)];
+
+  return (
+    <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Invoice Setup</h1>
+          <div className="relative z-20">
+            <AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+          </div>
+          <div className="relative z-20">
+            <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+          </div>
+        </div>
+        <div className="flex items-center space-x-2 text-sm text-text-secondary">
+          <Home size={16} className="text-gray-400" />
+          <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">Home</NavLink>
+          <span>/</span><span className="text-text-primary dark:text-white">Finance</span>
+          <span>/</span><span className="text-text-primary dark:text-white">Invoice Setup</span>
+        </div>
+      </div>
+
+      <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
+        {visibleSearchFields.map((col) => {
+          // FIXED: Return a standard Input if the column has no options!
+          if (col.options) {
+            return (
+              <Select 
+                key={col.key} 
+                label={`Search ${col.label}`} 
+                value={filterValues[col.key] || ""} 
+                onChange={(val) => handleFilterChange(col.key, val)} 
+                options={col.options} 
+                placeholder={`Select ${col.label}`} 
+              />
+            );
+          }
+          return (
+             <Input
+               key={col.key}
+               label={`Search ${col.label}`}
+               value={filterValues[col.key] || ""}
+               onChange={(e) => handleFilterChange(col.key, e.target.value)}
+               placeholder={`Search ${col.label}`}
+             />
+          );
+        })}
+      </FilterCard>
+
+      <DataTable
+        serverSide={true}
+        data={setups}
+        totalItems={totalItems}
+        currentPage={currentPage}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={setRowsPerPage}
+        headers={tableHeaders}
+        isLoading={isLoading}
+        headerActions={
+          canCreate ? (
+            <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>
+              Add Setup
+            </Button>
+          ) : null
+        }
+        renderRow={(setup, index) => (
+          <tr key={setup.id || index} onContextMenu={(e) => handleContextMenu(e, setup)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
+              {(currentPage - 1) * rowsPerPage + index + 1}
+            </td>
+            {visibleTableFields.map((col) => {
+              let cellData = (setup as any)[col.key];
+              if (col.render) {
+                return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{col.render(setup)}</td>;
+              }
+              return (
+                <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
+                  {cellData || "-"}
+                </td>
+              );
+            })}
+          </tr>
+        )}
+      />
+
+      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+
+      <InvoiceSetupModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchSetups}
+        moduleName={routeName} 
+        editingSetup={editingSetup}
+        isViewMode={isViewMode}
+      />
+
+      <DeleteModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Setup" message="Are you sure you want to delete this invoice setup? This action cannot be undone." />
+    </div>
+  );
+};
+
+export default InvoiceSetup;
