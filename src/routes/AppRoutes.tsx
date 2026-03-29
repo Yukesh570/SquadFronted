@@ -41,6 +41,8 @@ import VendorTransaction from "../pages/Transaction/VendorTransaction";
 import InvoiceSetup from "../pages/Finance/InvoiceSetup/InvoiceSetup";
 import ClientInvoice from "../pages/Finance/Invoice/ClientInvoice";
 import GenerateClientInvoice from "../pages/Finance/Invoice/GenerateClientInvoice";
+import VendorInvoice from "../pages/Finance/Invoice/VendorInvoice";
+import GenerateVendorInvoice from "../pages/Finance/Invoice/GenerateVendorInvoice";
 // import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
 
 const componentMap: Record<string, JSX.Element> = {
@@ -81,6 +83,8 @@ const componentMap: Record<string, JSX.Element> = {
   invoiceSetup: <InvoiceSetup />,
   clientInvoice: <ClientInvoice />,
   generateClientInvoice: <GenerateClientInvoice />,
+  vendorInvoice: <VendorInvoice/>,
+  generateVendorInvoice: <GenerateVendorInvoice/>
 };
 
 const AppRoutes = () => {
