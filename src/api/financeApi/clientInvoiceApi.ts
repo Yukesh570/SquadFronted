@@ -2,6 +2,8 @@ import api from "../axiosInstance";
 
 export interface ClientInvoiceData {
   id?: number;
+  accountManager?: number;
+  accountManagerName?: string;
   invoiceNumber?: string;
   client: number;
   clientName?: string;
@@ -9,11 +11,11 @@ export interface ClientInvoiceData {
   billingPeriodEnd?: string;
   invoiceDate?: string;
   totalAmount?: string | number;
+  totalSegments?: number;
   status?: string;
   invoicePdf?: string;
   downloadUrl?: string;
   createdAt?: string;
-  createdByName?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -23,7 +25,6 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// GET Table Data
 export const getClientInvoicesApi = async (
   module: string,
   page: number = 1,
@@ -39,21 +40,22 @@ export const getClientInvoicesApi = async (
   return response.data;
 };
 
-// POST Generate or Preview
 export const generateClientInvoiceApi = async (
   data: any,
   action: "PREVIEW" | "GENERATE" = "GENERATE"
 ): Promise<any> => {
-  // FIXED: The backend expects the action inside the JSON body, NOT the URL!
   const payload = {
     ...data,
     action: action 
   };
-  const response = await api.post(`/finance/generate-invoice/`, payload);
+  
+  // FIXED: If we are previewing, tell Axios we are receiving a raw PDF file (blob)
+  const config = action === "PREVIEW" ? { responseType: 'blob' as const } : {};
+  
+  const response = await api.post(`/finance/generate-invoice/`, payload, config);
   return response.data;
 };
 
-// DELETE
 export const deleteClientInvoiceApi = async (
   id: number,
   module: string

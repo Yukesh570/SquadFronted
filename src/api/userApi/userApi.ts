@@ -10,7 +10,6 @@ export const changePasswordApi = async (data: ChangePasswordData) => {
     return response.data;
 };
 
-// --- NEW: Added getUsersApi to populate the Account Manager dropdown ---
 export interface UserData {
     id?: number;
     username?: string;
@@ -41,8 +40,12 @@ export const getUsersApi = async (
         const response = await api.get(`/${module}/`, { params });
         return response.data;
     } catch (error) {
-        // Safe fallback: If the backend doesn't have a /user/ endpoint yet, 
-        // this catches the error silently and just leaves the AM dropdown empty.
         return { count: 0, next: null, previous: null, results: [] };
     }
+};
+
+// NEW: Fetches the Currently Logged In User's Information
+export const getUserInformationApi = async () => {
+    const response = await api.get("/userInformation/");
+    return response.data;
 };

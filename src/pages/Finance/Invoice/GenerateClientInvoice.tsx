@@ -6,13 +6,15 @@ import { toast } from "react-toastify";
 // --- APIs ---
 import { generateClientInvoiceApi } from "../../../api/financeApi/clientInvoiceApi";
 import { getClientsApi } from "../../../api/clientApi/clientApi";
-import { getUsersApi } from "../../../api/userApi/userApi";
+// FIXED: Completely removed getUsersApi to stop the 404 error!
+import { getUserInformationApi } from "../../../api/userApi/userApi";
 
 // --- Components ---
 import Button from "../../../components/ui/Button";
 import Select from "../../../components/ui/Select";
 import DatePicker from "../../../components/ui/DatePicker";
 import { actionHelper } from "../../../helper/action";
+import { InvoicePreviewModal } from "../../../components/modals/Finance/InvoicePreviewModal";
 
 interface Option {
   label: string;
@@ -30,7 +32,7 @@ const GenerateClientInvoice: React.FC = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    accountManager: "0", 
+    accountManager: "",
     client: "",
   });
   
@@ -41,8 +43,11 @@ const GenerateClientInvoice: React.FC = () => {
   const [amOptions, setAmOptions] = useState<Option[]>([]);
   const [clientOptions, setClientOptions] = useState<Option[]>([]);
 
+  // Loading & Modal States
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
 
   const hasLoggedOpening = useRef(false);
 
@@ -52,7 +57,6 @@ const GenerateClientInvoice: React.FC = () => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Generate Client Invoice";
-        
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100);
       hasLoggedOpening.current = true;
@@ -66,11 +70,24 @@ const GenerateClientInvoice: React.FC = () => {
         let clientsData = clientsResponse?.results || (Array.isArray(clientsResponse) ? clientsResponse : []);
         setClientOptions(clientsData.map((c: any) => ({ label: c.name, value: String(c.id) })));
 
-        const amResponse: any = await getUsersApi("user", 1, 1000);
-        let amData = amResponse?.results || (Array.isArray(amResponse) ? amResponse : []);
-        
-        const mappedUsers = amData.map((u: any) => ({ label: u.username || u.name || `User ${u.id}`, value: String(u.id) }));
-        setAmOptions([{ label: "None", value: "0" }, ...mappedUsers]);
+        // FIXED: Only fetching the current logged-in user, no more 404s!
+        try {
+          const userInfo = await getUserInformationApi();
+          if (userInfo && userInfo.id !== undefined) {
+            const currentUserId = String(userInfo.id);
+            const currentUserName = userInfo.username || userInfo.name || `User ${userInfo.id}`;
+            
+            setAmOptions([
+              { label: currentUserName, value: currentUserId },
+              { label: "None", value: "0" }
+            ]);
+            
+            setFormData((prev) => ({ ...prev, accountManager: currentUserId }));
+          }
+        } catch (e) {
+          console.warn("Could not fetch user info");
+          setAmOptions([{ label: "None", value: "0" }]);
+        }
 
       } catch (error) {
         console.error("Failed to load data:", error);
@@ -84,6 +101,7 @@ const GenerateClientInvoice: React.FC = () => {
     if (!formData.client || !fromDate || !toDate || !invoiceDate) return null;
     
     return {
+      // FIXED: Restored the logic to send 'null' if "None" (0) is selected so DRF doesn't crash
       accountManager: formData.accountManager && formData.accountManager !== "0" ? Number(formData.accountManager) : null,
       client: Number(formData.client),
       fromDate: formatLocalDate(fromDate),
@@ -101,20 +119,40 @@ const GenerateClientInvoice: React.FC = () => {
 
     setIsPreviewing(true);
     try {
-      const res = await generateClientInvoiceApi(payload, "PREVIEW");
-      toast.success(`Preview Success! Amount: $${res.totalAmount || "0.00"}`);
+      const resBlob = await generateClientInvoiceApi(payload, "PREVIEW");
+      
+      const fileUrl = window.URL.createObjectURL(new Blob([resBlob], { type: 'application/pdf' }));
+      
+      setPreviewPdfUrl(fileUrl);
+      setIsPreviewModalOpen(true); 
+      toast.success("Preview generated!");
+
     } catch (error: any) {
-      const errorData = error.response?.data;
-      const errorMsg = errorData?.detail || errorData?.error || (errorData ? JSON.stringify(errorData) : "Preview calculation failed.");
-      toast.error(errorMsg);
+      if (error.response?.data instanceof Blob) {
+        const text = await error.response.data.text();
+        try {
+          const errorData = JSON.parse(text);
+          toast.error(errorData.detail || errorData.error || "Preview calculation failed.");
+        } catch {
+          toast.error("Preview calculation failed.");
+        }
+      } else {
+        toast.error("Preview calculation failed.");
+      }
     } finally {
       setIsPreviewing(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCloseModal = () => {
+    setIsPreviewModalOpen(false);
+    if (previewPdfUrl) {
+      window.URL.revokeObjectURL(previewPdfUrl);
+      setPreviewPdfUrl(null);
+    }
+  };
 
+  const handleGenerate = async () => {
     const payload = getPayload();
     if (!payload) {
       toast.error("Please fill in Client and all Date fields to generate.");
@@ -125,10 +163,8 @@ const GenerateClientInvoice: React.FC = () => {
     try {
       await generateClientInvoiceApi(payload, "GENERATE");
       toast.success("Client Invoice generated successfully!");
-      
-      // FIXED: Redirecting to the correct deeply nested route for the Client Invoice Table
+      handleCloseModal(); 
       navigate("/finance/invoice/clientBilling/clientInvoice");
-      
     } catch (error: any) {
       const errorData = error.response?.data;
       const errorMsg = errorData?.detail || errorData?.error || (errorData ? JSON.stringify(errorData) : "Failed to generate invoice.");
@@ -157,7 +193,7 @@ const GenerateClientInvoice: React.FC = () => {
       </div>
 
       <div className="max-w-xl mx-auto p-6 bg-white rounded-xl shadow-card dark:bg-gray-800">
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); handleGenerate(); }}>
           
           <Select
             label="Account Manager"
@@ -216,6 +252,14 @@ const GenerateClientInvoice: React.FC = () => {
           </div>
         </form>
       </div>
+
+      <InvoicePreviewModal
+        isOpen={isPreviewModalOpen}
+        onClose={handleCloseModal}
+        onGenerate={handleGenerate}
+        pdfUrl={previewPdfUrl}
+        isGenerating={isSubmitting}
+      />
     </div>
   );
 };
