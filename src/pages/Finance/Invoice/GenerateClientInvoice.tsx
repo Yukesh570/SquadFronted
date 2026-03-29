@@ -6,8 +6,8 @@ import { toast } from "react-toastify";
 // --- APIs ---
 import { generateClientInvoiceApi } from "../../../api/financeApi/clientInvoiceApi";
 import { getClientsApi } from "../../../api/clientApi/clientApi";
-// FIXED: Completely removed getUsersApi to stop the 404 error!
-import { getUserInformationApi } from "../../../api/userApi/userApi";
+// FIXED: Imported the new API
+import { getAllUserInformationApi } from "../../../api/userApi/userApi";
 
 // --- Components ---
 import Button from "../../../components/ui/Button";
@@ -43,7 +43,6 @@ const GenerateClientInvoice: React.FC = () => {
   const [amOptions, setAmOptions] = useState<Option[]>([]);
   const [clientOptions, setClientOptions] = useState<Option[]>([]);
 
-  // Loading & Modal States
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -66,24 +65,39 @@ const GenerateClientInvoice: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // 1. Fetch Clients
         const clientsResponse: any = await getClientsApi("client", 1, 1000);
         let clientsData = clientsResponse?.results || (Array.isArray(clientsResponse) ? clientsResponse : []);
         setClientOptions(clientsData.map((c: any) => ({ label: c.name, value: String(c.id) })));
 
-        // FIXED: Only fetching the current logged-in user, no more 404s!
+        // 2. Fetch Users using the new endpoint
         try {
-          const userInfo = await getUserInformationApi();
-          if (userInfo && userInfo.id !== undefined) {
-            const currentUserId = String(userInfo.id);
-            const currentUserName = userInfo.username || userInfo.name || `User ${userInfo.id}`;
-            
-            setAmOptions([
-              { label: currentUserName, value: currentUserId },
-              { label: "None", value: "0" }
-            ]);
-            
+          const userInfoRes = await getAllUserInformationApi();
+          let mappedUsers: Option[] = [];
+          let currentUserId = "";
+
+          // Case A: The backend returned a list of ALL users
+          if (Array.isArray(userInfoRes) || userInfoRes?.results) {
+            const usersArray = Array.isArray(userInfoRes) ? userInfoRes : userInfoRes.results;
+            mappedUsers = usersArray.map((u: any) => ({
+              label: u.username || u.name || `User ${u.id}`,
+              value: String(u.id)
+            }));
+          } 
+          // Case B: The backend returned a single user object (just a renamed endpoint)
+          else if (userInfoRes && userInfoRes.id !== undefined) {
+            currentUserId = String(userInfoRes.id);
+            const currentUserName = userInfoRes.username || userInfoRes.name || `User ${userInfoRes.id}`;
+            mappedUsers = [{ label: currentUserName, value: currentUserId }];
+          }
+
+          setAmOptions([{ label: "None", value: "0" }, ...mappedUsers]);
+
+          // Only auto-select if it returned a single user object
+          if (currentUserId) {
             setFormData((prev) => ({ ...prev, accountManager: currentUserId }));
           }
+
         } catch (e) {
           console.warn("Could not fetch user info");
           setAmOptions([{ label: "None", value: "0" }]);
@@ -101,7 +115,6 @@ const GenerateClientInvoice: React.FC = () => {
     if (!formData.client || !fromDate || !toDate || !invoiceDate) return null;
     
     return {
-      // FIXED: Restored the logic to send 'null' if "None" (0) is selected so DRF doesn't crash
       accountManager: formData.accountManager && formData.accountManager !== "0" ? Number(formData.accountManager) : null,
       client: Number(formData.client),
       fromDate: formatLocalDate(fromDate),
@@ -120,7 +133,6 @@ const GenerateClientInvoice: React.FC = () => {
     setIsPreviewing(true);
     try {
       const resBlob = await generateClientInvoiceApi(payload, "PREVIEW");
-      
       const fileUrl = window.URL.createObjectURL(new Blob([resBlob], { type: 'application/pdf' }));
       
       setPreviewPdfUrl(fileUrl);

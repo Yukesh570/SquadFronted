@@ -44,8 +44,8 @@ export const getUsersApi = async (
     }
 };
 
-// NEW: Fetches the Currently Logged In User's Information
-export const getUserInformationApi = async () => {
-    const response = await api.get("/userInformation/");
+// FIXED: Updated endpoint to allUserInformation based on backend instructions
+export const getAllUserInformationApi = async () => {
+    const response = await api.get("/allUserInformation/");
     return response.data;
 };
