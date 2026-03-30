@@ -53,3 +53,8 @@ export const deleteEmailTemplateApi = async (
 ): Promise<void> => {
   await api.delete(`/emailTemplate/${module}/${id}/`);
 };
+
+export const getEmailTemplateVariablesApi = async (): Promise<any> => {
+  const response = await api.get(`/emailTemplateVariables/`);
+  return response.data;
+};

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 // @ts-ignore
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import {
   createEmailTemplateApi,
   updateEmailTemplateApi,
+  getEmailTemplateVariablesApi,
   type EmailTemplateData,
 } from "../../api/emailTemplateApi/emailTemplateApi";
 import { getSmtpServersApi } from "../../api/settingApi/smtpApi/smtpApi";
@@ -40,28 +41,43 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
   const [isDataReady, setIsDataReady] = useState(false);
 
   const [smtpOptions, setSmtpOptions] = useState<{label: string, value: string}[]>([]);
+  const [variableOptions, setVariableOptions] = useState<{label: string, value: string}[]>([]);
+  
+  // FIXED: Added state to memorize the exact cursor position before focus is lost
+  const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+  const quillRef = useRef<any>(null);
 
-  // Fetch SMTP servers for dropdown
   useEffect(() => {
-    const loadSmtpServers = async () => {
+    const loadDropdownData = async () => {
       try {
-        // FIX: Pass 'moduleName' dynamically instead of hardcoding "emailHost". 
-        // This matches CompanyModal and proves to the backend you are on a permitted page.
-        const res = await getSmtpServersApi(moduleName, 1, 100);
-        const list = res.results || (Array.isArray(res) ? res : []);
-        setSmtpOptions(list.map((item: any) => ({ label: item.name, value: String(item.id) })));
+        const smtpRes = await getSmtpServersApi(moduleName, 1, 100);
+        const smtpList = smtpRes.results || (Array.isArray(smtpRes) ? smtpRes : []);
+        setSmtpOptions(smtpList.map((item: any) => ({ label: item.name, value: String(item.id) })));
+
+        const varRes = await getEmailTemplateVariablesApi();
+        const varList = varRes.results || (Array.isArray(varRes) ? varRes : []);
+        
+        // FIXED: Now it only shows the exact "label" (e.g., "Username" instead of the tag)
+        const mappedVariables = varList.map((v: any) => {
+          return { label: v.label || v.tag || "Unknown", value: v.tag };
+        });
+        
+        setVariableOptions(mappedVariables);
+
       } catch (error) {
-        console.error("Failed to load SMTP servers", error);
+        console.error("Failed to load dropdown data", error);
       }
     };
+
     if (isOpen) {
-      loadSmtpServers();
+      loadDropdownData();
     }
   }, [isOpen, moduleName]);
 
   useEffect(() => {
     if (isOpen) {
       setIsDataReady(false);
+      setCursorPosition(null); // Reset cursor on open
 
       if (editingTemplate) {
         setFormData({
@@ -89,6 +105,27 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
 
   const handleSelectChange = (value: string) => {
     setFormData((prev) => ({ ...prev, emailServer: value ? Number(value) : null }));
+  };
+
+  const handleInsertVariable = (tagString: string) => {
+    if (!tagString || !quillRef.current) return;
+
+    const editor = quillRef.current.getEditor();
+    if (editor) {
+      // FIXED: Use the memorized cursor position, or default to the end if they never clicked in the box
+      const position = cursorPosition !== null ? cursorPosition : editor.getLength();
+      
+      // Insert the variable tag
+      editor.insertText(position, tagString);
+      
+      // Calculate new position after the inserted text
+      const newPosition = position + tagString.length;
+      
+      // Update our memorized state, tell Quill to move the cursor there, and force focus back!
+      setCursorPosition(newPosition);
+      editor.setSelection(newPosition);
+      editor.focus();
+    }
   };
 
   const isContentEmpty = (html: string) => {
@@ -169,9 +206,11 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
           ? "Edit Email Template"
           : "Create New Template"
       }
-      className="max-w-3xl"
+      className="max-w-4xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
+        
+        {/* Row 1: Template Name & Email Server */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Input
             label="Template Name"
@@ -193,27 +232,53 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
           />
         </div>
         
-        <Input
-          label="Subject"
-          type="text"
-          name="subject"
-          value={formData.subject}
-          onChange={handleChange}
-          placeholder="Enter Email Subject"
-          required
-          disabled={isViewMode}
-        />
+        {/* Row 2: Subject & Variables Dropdown */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
+          <div className="md:col-span-2">
+            <Input
+              label="Subject"
+              type="text"
+              name="subject"
+              value={formData.subject}
+              onChange={handleChange}
+              placeholder="Enter Email Subject"
+              required
+              disabled={isViewMode}
+            />
+          </div>
+          
+          {!isViewMode && variableOptions.length > 0 && (
+            <div className="mb-0.5">
+              <Select
+                label="Insert Variable"
+                value="" 
+                onChange={handleInsertVariable}
+                options={variableOptions}
+                placeholder="Choose variable..."
+                disabled={isViewMode}
+              />
+            </div>
+          )}
+        </div>
 
+        {/* Row 3: Editor Content */}
         <div>
-          <label className="mb-1.5 text-xs font-medium text-text-secondary">
+          <label className="mb-2 block text-sm font-medium text-text-secondary">
             Content <span className="text-red-500">*</span>
           </label>
-          <div className="quill-container dark:quill-dark">
+          <div className="quill-container dark:quill-dark mt-1">
             {isDataReady ? (
               <ReactQuill
+                ref={quillRef} 
                 theme="snow"
                 value={quillContent}
                 onChange={setQuillContent}
+                // FIXED: Actively memorize the cursor position whenever they type or click inside the editor!
+                onChangeSelection={(range: any) => {
+                  if (range && typeof range.index === "number") {
+                    setCursorPosition(range.index);
+                  }
+                }}
                 readOnly={isViewMode}
               />
             ) : (
@@ -224,14 +289,15 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4">
+        {/* Footer */}
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-800">
           <Button type="button" variant="secondary" onClick={onClose}>
             {isViewMode ? "Close" : "Cancel"}
           </Button>
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving"
+                ? "Saving..."
                 : editingTemplate
                 ? "Save Changes"
                 : "Save Template"}
