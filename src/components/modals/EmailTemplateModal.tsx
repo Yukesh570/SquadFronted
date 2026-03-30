@@ -264,7 +264,7 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
         {/* Row 3: Editor Content */}
         <div>
           <label className="mb-2 block text-sm font-medium text-text-secondary">
-            Content <span className="text-red-500">*</span>
+            Content
           </label>
           <div className="quill-container dark:quill-dark mt-1">
             {isDataReady ? (
