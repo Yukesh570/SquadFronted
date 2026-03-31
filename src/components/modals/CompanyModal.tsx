@@ -92,7 +92,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           const list = res.results || (Array.isArray(res) ? res : []);
           setter(
             list.map((item: any) => ({
-              label: item.name,
+              // FIXED: Added fallback to legalEntityName or companyName so it works universally
+              label: item.name || item.legalEntityName || item.companyName,
               value: String(item.id),
             }))
           );
@@ -207,7 +208,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     if (isViewMode) return;
     setIsSubmitting(true);
 
-    // FIX: Explicit type conversion for backend
     const payload = {
       ...formData,
       country: Number(formData.country) || null,

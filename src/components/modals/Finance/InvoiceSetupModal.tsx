@@ -71,8 +71,11 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
       getEntityApi("entity", 1, 1000)
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
-          // Passing the Name (string) as value to match backend spec
-          setEntityOptions(list.map((e: any) => ({ label: e.name, value: e.name })));
+          // FIXED: Replaced 'name' with 'legalEntityName' (fallback to companyName)
+          setEntityOptions(list.map((e: any) => ({ 
+            label: e.legalEntityName || e.companyName, 
+            value: e.legalEntityName || e.companyName 
+          })));
         }).catch(() => console.error("Failed to load entities"));
     }
   }, [isOpen]);
