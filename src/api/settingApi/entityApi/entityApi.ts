@@ -1,7 +1,17 @@
 import api from "../../axiosInstance";
+
 export interface EntityData {
   id?: number;
-  name: string;
+  companyName: string;
+  legalEntityName?: string;
+  weekCommencing: string; 
+  vatRegistrationNumber?: string;
+  phone?: string;
+  emailAddress?: string;
+  businessAddress?: string;
+  bankAccountDetail?: string;
+  companyLogo?: string;
+  isDeleted?: boolean;
 }
 
 export interface PaginatedResponse<T> {
@@ -11,7 +21,6 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// GET
 export const getEntityApi = async (
   module: string,
   page: number = 1,
@@ -27,26 +36,27 @@ export const getEntityApi = async (
   return response.data;
 };
 
-// POST
 export const createEntityApi = async (
   data: any,
   module: string,
 ): Promise<EntityData> => {
-  const response = await api.post(`/entity/${module}/`, data);
+  // FIXED: If data is FormData (contains a file), set the correct multipart headers
+  const config = data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : {};
+  const response = await api.post(`/entity/${module}/`, data, config);
   return response.data;
 };
 
-// PATCH
 export const updateEntityApi = async (
   id: number,
   data: any,
   module: string,
 ): Promise<EntityData> => {
-  const response = await api.patch(`/entity/${module}/${id}/`, data);
+  // FIXED: If data is FormData (contains a file), set the correct multipart headers
+  const config = data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : {};
+  const response = await api.patch(`/entity/${module}/${id}/`, data, config);
   return response.data;
 };
 
-// DELETE
 export const deleteEntityApi = async (
   id: number,
   module: string,

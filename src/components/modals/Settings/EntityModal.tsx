@@ -7,7 +7,10 @@ import {
 } from "../../../api/settingApi/entityApi/entityApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
+import Select from "../../ui/Select";
 import Modal from "../../ui/Modal";
+// FIXED: Imported your brand new reusable component
+import ImageUpload from "../../ui/ImageUpload";
 
 interface EntityModalProps {
   isOpen: boolean;
@@ -27,42 +30,106 @@ export const EntityModal: React.FC<EntityModalProps> = ({
   isViewMode = false,
 }) => {
   const [formData, setFormData] = useState({
-    name: "",
+    companyName: "",
+    legalEntityName: "",
+    weekCommencing: "SUNDAY",
+    vatRegistrationNumber: "",
+    phone: "",
+    emailAddress: "",
+    businessAddress: "",
+    bankAccountDetail: "",
   });
+  
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       if (editingEntity) {
-        setFormData({ name: editingEntity.name });
+        setFormData({ 
+          companyName: editingEntity.companyName || "",
+          legalEntityName: editingEntity.legalEntityName || "",
+          weekCommencing: editingEntity.weekCommencing || "SUNDAY",
+          vatRegistrationNumber: editingEntity.vatRegistrationNumber || "",
+          phone: editingEntity.phone || "",
+          emailAddress: editingEntity.emailAddress || "",
+          businessAddress: editingEntity.businessAddress || "",
+          bankAccountDetail: editingEntity.bankAccountDetail || "",
+        });
+        setLogoPreview(editingEntity.companyLogo || null);
+        setLogoFile(null);
       } else {
-        setFormData({ name: "" });
+        setFormData({ 
+          companyName: "",
+          legalEntityName: "",
+          weekCommencing: "SUNDAY",
+          vatRegistrationNumber: "",
+          phone: "",
+          emailAddress: "",
+          businessAddress: "",
+          bankAccountDetail: "",
+        });
+        setLogoPreview(null);
+        setLogoFile(null);
       }
     }
   }, [isOpen, editingEntity]);
 
+  useEffect(() => {
+    return () => {
+      if (logoFile && logoPreview) URL.revokeObjectURL(logoPreview);
+    };
+  }, [logoFile, logoPreview]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSelectChange = (value: string) => {
+    setFormData({ ...formData, weekCommencing: value });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const clearLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewMode) return;
 
-    if (!formData.name.trim()) {
-      toast.error("Entity Name is required");
+    if (!formData.companyName.trim()) {
+      toast.error("Company Name is required");
       return;
     }
 
     setIsSubmitting(true);
-    const dataToSend = { name: formData.name };
+
+    const payload = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      payload.append(key, value);
+    });
+
+    if (logoFile) {
+      payload.append("companyLogo", logoFile);
+    }
 
     try {
       if (editingEntity) {
-        await updateEntityApi(editingEntity.id!, dataToSend, moduleName);
+        await updateEntityApi(editingEntity.id!, payload, moduleName);
         toast.success("Entity updated successfully!");
       } else {
-        await createEntityApi(dataToSend, moduleName);
+        await createEntityApi(payload, moduleName);
         toast.success("Entity added successfully!");
       }
       onSuccess();
@@ -99,27 +166,102 @@ export const EntityModal: React.FC<EntityModalProps> = ({
           ? "Edit Entity"
           : "Add Entity"
       }
-      className="max-w-md"
+      className="max-w-2xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <Input
-          label="Entity Name"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          placeholder="Head Office"
-          required
-          disabled={isViewMode}
-        />
+      <form onSubmit={handleSubmit} className="space-y-6">
+        
+        {/* FIXED: Neatly centered logo upload using the new reusable component */}
+        <div className="flex justify-center pt-2 pb-4">
+          <ImageUpload
+            previewUrl={logoPreview}
+            onChange={handleFileChange}
+            onClear={clearLogo}
+            isViewMode={isViewMode}
+            label="Upload Company Logo"
+            id="entityLogoUpload"
+          />
+        </div>
+        
+        {/* FIXED: Perfect 2-column grid for all inputs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Input
+            label="Company Name"
+            name="companyName"
+            value={formData.companyName}
+            onChange={handleChange}
+            placeholder="Gecko Works"
+            required
+            disabled={isViewMode}
+          />
+          <Input
+            label="Legal Entity Name"
+            name="legalEntityName"
+            value={formData.legalEntityName}
+            onChange={handleChange}
+            placeholder="Gecko Works Pvt. Ltd."
+            disabled={isViewMode}
+          />
+          <Select
+            label="Week Commencing"
+            value={formData.weekCommencing}
+            onChange={handleSelectChange}
+            options={[
+              { label: "Sunday", value: "SUNDAY" },
+              { label: "Monday", value: "MONDAY" }
+            ]}
+            disabled={isViewMode}
+          />
+          <Input
+            label="VAT Registration Number"
+            name="vatRegistrationNumber"
+            value={formData.vatRegistrationNumber}
+            onChange={handleChange}
+            placeholder="Enter VAT number"
+            disabled={isViewMode}
+          />
+          <Input
+            label="Phone"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+            placeholder="+977-9800000000"
+            disabled={isViewMode}
+          />
+          <Input
+            label="Email Address"
+            name="emailAddress"
+            type="email"
+            value={formData.emailAddress}
+            onChange={handleChange}
+            placeholder="contact@company.com"
+            disabled={isViewMode}
+          />
+          <Input
+            label="Business Address"
+            name="businessAddress"
+            value={formData.businessAddress}
+            onChange={handleChange}
+            placeholder="123 Street Name"
+            disabled={isViewMode}
+          />
+          <Input
+            label="Bank Account Detail"
+            name="bankAccountDetail"
+            value={formData.bankAccountDetail}
+            onChange={handleChange}
+            placeholder="Bank info..."
+            disabled={isViewMode}
+          />
+        </div>
 
-        <div className="flex justify-end space-x-3 pt-4">
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-800">
           <Button type="button" variant="secondary" onClick={onClose}>
             {isViewMode ? "Close" : "Cancel"}
           </Button>
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving"
+                ? "Saving..."
                 : editingEntity
                 ? "Save Changes"
                 : "Add Entity"}
