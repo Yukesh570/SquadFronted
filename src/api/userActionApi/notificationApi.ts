@@ -34,24 +34,21 @@ export const createNotificationApi = async (
   data: any,
 ): Promise<NotificationData> => {
   const response = await api.post(`/notification/`, data);
-
   return response.data;
 };
 
 // PATCH
-export const updateTimezoneApi = async (
+export const updateNotificationApi = async (
   id: number,
   data: any,
-  module: string,
 ): Promise<NotificationData> => {
-  const response = await api.patch(`/timeZone/${module}/${id}/`, data);
+  const response = await api.patch(`/notification/${id}/`, data);
   return response.data;
 };
 
 // DELETE
-export const deleteTimezoneApi = async (
+export const deleteNotificationApi = async (
   id: number,
-  module: string,
 ): Promise<void> => {
-  await api.delete(`/timeZone/${module}/${id}/`);
+  await api.delete(`/notification/${id}/`);
 };

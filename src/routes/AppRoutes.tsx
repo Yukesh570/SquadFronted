@@ -43,6 +43,7 @@ import ClientInvoice from "../pages/Finance/Invoice/ClientInvoice";
 import GenerateClientInvoice from "../pages/Finance/Invoice/GenerateClientInvoice";
 import VendorInvoice from "../pages/Finance/Invoice/VendorInvoice";
 import GenerateVendorInvoice from "../pages/Finance/Invoice/GenerateVendorInvoice";
+import AllNotifications from "../pages/Notifications/AllNotifications";
 // import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
 
 const componentMap: Record<string, JSX.Element> = {
@@ -84,7 +85,7 @@ const componentMap: Record<string, JSX.Element> = {
   clientInvoice: <ClientInvoice />,
   generateClientInvoice: <GenerateClientInvoice />,
   vendorInvoice: <VendorInvoice/>,
-  generateVendorInvoice: <GenerateVendorInvoice/>
+  generateVendorInvoice: <GenerateVendorInvoice/>,
 };
 
 const AppRoutes = () => {
@@ -155,6 +156,8 @@ const AppRoutes = () => {
         <Route index element={<Navigate to="/dashboard" replace />} />
 
         <Route path="change-password" element={<ChangePassword />} />
+        <Route path="notifications" element={<AllNotifications />} />
+
 
         {urls.map((item) => {
           const lastSegment = item.url.split("/").pop();
