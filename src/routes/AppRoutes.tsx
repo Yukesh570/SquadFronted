@@ -44,6 +44,9 @@ import GenerateClientInvoice from "../pages/Finance/Invoice/GenerateClientInvoic
 import VendorInvoice from "../pages/Finance/Invoice/VendorInvoice";
 import GenerateVendorInvoice from "../pages/Finance/Invoice/GenerateVendorInvoice";
 import AllNotifications from "../pages/Notifications/AllNotifications";
+import DLREvent from "../pages/Report/DLREvent";
+import MessageAttempt from "../pages/Report/MessageAttempt";
+import SmsMessagePart from "../pages/Report/SmsMessagePart";
 // import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
 
 const componentMap: Record<string, JSX.Element> = {
@@ -86,6 +89,9 @@ const componentMap: Record<string, JSX.Element> = {
   generateClientInvoice: <GenerateClientInvoice />,
   vendorInvoice: <VendorInvoice/>,
   generateVendorInvoice: <GenerateVendorInvoice/>,
+  messageAttempt: <MessageAttempt/>,
+  dlrEvent: <DLREvent/>,
+  smsMessagePart: <SmsMessagePart/> 
 };
 
 const AppRoutes = () => {
