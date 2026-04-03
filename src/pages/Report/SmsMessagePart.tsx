@@ -8,6 +8,7 @@ import {
 } from "../../api/reportApi/smsMessagePartApi";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
+import DatePicker from "../../components/ui/DatePicker";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedFilter";
@@ -24,6 +25,13 @@ const statusOptions: Option[] = [
   { label: "DELIVERED", value: "DELIVERED" },
   { label: "FAILED", value: "FAILED" },
 ];
+
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const DEFAULT_SEARCH_COLUMNS = ["parent_message_destination", "submit_status", "vendor_msg_id"];
 const DEFAULT_TABLE_COLUMNS = ["id", "message", "parent_message_destination", "part_no", "part_total", "submit_status", "created_at"];
@@ -42,11 +50,11 @@ const SmsMessagePart: React.FC = () => {
   const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
-    const saved = localStorage.getItem("sms_segment_columns_v3");
+    const saved = localStorage.getItem("sms_segment_columns_v4");
     try { return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS; } catch (e) { return DEFAULT_TABLE_COLUMNS; }
   });
 
-  useEffect(() => { localStorage.setItem("sms_segment_columns_v3", JSON.stringify(tableColumns)); }, [tableColumns]);
+  useEffect(() => { localStorage.setItem("sms_segment_columns_v4", JSON.stringify(tableColumns)); }, [tableColumns]);
 
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -179,6 +187,16 @@ const SmsMessagePart: React.FC = () => {
                 placeholder={`Select ${col.label}`}
               />
              );
+          }
+          if (col.type === "date") {
+            return (
+              <DatePicker
+                key={col.key}
+                label={`Search ${col.label}`}
+                selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
+                onChange={(val: Date | null) => setFilterValues(p => ({...p, [col.key]: val ? formatLocalDate(val) : ""}))}
+              />
+            );
           }
           return (
             <Input

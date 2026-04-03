@@ -8,6 +8,7 @@ import {
 } from "../../api/reportApi/dlrEventApi";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
+import DatePicker from "../../components/ui/DatePicker";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedFilter";
@@ -24,6 +25,13 @@ const statusOptions: Option[] = [
   { label: "FAILED", value: "FAILED" },
   { label: "DELIVERED", value: "DELIVERED" },
 ];
+
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const DEFAULT_SEARCH_COLUMNS = ["event_type", "status_code", "provider_message_id"];
 const DEFAULT_TABLE_COLUMNS = ["id", "provider_message_id", "event_type", "segment_number", "status_code", "received_at"];
@@ -168,6 +176,16 @@ const DLREvent: React.FC = () => {
                 placeholder={`Select ${col.label}`}
               />
              );
+          }
+          if (col.type === "date") {
+            return (
+              <DatePicker
+                key={col.key}
+                label={`Search ${col.label}`}
+                selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
+                onChange={(val: Date | null) => setFilterValues(p => ({...p, [col.key]: val ? formatLocalDate(val) : ""}))}
+              />
+            );
           }
           return (
             <Input
