@@ -71,10 +71,10 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
       getEntityApi("entity", 1, 1000)
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
-          // FIXED: Replaced 'name' with 'legalEntityName' (fallback to companyName)
+          // FIXED: Set value to Numeric ID (converted to string for Select component compatibility)
           setEntityOptions(list.map((e: any) => ({ 
             label: e.legalEntityName || e.companyName, 
-            value: e.legalEntityName || e.companyName 
+            value: String(e.id)
           })));
         }).catch(() => console.error("Failed to load entities"));
     }
@@ -85,7 +85,7 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
       setFormData({
         company: String(editingSetup.company || ""),
         billingAddressOverride: editingSetup.billingAddressOverride || "",
-        businessEntity: editingSetup.businessEntity || "",
+        businessEntity: String(editingSetup.businessEntity || ""),
         invoiceFrequency: editingSetup.invoiceFrequency || "MONTHLY",
         dueDays: editingSetup.dueDays || 0,
         tax: editingSetup.tax || "",
@@ -137,9 +137,11 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
     setIsSubmitting(true);
 
     try {
+      // FIXED: Business Entity is now sent as a Number (ID) instead of a String
       const payload = {
         ...formData,
         company: Number(formData.company),
+        businessEntity: Number(formData.businessEntity)
       };
 
       if (editingSetup) {
@@ -153,8 +155,13 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
       onSuccess();
       onClose();
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to save Invoice Setup.");
-    } finally {
+const serverError = error.response?.data;
+const errorMsg = serverError?.detail || 
+                 (serverError && typeof serverError === 'object' 
+                  ? Object.values(serverError).flat()[0] 
+                  : "Failed to save Invoice Setup.");
+
+toast.error(errorMsg);    } finally {
       setIsSubmitting(false);
     }
   };
