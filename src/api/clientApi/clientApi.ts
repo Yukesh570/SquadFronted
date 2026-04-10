@@ -11,6 +11,7 @@ export interface ClientData {
   creditLimit: string; 
   balanceAlertAmount: string; 
   allowNetting: boolean;
+  enableDlr: boolean;
 
   ipWhitelist: string | string[]; 
   

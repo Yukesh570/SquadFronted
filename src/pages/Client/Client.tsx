@@ -191,6 +191,7 @@ const Client: React.FC = () => {
     { key: "route", label: "Route Type", type: "text", options: routeOptions },
     { key: "paymentTerms", label: "Payment Terms", type: "text", options: paymentTermOptions },
     { key: "allowNetting", label: "Allow Netting", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.allowNetting) },
+    { key: "enableDlr", label: "Enable Dlr", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.enableDlr) },
     { key: "smppUsername", label: "SMPP Username", type: "text", filterKey: "smppUsername__icontains" },
     
     // --- Credit Limit Variants ---

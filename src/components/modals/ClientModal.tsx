@@ -55,6 +55,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     creditLimit: "",
     balanceAlertAmount: "",
     allowNetting: false,
+    enableDlr: false,
     ipWhitelist: "",
     smppUsername: "",
     smppPassword: "",
@@ -127,6 +128,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         creditLimit: editingClient.creditLimit,
         balanceAlertAmount: editingClient.balanceAlertAmount,
         allowNetting: editingClient.allowNetting,
+        enableDlr: editingClient.enableDlr,
         ipWhitelist: "",
         smppUsername: editingClient.smppUsername || "",
         smppPassword: editingClient.smppPassword || "",
@@ -155,6 +157,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         creditLimit: "",
         balanceAlertAmount: "",
         allowNetting: false,
+        enableDlr: false,
         ipWhitelist: "",
         smppUsername: "",
         smppPassword: "",
@@ -351,13 +354,18 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.paymentTerms}
               onChange={(v) => handleSelect("paymentTerms", v)}
               options={paymentTermOptions}
-              disabled={isViewMode}
+              disabled={isViewMode}  
             />
-            <div className="flex items-end mb-2">
+            <div className="flex items-end mb-2 gap-6">
               <ToggleSwitch
                 label="Allow Netting"
                 checked={formData.allowNetting}
                 onChange={(v) => handleToggle("allowNetting", v)}
+              />
+              <ToggleSwitch
+                label="Enable Dlr"
+                checked={formData.enableDlr}
+                onChange={(v) => handleToggle("enableDlr", v)}
               />
             </div>
             <Input
