@@ -12,7 +12,7 @@ import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 import { getStateApi } from "../../api/settingApi/stateApi/stateApi";
 import { getCompanyCategoryApi } from "../../api/settingApi/companyCategoryApi/companyCategoryApi";
 import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
-import { getEntityApi } from "../../api/settingApi/entityApi/entityApi";
+// import { getEntityApi } from "../../api/settingApi/entityApi/entityApi";
 import { getCompanyStatusApi } from "../../api/settingApi/companyStatusApi/companyStatusApi";
 import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
 import { CompanyModal } from "../../components/modals/CompanyModal";
@@ -70,7 +70,7 @@ const CompanyList: React.FC = () => {
   const [statuses, setStatuses] = useState<Option[]>([]);
   const [currencies, setCurrencies] = useState<Option[]>([]);
   const [timeZones, setTimeZones] = useState<Option[]>([]);
-  const [entities, setEntities] = useState<Option[]>([]);
+  // const [entities, setEntities] = useState<Option[]>([]);
 
   // --- Filters ---
   const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
@@ -108,7 +108,7 @@ const CompanyList: React.FC = () => {
     loadOptions(getStateApi, "state", setStates);
     loadOptions(getCompanyCategoryApi, "companyCategory", setCategories);
     loadOptions(getCurrenciesApi, "currency", setCurrencies);
-    loadOptions(getEntityApi, "entity", setEntities);
+    // loadOptions(getEntityApi, "entity", setEntities);
     if (typeof getCompanyStatusApi === "function") loadOptions(getCompanyStatusApi, "companyStatus", setStatuses);
     if (typeof getTimezoneApi === "function") loadOptions(getTimezoneApi, "timeZone", setTimeZones);
   }, []);
@@ -140,7 +140,7 @@ const CompanyList: React.FC = () => {
     { key: "vendorCreditLimit", label: "Vend. Credit", type: "number" },
     { key: "balanceAlertAmount", label: "Bal. Alert", type: "number" },
     { key: "referencNumber", label: "Ref. Number", type: "text" },
-    { key: "businessEntity", label: "Entity", type: "text", options: entities, filterKey: "businessEntity__name" },
+    // { key: "businessEntity", label: "Entity", type: "text", options: entities, filterKey: "businessEntity__name" },
     { key: "vatNumber", label: "VAT Number", type: "text" },
     { key: "address", label: "Address", type: "text" },
     { key: "validityPeriod", label: "Validity", type: "text", options: [{ label: "Limited", value: "LTD" }, { label: "Unlimited", value: "UNL" }] },

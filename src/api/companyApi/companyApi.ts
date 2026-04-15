@@ -18,7 +18,7 @@ export interface CompanyData {
   status: number;
   currency: number;
   timeZone: number;
-  businessEntity: number;
+  // businessEntity: number;
   
   // Finance
   customerCreditLimit: string; // Decimal as string

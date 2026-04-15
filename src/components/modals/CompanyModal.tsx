@@ -9,7 +9,7 @@ import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 import { getStateApi } from "../../api/settingApi/stateApi/stateApi";
 import { getCompanyCategoryApi } from "../../api/settingApi/companyCategoryApi/companyCategoryApi";
 import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
-import { getEntityApi } from "../../api/settingApi/entityApi/entityApi";
+// import { getEntityApi } from "../../api/settingApi/entityApi/entityApi";
 import { getCompanyStatusApi } from "../../api/settingApi/companyStatusApi/companyStatusApi";
 import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
 import Input from "../ui/Input";
@@ -60,7 +60,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     vendorCreditLimit: "",
     balanceAlertAmount: "",
     referenceNumber: "",
-    businessEntity: "",
+    // businessEntity: "",
     vatNumber: "",
     address: "",
     validityPeriod: "LTD",
@@ -82,7 +82,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   const [statuses, setStatuses] = useState<Option[]>([]);
   const [currencies, setCurrencies] = useState<Option[]>([]);
   const [timeZones, setTimeZones] = useState<Option[]>([]);
-  const [entities, setEntities] = useState<Option[]>([]);
+  // const [entities, setEntities] = useState<Option[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -106,7 +106,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       loadOptions(getStateApi, "state", setStates);
       loadOptions(getCompanyCategoryApi, "companyCategory", setCategories);
       loadOptions(getCurrenciesApi, "currency", setCurrencies);
-      loadOptions(getEntityApi, "entity", setEntities);
+      // loadOptions(getEntityApi, "entity", setEntities);
       if (typeof getCompanyStatusApi === "function")
         loadOptions(getCompanyStatusApi, "companyStatus", setStatuses);
       if (typeof getTimezoneApi === "function")
@@ -132,7 +132,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         status: String(editingCompany.status || ""),
         currency: String(editingCompany.currency || ""),
         timeZone: String(editingCompany.timeZone || ""),
-        businessEntity: String(editingCompany.businessEntity || ""),
+        // businessEntity: String(editingCompany.businessEntity || ""),
 
         customerCreditLimit: String(editingCompany.customerCreditLimit || ""),
         vendorCreditLimit: String(editingCompany.vendorCreditLimit || ""),
@@ -173,7 +173,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         vendorCreditLimit: "",
         balanceAlertAmount: "",
         referenceNumber: "",
-        businessEntity: "",
+        // businessEntity: "",
         vatNumber: "",
         address: "",
         validityPeriod: "LTD",
@@ -216,7 +216,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       status: Number(formData.status) || null,
       currency: Number(formData.currency) || null,
       timeZone: Number(formData.timeZone) || null,
-      businessEntity: Number(formData.businessEntity) || null,
+      // businessEntity: Number(formData.businessEntity) || null,
 
       referencNumber: formData.referenceNumber,
     };
@@ -452,14 +452,14 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             Legal & Address
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <Select
+            {/* <Select
               label="Business Entity"
               value={formData.businessEntity}
               onChange={(v) => handleSelect("businessEntity", v)}
               options={entities}
               placeholder="Select Entity Type"
               disabled={isViewMode}
-            />
+            /> */}
             <Input
               label="Vat Number"
               name="vatNumber"
