@@ -8,12 +8,12 @@ export interface ClientData {
   status: "ACTIVE" | "TRIAL" | "SUSPENDED";
   route: "DIRECT" | "HIGH QUALITY" | "SIM" | "WHOLESALE" | "FULL" | "SPAM";
   paymentTerms: "PREPAID" | "POSTPAID" | "NET7" | "NET15" | "NET30";
-  creditLimit: string; 
+  // creditLimit: string; 
   balanceAlertAmount: string; 
   allowNetting: boolean;
   enableDlr: boolean;
 
-  ipWhitelist: string | string[]; 
+  // ipWhitelist: string | string[]; 
   
   smppUsername?: string;
   smppPassword?: string; 

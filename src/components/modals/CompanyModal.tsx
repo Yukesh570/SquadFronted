@@ -57,11 +57,11 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     currency: "",
     timeZone: "",
     customerCreditLimit: "",
-    vendorCreditLimit: "",
+    // vendorCreditLimit: "",
     balanceAlertAmount: "",
     referenceNumber: "",
     // businessEntity: "",
-    vatNumber: "",
+    // vatNumber: "",
     address: "",
     validityPeriod: "LTD",
     defaultEmail: "CMP",
@@ -135,11 +135,11 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         // businessEntity: String(editingCompany.businessEntity || ""),
 
         customerCreditLimit: String(editingCompany.customerCreditLimit || ""),
-        vendorCreditLimit: String(editingCompany.vendorCreditLimit || ""),
+        // vendorCreditLimit: String(editingCompany.vendorCreditLimit || ""),
         balanceAlertAmount: String(editingCompany.balanceAlertAmount || ""),
         referenceNumber: editingCompany.referencNumber || "",
 
-        vatNumber: editingCompany.vatNumber,
+        // vatNumber: editingCompany.vatNumber,
         address: editingCompany.address,
 
         validityPeriod: editingCompany.validityPeriod || "LTD",
@@ -170,11 +170,11 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         currency: "",
         timeZone: "",
         customerCreditLimit: "",
-        vendorCreditLimit: "",
+        // vendorCreditLimit: "",
         balanceAlertAmount: "",
         referenceNumber: "",
         // businessEntity: "",
-        vatNumber: "",
+        // vatNumber: "",
         address: "",
         validityPeriod: "LTD",
         defaultEmail: "CMP",
@@ -417,7 +417,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               placeholder="5000.00"
               disabled={isViewMode}
             />
-            <Input
+            {/* <Input
               label="Vendor Credit Limit"
               name="vendorCreditLimit"
               type="number"
@@ -425,7 +425,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={handleChange}
               placeholder="10000.00"
               disabled={isViewMode}
-            />
+            /> */}
             <Input
               label="Balance Alert Amount"
               name="balanceAlertAmount"
@@ -447,19 +447,19 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         </fieldset>
 
         {/* Legal & Address */}
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        {/* <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Legal & Address
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            {/* <Select
+            <Select
               label="Business Entity"
               value={formData.businessEntity}
               onChange={(v) => handleSelect("businessEntity", v)}
               options={entities}
               placeholder="Select Entity Type"
               disabled={isViewMode}
-            /> */}
+            />
             <Input
               label="Vat Number"
               name="vatNumber"
@@ -469,7 +469,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               disabled={isViewMode}
             />
           </div>
-        </fieldset>
+        </fieldset> */}
 
         {/* Address */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">

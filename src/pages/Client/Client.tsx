@@ -47,7 +47,7 @@ interface ColumnConfig extends FilterColumn {
 
 // --- Default Configuration ---
 const DEFAULT_SEARCH_COLUMNS = ["name", "status"];
-const DEFAULT_TABLE_COLUMNS = ["name", "companyName", "status", "route", "creditLimit"];
+const DEFAULT_TABLE_COLUMNS = ["name", "companyName", "status", "route"];
 
 // --- Helper to fix UTC timezone offsets shifting the date backward ---
 const formatLocalDate = (date: Date) => {
@@ -195,9 +195,9 @@ const Client: React.FC = () => {
     { key: "smppUsername", label: "SMPP Username", type: "text", filterKey: "smppUsername__icontains" },
     
     // --- Credit Limit Variants ---
-    { key: "creditLimit", label: "Credit Limit (Exact)", tableLabel: "Credit Limit", type: "number" },
-    { key: "creditLimit__range", label: "Credit Limit (Range)", type: "number_range", isSearchOnly: true },
-    { key: "creditLimit__gt_lt", label: "Credit Limit (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
+    // { key: "creditLimit", label: "Credit Limit (Exact)", tableLabel: "Credit Limit", type: "number" },
+    // { key: "creditLimit__range", label: "Credit Limit (Range)", type: "number_range", isSearchOnly: true },
+    // { key: "creditLimit__gt_lt", label: "Credit Limit (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
 
     // --- Balance Alert Variants ---
     { key: "balanceAlertAmount", label: "Balance Alert (Exact)", tableLabel: "Balance Alert", type: "number" },

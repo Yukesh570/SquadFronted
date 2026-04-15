@@ -52,7 +52,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     status: "ACTIVE",
     route: "DIRECT",
     paymentTerms: "PREPAID",
-    creditLimit: "",
+    // creditLimit: "",
     balanceAlertAmount: "",
     allowNetting: false,
     enableDlr: false,
@@ -125,7 +125,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         status: editingClient.status,
         route: editingClient.route,
         paymentTerms: editingClient.paymentTerms,
-        creditLimit: editingClient.creditLimit,
+        // creditLimit: editingClient.creditLimit,
         balanceAlertAmount: editingClient.balanceAlertAmount,
         allowNetting: editingClient.allowNetting,
         enableDlr: editingClient.enableDlr,
@@ -154,7 +154,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         status: "ACTIVE",
         route: "DIRECT",
         paymentTerms: "PREPAID",
-        creditLimit: "",
+        // creditLimit: "",
         balanceAlertAmount: "",
         allowNetting: false,
         enableDlr: false,
@@ -368,7 +368,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 onChange={(v) => handleToggle("enableDlr", v)}
               />
             </div>
-            <Input
+            {/* <Input
               label="Credit Limit"
               name="creditLimit"
               type="number"
@@ -377,7 +377,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               onChange={handleChange}
               placeholder="0.0000"
               disabled={isViewMode}
-            />
+            /> */}
             <Input
               label="Balance Alert Amount"
               name="balanceAlertAmount"
@@ -421,21 +421,22 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 </button>
               }
             />
-            <div className="md:col-span-2">
-              <TextArea
-                label="IP Whitelist"
-                name="ipWhitelist"
-                value={formData.ipWhitelist}
-                onChange={handleChange}
-                placeholder="Enter IPs separated by commas or new lines"
-                disabled={isViewMode}
-                rows={3}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                IPs are managed automatically. Add/remove IPs here and save to
-                update the whitelist.
-              </p>
-            </div>
+
+            {/* IP Whitelist - visible ONLY in view mode */}
+            {isViewMode && (
+              <div className="md:col-span-2">
+                <TextArea
+                  label="IP Whitelist"
+                  name="ipWhitelist"
+                  value={formData.ipWhitelist}
+                  onChange={handleChange}
+                  placeholder="Enter IPs separated by commas or new lines"
+                  disabled={isViewMode}
+                  rows={3}
+                />
+              </div>
+            )}
+
           </div>
         </fieldset>
 
