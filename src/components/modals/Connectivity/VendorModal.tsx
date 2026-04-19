@@ -11,6 +11,10 @@ import {
   getSmppByIdApi,
 } from "../../../api/connectivityApi/smppApi";
 import { getCompaniesApi } from "../../../api/companyApi/companyApi";
+
+// @ts-ignore
+import { getVendorRatesApi } from "../../../api/rateApi/vendorRateApi"; 
+
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
@@ -42,6 +46,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   const [formData, setFormData] = useState({
     company: "",
     profileName: "",
+    ratePlanName: "",
     connectionType: "SMPP",
     smppId: 0,
     smppHost: "",
@@ -58,6 +63,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
+  const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
   const [showPassword, setShowPassword] = useState(false);
 
   const connectionTypeOptions = [
@@ -83,7 +89,19 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             list.map((c: any) => ({ label: c.name, value: String(c.id) }))
           );
         })
-        .catch((err) => console.error("Failed to load companies", err));
+        .catch((err: any) => console.error("Failed to load companies", err));
+
+      getVendorRatesApi("vendorRate", 1, 1000)
+        .then((res: any) => {
+          let list = res.results || (Array.isArray(res) ? res : []);
+          setRatePlanOptions(
+            list.map((r: any) => ({
+              label: r.ratePlan || r.ratePlanName || r.name,
+              value: r.ratePlan || r.ratePlanName || r.name,
+            }))
+          );
+        })
+        .catch((err: any) => console.error("Failed to load rate plans", err));
     }
   }, [isOpen]);
 
@@ -95,6 +113,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         const initialData = {
           company: editingVendor.company ? String(editingVendor.company) : "",
           profileName: editingVendor.profileName,
+          ratePlanName: editingVendor.ratePlanName || "",
           connectionType: editingVendor.connectionType || "",
           smppId: anyVendor.smpp || 0,
           smppHost: "",
@@ -139,6 +158,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         setFormData({
           company: "",
           profileName: "",
+          ratePlanName: "",
           connectionType: "",
           smppId: 0,
           smppHost: "",
@@ -220,6 +240,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       const vendorPayload = {
         company: Number(formData.company),
         profileName: formData.profileName,
+        ratePlanName: formData.ratePlanName,
         connectionType: formData.connectionType,
         smpp: finalSmppValue,
       };
@@ -265,7 +286,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Select
             label="Company Name"
             value={formData.company}
@@ -282,6 +303,15 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             onChange={handleChange}
             placeholder="Vendor A"
             required
+            disabled={isViewMode}
+          />
+
+          <Select
+            label="Rate Plan Name"
+            value={formData.ratePlanName}
+            onChange={(v) => handleSelect("ratePlanName", v)}
+            options={ratePlanOptions}
+            placeholder="Select Rate Plan"
             disabled={isViewMode}
           />
         </div>

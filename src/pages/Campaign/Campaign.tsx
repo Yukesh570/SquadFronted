@@ -144,7 +144,7 @@ const CampaignList: React.FC = () => {
     }] : []),
   ] : [];
 
-  const headers = ["S.N.", "Name", "Objective", "Content", "Schedule"];
+  const headers = ["S.N.", "Name", "Vendor", "Objective", "Content", "Schedule"];
   
   const objectiveOptions = [
     { label: "All", value: "" },
@@ -223,6 +223,7 @@ const CampaignList: React.FC = () => {
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">{campaign.name}</td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">{campaign.vendor || "-"}</td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               <span className="flex items-center gap-2"><Megaphone size={14} /> {campaign.objective}</span>
             </td>

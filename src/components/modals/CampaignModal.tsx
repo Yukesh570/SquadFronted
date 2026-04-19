@@ -14,6 +14,8 @@ import {
   type CampaignFormData,
 } from "../../api/campaignApi/campaignApi";
 // @ts-ignore
+import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
+// @ts-ignore
 import ReactQuill from "react-quill-new";
 import "../../quillDark.css";
 
@@ -36,6 +38,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     campaignName: "",
+    vendor: "",
     objective: "Promotion",
     audienceType: "specify",
     contactNumber: "",
@@ -50,6 +53,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
   const [templateOptions, setTemplateOptions] = useState<
     { label: string; value: string; content: string }[]
   >([]);
+  const [vendorOptions, setVendorOptions] = useState<{label: string; value: string}[]>([]);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,6 +78,16 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     if (isOpen) {
       setIsDataReady(false);
 
+      getVendorsApi("vendor", 1, 1000).then((res: any) => {
+        let list = res.results || (Array.isArray(res) ? res : []);
+        setVendorOptions(
+          list.map((v: any) => ({
+            label: v.profileName || v.name,
+            value: String(v.id),
+          }))
+        );
+      }).catch(err => console.error("Failed to load vendors", err));
+
       if (!editingCampaign) {
         getTemplatesApi(1, 1000).then((response: any) => {
           let data = [];
@@ -93,6 +107,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       if (editingCampaign) {
         setFormData({
           campaignName: editingCampaign.name,
+          vendor: editingCampaign.vendor ? String(editingCampaign.vendor) : "",
           objective: editingCampaign.objective,
           audienceType: "specify",
           contactNumber: "",
@@ -114,6 +129,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       } else {
         setFormData({
           campaignName: "",
+          vendor: "",
           objective: "Promotion",
           audienceType: "specify",
           contactNumber: "",
@@ -187,6 +203,10 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       toast.error("Campaign name is required.");
       return;
     }
+    if (!formData.vendor) {
+      toast.error("Vendor is required.");
+      return;
+    }
     if (isContentEmpty(quillContent)) {
       toast.error("Campaign content cannot be empty.");
       return;
@@ -197,6 +217,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     try {
       const dataToUpload = new FormData();
       dataToUpload.append("name", formData.campaignName);
+      dataToUpload.append("vendor", formData.vendor);
       dataToUpload.append("objective", formData.objective);
       dataToUpload.append("content", quillContent);
 
@@ -245,6 +266,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
       setFormData({
         campaignName: "",
+        vendor: "",
         objective: "Promotion",
         audienceType: "specify",
         contactNumber: "",
@@ -288,14 +310,22 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       className="max-w-3xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
+        <Input
+          label="Campaign Name"
+          name="campaignName"
+          placeholder="Enter campaign name"
+          value={formData.campaignName}
+          onChange={handleChange}
+          required
+          disabled={isViewMode}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Input
-            label="Campaign Name"
-            name="campaignName"
-            placeholder="Enter campaign name"
-            value={formData.campaignName}
-            onChange={handleChange}
-            required
+          <Select
+            label="Vendor"
+            value={formData.vendor}
+            onChange={(v) => handleSelectChange("vendor", v)}
+            options={vendorOptions}
+            placeholder="Select Vendor"
             disabled={isViewMode}
           />
           <Select

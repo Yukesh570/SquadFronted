@@ -20,6 +20,9 @@ import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
 
+// @ts-ignore
+import { getVendorRatesApi } from "../../../api/rateApi/vendorRateApi"; 
+
 const Vendor: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [vendors, setVendors] = useState<VendorData[]>([]);
@@ -40,6 +43,8 @@ const Vendor: React.FC = () => {
   const [nameFilter, setNameFilter] = useState("");
   const [companyNameFilter, setCompanyNameFilter] = useState("");
   const [connectionTypeFilter, setConnectionTypeFilter] = useState("");
+  const [ratePlanFilter, setRatePlanFilter] = useState("");
+  const [ratePlanOptions, setRatePlanOptions] = useState<{label: string, value: string}[]>([]);
 
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,6 +53,24 @@ const Vendor: React.FC = () => {
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const routeName = pathSegments[pathSegments.length - 1] || "vendor";
 
+  useEffect(() => {
+    const loadDropdowns = async () => {
+      try {
+        const rateRes: any = await getVendorRatesApi("vendorRate", 1, 1000);
+        const rateList = rateRes.results || (Array.isArray(rateRes) ? rateRes : []);
+        setRatePlanOptions(
+          rateList.map((r: any) => ({
+            label: r.ratePlan || r.ratePlanName || r.name,
+            value: r.ratePlan || r.ratePlanName || r.name,
+          }))
+        );
+      } catch (err: any) {
+        console.error("Failed to load vendor rates for filter", err);
+      }
+    };
+    loadDropdowns();
+  }, []);
+
   const fetchVendors = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
@@ -55,6 +78,7 @@ const Vendor: React.FC = () => {
         profileName: nameFilter,
         companyName: companyNameFilter,
         connectionType: connectionTypeFilter,
+        ratePlanName: ratePlanFilter,
       };
       const cleanParams = Object.fromEntries(
         Object.entries(params).filter(([_, v]) => v !== "")
@@ -98,8 +122,9 @@ const Vendor: React.FC = () => {
     setNameFilter("");
     setCompanyNameFilter("");
     setConnectionTypeFilter("");
+    setRatePlanFilter("");
     setCurrentPage(1);
-    fetchVendors({ profileName: "", companyName: "", connectionType: "" });
+    fetchVendors({ profileName: "", companyName: "", connectionType: "", ratePlanName: "" });
   };
 
   const handleDelete = async () => {
@@ -132,8 +157,8 @@ const Vendor: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Vendor", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowVendor.id!) }] : []),
   ] : [];
 
-  // Removed "Actions" from headers
-  const headers = ["S.N.", "Profile Name", "Company Name", "Type"];
+  // Removed "Actions" from headers, added Rate Plan
+  const headers = ["S.N.", "Profile Name", "Company Name", "Rate Plan", "Type"];
 
   const connectionTypeOptions = [
     { label: "SMPP", value: "SMPP" },
@@ -174,9 +199,10 @@ const Vendor: React.FC = () => {
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
-        <Input label="Search Profile" value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} placeholder="Profile Name" className="md:col-span-2" />
-        <Input label="Search Company Name" value={companyNameFilter} onChange={(e) => setCompanyNameFilter(e.target.value)} placeholder="Company Name" className="md:col-span-2" />
+        <Input label="Search Profile" value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} placeholder="Profile Name" />
+        <Input label="Search Company Name" value={companyNameFilter} onChange={(e) => setCompanyNameFilter(e.target.value)} placeholder="Company Name" />
         <Select label="Connection Type" value={connectionTypeFilter} onChange={setConnectionTypeFilter} options={connectionTypeOptions} placeholder="Select Type" />
+        <Select label="Rate Plan Name" value={ratePlanFilter} onChange={setRatePlanFilter} options={ratePlanOptions} placeholder="Select Rate Plan" />
       </FilterCard>
 
       <DataTable
@@ -203,6 +229,7 @@ const Vendor: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">{vendor.profileName}</td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">{vendor.companyName}</td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">{vendor.ratePlanName || "-"}</td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               <span className={`px-2 py-1 rounded text-xs font-medium ${vendor.connectionType === "SMPP" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"}`}>
                 {vendor.connectionType}

@@ -5,6 +5,7 @@ export interface VendorData {
   company?: number;
   companyName: string; 
   profileName: string;
+  ratePlanName?: string; // NEW
   connectionType: 'SMPP' | 'HTTP';
 }
 
