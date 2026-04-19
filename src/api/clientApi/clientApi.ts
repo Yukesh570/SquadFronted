@@ -2,23 +2,24 @@ import api from "../../api/axiosInstance";
 
 export interface ClientData {
   id?: number;
-  company: number; 
-  companyName?: string; 
+  company: number;
+  companyName?: string;
   name: string;
   status: "ACTIVE" | "TRIAL" | "SUSPENDED";
+  bindStatus: "ONLINE" | "OFFLINE";
   route: "DIRECT" | "HIGH QUALITY" | "SIM" | "WHOLESALE" | "FULL" | "SPAM";
   paymentTerms: "PREPAID" | "POSTPAID" | "NET7" | "NET15" | "NET30";
-  // creditLimit: string; 
-  balanceAlertAmount: string; 
+  // creditLimit: string;
+  balanceAlertAmount: string;
   allowNetting: boolean;
   enableDlr: boolean;
 
-  // ipWhitelist: string | string[]; 
-  
+  // ipWhitelist: string | string[];
+
   smppUsername?: string;
-  smppPassword?: string; 
-  internalNotes?: string; 
-  createdAt?: string; 
+  smppPassword?: string;
+  internalNotes?: string;
+  createdAt?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -33,7 +34,7 @@ export const getClientsApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<ClientData>> => {
   const params: any = {
     page: page,
@@ -47,7 +48,7 @@ export const getClientsApi = async (
 // POST
 export const createClientApi = async (
   data: any,
-  module: string
+  module: string,
 ): Promise<ClientData> => {
   const response = await api.post(`/client/${module}/`, data);
   return response.data;
@@ -57,7 +58,7 @@ export const createClientApi = async (
 export const putClientApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<ClientData> => {
   const response = await api.put(`/client/${module}/${id}/`, data);
   return response.data;
@@ -67,7 +68,7 @@ export const putClientApi = async (
 export const updateClientApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<ClientData> => {
   const response = await api.patch(`/client/${module}/${id}/`, data);
   return response.data;
@@ -76,13 +77,16 @@ export const updateClientApi = async (
 // DELETE
 export const deleteClientApi = async (
   id: number,
-  module: string
+  module: string,
 ): Promise<void> => {
   await api.delete(`/client/${module}/${id}/`);
 };
 
 // --- NEW: Send Details Email API ---
-export const sendClientDetailsEmailApi = async (data: { templateName: string; clientId: number }) => {
+export const sendClientDetailsEmailApi = async (data: {
+  templateName: string;
+  clientId: number;
+}) => {
   const response = await api.post(`/sendMailToClient/`, data);
   return response.data;
 };

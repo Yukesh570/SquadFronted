@@ -41,8 +41,8 @@ interface ColumnConfig extends FilterColumn {
   render?: (data: ClientData) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
-  isSearchOnly?: boolean; 
-  tableLabel?: string;    
+  isSearchOnly?: boolean;
+  tableLabel?: string;
 }
 
 // --- Default Configuration ---
@@ -83,10 +83,14 @@ const Client: React.FC = () => {
     x: number;
     y: number;
   } | null>(null);
-  const [selectedRowClient, setSelectedRowClient] = useState<ClientData | null>(null);
+  const [selectedRowClient, setSelectedRowClient] = useState<ClientData | null>(
+    null,
+  );
 
   // --- Dynamic Filters & Columns State ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(
+    DEFAULT_SEARCH_COLUMNS,
+  );
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
@@ -110,9 +114,12 @@ const Client: React.FC = () => {
   useEffect(() => {
     if (!hasLoggedOpening.current) {
       setTimeout(() => {
-        const activeLinks = document.querySelectorAll("aside a.active, nav a.active");
+        const activeLinks = document.querySelectorAll(
+          "aside a.active, nav a.active",
+        );
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel = activeItem?.innerText?.split("\n")[0].trim() || "Module";
+        let moduleLabel =
+          activeItem?.innerText?.split("\n")[0].trim() || "Module";
 
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100);
@@ -127,7 +134,9 @@ const Client: React.FC = () => {
       try {
         const compRes: any = await getCompaniesApi("company", 1, 1000);
         const list = compRes.results || (Array.isArray(compRes) ? compRes : []);
-        setCompanies(list.map((c: any) => ({ label: c.name, value: String(c.id) })));
+        setCompanies(
+          list.map((c: any) => ({ label: c.name, value: String(c.id) })),
+        );
       } catch (err) {
         console.error("Failed to load companies for filter", err);
       }
@@ -140,6 +149,10 @@ const Client: React.FC = () => {
     { label: "Active", value: "ACTIVE" },
     { label: "Trial", value: "TRIAL" },
     { label: "Suspended", value: "SUSPENDED" },
+  ];
+  const bindStatusOptions: Option[] = [
+    { label: "online", value: "ONLINE" },
+    { label: "offline", value: "OFFLINE" },
   ];
 
   const routeOptions: Option[] = [
@@ -167,7 +180,24 @@ const Client: React.FC = () => {
   const renderStatusBadge = (status: string) => (
     <span
       className={`px-2 py-1 rounded-full text-xs font-medium ${
-        status === "ACTIVE" ? "bg-green-100 text-green-800" : status === "TRIAL" ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-800"
+        status === "ACTIVE"
+          ? "bg-green-100 text-green-800"
+          : status === "TRIAL"
+            ? "bg-blue-100 text-blue-800"
+            : "bg-red-100 text-red-800"
+      }`}
+    >
+      {status}
+    </span>
+  );
+  const renderBindStatusBadge = (status: string) => (
+    <span
+      className={`px-2 py-1 rounded-full text-xs font-medium ${
+        status === "ONLINE"
+          ? "bg-green-100 text-green-800"
+          : status === "OFFLINE"
+            ? "bg-blue-100 text-blue-800"
+            : "bg-red-100 text-red-800"
       }`}
     >
       {status}
@@ -177,7 +207,9 @@ const Client: React.FC = () => {
   const renderBooleanBadge = (value: boolean) => (
     <span
       className={`px-2 py-0.5 rounded text-xs font-medium ${
-        value ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+        value
+          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+          : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
       }`}
     >
       {value ? "Yes" : "No"}
@@ -185,33 +217,115 @@ const Client: React.FC = () => {
   );
 
   const allColumns: ColumnConfig[] = [
-    { key: "name", label: "Client Name", type: "text", filterKey: "name__icontains" },
-    { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
-    { key: "status", label: "Status", type: "text", options: statusOptions, render: (c) => renderStatusBadge(c.status) },
+    {
+      key: "name",
+      label: "Client Name",
+      type: "text",
+      filterKey: "name__icontains",
+    },
+    {
+      key: "companyName",
+      label: "Company",
+      type: "text",
+      options: companies,
+      filterKey: "company",
+    },
+    {
+      key: "status",
+      label: "Status",
+      type: "text",
+      options: statusOptions,
+      render: (c) => renderStatusBadge(c.status),
+    },
     { key: "route", label: "Route Type", type: "text", options: routeOptions },
-    { key: "paymentTerms", label: "Payment Terms", type: "text", options: paymentTermOptions },
-    { key: "allowNetting", label: "Allow Netting", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.allowNetting) },
-    { key: "enableDlr", label: "Enable Dlr", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.enableDlr) },
-    { key: "smppUsername", label: "SMPP Username", type: "text", filterKey: "smppUsername__icontains" },
-    
+    {
+      key: "paymentTerms",
+      label: "Payment Terms",
+      type: "text",
+      options: paymentTermOptions,
+    },
+    {
+      key: "allowNetting",
+      label: "Allow Netting",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.allowNetting),
+    },
+    {
+      key: "enableDlr",
+      label: "Enable Dlr",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.enableDlr),
+    },
+    {
+      key: "smppUsername",
+      label: "SMPP Username",
+      type: "text",
+      filterKey: "smppUsername__icontains",
+    },
+    {
+      key: "bindStatus",
+      label: "Bind Status",
+      type: "text",
+      options: bindStatusOptions,
+      render: (c) => renderBindStatusBadge(c.bindStatus),
+    },
     // --- Credit Limit Variants ---
     // { key: "creditLimit", label: "Credit Limit (Exact)", tableLabel: "Credit Limit", type: "number" },
     // { key: "creditLimit__range", label: "Credit Limit (Range)", type: "number_range", isSearchOnly: true },
     // { key: "creditLimit__gt_lt", label: "Credit Limit (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
 
     // --- Balance Alert Variants ---
-    { key: "balanceAlertAmount", label: "Balance Alert (Exact)", tableLabel: "Balance Alert", type: "number" },
-    { key: "balanceAlertAmount__range", label: "Balance Alert (Range)", type: "number_range", isSearchOnly: true },
-    { key: "balanceAlertAmount__gt_lt", label: "Balance Alert (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
+    {
+      key: "balanceAlertAmount",
+      label: "Balance Alert (Exact)",
+      tableLabel: "Balance Alert",
+      type: "number",
+    },
+    {
+      key: "balanceAlertAmount__range",
+      label: "Balance Alert (Range)",
+      type: "number_range",
+      isSearchOnly: true,
+    },
+    {
+      key: "balanceAlertAmount__gt_lt",
+      label: "Balance Alert (GT / LT)",
+      type: "number_gt_lt",
+      isSearchOnly: true,
+    },
 
     // --- Created At Variants ---
-    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c) => (c.createdAt ? new Date(c.createdAt).toLocaleString() : "-") },
-    { key: "createdAt__range", label: "Created At (Range)", type: "date_range", isSearchOnly: true },
-    { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
+    {
+      key: "createdAt",
+      label: "Created At (Exact)",
+      tableLabel: "Created At",
+      type: "date",
+      filterKey: "createdAt__date",
+      render: (c) =>
+        c.createdAt ? new Date(c.createdAt).toLocaleString() : "-",
+    },
+    {
+      key: "createdAt__range",
+      label: "Created At (Range)",
+      type: "date_range",
+      isSearchOnly: true,
+    },
+    {
+      key: "createdAt__gt_lt",
+      label: "Created At (After / Before)",
+      type: "date_gt_lt",
+      isSearchOnly: true,
+    },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
-  const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+  const visibleSearchFields = allColumns.filter((col) =>
+    searchColumns.includes(col.key),
+  );
+  const visibleTableFields = allColumns.filter((col) =>
+    tableColumns.includes(col.key),
+  );
 
   const tableFilterColumns = allColumns
     .filter((c) => !c.isSearchOnly)
@@ -222,7 +336,9 @@ const Client: React.FC = () => {
   };
 
   // --- Fetch Data (Advanced Filter Logic) ---
-  const fetchClients = async (filters: Record<string, string> | null = null) => {
+  const fetchClients = async (
+    filters: Record<string, string> | null = null,
+  ) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
@@ -236,51 +352,55 @@ const Client: React.FC = () => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
-          
+
           if (columnDef?.options) {
-            const selectedOption = columnDef.options.find((opt) => opt.value === value);
-            currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value; 
-          } 
-          
+            const selectedOption = columnDef.options.find(
+              (opt) => opt.value === value,
+            );
+            currentSearchParams[columnDef.filterKey || key] = selectedOption
+              ? selectedOption.value
+              : value;
+          }
+
           // SMART DATE TRANSLATIONS TO HANDLE DJANGO DATETIME FIELDS
           else if (columnDef?.type === "date") {
-            currentSearchParams[`${key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
-          } 
-          else if (columnDef?.type === "date_range") {
-            const baseKey = key.split("__")[0]; 
+            currentSearchParams[`${key}__range`] =
+              `${value}T00:00:00,${value}T23:59:59`;
+          } else if (columnDef?.type === "date_range") {
+            const baseKey = key.split("__")[0];
             const [start, end] = value.split(",");
             if (start && end) {
-              currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`; 
+              currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
             } else {
-              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
+              if (start)
+                currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
+              if (end)
+                currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
             }
-          } 
-          else if (columnDef?.type === "date_gt_lt") {
-            const baseKey = key.replace("__gt_lt", ""); 
+          } else if (columnDef?.type === "date_gt_lt") {
+            const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
             if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
-          } 
-          
+          }
+
           // NUMBER TRANSLATIONS
           else if (columnDef?.type === "number_range") {
-            const baseKey = key.split("__")[0]; 
+            const baseKey = key.split("__")[0];
             const [start, end] = value.split(",");
             if (start && end) {
-              currentSearchParams[key] = value; 
+              currentSearchParams[key] = value;
             } else {
               if (start) currentSearchParams[`${baseKey}__gt`] = start;
               if (end) currentSearchParams[`${baseKey}__lt`] = end;
             }
-          } 
-          else if (columnDef?.type === "number_gt_lt") {
-            const baseKey = key.replace("__gt_lt", ""); 
+          } else if (columnDef?.type === "number_gt_lt") {
+            const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
             if (lt) currentSearchParams[`${baseKey}__lt`] = lt;
-          } 
-          
+          }
+
           // STANDARD TEXT TRANSLATIONS
           else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
@@ -295,7 +415,7 @@ const Client: React.FC = () => {
         routeName,
         currentPage,
         rowsPerPage,
-        currentSearchParams
+        currentSearchParams,
       );
 
       if (newController.signal.aborted) return;
@@ -320,7 +440,46 @@ const Client: React.FC = () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [routeName, currentPage, rowsPerPage, searchColumns]);
+  // --- REAL-TIME WEBSOCKET LISTENER ---
+  useEffect(() => {
+    // Connect to the Django Channels WebSocket
+    // Note: Adjust the URL if your Django server runs on a different host/port
+    // const ws = new WebSocket("ws://127.0.0.1:8000/ws/status/");
 
+    const wsBase = import.meta.env.VITE_WS_BASE_URL;
+    const ws = new WebSocket(`${wsBase}/ws/status/`);
+    ws.onopen = () => {
+      console.log("✅ Client Table linked to live SMPP feed");
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("⚡ Real-time status update:", data);
+
+        // Instantly update the specific row in the table
+        setClients((prevClients) =>
+          prevClients.map((client) =>
+            client.smppUsername === data.username
+              ? { ...client, bindStatus: data.status }
+              : client,
+          ),
+        );
+      } catch (err) {
+        console.error("Error parsing websocket message", err);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log("⚠️ Live SMPP feed disconnected");
+    };
+
+    // Cleanup: Close the socket if the user navigates away from the Clients page
+    return () => {
+      ws.close();
+    };
+  }, []);
+  // ------------------------------------
   // --- Handlers ---
   const handleSearch = () => {
     setCurrentPage(1);
@@ -372,14 +531,14 @@ const Client: React.FC = () => {
   // --- NEW: Send Details Handler ---
   const handleSendDetails = async (client: ClientData) => {
     if (!client.id) return;
-    
+
     // Create a loading toast
     const toastId = toast.loading("Sending client details...");
-    
+
     try {
       await sendClientDetailsEmailApi({
         templateName: "Welcome Mail",
-        clientId: client.id
+        clientId: client.id,
       });
       // Update toast to success state
       toast.update(toastId, {
@@ -450,7 +609,10 @@ const Client: React.FC = () => {
       ]
     : [];
 
-  const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
+  const tableHeaders = [
+    "S.N.",
+    ...visibleTableFields.map((col) => col.tableLabel || col.label),
+  ];
 
   const getBaseLabel = (label: string) => label.split(" (")[0].trim();
 
@@ -519,14 +681,16 @@ const Client: React.FC = () => {
               />
             );
           }
-          
+
           if (col.type === "date") {
             return (
               <DatePicker
                 key={col.key}
                 label={`Search ${baseLabel}`}
-                selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
-                onChange={(val: Date | null) => 
+                selected={
+                  filterValues[col.key] ? new Date(filterValues[col.key]) : null
+                }
+                onChange={(val: Date | null) =>
                   handleFilterChange(col.key, val ? formatLocalDate(val) : "")
                 }
               />
@@ -543,7 +707,8 @@ const Client: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newStart = val ? formatLocalDate(val) : "";
                     const currentEnd = endStr || "";
-                    const newVal = newStart || currentEnd ? `${newStart},${currentEnd}` : "";
+                    const newVal =
+                      newStart || currentEnd ? `${newStart},${currentEnd}` : "";
                     handleFilterChange(col.key, newVal);
                   }}
                 />
@@ -553,7 +718,8 @@ const Client: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newEnd = val ? formatLocalDate(val) : "";
                     const currentStart = startStr || "";
-                    const newVal = currentStart || newEnd ? `${currentStart},${newEnd}` : "";
+                    const newVal =
+                      currentStart || newEnd ? `${currentStart},${newEnd}` : "";
                     handleFilterChange(col.key, newVal);
                   }}
                 />
@@ -571,7 +737,8 @@ const Client: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newGt = val ? formatLocalDate(val) : "";
                     const currentLt = ltStr || "";
-                    const newVal = newGt || currentLt ? `${newGt},${currentLt}` : "";
+                    const newVal =
+                      newGt || currentLt ? `${newGt},${currentLt}` : "";
                     handleFilterChange(col.key, newVal);
                   }}
                 />
@@ -581,7 +748,8 @@ const Client: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newLt = val ? formatLocalDate(val) : "";
                     const currentGt = gtStr || "";
-                    const newVal = currentGt || newLt ? `${currentGt},${newLt}` : "";
+                    const newVal =
+                      currentGt || newLt ? `${currentGt},${newLt}` : "";
                     handleFilterChange(col.key, newVal);
                   }}
                 />
@@ -600,7 +768,8 @@ const Client: React.FC = () => {
                   onChange={(e) => {
                     const newMin = e.target.value;
                     const currentMax = maxStr || "";
-                    const newVal = newMin || currentMax ? `${newMin},${currentMax}` : "";
+                    const newVal =
+                      newMin || currentMax ? `${newMin},${currentMax}` : "";
                     handleFilterChange(col.key, newVal);
                   }}
                   placeholder={`> Min`}
@@ -612,7 +781,8 @@ const Client: React.FC = () => {
                   onChange={(e) => {
                     const newMax = e.target.value;
                     const currentMin = minStr || "";
-                    const newVal = currentMin || newMax ? `${currentMin},${newMax}` : "";
+                    const newVal =
+                      currentMin || newMax ? `${currentMin},${newMax}` : "";
                     handleFilterChange(col.key, newVal);
                   }}
                   placeholder={`< Max`}
@@ -632,7 +802,8 @@ const Client: React.FC = () => {
                   onChange={(e) => {
                     const newGt = e.target.value;
                     const currentLt = ltStr || "";
-                    const newVal = newGt || currentLt ? `${newGt},${currentLt}` : "";
+                    const newVal =
+                      newGt || currentLt ? `${newGt},${currentLt}` : "";
                     handleFilterChange(col.key, newVal);
                   }}
                   placeholder={`> Greater than`}
@@ -644,7 +815,8 @@ const Client: React.FC = () => {
                   onChange={(e) => {
                     const newLt = e.target.value;
                     const currentGt = gtStr || "";
-                    const newVal = currentGt || newLt ? `${currentGt},${newLt}` : "";
+                    const newVal =
+                      currentGt || newLt ? `${currentGt},${newLt}` : "";
                     handleFilterChange(col.key, newVal);
                   }}
                   placeholder={`< Less than`}
@@ -700,7 +872,7 @@ const Client: React.FC = () => {
               let cellData = (client as any)[col.key];
 
               if (col.key === "companyName") {
-                  cellData = client.companyName || client.company;
+                cellData = client.companyName || client.company;
               }
 
               if (col.render) {
@@ -715,7 +887,7 @@ const Client: React.FC = () => {
               }
               if (col.options) {
                 const match = col.options.find(
-                  (opt) => opt.value === String(cellData)
+                  (opt) => opt.value === String(cellData),
                 );
                 cellData = match ? match.label : cellData;
               }
@@ -723,7 +895,9 @@ const Client: React.FC = () => {
                 <td
                   key={col.key}
                   className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${
-                    col.key === "name" ? "font-medium text-text-primary dark:text-white" : ""
+                    col.key === "name"
+                      ? "font-medium text-text-primary dark:text-white"
+                      : ""
                   }`}
                 >
                   {cellData || "-"}
