@@ -9,7 +9,8 @@ export interface templateData {
 export interface CampaignFormData {
   id?: number;
   name: string;
-  vendor?: number; // NEW
+  vendor?: number;
+  vendorName?: string; // NEW
   objective: string;
   schedule: string;
   content: string;

@@ -121,7 +121,7 @@ export const SmsMessagePartModal: React.FC<SmsMessagePartModalProps> = ({
             Text
           </label>
           <div className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[80px] text-sm text-text-primary dark:text-white whitespace-pre-wrap break-words">
-            {viewLog.text || <span className="text-gray-400 italic">No text decoded.</span>}
+            {viewLog.text ? viewLog.text.replace(/<[^>]*>/g, "") : <span className="text-gray-400 italic">No text decoded.</span>}
           </div>
         </div>
 

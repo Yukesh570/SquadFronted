@@ -223,7 +223,8 @@ const CampaignList: React.FC = () => {
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">{campaign.name}</td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">{campaign.vendor || "-"}</td>
+            {/* CHANGED TO vendorName */}
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">{campaign.vendorName || "-"}</td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
               <span className="flex items-center gap-2"><Megaphone size={14} /> {campaign.objective}</span>
             </td>

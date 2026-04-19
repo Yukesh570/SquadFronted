@@ -34,7 +34,7 @@ const formatLocalDate = (date: Date) => {
 };
 
 const DEFAULT_SEARCH_COLUMNS = ["parent_message_destination", "submit_status", "vendor_msg_id"];
-const DEFAULT_TABLE_COLUMNS = ["id", "message", "parent_message_destination", "part_no", "part_total", "submit_status", "created_at"];
+const DEFAULT_TABLE_COLUMNS = ["id", "message", "parent_message_destination", "text", "part_no", "part_total", "submit_status", "created_at"];
 
 const SmsMessagePart: React.FC = () => {
   const [segments, setSegments] = useState<SmsMessagePartData[]>([]);
@@ -67,7 +67,21 @@ const SmsMessagePart: React.FC = () => {
     { key: "id", label: "Segment ID", type: "text" },
     { key: "message", label: "Message ID", type: "text" },
     { key: "parent_message_destination", label: "Destination", type: "text", filterKey: "message__destination__icontains" },
-    { key: "text", label: "Text", type: "text" },
+    { 
+      key: "text", 
+      label: "Text", 
+      type: "text",
+      render: (data: any) => {
+        if (!data.text) return "-";
+        const strippedContent = data.text.replace(/<[^>]*>/g, "");
+        const limit = 50; // Truncate limit
+        return strippedContent.length > limit ? (
+          <span title={strippedContent}>{strippedContent.substring(0, limit)}...</span>
+        ) : (
+          strippedContent
+        );
+      }
+    },
     { key: "part_no", label: "Part No", type: "text", filterKey: "part_no__icontains" },
     { key: "part_total", label: "Part Total", type: "text", filterKey: "part_total__icontains" },
     { key: "udh_ref", label: "UDH Ref", type: "text", filterKey: "udh_ref__icontains" },
