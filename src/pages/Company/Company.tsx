@@ -137,7 +137,7 @@ const CompanyList: React.FC = () => {
     { key: "currency", label: "Currency", type: "text", options: currencies, filterKey: "currency__name" },
     { key: "timeZone", label: "Time Zone", type: "text", options: timeZones, filterKey: "timeZone__name" },
     { key: "customerCreditLimit", label: "Cust. Credit", type: "number" },
-    // { key: "vendorCreditLimit", label: "Vend. Credit", type: "number" },
+    { key: "vendorCreditLimit", label: "Vend. Credit", type: "number" }, // Restored
     { key: "balanceAlertAmount", label: "Bal. Alert", type: "number" },
     { key: "referencNumber", label: "Ref. Number", type: "text" },
     // { key: "businessEntity", label: "Entity", type: "text", options: entities, filterKey: "businessEntity__name" },

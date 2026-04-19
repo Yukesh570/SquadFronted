@@ -4,12 +4,13 @@ export interface ClientData {
   id?: number;
   company: number;
   companyName?: string;
+  ratePlanName?: string; // NEW
   name: string;
   status: "ACTIVE" | "TRIAL" | "SUSPENDED";
   bindStatus: "ONLINE" | "OFFLINE";
   route: "DIRECT" | "HIGH QUALITY" | "SIM" | "WHOLESALE" | "FULL" | "SPAM";
   paymentTerms: "PREPAID" | "POSTPAID" | "NET7" | "NET15" | "NET30";
-  // creditLimit: string;
+  creditLimit?: string; // Restored for View Mode
   balanceAlertAmount: string;
   allowNetting: boolean;
   enableDlr: boolean;

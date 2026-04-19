@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, ShieldPlus, Eye, Mail } from "lucide-react"; // Added Mail icon
+import { Home, Plus, Edit, Trash, ShieldPlus, Eye, Mail } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -7,10 +7,13 @@ import { toast } from "react-toastify";
 import {
   getClientsApi,
   deleteClientApi,
-  sendClientDetailsEmailApi, // Imported new API
+  sendClientDetailsEmailApi,
   type ClientData,
 } from "../../api/clientApi/clientApi";
 import { getCompaniesApi } from "../../api/companyApi/companyApi";
+
+// @ts-ignore
+import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi"; 
 
 // --- Components ---
 import { ClientModal } from "../../components/modals/ClientModal";
@@ -47,9 +50,8 @@ interface ColumnConfig extends FilterColumn {
 
 // --- Default Configuration ---
 const DEFAULT_SEARCH_COLUMNS = ["name", "status"];
-const DEFAULT_TABLE_COLUMNS = ["name", "companyName", "status", "route"];
+const DEFAULT_TABLE_COLUMNS = ["name", "companyName", "ratePlanName", "status", "route"];
 
-// --- Helper to fix UTC timezone offsets shifting the date backward ---
 const formatLocalDate = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -65,6 +67,7 @@ const Client: React.FC = () => {
 
   // --- Dropdown States ---
   const [companies, setCompanies] = useState<Option[]>([]);
+  const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
 
   // --- Modal States ---
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
@@ -83,14 +86,10 @@ const Client: React.FC = () => {
     x: number;
     y: number;
   } | null>(null);
-  const [selectedRowClient, setSelectedRowClient] = useState<ClientData | null>(
-    null,
-  );
+  const [selectedRowClient, setSelectedRowClient] = useState<ClientData | null>(null);
 
   // --- Dynamic Filters & Columns State ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(
-    DEFAULT_SEARCH_COLUMNS,
-  );
+  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
@@ -118,8 +117,7 @@ const Client: React.FC = () => {
           "aside a.active, nav a.active",
         );
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel =
-          activeItem?.innerText?.split("\n")[0].trim() || "Module";
+        let moduleLabel = activeItem?.innerText?.split("\n")[0].trim() || "Module";
 
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100);
@@ -134,11 +132,22 @@ const Client: React.FC = () => {
       try {
         const compRes: any = await getCompaniesApi("company", 1, 1000);
         const list = compRes.results || (Array.isArray(compRes) ? compRes : []);
-        setCompanies(
-          list.map((c: any) => ({ label: c.name, value: String(c.id) })),
-        );
-      } catch (err) {
+        setCompanies(list.map((c: any) => ({ label: c.name, value: String(c.id) })));
+      } catch (err: any) {
         console.error("Failed to load companies for filter", err);
+      }
+
+      try {
+        const rateRes: any = await getCustomerRatesApi("customerRate", 1, 1000);
+        const rateList = rateRes.results || (Array.isArray(rateRes) ? rateRes : []);
+        setRatePlanOptions(
+          rateList.map((r: any) => ({
+            label: r.ratePlan || r.ratePlanName || r.name,
+            value: r.ratePlan || r.ratePlanName || r.name,
+          }))
+        );
+      } catch (err: any) {
+        console.error("Failed to load customer rates for filter", err);
       }
     };
     loadDropdowns();
@@ -231,6 +240,13 @@ const Client: React.FC = () => {
       filterKey: "company",
     },
     {
+      key: "ratePlanName",
+      label: "Rate Plan",
+      type: "text",
+      options: ratePlanOptions,
+      filterKey: "ratePlanName",
+    },
+    {
       key: "status",
       label: "Status",
       type: "text",
@@ -271,11 +287,6 @@ const Client: React.FC = () => {
       options: bindStatusOptions,
       render: (c) => renderBindStatusBadge(c.bindStatus),
     },
-    // --- Credit Limit Variants ---
-    // { key: "creditLimit", label: "Credit Limit (Exact)", tableLabel: "Credit Limit", type: "number" },
-    // { key: "creditLimit__range", label: "Credit Limit (Range)", type: "number_range", isSearchOnly: true },
-    // { key: "creditLimit__gt_lt", label: "Credit Limit (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
-
     // --- Balance Alert Variants ---
     {
       key: "balanceAlertAmount",
@@ -360,10 +371,7 @@ const Client: React.FC = () => {
             currentSearchParams[columnDef.filterKey || key] = selectedOption
               ? selectedOption.value
               : value;
-          }
-
-          // SMART DATE TRANSLATIONS TO HANDLE DJANGO DATETIME FIELDS
-          else if (columnDef?.type === "date") {
+          } else if (columnDef?.type === "date") {
             currentSearchParams[`${key}__range`] =
               `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_range") {
@@ -382,10 +390,7 @@ const Client: React.FC = () => {
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
             if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
-          }
-
-          // NUMBER TRANSLATIONS
-          else if (columnDef?.type === "number_range") {
+          } else if (columnDef?.type === "number_range") {
             const baseKey = key.split("__")[0];
             const [start, end] = value.split(",");
             if (start && end) {
@@ -399,10 +404,7 @@ const Client: React.FC = () => {
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
             if (lt) currentSearchParams[`${baseKey}__lt`] = lt;
-          }
-
-          // STANDARD TEXT TRANSLATIONS
-          else if (columnDef?.type === "text") {
+          } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
           } else {
@@ -440,24 +442,15 @@ const Client: React.FC = () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [routeName, currentPage, rowsPerPage, searchColumns]);
-  // --- REAL-TIME WEBSOCKET LISTENER ---
-  useEffect(() => {
-    // Connect to the Django Channels WebSocket
-    // Note: Adjust the URL if your Django server runs on a different host/port
-    // const ws = new WebSocket("ws://127.0.0.1:8000/ws/status/");
 
+  useEffect(() => {
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
     const ws = new WebSocket(`${wsBase}/ws/status/`);
-    ws.onopen = () => {
-      console.log("✅ Client Table linked to live SMPP feed");
-    };
+    ws.onopen = () => console.log("✅ Client Table linked to live SMPP feed");
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("⚡ Real-time status update:", data);
-
-        // Instantly update the specific row in the table
         setClients((prevClients) =>
           prevClients.map((client) =>
             client.smppUsername === data.username
@@ -469,18 +462,10 @@ const Client: React.FC = () => {
         console.error("Error parsing websocket message", err);
       }
     };
-
-    ws.onclose = () => {
-      console.log("⚠️ Live SMPP feed disconnected");
-    };
-
-    // Cleanup: Close the socket if the user navigates away from the Clients page
-    return () => {
-      ws.close();
-    };
+    ws.onclose = () => console.log("⚠️ Live SMPP feed disconnected");
+    return () => { ws.close(); };
   }, []);
-  // ------------------------------------
-  // --- Handlers ---
+
   const handleSearch = () => {
     setCurrentPage(1);
     fetchClients();
@@ -528,19 +513,14 @@ const Client: React.FC = () => {
     setIsIpModalOpen(true);
   };
 
-  // --- NEW: Send Details Handler ---
   const handleSendDetails = async (client: ClientData) => {
     if (!client.id) return;
-
-    // Create a loading toast
     const toastId = toast.loading("Sending client details...");
-
     try {
       await sendClientDetailsEmailApi({
         templateName: "Welcome Mail",
         clientId: client.id,
       });
-      // Update toast to success state
       toast.update(toastId, {
         render: "Details sent successfully!",
         type: "success",
@@ -548,7 +528,6 @@ const Client: React.FC = () => {
         autoClose: 3000,
       });
     } catch (error: any) {
-      // Update toast to error state
       toast.update(toastId, {
         render: error.response?.data?.detail || "Failed to send details.",
         type: "error",
@@ -558,7 +537,6 @@ const Client: React.FC = () => {
     }
   };
 
-  // --- Context Menu Logic ---
   const handleContextMenu = (e: React.MouseEvent, client: ClientData) => {
     e.preventDefault();
     setContextMenuPos({ x: e.clientX, y: e.clientY });
@@ -581,7 +559,6 @@ const Client: React.FC = () => {
           icon: <Eye size={16} />,
           onClick: () => handleView(selectedRowClient),
         },
-        // NEW: Send Details Action
         {
           label: "Send Details",
           icon: <Mail size={16} />,

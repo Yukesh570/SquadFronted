@@ -15,6 +15,9 @@ import {
   deleteIpWhitelistApi,
 } from "../../api/ipWhitelistApi/ipWhitelistApi";
 
+// @ts-ignore
+import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi"; 
+
 // --- Components ---
 import Input from "../ui/Input";
 import Button from "../ui/Button";
@@ -49,10 +52,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   const [formData, setFormData] = useState({
     company: "",
     name: "",
+    ratePlanName: "",
     status: "ACTIVE",
     route: "DIRECT",
     paymentTerms: "PREPAID",
-    // creditLimit: "",
+    creditLimit: "", 
     balanceAlertAmount: "",
     allowNetting: false,
     enableDlr: false,
@@ -63,15 +67,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   });
 
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
+  const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   // --- Helper: Validate IP ---
   const isValidIp = (ip: string) => {
-    // IPv4 Regex
     const ipv4Regex =
       /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    // Basic IPv6 check
     const ipv6Check = ip.includes(":");
     return ipv4Regex.test(ip) || ipv6Check;
   };
@@ -108,12 +111,23 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           let list = [];
           if (res && res.results) list = res.results;
           else if (Array.isArray(res)) list = res;
-
           setCompanyOptions(
             list.map((c: any) => ({ label: c.name, value: String(c.id) })),
           );
         })
-        .catch((err) => console.error("Failed to load companies", err));
+        .catch((err: any) => console.error("Failed to load companies", err));
+
+      getCustomerRatesApi("customerRate", 1, 1000)
+        .then((res: any) => {
+          let list = res.results || (Array.isArray(res) ? res : []);
+          setRatePlanOptions(
+            list.map((r: any) => ({
+              label: r.ratePlan || r.ratePlanName || r.name,
+              value: r.ratePlan || r.ratePlanName || r.name,
+            })),
+          );
+        })
+        .catch((err: any) => console.error("Failed to load rate plans", err));
     }
   }, [isOpen]);
 
@@ -122,10 +136,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       setFormData({
         company: String(editingClient.company || ""),
         name: editingClient.name,
+        ratePlanName: editingClient.ratePlanName || "",
         status: editingClient.status,
         route: editingClient.route,
         paymentTerms: editingClient.paymentTerms,
-        // creditLimit: editingClient.creditLimit,
+        creditLimit: editingClient.creditLimit || "",
         balanceAlertAmount: editingClient.balanceAlertAmount,
         allowNetting: editingClient.allowNetting,
         enableDlr: editingClient.enableDlr,
@@ -138,23 +153,23 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       if (editingClient.id) {
         getIpWhitelistApi("ipWhitelist", 1, 1000, { client: editingClient.id })
           .then((res) => {
-            // Strict filter for current client only
             const myIps = (res.results || []).filter(
               (r: any) => r.client === editingClient.id,
             );
             const ipString = myIps.map((item) => item.ip).join(", ");
             setFormData((prev) => ({ ...prev, ipWhitelist: ipString }));
           })
-          .catch((err) => console.error("Failed to fetch IPs", err));
+          .catch((err: any) => console.error("Failed to fetch IPs", err));
       }
     } else if (isOpen) {
       setFormData({
         company: "",
         name: "",
+        ratePlanName: "",
         status: "ACTIVE",
         route: "DIRECT",
         paymentTerms: "PREPAID",
-        // creditLimit: "",
+        creditLimit: "",
         balanceAlertAmount: "",
         allowNetting: false,
         enableDlr: false,
@@ -187,7 +202,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     });
     const allFetched = existingRes.results || [];
 
-    // Strict Filter
     const existingRecords = allFetched.filter((r) => r.client === clientId);
     const existingIpSet = new Set(existingRecords.map((r) => r.ip));
 
@@ -213,7 +227,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       return;
     }
 
-    // --- 1. VALIDATE IPs FIRST (Stop if invalid) ---
     const ipList = formData.ipWhitelist
       .split(/[\n,]+/)
       .map((ip) => ip.trim())
@@ -222,23 +235,22 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     for (const ip of ipList) {
       if (!isValidIp(ip)) {
         toast.error(`Invalid IP address format: "${ip}"`);
-        return; // HALT SUBMISSION
+        return;
       }
     }
 
     setIsSubmitting(true);
 
     try {
-      const { ipWhitelist, ...clientPayload } = formData;
+      const { ipWhitelist, creditLimit, ...clientPayload } = formData;
       const payload = {
         ...clientPayload,
         company: Number(formData.company),
-        ipWhitelist: [], // Empty array for client API compliance
+        ipWhitelist: [], 
       };
 
       let savedClientId: number;
 
-      // --- 2. SAVE CLIENT ---
       if (editingClient) {
         await updateClientApi(editingClient.id!, payload, moduleName);
         savedClientId = editingClient.id!;
@@ -247,10 +259,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         savedClientId = newClient.id!;
       }
 
-      // --- 3. SYNC IPs ---
       await handleIpSync(savedClientId, ipList);
 
-      // --- 4. SUCCESS MESSAGE (Only if both steps pass) ---
       toast.success(
         editingClient
           ? "Client updated successfully!"
@@ -263,9 +273,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       console.error(error);
       const serverError = error.response?.data;
 
-      // Handle Errors
       if (serverError && typeof serverError === "object") {
-        // If the error came from the IP sync step (rare since we validate frontend first now)
         if (serverError.ip) {
           toast.error(`IP Error: ${serverError.ip[0]}`);
         } else {
@@ -350,34 +358,21 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select
+              label="Rate Plan Name"
+              value={formData.ratePlanName}
+              onChange={(v) => handleSelect("ratePlanName", v)}
+              options={ratePlanOptions}
+              placeholder="Select Rate Plan"
+              disabled={isViewMode}
+            />
+            <Select
               label="Payment Terms"
               value={formData.paymentTerms}
               onChange={(v) => handleSelect("paymentTerms", v)}
               options={paymentTermOptions}
               disabled={isViewMode}  
             />
-            <div className="flex items-end mb-2 gap-6">
-              <ToggleSwitch
-                label="Allow Netting"
-                checked={formData.allowNetting}
-                onChange={(v) => handleToggle("allowNetting", v)}
-              />
-              <ToggleSwitch
-                label="Enable Dlr"
-                checked={formData.enableDlr}
-                onChange={(v) => handleToggle("enableDlr", v)}
-              />
-            </div>
-            {/* <Input
-              label="Credit Limit"
-              name="creditLimit"
-              type="number"
-              step="0.0001"
-              value={formData.creditLimit}
-              onChange={handleChange}
-              placeholder="0.0000"
-              disabled={isViewMode}
-            /> */}
+            
             <Input
               label="Balance Alert Amount"
               name="balanceAlertAmount"
@@ -388,6 +383,20 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               placeholder="0.0000"
               disabled={isViewMode}
             />
+            
+            {/* Credit Limit - visible ONLY in view mode */}
+            {isViewMode && (
+              <Input
+                label="Credit Limit"
+                name="creditLimit"
+                type="number"
+                step="0.0001"
+                value={formData.creditLimit}
+                onChange={handleChange}
+                placeholder="0.0000"
+                disabled={isViewMode}
+              />
+            )}
           </div>
         </fieldset>
 
@@ -436,7 +445,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 />
               </div>
             )}
-
           </div>
         </fieldset>
 
@@ -455,7 +463,30 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           />
         </fieldset>
 
-        <div className="flex justify-end space-x-3 pt-4">
+        {/* Settings */}
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <legend className="text-sm font-semibold text-primary px-2">
+            Settings
+          </legend>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className={isViewMode ? "pointer-events-none opacity-50" : ""}>
+              <ToggleSwitch
+                label="Allow Netting"
+                checked={formData.allowNetting}
+                onChange={(v) => handleToggle("allowNetting", v)}
+              />
+            </div>
+            <div className={isViewMode ? "pointer-events-none opacity-50" : ""}>
+              <ToggleSwitch
+                label="Enable Dlr"
+                checked={formData.enableDlr}
+                onChange={(v) => handleToggle("enableDlr", v)}
+              />
+            </div>
+          </div>
+        </fieldset>
+
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
           <Button type="button" variant="secondary" onClick={onClose}>
             {isViewMode ? "Close" : "Cancel"}
           </Button>

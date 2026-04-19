@@ -57,7 +57,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     currency: "",
     timeZone: "",
     customerCreditLimit: "",
-    // vendorCreditLimit: "",
+    vendorCreditLimit: "",
     balanceAlertAmount: "",
     referenceNumber: "",
     // businessEntity: "",
@@ -135,7 +135,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         // businessEntity: String(editingCompany.businessEntity || ""),
 
         customerCreditLimit: String(editingCompany.customerCreditLimit || ""),
-        // vendorCreditLimit: String(editingCompany.vendorCreditLimit || ""),
+        vendorCreditLimit: String(editingCompany.vendorCreditLimit || ""),
         balanceAlertAmount: String(editingCompany.balanceAlertAmount || ""),
         referenceNumber: editingCompany.referencNumber || "",
 
@@ -170,7 +170,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         currency: "",
         timeZone: "",
         customerCreditLimit: "",
-        // vendorCreditLimit: "",
+        vendorCreditLimit: "",
         balanceAlertAmount: "",
         referenceNumber: "",
         // businessEntity: "",
@@ -208,8 +208,11 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     if (isViewMode) return;
     setIsSubmitting(true);
 
+    // Destructure out vendorCreditLimit so it is NOT submitted
+    const { vendorCreditLimit, ...restFormData } = formData;
+
     const payload = {
-      ...formData,
+      ...restFormData,
       country: Number(formData.country) || null,
       state: Number(formData.state) || null,
       category: Number(formData.category) || null,
@@ -417,15 +420,20 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               placeholder="5000.00"
               disabled={isViewMode}
             />
-            {/* <Input
-              label="Vendor Credit Limit"
-              name="vendorCreditLimit"
-              type="number"
-              value={formData.vendorCreditLimit}
-              onChange={handleChange}
-              placeholder="10000.00"
-              disabled={isViewMode}
-            /> */}
+            
+            {/* Vendor Credit Limit - visible ONLY in view mode */}
+            {isViewMode && (
+              <Input
+                label="Vendor Credit Limit"
+                name="vendorCreditLimit"
+                type="number"
+                value={formData.vendorCreditLimit}
+                onChange={handleChange}
+                placeholder="10000.00"
+                disabled={isViewMode}
+              />
+            )}
+
             <Input
               label="Balance Alert Amount"
               name="balanceAlertAmount"

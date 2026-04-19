@@ -22,7 +22,7 @@ export interface CompanyData {
   
   // Finance
   customerCreditLimit: string; // Decimal as string
-  // vendorCreditLimit: string;
+  vendorCreditLimit: string; // Restored
   balanceAlertAmount: string;
   referencNumber: string;
   // vatNumber: string;
@@ -102,6 +102,3 @@ export const updateCompanyCreditApi = async (
   const response = await api.patch(`/company/addCredit/${module}/${id}/`, data);
   return response.data;
 };
-
-
-// | string; vendorCreditLimit?: number | string 
