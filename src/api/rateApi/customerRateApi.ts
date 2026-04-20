@@ -8,6 +8,7 @@ export interface CustomerRateData {
   timeZone: number;
   timeZoneName?: string;
   MCC: number;
+  MNC?: number; // ADDED
   countryCode: number;
   rate: number;
   remark: string;

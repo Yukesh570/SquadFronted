@@ -48,6 +48,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
     timeZone: "",
     country: "",
     MCC: "",
+    MNC: "", // ADDED
     countryCode: "",
     rate: "",
     remark: "",
@@ -119,6 +120,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         timeZone: String(editingRate.timeZone || ""),
         country: String(editingRate.country || ""),
         MCC: String(editingRate.MCC || ""),
+        MNC: String(editingRate.MNC || ""), // ADDED
         countryCode: String(editingRate.countryCode || ""),
         rate: String(editingRate.rate || ""),
         remark: editingRate.remark || "",
@@ -141,6 +143,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         timeZone: "",
         country: "",
         MCC: "",
+        MNC: "", // ADDED
         countryCode: "",
         rate: "",
         remark: "",
@@ -186,6 +189,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
 
     if (formData.country) payload.country = Number(formData.country);
     if (formData.MCC) payload.MCC = Number(formData.MCC);
+    if (formData.MNC) payload.MNC = Number(formData.MNC); // ADDED
     if (formData.countryCode)
       payload.countryCode = Number(formData.countryCode);
     if (formData.rate) payload.rate = Number(formData.rate);
@@ -285,6 +289,16 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
                 }
                 disabled={!formData.country || isViewMode}
               />
+              {/* ADDED MNC FIELD HERE */}
+              <Input
+                label="MNC"
+                name="MNC"
+                type="number"
+                value={formData.MNC}
+                onChange={handleChange}
+                placeholder="e.g., 1"
+                disabled={isViewMode}
+              />
               <Input
                 label="Rate"
                 name="rate"
@@ -296,7 +310,6 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
                 required={!!editingRate}
                 disabled={isViewMode}
               />
-
               <CustomDatePicker
                 label="Effective From (Date & Time)"
                 selected={selectedDate}
