@@ -47,6 +47,8 @@ import AllNotifications from "../pages/Notifications/AllNotifications";
 import DLREvent from "../pages/Report/DLREvent";
 import MessageAttempt from "../pages/Report/MessageAttempt";
 import SmsMessagePart from "../pages/Report/SmsMessagePart";
+import ClientPolicy from "../pages/Policy/ClientPolicy";
+import VendorPolicy from "../pages/Policy/VendorPolicy";
 // import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
 
 const componentMap: Record<string, JSX.Element> = {
@@ -91,7 +93,9 @@ const componentMap: Record<string, JSX.Element> = {
   generateVendorInvoice: <GenerateVendorInvoice/>,
   messageAttempt: <MessageAttempt/>,
   dlrEvent: <DLREvent/>,
-  smsMessagePart: <SmsMessagePart/> 
+  smsMessagePart: <SmsMessagePart/>,
+  clientPolicy: <ClientPolicy/>,
+  vendorPolicy: <VendorPolicy/>
 };
 
 const AppRoutes = () => {
