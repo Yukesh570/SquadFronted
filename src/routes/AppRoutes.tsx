@@ -50,6 +50,7 @@ import SmsMessagePart from "../pages/Report/SmsMessagePart";
 import ClientPolicy from "../pages/Policy/ClientPolicy";
 import VendorPolicy from "../pages/Policy/VendorPolicy";
 import OperatorNetworkCode from "../pages/OperatorNetworkCode/OperatorNetworkCode";
+import ClientSession from "../pages/ClientSession/ClientSession";
 // import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
 
 const componentMap: Record<string, JSX.Element> = {
@@ -97,7 +98,8 @@ const componentMap: Record<string, JSX.Element> = {
   smsMessagePart: <SmsMessagePart/>,
   clientPolicy: <ClientPolicy/>,
   vendorPolicy: <VendorPolicy/>,
-  operatorNetworkCode: <OperatorNetworkCode/>
+  operatorNetworkCode: <OperatorNetworkCode/>,
+  clientSession: <ClientSession/>
 };
 
 const AppRoutes = () => {
