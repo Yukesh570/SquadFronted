@@ -13,7 +13,7 @@ import {
 import { getCompaniesApi } from "../../api/companyApi/companyApi";
 
 // @ts-ignore
-import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi"; 
+import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi";
 
 // --- Components ---
 import { ClientModal } from "../../components/modals/ClientModal";
@@ -50,7 +50,13 @@ interface ColumnConfig extends FilterColumn {
 
 // --- Default Configuration ---
 const DEFAULT_SEARCH_COLUMNS = ["name", "status"];
-const DEFAULT_TABLE_COLUMNS = ["name", "companyName", "ratePlanName", "status", "route"];
+const DEFAULT_TABLE_COLUMNS = [
+  "name",
+  "companyName",
+  "ratePlanName",
+  "status",
+  "route",
+];
 
 const formatLocalDate = (date: Date) => {
   const year = date.getFullYear();
@@ -86,10 +92,14 @@ const Client: React.FC = () => {
     x: number;
     y: number;
   } | null>(null);
-  const [selectedRowClient, setSelectedRowClient] = useState<ClientData | null>(null);
+  const [selectedRowClient, setSelectedRowClient] = useState<ClientData | null>(
+    null,
+  );
 
   // --- Dynamic Filters & Columns State ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(
+    DEFAULT_SEARCH_COLUMNS,
+  );
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
@@ -117,7 +127,8 @@ const Client: React.FC = () => {
           "aside a.active, nav a.active",
         );
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel = activeItem?.innerText?.split("\n")[0].trim() || "Module";
+        let moduleLabel =
+          activeItem?.innerText?.split("\n")[0].trim() || "Module";
 
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100);
@@ -132,19 +143,22 @@ const Client: React.FC = () => {
       try {
         const compRes: any = await getCompaniesApi("company", 1, 1000);
         const list = compRes.results || (Array.isArray(compRes) ? compRes : []);
-        setCompanies(list.map((c: any) => ({ label: c.name, value: String(c.id) })));
+        setCompanies(
+          list.map((c: any) => ({ label: c.name, value: String(c.id) })),
+        );
       } catch (err: any) {
         console.error("Failed to load companies for filter", err);
       }
 
       try {
         const rateRes: any = await getCustomerRatesApi("customerRate", 1, 1000);
-        const rateList = rateRes.results || (Array.isArray(rateRes) ? rateRes : []);
+        const rateList =
+          rateRes.results || (Array.isArray(rateRes) ? rateRes : []);
         setRatePlanOptions(
           rateList.map((r: any) => ({
             label: r.ratePlan || r.ratePlanName || r.name,
             value: r.ratePlan || r.ratePlanName || r.name,
-          }))
+          })),
         );
       } catch (err: any) {
         console.error("Failed to load customer rates for filter", err);
@@ -451,19 +465,23 @@ const Client: React.FC = () => {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        setClients((prevClients) =>
-          prevClients.map((client) =>
-            client.smppUsername === data.username
-              ? { ...client, bindStatus: data.status }
-              : client,
-          ),
-        );
+        if (data.username && data.status) {
+          setClients((prevClients) =>
+            prevClients.map((client) =>
+              client.smppUsername === data.username
+                ? { ...client, bindStatus: data.status }
+                : client,
+            ),
+          );
+        }
       } catch (err) {
         console.error("Error parsing websocket message", err);
       }
     };
     ws.onclose = () => console.log("⚠️ Live SMPP feed disconnected");
-    return () => { ws.close(); };
+    return () => {
+      ws.close();
+    };
   }, []);
 
   const handleSearch = () => {
