@@ -64,7 +64,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [fullCountriesList, setFullCountriesList] = useState<CountryData[]>([]);
   const [mccOptions, setMccOptions] = useState<Option[]>([]);
-  const [mncOptions, setMncOptions] = useState<Option[]>([]); // ADDED
+  const [mncOptions, setMncOptions] = useState<Option[]>([]); 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currencyOptions: Option[] = [
@@ -98,37 +98,41 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
 
   useEffect(() => {
     if (formData.country) {
-      // Auto-fill Country Code
-      const selectedCountry = fullCountriesList.find(
-        (c) => String(c.id) === formData.country
-      );
+      // IMMEDIATELY clear old options so they don't show while fetching
+      setMccOptions([]);
+      setMncOptions([]);
 
-      if (selectedCountry && selectedCountry.countryCode) {
-        setFormData((prev) => ({
-          ...prev,
-          countryCode: String(selectedCountry.countryCode),
-        }));
-      }
-
-      // Fetch MCC and MNC
+      // Fetch MCC and MNC options only
       getOperatorNetworkCodesApi("operatorNetworkCode", 1, 1000, { country: formData.country })
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
           
+          // STRICT LOCAL FILTER: Ensure we only use network codes that perfectly match the selected country ID
+          const matchedNetworkCodes = list.filter(
+            (item: any) => String(item.country) === String(formData.country)
+          );
+
           // Extract unique MCCs
-          const uniqueMccs = Array.from(new Set(list.map((item: any) => item.MCC))).filter(Boolean);
+          const uniqueMccs = Array.from(new Set(matchedNetworkCodes.map((item: any) => item.MCC))).filter(Boolean);
           setMccOptions(uniqueMccs.map((mcc) => ({ label: String(mcc), value: String(mcc) })));
 
           // Extract unique MNCs
-          const uniqueMncs = Array.from(new Set(list.map((item: any) => item.MNC))).filter(Boolean);
+          const uniqueMncs = Array.from(new Set(matchedNetworkCodes.map((item: any) => item.MNC))).filter(Boolean);
           setMncOptions(uniqueMncs.map((mnc) => ({ label: String(mnc), value: String(mnc) })));
+
+          // SMART AUTO-SELECT: If there's exactly 1 option, auto-select it. Otherwise leave it alone (manual).
+          setFormData((prev) => ({
+            ...prev,
+            MCC: uniqueMccs.length === 1 ? String(uniqueMccs[0]) : prev.MCC,
+            MNC: uniqueMncs.length === 1 ? String(uniqueMncs[0]) : prev.MNC,
+          }));
         })
         .catch(console.error);
     } else {
       setMccOptions([]);
       setMncOptions([]);
     }
-  }, [formData.country, fullCountriesList]);
+  }, [formData.country]); // Only depend on country to fetch networks
 
   useEffect(() => {
     if (isOpen && editingRate) {
@@ -177,7 +181,35 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
   };
 
   const handleSelect = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: value });
+    if (name === "country") {
+      // EXPLICIT CLEAR: If user crosses out/deletes the country, wipe everything
+      if (!value) {
+        setFormData({
+          ...formData,
+          country: "",
+          countryCode: "",
+          MCC: "",
+          MNC: "",
+        });
+        return;
+      }
+
+      // Find the country data to auto-fill the countryCode
+      const selectedCountry = fullCountriesList.find(
+        (c) => String(c.id) === value
+      );
+
+      // Force completely reset MCC, MNC, and Country Code when user changes the Country manually
+      setFormData({
+        ...formData,
+        [name]: value,
+        countryCode: selectedCountry?.countryCode ? String(selectedCountry.countryCode) : "",
+        MCC: "",
+        MNC: "",
+      });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
