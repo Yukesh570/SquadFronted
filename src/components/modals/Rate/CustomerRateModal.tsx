@@ -265,7 +265,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
 
   if (!isOpen) return null;
 
-  const showDetails = !!editingRate || isViewMode;
+  const isCreateMode = !editingRate && !isViewMode;
 
   return (
     <Modal
@@ -278,10 +278,16 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
           ? "Edit Customer Rate"
           : "Create Rate Plan"
       }
-      className="max-w-3xl"
+      className={isCreateMode ? "max-w-xl" : "max-w-4xl"}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div
+          className={`grid ${
+            isCreateMode
+              ? "grid-cols-1"
+              : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+          } gap-5`}
+        >
           <Input
             label="Rate Plan Name"
             name="ratePlan"
@@ -307,11 +313,9 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
             placeholder="Select Timezone"
             disabled={isViewMode}
           />
-        </div>
 
-        {showDetails ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {!isCreateMode && (
+            <>
               <Select
                 label="Country"
                 value={formData.country}
@@ -369,24 +373,29 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
                 placeholder="Select Date & Time"
                 isClearable
               />
-            </div>
-            <TextArea
-              label="Remark"
-              name="remark"
-              value={formData.remark}
-              onChange={handleChange}
-              disabled={isViewMode}
-              rows={2}
-              placeholder="Optional remarks"
-            />
-          </>
-        ) : (
+            </>
+          )}
+        </div>
+
+        {!isCreateMode && (
+          <TextArea
+            label="Remark"
+            name="remark"
+            value={formData.remark}
+            onChange={handleChange}
+            disabled={isViewMode}
+            rows={2}
+            placeholder="Optional remarks"
+          />
+        )}
+
+        {isCreateMode && (
           <div className="text-sm text-text-secondary italic text-center p-2 rounded border border-dashed border-gray-200 dark:border-gray-700">
             You can add Country, Rate, and Date details after creating the plan.
           </div>
         )}
 
-        <div className="flex justify-end space-x-3 pt-4">
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
           <Button type="button" variant="secondary" onClick={onClose}>
             {isViewMode ? "Close" : "Cancel"}
           </Button>
