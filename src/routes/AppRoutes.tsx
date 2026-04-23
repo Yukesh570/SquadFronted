@@ -97,7 +97,7 @@ const componentMap: Record<string, JSX.Element> = {
   smsMessagePart: <SmsMessagePart/>,
   clientPolicy: <ClientPolicy/>,
   vendorPolicy: <VendorPolicy/>,
-  operatorNetworkCode: <OperatorNetworkCode/>,
+  operatorNetworkCode: <OperatorNetworkCode/>
 };
 
 const AppRoutes = () => {
