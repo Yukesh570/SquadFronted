@@ -1,10 +1,12 @@
 import api from "../axiosInstance";
+
 export interface OperatorData {
   id?: number;
   name: string;
   country: number;
-  MNC: number;
-  createdAt?: string;
+  operatorCode: string;
+  status: string;
+  notes: string;
 }
 
 export interface PaginatedResponse<T> {

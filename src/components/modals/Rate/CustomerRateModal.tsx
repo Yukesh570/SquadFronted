@@ -7,6 +7,7 @@ import {
 } from "../../../api/rateApi/customerRateApi";
 import { getTimezoneApi } from "../../../api/settingApi/timezoneApi/timezoneApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
+import { getOperatorNetworkCodesApi } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
@@ -31,7 +32,10 @@ interface Option {
 interface CountryData {
   id: number;
   name: string;
-  MCC: string;
+  countryCode: string;
+  iso2: string;
+  region: string;
+  subRegion: string;
 }
 
 export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
@@ -48,7 +52,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
     timeZone: "",
     country: "",
     MCC: "",
-    MNC: "", // ADDED
+    MNC: "", 
     countryCode: "",
     rate: "",
     remark: "",
@@ -60,6 +64,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [fullCountriesList, setFullCountriesList] = useState<CountryData[]>([]);
   const [mccOptions, setMccOptions] = useState<Option[]>([]);
+  const [mncOptions, setMncOptions] = useState<Option[]>([]); // ADDED
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currencyOptions: Option[] = [
@@ -93,22 +98,35 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
 
   useEffect(() => {
     if (formData.country) {
+      // Auto-fill Country Code
       const selectedCountry = fullCountriesList.find(
         (c) => String(c.id) === formData.country
       );
 
-      if (selectedCountry && selectedCountry.MCC) {
-        const mcc = selectedCountry.MCC;
-        setMccOptions([{ label: String(mcc), value: String(mcc) }]);
-
-        if (!formData.MCC) {
-          setFormData((prev) => ({ ...prev, MCC: String(mcc) }));
-        }
-      } else {
-        setMccOptions([]);
+      if (selectedCountry && selectedCountry.countryCode) {
+        setFormData((prev) => ({
+          ...prev,
+          countryCode: String(selectedCountry.countryCode),
+        }));
       }
+
+      // Fetch MCC and MNC
+      getOperatorNetworkCodesApi("operatorNetworkCode", 1, 1000, { country: formData.country })
+        .then((res: any) => {
+          const list = res.results || (Array.isArray(res) ? res : []);
+          
+          // Extract unique MCCs
+          const uniqueMccs = Array.from(new Set(list.map((item: any) => item.MCC))).filter(Boolean);
+          setMccOptions(uniqueMccs.map((mcc) => ({ label: String(mcc), value: String(mcc) })));
+
+          // Extract unique MNCs
+          const uniqueMncs = Array.from(new Set(list.map((item: any) => item.MNC))).filter(Boolean);
+          setMncOptions(uniqueMncs.map((mnc) => ({ label: String(mnc), value: String(mnc) })));
+        })
+        .catch(console.error);
     } else {
       setMccOptions([]);
+      setMncOptions([]);
     }
   }, [formData.country, fullCountriesList]);
 
@@ -120,7 +138,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         timeZone: String(editingRate.timeZone || ""),
         country: String(editingRate.country || ""),
         MCC: String(editingRate.MCC || ""),
-        MNC: String(editingRate.MNC || ""), // ADDED
+        MNC: String(editingRate.MNC || ""), 
         countryCode: String(editingRate.countryCode || ""),
         rate: String(editingRate.rate || ""),
         remark: editingRate.remark || "",
@@ -143,7 +161,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         timeZone: "",
         country: "",
         MCC: "",
-        MNC: "", // ADDED
+        MNC: "", 
         countryCode: "",
         rate: "",
         remark: "",
@@ -189,7 +207,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
 
     if (formData.country) payload.country = Number(formData.country);
     if (formData.MCC) payload.MCC = Number(formData.MCC);
-    if (formData.MNC) payload.MNC = Number(formData.MNC); // ADDED
+    if (formData.MNC) payload.MNC = Number(formData.MNC); 
     if (formData.countryCode)
       payload.countryCode = Number(formData.countryCode);
     if (formData.rate) payload.rate = Number(formData.rate);
@@ -289,15 +307,15 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
                 }
                 disabled={!formData.country || isViewMode}
               />
-              {/* ADDED MNC FIELD HERE */}
-              <Input
+              <Select
                 label="MNC"
-                name="MNC"
-                type="number"
                 value={formData.MNC}
-                onChange={handleChange}
-                placeholder="e.g., 1"
-                disabled={isViewMode}
+                onChange={(v) => handleSelect("MNC", v)}
+                options={mncOptions}
+                placeholder={
+                  formData.country ? "Select MNC" : "Select Country First"
+                }
+                disabled={!formData.country || isViewMode}
               />
               <Input
                 label="Rate"

@@ -29,7 +29,9 @@ export const CountryModal: React.FC<CountryModalProps> = ({
   const [formData, setFormData] = useState({
     name: "",
     countryCode: "",
-    MCC: "",
+    iso2: "", // ADDED
+    region: "", // ADDED
+    subRegion: "", // ADDED
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -37,15 +39,19 @@ export const CountryModal: React.FC<CountryModalProps> = ({
     if (isOpen) {
       if (editingCountry) {
         setFormData({
-          name: editingCountry.name,
-          countryCode: editingCountry.countryCode,
-          MCC: editingCountry.MCC,
+          name: editingCountry.name || "",
+          countryCode: editingCountry.countryCode || "",
+          iso2: editingCountry.iso2 || "",
+          region: editingCountry.region || "",
+          subRegion: editingCountry.subRegion || "",
         });
       } else {
         setFormData({
           name: "",
           countryCode: "",
-          MCC: "",
+          iso2: "",
+          region: "",
+          subRegion: "",
         });
       }
     }
@@ -102,7 +108,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <Input
-          label="Country"
+          label="Country Name"
           name="name"
           value={formData.name}
           onChange={handleChange}
@@ -111,7 +117,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
           disabled={isViewMode}
         />
         <Input
-          label="Code"
+          label="Country Code"
           name="countryCode"
           value={formData.countryCode}
           onChange={handleChange}
@@ -120,12 +126,27 @@ export const CountryModal: React.FC<CountryModalProps> = ({
           disabled={isViewMode}
         />
         <Input
-          label="MCC"
-          name="MCC"
-          value={formData.MCC}
+          label="ISO2"
+          name="iso2"
+          value={formData.iso2}
           onChange={handleChange}
-          placeholder="429"
-          required
+          placeholder="e.g. NP"
+          disabled={isViewMode}
+        />
+        <Input
+          label="Region"
+          name="region"
+          value={formData.region}
+          onChange={handleChange}
+          placeholder="e.g. Asia"
+          disabled={isViewMode}
+        />
+        <Input
+          label="Sub Region"
+          name="subRegion"
+          value={formData.subRegion}
+          onChange={handleChange}
+          placeholder="e.g. Southern Asia"
           disabled={isViewMode}
         />
 

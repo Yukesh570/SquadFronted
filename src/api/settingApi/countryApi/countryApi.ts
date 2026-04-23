@@ -4,7 +4,9 @@ export interface CountryData {
   id?: number;
   name: string;
   countryCode: string;
-  MCC: string;
+  iso2: string; // NEW
+  region: string; // NEW
+  subRegion: string; // NEW
 }
 
 export interface PaginatedResponse<T> {

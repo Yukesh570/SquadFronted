@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Download, Upload, Eye } from "lucide-react"; // Added Eye icon
+import { Home, Plus, Edit, Trash, Download, Upload, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -16,13 +16,11 @@ import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
-// ViewButton removed
 import {
   countryCsv,
   downloadStatus,
 } from "../../../api/downloadApi/downloadApi";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
-// NEW: Context Menu
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
 
@@ -46,14 +44,15 @@ const Country: React.FC = () => {
   // Filters
   const [nameFilter, setNameFilter] = useState("");
   const [codeFilter, setCodeFilter] = useState("");
-  const [mccFilter, setMccFilter] = useState("");
+  const [iso2Filter, setIso2Filter] = useState(""); 
+  const [regionFilter, setRegionFilter] = useState(""); 
 
   // Pagination
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const routeName = location.pathname.split("/")[1] || "country"; // Adjusted routeName fallback if needed
+  const routeName = location.pathname.split("/")[1] || "country";
 
   const handleExport = async () => {
     try {
@@ -63,7 +62,7 @@ const Country: React.FC = () => {
         rowsPerPage,
         nameFilter,
         codeFilter,
-        mccFilter
+        iso2Filter 
       );
 
       if (!data || !data.task_id) {
@@ -119,7 +118,8 @@ const Country: React.FC = () => {
       const currentSearchParams = overrideParams || {
         name: nameFilter,
         countryCode: codeFilter,
-        MCC: mccFilter,
+        iso2: iso2Filter,
+        region: regionFilter,
       };
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
@@ -162,9 +162,10 @@ const Country: React.FC = () => {
   const handleClearFilters = () => {
     setNameFilter("");
     setCodeFilter("");
-    setMccFilter("");
+    setIso2Filter("");
+    setRegionFilter("");
     setCurrentPage(1);
-    fetchCountries({ name: "", countryCode: "", MCC: "" }); // Pass empty filters to clear immediately
+    fetchCountries({ name: "", countryCode: "", iso2: "", region: "" }); 
   };
 
   const handleDelete = async () => {
@@ -197,21 +198,19 @@ const Country: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Country", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowCountry.id!) }] : []),
   ] : [];
 
-  // Removed "Actions" from headers
-  const headers = ["S.N.", "Country", "Code", "MCC"];
+  const headers = ["S.N.", "Country", "Country Code", "ISO2", "Region", "Sub Region"];
 
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100); 
       
       hasLoggedOpening.current = true;
     }
@@ -237,23 +236,26 @@ const Country: React.FC = () => {
         <Input
           label="Search Country"
           value={nameFilter}
-          onChange={(e) => setNameFilter(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNameFilter(e.target.value)}
           placeholder="Country Name"
-          className="md:col-span-2"
         />
         <Input
           label="Search Code"
           value={codeFilter}
-          onChange={(e) => setCodeFilter(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCodeFilter(e.target.value)}
           placeholder="Country Code"
-          className="md:col-span-2"
         />
         <Input
-          label="Search MCC"
-          value={mccFilter}
-          onChange={(e) => setMccFilter(e.target.value)}
-          placeholder="MCC"
-          className="md:col-span-2"
+          label="Search ISO2"
+          value={iso2Filter}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIso2Filter(e.target.value)}
+          placeholder="ISO2 Code"
+        />
+        <Input
+          label="Search Region"
+          value={regionFilter}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRegionFilter(e.target.value)}
+          placeholder="Region Name"
         />
       </FilterCard>
 
@@ -296,10 +298,10 @@ const Country: React.FC = () => {
             )}
           </div>
         }
-        renderRow={(country, index) => (
+        renderRow={(country: CountryData, index: number) => (
           <tr
             key={country.id || index}
-            onContextMenu={(e) => handleContextMenu(e, country)} // Right Click Handler
+            onContextMenu={(e) => handleContextMenu(e, country)} 
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
@@ -312,9 +314,14 @@ const Country: React.FC = () => {
               {country.countryCode}
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {country.MCC}
+              {country.iso2 || "-"}
             </td>
-            {/* ACTION COLUMN REMOVED */}
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {country.region || "-"}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {country.subRegion || "-"}
+            </td>
           </tr>
         )}
       />

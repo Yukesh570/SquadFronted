@@ -49,6 +49,7 @@ import MessageAttempt from "../pages/Report/MessageAttempt";
 import SmsMessagePart from "../pages/Report/SmsMessagePart";
 import ClientPolicy from "../pages/Policy/ClientPolicy";
 import VendorPolicy from "../pages/Policy/VendorPolicy";
+import OperatorNetworkCode from "../pages/OperatorNetworkCode/OperatorNetworkCode";
 // import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
 
 const componentMap: Record<string, JSX.Element> = {
@@ -95,7 +96,8 @@ const componentMap: Record<string, JSX.Element> = {
   dlrEvent: <DLREvent/>,
   smsMessagePart: <SmsMessagePart/>,
   clientPolicy: <ClientPolicy/>,
-  vendorPolicy: <VendorPolicy/>
+  vendorPolicy: <VendorPolicy/>,
+  operatorNetworkCode: <OperatorNetworkCode/>
 };
 
 const AppRoutes = () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Upload, Eye } from "lucide-react"; // Added Eye icon
+import { Home, Plus, Edit, Trash, Upload, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -18,8 +18,6 @@ import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
-// ViewButton removed
-// NEW: Context Menu
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
@@ -77,7 +75,6 @@ const Operators: React.FC = () => {
     fetchCountries();
   }, []);
 
-  // 2. Fetch Operators
   const fetchOperators = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
@@ -172,21 +169,19 @@ const Operators: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Operator", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowOperator.id!) }] : []),
   ] : [];
 
-  // Removed "Actions" from headers
-  const headers = ["S.N.", "Operator Name", "Country", "MNC"];
+  const headers = ["S.N.", "Operator Name", "Country", "Operator Code", "Status"];
 
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100); 
       
       hasLoggedOpening.current = true;
     }
@@ -194,7 +189,6 @@ const Operators: React.FC = () => {
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
-      {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           Operators
@@ -209,7 +203,6 @@ const Operators: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
           label="Search by Name"
@@ -220,7 +213,6 @@ const Operators: React.FC = () => {
         />
       </FilterCard>
 
-      {/* Table */}
       <DataTable
         serverSide={true}
         data={data}
@@ -256,7 +248,7 @@ const Operators: React.FC = () => {
         renderRow={(item: OperatorData, index: number) => (
           <tr
             key={item.id || index}
-            onContextMenu={(e) => handleContextMenu(e, item)} // Right Click Handler
+            onContextMenu={(e) => handleContextMenu(e, item)} 
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
@@ -271,9 +263,14 @@ const Operators: React.FC = () => {
             </td>
 
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {item.MNC}
+              {item.operatorCode || "-"}
             </td>
-            {/* ACTION COLUMN REMOVED */}
+            
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              <span className={`px-2 py-1 rounded text-xs font-medium ${item.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
+                {item.status || "-"}
+              </span>
+            </td>
           </tr>
         )}
       />

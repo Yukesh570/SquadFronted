@@ -4,12 +4,12 @@ import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
+import TextArea from "../ui/TextArea"; // Added for notes
 import {
   createOperatorApi,
   updateOperatorApi,
   type OperatorData,
 } from "../../api/operatorApi/operatorApi";
-// Import your existing Country API
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 
 interface OperatorModalProps {
@@ -32,7 +32,9 @@ export const OperatorModal: React.FC<OperatorModalProps> = ({
   const [formData, setFormData] = useState<OperatorData>({
     name: "",
     country: 0,
-    MNC: 0,
+    operatorCode: "",
+    status: "ACTIVE",
+    notes: "",
   });
 
   const [countryOptions, setCountryOptions] = useState<
@@ -78,23 +80,23 @@ export const OperatorModal: React.FC<OperatorModalProps> = ({
       if (editingOperator) {
         setFormData(editingOperator);
       } else {
-        setFormData({ name: "", country: 0, MNC: 0 });
+        setFormData({ name: "", country: 0, operatorCode: "", status: "ACTIVE", notes: "" });
       }
     }
   }, [isOpen, editingOperator]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "MNC" ? Number(value) : value,
+      [name]: value,
     }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
-      [name]: Number(value),
+      [name]: name === "country" ? Number(value) : value,
     }));
   };
 
@@ -175,14 +177,35 @@ export const OperatorModal: React.FC<OperatorModalProps> = ({
         />
 
         <Input
-          label="MNC"
-          name="MNC"
-          type="number"
-          value={formData.MNC}
+          label="Operator Code"
+          name="operatorCode"
+          value={formData.operatorCode}
           onChange={handleChange}
-          placeholder="Enter MNC code"
+          placeholder="Enter operator code"
           disabled={isViewMode}
           required
+        />
+
+        <Select
+          label="Status"
+          value={formData.status}
+          onChange={(v) => handleSelectChange("status", v)}
+          options={[
+            { label: "Active", value: "ACTIVE" },
+            { label: "Inactive", value: "INACTIVE" },
+          ]}
+          placeholder="Select status"
+          disabled={isViewMode}
+        />
+
+        <TextArea
+          label="Notes"
+          name="notes"
+          value={formData.notes}
+          onChange={handleChange}
+          placeholder="Optional notes"
+          disabled={isViewMode}
+          rows={2}
         />
 
         <div className="flex justify-end pt-2 gap-2">
