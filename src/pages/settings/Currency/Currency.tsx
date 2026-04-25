@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -13,9 +13,7 @@ import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
-// ViewButton removed
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
-// NEW: Context Menu
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
 
@@ -30,7 +28,6 @@ const Currency: React.FC = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
-  // --- Context Menu States ---
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRowCurrency, setSelectedRowCurrency] = useState<CurrencyData | null>(null);
 
@@ -48,7 +45,7 @@ const Currency: React.FC = () => {
     setIsLoading(true);
     try {
       const currentSearchParams = overrideParams || {
-        name: nameFilter,
+        name__icontains: nameFilter, // Updated to use icontains for backend filtering
       };
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
@@ -88,7 +85,7 @@ const Currency: React.FC = () => {
   const handleClearFilters = () => {
     setNameFilter("");
     setCurrentPage(1);
-    fetchCurrencies({ name: "" });
+    fetchCurrencies({ name__icontains: "" });
   };
 
   const handleDelete = async () => {
@@ -108,7 +105,6 @@ const Currency: React.FC = () => {
   const handleAdd = () => { if (!canCreate) return; setEditingCurrency(null); setIsViewMode(false); setIsModalOpen(true); };
   const handleView = (currency: CurrencyData) => { setEditingCurrency(currency); setIsViewMode(true); setIsModalOpen(true); };
 
-  // --- Context Menu Handler ---
   const handleContextMenu = (e: React.MouseEvent, item: CurrencyData) => {
     e.preventDefault();
     setContextMenuPos({ x: e.clientX, y: e.clientY });
@@ -121,21 +117,20 @@ const Currency: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Currency", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowCurrency.id!) }] : []),
   ] : [];
 
-  // Removed "Actions" from headers
-  const headers = ["S.N.", "Currency Name", "Country Name"];
+  // Updated headers to match the new API fields
+  const headers = ["S.N.", "Currency Name", "Code", "Numeric Code", "Symbol", "Decimals", "Status"];
 
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100); 
       
       hasLoggedOpening.current = true;
     }
@@ -191,19 +186,38 @@ const Currency: React.FC = () => {
         renderRow={(currency, index) => (
           <tr
             key={currency.id || index}
-            onContextMenu={(e) => handleContextMenu(e, currency)} // Right Click Handler
+            onContextMenu={(e) => handleContextMenu(e, currency)}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {currency.name}
+              {currency.name || "-"}
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {currency.countryName || "-"}
+              {currency.currencyCode || "-"}
             </td>
-            {/* ACTION COLUMN REMOVED */}
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {currency.numericCode || "-"}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {currency.symbol || "-"}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {currency.decimalPlaces ?? "-"}
+            </td>
+            <td className="px-4 py-4 text-sm">
+              <span
+                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  currency.isActive
+                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                }`}
+              >
+                {currency.isActive ? "Active" : "Inactive"}
+              </span>
+            </td>
           </tr>
         )}
       />

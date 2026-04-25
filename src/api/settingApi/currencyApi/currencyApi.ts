@@ -3,8 +3,12 @@ import api from "../../axiosInstance";
 export interface CurrencyData {
   id?: number;
   name: string;
-  country: number;
-  countryName?: string;
+  currencyCode: string;
+  numericCode: string;
+  symbol: string;
+  decimalPlaces: number;
+  isActive: boolean;
+  createdAt?: string;
 }
 
 export interface PaginatedResponse<T> {
