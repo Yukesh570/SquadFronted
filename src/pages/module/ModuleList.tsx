@@ -17,7 +17,9 @@ import { NavItemsContext } from "../../context/navItemsContext";
 // ViewButton removed
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 // NEW: Context Menu
-import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
+import ContextMenu, {
+  type ContextMenuItem,
+} from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
 const ModuleList: React.FC = () => {
@@ -33,8 +35,13 @@ const ModuleList: React.FC = () => {
   const [isViewMode, setIsViewMode] = useState(false);
 
   // --- Context Menu States ---
-  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [selectedRowModule, setSelectedRowModule] = useState<SideBarApi | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [selectedRowModule, setSelectedRowModule] = useState<SideBarApi | null>(
+    null,
+  );
 
   // --- Filters ---
   const [labelFilter, setLabelFilter] = useState("");
@@ -52,14 +59,14 @@ const ModuleList: React.FC = () => {
         label: labelFilter,
       };
       const cleanParams = Object.fromEntries(
-        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== ""),
       );
 
       const response: any = await getSideBarApi(
         routeName,
         currentPage,
         rowsPerPage,
-        cleanParams
+        cleanParams,
       );
       if (response && response.results) {
         setModules(response.results);
@@ -89,6 +96,13 @@ const ModuleList: React.FC = () => {
     setCurrentPage(1);
     fetchModules({ label: "", url: "" });
   };
+  const renderBooleanBadge = (value: boolean) => (
+    <span
+      className={`px-2 py-0.5 rounded text-xs font-medium ${value ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"}`}
+    >
+      {value ? "Yes" : "No"}
+    </span>
+  );
 
   const handleDelete = async () => {
     if (deleteId && canDelete) {
@@ -104,9 +118,23 @@ const ModuleList: React.FC = () => {
     }
   };
 
-  const handleEdit = (module: SideBarApi) => { if (!canUpdate) return; setEditingModule(module); setIsViewMode(false); setIsModalOpen(true); };
-  const handleAdd = () => { if (!canCreate) return; setEditingModule(null); setIsViewMode(false); setIsModalOpen(true); };
-  const handleView = (module: SideBarApi) => { setEditingModule(module); setIsViewMode(true); setIsModalOpen(true); };
+  const handleEdit = (module: SideBarApi) => {
+    if (!canUpdate) return;
+    setEditingModule(module);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+  const handleAdd = () => {
+    if (!canCreate) return;
+    setEditingModule(null);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+  const handleView = (module: SideBarApi) => {
+    setEditingModule(module);
+    setIsViewMode(true);
+    setIsModalOpen(true);
+  };
 
   // --- Context Menu Handler ---
   const handleContextMenu = (e: React.MouseEvent, module: SideBarApi) => {
@@ -115,20 +143,37 @@ const ModuleList: React.FC = () => {
     setSelectedRowModule(module);
   };
 
-  const menuItems: ContextMenuItem[] = selectedRowModule ? [
-    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowModule) },
-    ...(canUpdate ? [{ label: "Edit Module", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowModule) }] : []),
-    ...(canDelete ? [{ label: "Delete Module", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowModule.id!) }] : []),
-  ] : [];
+  const menuItems: ContextMenuItem[] = selectedRowModule
+    ? [
+        {
+          label: "View Details",
+          icon: <Eye size={16} />,
+          onClick: () => handleView(selectedRowModule),
+        },
+        ...(canUpdate
+          ? [
+              {
+                label: "Edit Module",
+                icon: <Edit size={16} />,
+                onClick: () => handleEdit(selectedRowModule),
+              },
+            ]
+          : []),
+        ...(canDelete
+          ? [
+              {
+                label: "Delete Module",
+                icon: <Trash size={16} />,
+                variant: "danger" as const,
+                onClick: () => setDeleteId(selectedRowModule.id!),
+              },
+            ]
+          : []),
+      ]
+    : [];
 
   // Removed "Actions" from headers
-  const headers = [
-    "S.N.",
-    "Label",
-    "URL",
-    "Icon",
-    "Order",
-  ];
+  const headers = ["S.N.", "Label", "URL", "Icon", "Order", "Display"];
 
   const hasLoggedOpening = useRef(false);
 
@@ -136,13 +181,16 @@ const ModuleList: React.FC = () => {
     if (!hasLoggedOpening.current) {
       // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
-        const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+        const activeLinks = document.querySelectorAll(
+          "aside a.active, nav a.active",
+        );
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-        
+        let moduleLabel =
+          activeItem?.innerText?.split("\n")[0].trim() || "Module";
+
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100); // Waits 0.1 seconds
-      
+
       hasLoggedOpening.current = true;
     }
   }, []);
@@ -215,12 +263,19 @@ const ModuleList: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {module.order}
             </td>
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
+              {renderBooleanBadge(module.is_active)}
+            </td>
             {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />
 
-      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+      <ContextMenu
+        position={contextMenuPos}
+        items={menuItems}
+        onClose={() => setContextMenuPos(null)}
+      />
 
       <ModuleModal
         isOpen={isModalOpen}

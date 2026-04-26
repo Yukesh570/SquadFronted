@@ -13,7 +13,7 @@ import Button from "../ui/Button";
 import Select from "../ui/Select";
 import Modal from "../ui/Modal";
 import type { LucideProps } from "lucide-react";
-
+import ToggleSwitch from "../ui/ToggleSwitch"; // ⚡️ ADD THIS
 interface ModuleModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -53,13 +53,13 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
   const [search, setSearch] = useState("");
 
   const iconEntries = Object.entries(
-    Icons as unknown as Record<string, React.FC<LucideProps>>
+    Icons as unknown as Record<string, React.FC<LucideProps>>,
   ).filter(
-    ([key]) => key !== "icons" && typeof (Icons as any)[key] !== "function"
+    ([key]) => key !== "icons" && typeof (Icons as any)[key] !== "function",
   );
 
   const filteredIcons = iconEntries.filter(([name]) =>
-    name.toLowerCase().includes(search.toLowerCase())
+    name.toLowerCase().includes(search.toLowerCase()),
   );
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
         setAllModules(list);
 
         setParentOptions(
-          list.map((m) => ({ label: m.label, value: String(m.id) }))
+          list.map((m) => ({ label: m.label, value: String(m.id) })),
         );
       });
     }
@@ -108,7 +108,12 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
+  const handleToggle = (name: string, value: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
   const handleSelect = (name: string, value: string) => {
     if (name === "parent") {
       let newUrl = formData.url;
@@ -212,8 +217,8 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
           isViewMode
             ? "View Module"
             : editingModule
-            ? "Edit Module"
-            : "Add Module"
+              ? "Edit Module"
+              : "Add Module"
         }
         className="max-w-lg"
       >
@@ -299,6 +304,13 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
               </div>
             </div>
           </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <ToggleSwitch
+              label="Display"
+              checked={formData.is_active}
+              onChange={(v) => handleToggle("is_active", v)}
+            />
+          </div>
 
           <div className="flex justify-end space-x-3 pt-2">
             <Button type="button" variant="secondary" onClick={onClose}>
@@ -309,8 +321,8 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
                 {isSubmitting
                   ? "Saving"
                   : editingModule
-                  ? "Save Changes"
-                  : "Add Module"}
+                    ? "Save Changes"
+                    : "Add Module"}
               </Button>
             )}
           </div>

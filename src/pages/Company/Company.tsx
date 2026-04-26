@@ -29,7 +29,9 @@ import { DeleteModal } from "../../components/modals/DeleteModal";
 import { companyCsv, downloadStatus } from "../../api/downloadApi/downloadApi";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 // NEW: Context Menu
-import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
+import ContextMenu, {
+  type ContextMenuItem,
+} from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
 // --- Interfaces ---
@@ -55,13 +57,19 @@ const CompanyList: React.FC = () => {
 
   // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<CompanyData | null>(null);
+  const [editingCompany, setEditingCompany] = useState<CompanyData | null>(
+    null,
+  );
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
   // --- Context Menu States ---
-  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [selectedRowCompany, setSelectedRowCompany] = useState<CompanyData | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [selectedRowCompany, setSelectedRowCompany] =
+    useState<CompanyData | null>(null);
 
   // --- Dropdown Options ---
   const [countries, setCountries] = useState<Option[]>([]);
@@ -73,7 +81,9 @@ const CompanyList: React.FC = () => {
   // const [entities, setEntities] = useState<Option[]>([]);
 
   // --- Filters ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(
+    DEFAULT_SEARCH_COLUMNS,
+  );
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
@@ -99,7 +109,12 @@ const CompanyList: React.FC = () => {
       try {
         const res = await apiCall(module, 1, 1000);
         const list = res.results || (Array.isArray(res) ? res : []);
-        setter(list.map((item: any) => ({ label: item.name, value: String(item.id) })));
+        setter(
+          list.map((item: any) => ({
+            label: item.name,
+            value: String(item.id),
+          })),
+        );
       } catch (e) {
         console.error(`Failed to load ${module}`, e);
       }
@@ -109,17 +124,24 @@ const CompanyList: React.FC = () => {
     loadOptions(getCompanyCategoryApi, "companyCategory", setCategories);
     loadOptions(getCurrenciesApi, "currency", setCurrencies);
     // loadOptions(getEntityApi, "entity", setEntities);
-    if (typeof getCompanyStatusApi === "function") loadOptions(getCompanyStatusApi, "companyStatus", setStatuses);
-    if (typeof getTimezoneApi === "function") loadOptions(getTimezoneApi, "timeZone", setTimeZones);
+    if (typeof getCompanyStatusApi === "function")
+      loadOptions(getCompanyStatusApi, "companyStatus", setStatuses);
+    if (typeof getTimezoneApi === "function")
+      loadOptions(getTimezoneApi, "timeZone", setTimeZones);
   }, []);
 
   const renderBooleanBadge = (value: boolean) => (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${value ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"}`}>
+    <span
+      className={`px-2 py-0.5 rounded text-xs font-medium ${value ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"}`}
+    >
       {value ? "Yes" : "No"}
     </span>
   );
 
-  const booleanOptions: Option[] = [{ label: "Yes", value: "true" }, { label: "No", value: "false" }];
+  const booleanOptions: Option[] = [
+    { label: "Yes", value: "true" },
+    { label: "No", value: "false" },
+  ];
 
   const allColumns: ColumnConfig[] = [
     { key: "name", label: "Company Name", type: "text" },
@@ -130,12 +152,48 @@ const CompanyList: React.FC = () => {
     { key: "billingEmail", label: "Billing Email", type: "text" },
     { key: "ratesEmail", label: "Rates Email", type: "text" },
     { key: "lowBalanceAlertEmail", label: "Low Bal. Email", type: "text" },
-    { key: "country", label: "Country", type: "text", options: countries, filterKey: "country__name__icontains" },
-    { key: "state", label: "State", type: "text", options: states, filterKey: "state__name" },
-    { key: "category", label: "Category", type: "text", options: categories, filterKey: "category__name" },
-    { key: "status", label: "Status", type: "text", options: statuses, filterKey: "status__name" },
-    { key: "currency", label: "Currency", type: "text", options: currencies, filterKey: "currency__name" },
-    { key: "timeZone", label: "Time Zone", type: "text", options: timeZones, filterKey: "timeZone__name" },
+    {
+      key: "country",
+      label: "Country",
+      type: "text",
+      options: countries,
+      filterKey: "country__name__icontains",
+    },
+    {
+      key: "state",
+      label: "State",
+      type: "text",
+      options: states,
+      filterKey: "state__name",
+    },
+    {
+      key: "category",
+      label: "Category",
+      type: "text",
+      options: categories,
+      filterKey: "category__name",
+    },
+    {
+      key: "status",
+      label: "Status",
+      type: "text",
+      options: statuses,
+      filterKey: "status__name",
+    },
+    {
+      key: "currency",
+      label: "Currency",
+      type: "text",
+      options: currencies,
+      filterKey: "currency__name",
+    },
+    {
+      key: "timeZone",
+      label: "Time Zone",
+      type: "text",
+      options: timeZones,
+      filterKey: "timeZone__name",
+    },
     { key: "customerCreditLimit", label: "Cust. Credit", type: "number" },
     { key: "vendorCreditLimit", label: "Vend. Credit", type: "number" }, // Restored
     { key: "balanceAlertAmount", label: "Bal. Alert", type: "number" },
@@ -143,19 +201,81 @@ const CompanyList: React.FC = () => {
     // { key: "businessEntity", label: "Entity", type: "text", options: entities, filterKey: "businessEntity__name" },
     // { key: "vatNumber", label: "VAT Number", type: "text" },
     { key: "address", label: "Address", type: "text" },
-    { key: "validityPeriod", label: "Validity", type: "text", options: [{ label: "Limited", value: "LTD" }, { label: "Unlimited", value: "UNL" }] },
-    { key: "defaultEmail", label: "Default Email", type: "text", options: [{ label: "Company", value: "CMP" }, { label: "Support", value: "SUP" }] },
-    { key: "onlinePayment", label: "Online Payment", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.onlinePayment) },
-    { key: "companyBlocked", label: "Blocked", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.companyBlocked) },
-    { key: "allowWhiteListedCards", label: "Whitelist Cards", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.allowWhiteListedCards) },
-    { key: "sendDailyReports", label: "Daily Reports", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.sendDailyReports) },
-    { key: "allowNetting", label: "Netting", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.allowNetting) },
-    { key: "showHlrApi", label: "HLR API", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.showHlrApi) },
-    { key: "enableVendorPanel", label: "Vendor Panel", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.enableVendorPanel) },
+    {
+      key: "validityPeriod",
+      label: "Validity",
+      type: "text",
+      options: [
+        { label: "Limited", value: "LTD" },
+        { label: "Unlimited", value: "UNL" },
+      ],
+    },
+    {
+      key: "defaultEmail",
+      label: "Default Email",
+      type: "text",
+      options: [
+        { label: "Company", value: "CMP" },
+        { label: "Support", value: "SUP" },
+      ],
+    },
+    {
+      key: "onlinePayment",
+      label: "Online Payment",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.onlinePayment),
+    },
+    {
+      key: "companyBlocked",
+      label: "Blocked",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.companyBlocked),
+    },
+    {
+      key: "allowWhiteListedCards",
+      label: "Whitelist Cards",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.allowWhiteListedCards),
+    },
+    {
+      key: "sendDailyReports",
+      label: "Daily Reports",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.sendDailyReports),
+    },
+    {
+      key: "allowNetting",
+      label: "Netting",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.allowNetting),
+    },
+    {
+      key: "showHlrApi",
+      label: "HLR API",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.showHlrApi),
+    },
+    {
+      key: "enableVendorPanel",
+      label: "Vendor Panel",
+      type: "boolean",
+      options: booleanOptions,
+      render: (c) => renderBooleanBadge(c.enableVendorPanel),
+    },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
-  const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+  const visibleSearchFields = allColumns.filter((col) =>
+    searchColumns.includes(col.key),
+  );
+  const visibleTableFields = allColumns.filter((col) =>
+    tableColumns.includes(col.key),
+  );
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
@@ -163,7 +283,9 @@ const CompanyList: React.FC = () => {
 
   // --- Main Fetch Function (FIXED) ---
   // Now accepts 'filters' as an argument. Defaults to current state if not provided.
-  const fetchCompanies = async (filters: Record<string, string> | null = null) => {
+  const fetchCompanies = async (
+    filters: Record<string, string> | null = null,
+  ) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
@@ -180,8 +302,12 @@ const CompanyList: React.FC = () => {
           const columnDef = allColumns.find((c) => c.key === key);
           if (columnDef?.options) {
             if (columnDef.filterKey) {
-              const selectedOption = columnDef.options.find((opt) => opt.value === value);
-              currentSearchParams[columnDef.filterKey] = selectedOption ? selectedOption.label : value;
+              const selectedOption = columnDef.options.find(
+                (opt) => opt.value === value,
+              );
+              currentSearchParams[columnDef.filterKey] = selectedOption
+                ? selectedOption.label
+                : value;
             } else {
               currentSearchParams[key] = value;
             }
@@ -193,10 +319,15 @@ const CompanyList: React.FC = () => {
         }
       });
 
-      const response: any = await getCompaniesApi(routeName, currentPage, rowsPerPage, currentSearchParams);
-      
+      const response: any = await getCompaniesApi(
+        routeName,
+        currentPage,
+        rowsPerPage,
+        currentSearchParams,
+      );
+
       if (newController.signal.aborted) return;
-      
+
       if (response && response.results) {
         setCompanies(response.results);
         setTotalItems(response.count);
@@ -208,7 +339,8 @@ const CompanyList: React.FC = () => {
         setTotalItems(0);
       }
     } catch (error: any) {
-      if (error.name !== "AbortError") toast.error("Failed to fetch companies.");
+      if (error.name !== "AbortError")
+        toast.error("Failed to fetch companies.");
     } finally {
       if (abortControllerRef.current === newController) setIsLoading(false);
     }
@@ -216,7 +348,9 @@ const CompanyList: React.FC = () => {
 
   useEffect(() => {
     fetchCompanies(); // Uses state
-    return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
   }, [routeName, currentPage, rowsPerPage, searchColumns]); // Trigger on normal dependency changes
 
   const handleSearch = () => {
@@ -244,9 +378,23 @@ const CompanyList: React.FC = () => {
     }
   };
 
-  const handleEdit = (company: CompanyData) => { if (!canUpdate) return; setEditingCompany(company); setIsViewMode(false); setIsModalOpen(true); };
-  const handleAdd = () => { if (!canCreate) return; setEditingCompany(null); setIsViewMode(false); setIsModalOpen(true); };
-  const handleView = (company: CompanyData) => { setEditingCompany(company); setIsViewMode(true); setIsModalOpen(true); };
+  const handleEdit = (company: CompanyData) => {
+    if (!canUpdate) return;
+    setEditingCompany(company);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+  const handleAdd = () => {
+    if (!canCreate) return;
+    setEditingCompany(null);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+  const handleView = (company: CompanyData) => {
+    setEditingCompany(company);
+    setIsViewMode(true);
+    setIsModalOpen(true);
+  };
 
   // --- Context Menu ---
   const handleContextMenu = (e: React.MouseEvent, company: CompanyData) => {
@@ -255,18 +403,50 @@ const CompanyList: React.FC = () => {
     setSelectedRowCompany(company);
   };
 
-  const menuItems: ContextMenuItem[] = selectedRowCompany ? [
-    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowCompany) },
-    ...(canUpdate ? [{ label: "Edit Company", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowCompany) }] : []),
-    ...(canDelete ? [{ label: "Delete Company", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowCompany.id!) }] : []),
-  ] : [];
+  const menuItems: ContextMenuItem[] = selectedRowCompany
+    ? [
+        {
+          label: "View Details",
+          icon: <Eye size={16} />,
+          onClick: () => handleView(selectedRowCompany),
+        },
+        ...(canUpdate
+          ? [
+              {
+                label: "Edit Company",
+                icon: <Edit size={16} />,
+                onClick: () => handleEdit(selectedRowCompany),
+              },
+            ]
+          : []),
+        ...(canDelete
+          ? [
+              {
+                label: "Delete Company",
+                icon: <Trash size={16} />,
+                variant: "danger" as const,
+                onClick: () => setDeleteId(selectedRowCompany.id!),
+              },
+            ]
+          : []),
+      ]
+    : [];
 
-  const handleExport = async () => { /* Export logic maintained as is (omitted for brevity, assume previous logic) */
-      // ... (Paste your existing export logic here if needed, usually short enough to keep)
-      try {
+  const handleExport = async () => {
+    /* Export logic maintained as is (omitted for brevity, assume previous logic) */
+    // ... (Paste your existing export logic here if needed, usually short enough to keep)
+    try {
       const searchParam = filterValues["name"] || "";
-      const data: any = await companyCsv(routeName, currentPage, rowsPerPage, searchParam);
-      if (!data || !data.task_id) { toast.error("Failed to start export process."); return; }
+      const data: any = await companyCsv(
+        routeName,
+        currentPage,
+        rowsPerPage,
+        searchParam,
+      );
+      if (!data || !data.task_id) {
+        toast.error("Failed to start export process.");
+        return;
+      }
       const taskId = data.task_id;
       let attempts = 0;
       const maxAttempts = 5;
@@ -277,12 +457,26 @@ const CompanyList: React.FC = () => {
           const res = await downloadStatus(routeName, taskId);
           if (res && res.ready) {
             clearInterval(checkStatus);
-            if (res.download_url) { window.location.href = res.download_url; toast.success("Export successful!"); } 
-            else { toast.error("Export generated but URL is missing."); }
-          } else if (attempts >= maxAttempts) { clearInterval(checkStatus); toast.error("Export timed out."); }
-        } catch (error) { if (attempts >= maxAttempts) { clearInterval(checkStatus); toast.error("Failed to check status."); } }
+            if (res.download_url) {
+              window.location.href = res.download_url;
+              toast.success("Export successful!");
+            } else {
+              toast.error("Export generated but URL is missing.");
+            }
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkStatus);
+            toast.error("Export timed out.");
+          }
+        } catch (error) {
+          if (attempts >= maxAttempts) {
+            clearInterval(checkStatus);
+            toast.error("Failed to check status.");
+          }
+        }
       }, 2000);
-    } catch (error) { toast.error("Failed to initiate export."); }
+    } catch (error) {
+      toast.error("Failed to initiate export.");
+    }
   };
 
   // Removed Action Column from Headers
@@ -294,13 +488,16 @@ const CompanyList: React.FC = () => {
     if (!hasLoggedOpening.current) {
       // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
-        const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+        const activeLinks = document.querySelectorAll(
+          "aside a.active, nav a.active",
+        );
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-        
+        let moduleLabel =
+          activeItem?.innerText?.split("\n")[0].trim() || "Module";
+
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100); // Waits 0.1 seconds
-      
+
       hasLoggedOpening.current = true;
     }
   }, []);
@@ -309,17 +506,43 @@ const CompanyList: React.FC = () => {
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Companies</h1>
+          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
+            Companies
+          </h1>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={(newCols) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter
+              columns={allColumns}
+              selectedColumns={searchColumns}
+              onFilter={(newCols) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
+            />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+            <AdvancedFilter
+              columns={allColumns}
+              selectedColumns={tableColumns}
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+            />
           </div>
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
-          <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">Home</NavLink>
+          <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">
+            Home
+          </NavLink>
           <span>/</span>
           <span className="text-text-primary dark:text-white">Company</span>
         </div>
@@ -328,9 +551,26 @@ const CompanyList: React.FC = () => {
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
           if (col.options) {
-            return <Select key={col.key} label={col.label} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${col.label}`} />;
+            return (
+              <Select
+                key={col.key}
+                label={col.label}
+                value={filterValues[col.key] || ""}
+                onChange={(val) => handleFilterChange(col.key, val)}
+                options={col.options}
+                placeholder={`Select ${col.label}`}
+              />
+            );
           }
-          return <Input key={col.key} label={col.label} value={filterValues[col.key] || ""} onChange={(e) => handleFilterChange(col.key, e.target.value)} placeholder={`Search ${col.label}`} />;
+          return (
+            <Input
+              key={col.key}
+              label={col.label}
+              value={filterValues[col.key] || ""}
+              onChange={(e) => handleFilterChange(col.key, e.target.value)}
+              placeholder={`Search ${col.label}`}
+            />
+          );
         })}
       </FilterCard>
 
@@ -346,27 +586,84 @@ const CompanyList: React.FC = () => {
         isLoading={isLoading}
         headerActions={
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={handleExport} leftIcon={<Download size={18} />}>Export</Button>
-            {canCreate && <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>Add Company</Button>}
+            <Button
+              variant="secondary"
+              onClick={handleExport}
+              leftIcon={<Download size={18} />}
+            >
+              Export
+            </Button>
+            {canCreate && (
+              <Button
+                variant="primary"
+                onClick={handleAdd}
+                leftIcon={<Plus size={18} />}
+              >
+                Add Company
+              </Button>
+            )}
           </div>
         }
         renderRow={(company, index) => (
-          <tr key={company.id || index} onContextMenu={(e) => handleContextMenu(e, company)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
+          <tr
+            key={company.id || index}
+            onContextMenu={(e) => handleContextMenu(e, company)}
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
+          >
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
+              {(currentPage - 1) * rowsPerPage + index + 1}
+            </td>
             {visibleTableFields.map((col) => {
               let cellData = (company as any)[col.key];
-              if (col.render) return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{col.render(company)}</td>;
-              if (col.options) { const match = col.options.find((opt) => opt.value === String(cellData)); cellData = match ? match.label : cellData; }
-              return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{cellData || "-"}</td>;
+              if (col.render)
+                return (
+                  <td
+                    key={col.key}
+                    className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+                  >
+                    {col.render(company)}
+                  </td>
+                );
+              if (col.options) {
+                const match = col.options.find(
+                  (opt) => opt.value === String(cellData),
+                );
+                cellData = match ? match.label : cellData;
+              }
+              return (
+                <td
+                  key={col.key}
+                  className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+                >
+                  {cellData || "-"}
+                </td>
+              );
             })}
           </tr>
         )}
       />
 
-      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+      <ContextMenu
+        position={contextMenuPos}
+        items={menuItems}
+        onClose={() => setContextMenuPos(null)}
+      />
 
-      <CompanyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={() => fetchCompanies()} moduleName={routeName} editingCompany={editingCompany} isViewMode={isViewMode} />
-      <DeleteModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Company" message="Are you sure you want to delete this company? This action cannot be undone." />
+      <CompanyModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={() => fetchCompanies()}
+        moduleName={routeName}
+        editingCompany={editingCompany}
+        isViewMode={isViewMode}
+      />
+      <DeleteModal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Delete Company"
+        message="Are you sure you want to delete this company? This action cannot be undone."
+      />
     </div>
   );
 };

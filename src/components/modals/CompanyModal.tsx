@@ -18,6 +18,7 @@ import Select from "../ui/Select";
 import Modal from "../ui/Modal";
 import ToggleSwitch from "../ui/ToggleSwitch";
 import TextArea from "../ui/TextArea";
+import MultiEmailInput from "../ui/multiEmailInput";
 
 interface CompanyModalProps {
   isOpen: boolean;
@@ -95,7 +96,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               // FIXED: Added fallback to legalEntityName or companyName so it works universally
               label: item.name || item.legalEntityName || item.companyName,
               value: String(item.id),
-            }))
+            })),
           );
         } catch (e) {
           console.error(`Failed to load ${module}`, e);
@@ -190,7 +191,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   }, [isOpen, editingCompany]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -259,8 +260,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         isViewMode
           ? "View Company"
           : editingCompany
-          ? "Edit Company"
-          : "Add New Company"
+            ? "Edit Company"
+            : "Add New Company"
       }
       className="max-w-6xl"
     >
@@ -300,48 +301,43 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               placeholder="+977 9800000000"
               disabled={isViewMode}
             />
-            <Input
+            <MultiEmailInput
               label="Company Email"
               name="companyEmail"
-              type="email"
               value={formData.companyEmail}
-              onChange={handleChange}
+              onChange={handleSelect} /* ⚡️ CHANGED THIS LINE */
               placeholder="contact@acme.com"
               disabled={isViewMode}
             />
-            <Input
+            <MultiEmailInput
               label="Support Email"
               name="supportEmail"
-              type="email"
               value={formData.supportEmail}
-              onChange={handleChange}
+              onChange={handleSelect} /* ⚡️ CHANGED THIS LINE */
               placeholder="support@acme.com"
               disabled={isViewMode}
             />
-            <Input
+            <MultiEmailInput
               label="Billing Email"
               name="billingEmail"
-              type="email"
               value={formData.billingEmail}
-              onChange={handleChange}
+              onChange={handleSelect}
               placeholder="billing@acme.com"
               disabled={isViewMode}
             />
-            <Input
+            <MultiEmailInput
               label="Rates Email"
               name="ratesEmail"
-              type="email"
               value={formData.ratesEmail}
-              onChange={handleChange}
+              onChange={handleSelect}
               placeholder="rates@acme.com"
               disabled={isViewMode}
             />
-            <Input
+            <MultiEmailInput
               label="Low Balance Alert Email"
               name="lowBalanceAlertEmail"
-              type="email"
               value={formData.lowBalanceAlertEmail}
-              onChange={handleChange}
+              onChange={handleSelect}
               placeholder="finance@acme.com"
               disabled={isViewMode}
             />
@@ -420,7 +416,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               placeholder="5000.00"
               disabled={isViewMode}
             />
-            
+
             {/* Vendor Credit Limit - visible ONLY in view mode */}
             {isViewMode && (
               <Input
@@ -575,8 +571,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               {isSubmitting
                 ? "Saving"
                 : editingCompany
-                ? "Save Changes"
-                : "Add Company"}
+                  ? "Save Changes"
+                  : "Add Company"}
             </Button>
           )}
         </div>
