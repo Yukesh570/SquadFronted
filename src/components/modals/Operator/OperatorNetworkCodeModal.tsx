@@ -207,7 +207,7 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
       }
       className="max-w-3xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto px-1">
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Linkages
@@ -271,7 +271,7 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
           <legend className="text-sm font-semibold text-primary px-2">
             Configuration
           </legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select
               label="Network Type"
               value={formData.networkType}
@@ -286,15 +286,6 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
               options={statusOptions}
               disabled={isViewMode}
             />
-            <div className="flex items-end mb-2">
-              <div className={isViewMode ? "pointer-events-none opacity-50" : ""}>
-                <ToggleSwitch
-                  label="Is Primary"
-                  checked={formData.isPrimary}
-                  onChange={(v) => handleToggle("isPrimary", v)}
-                />
-              </div>
-            </div>
             
             <CustomDatePicker
               label="Effective From"
@@ -328,6 +319,21 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
             rows={2}
             placeholder="Optional remarks"
           />
+        </fieldset>
+
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <legend className="text-sm font-semibold text-primary px-2">
+            Settings
+          </legend>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className={isViewMode ? "pointer-events-none opacity-50" : ""}>
+              <ToggleSwitch
+                label="Is Primary"
+                checked={formData.isPrimary}
+                onChange={(v) => handleToggle("isPrimary", v)}
+              />
+            </div>
+          </div>
         </fieldset>
 
         <div className="flex justify-end space-x-3 pt-4">

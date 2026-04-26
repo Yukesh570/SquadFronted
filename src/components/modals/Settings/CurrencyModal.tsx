@@ -5,11 +5,11 @@ import {
   updateCurrencyApi,
   type CurrencyData,
 } from "../../../api/settingApi/currencyApi/currencyApi";
-import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
-import Select from "../../ui/Select";
 import Modal from "../../ui/Modal";
+import Select from "../../ui/Select";
+import ToggleSwitch from "../../ui/ToggleSwitch";
 
 interface CurrencyModalProps {
   isOpen: boolean;
@@ -25,6 +25,28 @@ interface Option {
   value: string;
 }
 
+// Curated list of common currency symbols
+const symbolOptions: Option[] = [
+  { label: "$ (Dollar)", value: "$" },
+  { label: "€ (Euro)", value: "€" },
+  { label: "£ (British Pound)", value: "£" },
+  { label: "¥ (Japanese Yen / Chinese Yuan)", value: "¥" },
+  { label: "₹ (Indian Rupee)", value: "₹" },
+  { label: "₨ (Nepalese / Pakistani Rupee)", value: "₨" },
+  { label: "A$ (Australian Dollar)", value: "A$" },
+  { label: "C$ (Canadian Dollar)", value: "C$" },
+  { label: "CHF (Swiss Franc)", value: "CHF" },
+  { label: "kr (Krone / Krona)", value: "kr" },
+  { label: "R (South African Rand)", value: "R" },
+  { label: "₽ (Russian Ruble)", value: "₽" },
+  { label: "₺ (Turkish Lira)", value: "₺" },
+  { label: "د.إ (UAE Dirham)", value: "د.إ" },
+  { label: "ر.س (Saudi Riyal)", value: "ر.س" },
+  { label: "RM (Malaysian Ringgit)", value: "RM" },
+  { label: "฿ (Thai Baht)", value: "฿" },
+  { label: "₩ (Thai Baht / Korean Won)", value: "₩" },
+];
+
 export const CurrencyModal: React.FC<CurrencyModalProps> = ({
   isOpen,
   onClose,
@@ -35,42 +57,35 @@ export const CurrencyModal: React.FC<CurrencyModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: "",
-    country: "",
+    currencyCode: "",
+    numericCode: "",
+    symbol: "",
+    decimalPlaces: "",
+    isActive: true,
   });
 
-  const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      getCountriesApi("country", 1, 1000)
-        .then((response: any) => {
-          let data = [];
-          if (response && response.results) {
-            data = response.results;
-          } else if (Array.isArray(response)) {
-            data = response;
-          }
-
-          const options = data.map((c: any) => ({
-            label: c.name,
-            value: String(c.id),
-          }));
-          setCountryOptions(options);
-        })
-        .catch((err) => console.error("Failed to load countries", err));
-    }
-  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
       if (editingCurrency) {
         setFormData({
-          name: editingCurrency.name,
-          country: String(editingCurrency.country || ""),
+          name: editingCurrency.name || "",
+          currencyCode: editingCurrency.currencyCode || "",
+          numericCode: editingCurrency.numericCode || "",
+          symbol: editingCurrency.symbol || "",
+          decimalPlaces: editingCurrency.decimalPlaces !== undefined ? String(editingCurrency.decimalPlaces) : "",
+          isActive: editingCurrency.isActive ?? true,
         });
       } else {
-        setFormData({ name: "", country: "" });
+        setFormData({
+          name: "",
+          currencyCode: "",
+          numericCode: "",
+          symbol: "",
+          decimalPlaces: "",
+          isActive: true,
+        });
       }
     }
   }, [isOpen, editingCurrency]);
@@ -79,20 +94,20 @@ export const CurrencyModal: React.FC<CurrencyModalProps> = ({
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleCountryChange = (value: string) => {
-    setFormData({ ...formData, country: value });
+  const handleSelect = (name: string, value: string) => {
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleToggle = (name: string, value: boolean) => {
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewMode) return;
 
-    if (!formData.name.trim()) {
-      toast.error("Currency Name is required");
-      return;
-    }
-    if (!formData.country) {
-      toast.error("Please select a Country");
+    if (!formData.name.trim() || !formData.currencyCode.trim()) {
+      toast.error("Currency Name and Currency Code are required");
       return;
     }
 
@@ -100,7 +115,11 @@ export const CurrencyModal: React.FC<CurrencyModalProps> = ({
 
     const dataToSend = {
       name: formData.name,
-      country: Number(formData.country),
+      currencyCode: formData.currencyCode,
+      numericCode: formData.numericCode,
+      symbol: formData.symbol,
+      decimalPlaces: formData.decimalPlaces ? Number(formData.decimalPlaces) : 0,
+      isActive: formData.isActive,
     };
 
     try {
@@ -145,29 +164,65 @@ export const CurrencyModal: React.FC<CurrencyModalProps> = ({
           ? "Edit Currency"
           : "Add Currency"
       }
-      className="max-w-md"
+      className="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        <Input
-          label="Currency Name"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          placeholder="US Dollar"
-          required
-          disabled={isViewMode}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Currency Name"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            placeholder="e.g. US Dollar"
+            required
+            disabled={isViewMode}
+          />
+          <Input
+            label="Currency Code"
+            name="currencyCode"
+            value={formData.currencyCode}
+            onChange={handleChange}
+            placeholder="e.g. USD"
+            required
+            disabled={isViewMode}
+          />
+          <Input
+            label="Numeric Code"
+            name="numericCode"
+            value={formData.numericCode}
+            onChange={handleChange}
+            placeholder="e.g. 840"
+            disabled={isViewMode}
+          />
+          <Select
+            label="Symbol"
+            value={formData.symbol}
+            onChange={(v) => handleSelect("symbol", v)}
+            options={symbolOptions}
+            placeholder="Select Symbol"
+            disabled={isViewMode}
+          />
+          <Input
+            label="Decimal Places"
+            name="decimalPlaces"
+            type="number"
+            value={formData.decimalPlaces}
+            onChange={handleChange}
+            placeholder="e.g. 2"
+            disabled={isViewMode}
+          />
+          <div className="flex items-center mt-6">
+            <div className={isViewMode ? "pointer-events-none opacity-50" : ""}>
+              <ToggleSwitch
+                label="Is Active"
+                checked={formData.isActive}
+                onChange={(v) => handleToggle("isActive", v)}
+              />
+            </div>
+          </div>
+        </div>
 
-        <Select
-          label="Country"
-          value={formData.country}
-          onChange={handleCountryChange}
-          options={[...countryOptions]}
-          placeholder="Select Country"
-          disabled={isViewMode}
-        />
-
-        <div className="flex justify-end space-x-3 pt-4">
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700 mt-6">
           <Button type="button" variant="secondary" onClick={onClose}>
             {isViewMode ? "Close" : "Cancel"}
           </Button>
