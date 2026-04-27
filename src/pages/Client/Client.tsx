@@ -227,6 +227,25 @@ const Client: React.FC = () => {
     </span>
   );
 
+  const renderSessionBadge = (sessionStr: string) => {
+    if (!sessionStr) return "-";
+
+    // Optional: Make it red if it's full (e.g., "2/2")
+    const [current, max] = sessionStr.split("/");
+    const isFull = current === max && max !== "Unlimited";
+
+    return (
+      <span
+        className={`px-2 py-1 rounded text-xs font-medium ${
+          isFull
+            ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+        }`}
+      >
+        {sessionStr}
+      </span>
+    );
+  };
   const renderBooleanBadge = (value: boolean) => (
     <span
       className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -300,6 +319,14 @@ const Client: React.FC = () => {
       type: "text",
       options: bindStatusOptions,
       render: (c) => renderBindStatusBadge(c.bindStatus),
+    },
+    {
+      key: "session",
+      label: "Sessions (Current/Max)",
+      tableLabel: "Sessions",
+      type: "text",
+      // Remove 'options: sessionOptions'
+      render: (c) => renderSessionBadge(c.session), // ⚡️ Point it to your new data!
     },
     // --- Balance Alert Variants ---
     {
@@ -456,7 +483,50 @@ const Client: React.FC = () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [routeName, currentPage, rowsPerPage, searchColumns]);
+  useEffect(() => {
+    const wsBase = import.meta.env.VITE_WS_BASE_URL;
+    const ws = new WebSocket(`${wsBase}/ws/status/`);
+    ws.onopen = () => console.log("✅ Client Table linked to live SMPP feed");
 
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.username && data.status) {
+          setClients((prevClients) =>
+            prevClients.map((client) => {
+              if (client.smppUsername === data.username) {
+                // 1. Grab the current session string (e.g., "1/2" or "0/Unlimited")
+                const currentSessionStr = client.session || "0/2";
+                const [currentStr, maxLimit] = currentSessionStr.split("/");
+                let currentCount = parseInt(currentStr, 10) || 0;
+
+                // 2. Do the math based on the event
+                if (data.status === "ONLINE") {
+                  currentCount += 1;
+                } else if (data.status === "OFFLINE") {
+                  currentCount = Math.max(0, currentCount - 1); // Never drop below 0
+                }
+
+                // 3. Update BOTH the bindStatus and the session string!
+                return {
+                  ...client,
+                  bindStatus: data.status,
+                  session: `${currentCount}/${maxLimit}`,
+                };
+              }
+              return client;
+            }),
+          );
+        }
+      } catch (err) {
+        console.error("Error parsing websocket message", err);
+      }
+    };
+    ws.onclose = () => console.log("⚠️ Live SMPP feed disconnected");
+    return () => {
+      ws.close();
+    };
+  }, []);
   useEffect(() => {
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
     const ws = new WebSocket(`${wsBase}/ws/status/`);

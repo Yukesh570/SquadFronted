@@ -14,6 +14,7 @@ export interface ClientData {
   balanceAlertAmount: string;
   allowNetting: boolean;
   enableDlr: boolean;
+  session: string;
 
   // ipWhitelist: string | string[];
 
