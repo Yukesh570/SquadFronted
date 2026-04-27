@@ -16,7 +16,7 @@ import {
 } from "../../api/ipWhitelistApi/ipWhitelistApi";
 
 // @ts-ignore
-import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi"; 
+import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi";
 
 // --- Components ---
 import Input from "../ui/Input";
@@ -56,7 +56,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     status: "ACTIVE",
     route: "DIRECT",
     paymentTerms: "PREPAID",
-    creditLimit: "", 
+    creditLimit: "",
     balanceAlertAmount: "",
     allowNetting: false,
     enableDlr: false,
@@ -64,6 +64,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     smppUsername: "",
     smppPassword: "",
     internalNotes: "",
+    bindStatus: "OFFLINE", // ⚡️ ADD THIS
+    session: "0/2",
   });
 
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
@@ -148,6 +150,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         smppUsername: editingClient.smppUsername || "",
         smppPassword: editingClient.smppPassword || "",
         internalNotes: editingClient.internalNotes || "",
+        bindStatus: editingClient.bindStatus || "OFFLINE", // ⚡️ ADD THIS
+        session: editingClient.session || "0/2",
       });
 
       if (editingClient.id) {
@@ -177,6 +181,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         smppUsername: "",
         smppPassword: "",
         internalNotes: "",
+        bindStatus: "OFFLINE", // ⚡️ ADD THIS
+        session: "0/2",
       });
     }
   }, [isOpen, editingClient]);
@@ -246,7 +252,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       const payload = {
         ...clientPayload,
         company: Number(formData.company),
-        ipWhitelist: [], 
+        ipWhitelist: [],
       };
 
       let savedClientId: number;
@@ -370,9 +376,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.paymentTerms}
               onChange={(v) => handleSelect("paymentTerms", v)}
               options={paymentTermOptions}
-              disabled={isViewMode}  
+              disabled={isViewMode}
             />
-            
+
             <Input
               label="Balance Alert Amount"
               name="balanceAlertAmount"
@@ -383,7 +389,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               placeholder="0.0000"
               disabled={isViewMode}
             />
-            
+
             {/* Credit Limit - visible ONLY in view mode */}
             {isViewMode && (
               <Input
@@ -430,6 +436,44 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 </button>
               }
             />
+            {/* ⚡️ ADD THIS BLOCK: Live Status (Visible only in view mode) */}
+            {editingClient && (
+              <>
+                <Input
+                  label="Live Bind Status"
+                  name="bindStatus"
+                  value={formData.bindStatus}
+                  disabled={true}
+                  className={
+                    formData.bindStatus === "ONLINE"
+                      ? "text-green-600 font-bold"
+                      : "text-gray-500"
+                  }
+                />
+                <Input
+                  label="Active Sessions"
+                  name="session"
+                  value={formData.session}
+                  disabled={true}
+                />
+              </>
+            )}
+            {/* ⚡️ END NEW BLOCK */}
+
+            {/* IP Whitelist - visible ONLY in view mode */}
+            {isViewMode && (
+              <div className="md:col-span-2">
+                <TextArea
+                  label="IP Whitelist"
+                  name="ipWhitelist"
+                  value={formData.ipWhitelist}
+                  onChange={handleChange}
+                  placeholder="Enter IPs separated by commas or new lines"
+                  disabled={isViewMode}
+                  rows={3}
+                />
+              </div>
+            )}
 
             {/* IP Whitelist - visible ONLY in view mode */}
             {isViewMode && (

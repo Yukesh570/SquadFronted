@@ -14,11 +14,10 @@ import {
   type CampaignFormData,
 } from "../../api/campaignApi/campaignApi";
 // @ts-ignore
-import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
 // @ts-ignore
 import ReactQuill from "react-quill-new";
 import "../../quillDark.css";
-
+import { getClientsApi } from "../../api/clientApi/clientApi";
 interface CampaignModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -38,7 +37,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     campaignName: "",
-    vendor: "",
+    client: "",
     objective: "Promotion",
     audienceType: "specify",
     contactNumber: "",
@@ -53,7 +52,9 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
   const [templateOptions, setTemplateOptions] = useState<
     { label: string; value: string; content: string }[]
   >([]);
-  const [vendorOptions, setVendorOptions] = useState<{label: string; value: string}[]>([]);
+  const [clientOptions, setClientOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -78,15 +79,17 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     if (isOpen) {
       setIsDataReady(false);
 
-      getVendorsApi("vendor", 1, 1000).then((res: any) => {
-        let list = res.results || (Array.isArray(res) ? res : []);
-        setVendorOptions(
-          list.map((v: any) => ({
-            label: v.profileName || v.name,
-            value: String(v.id),
-          }))
-        );
-      }).catch(err => console.error("Failed to load vendors", err));
+      getClientsApi("client", 1, 1000)
+        .then((res: any) => {
+          let list = res.results || (Array.isArray(res) ? res : []);
+          setClientOptions(
+            list.map((v: any) => ({
+              label: v.name,
+              value: String(v.id),
+            })),
+          );
+        })
+        .catch((err) => console.error("Failed to load clients", err));
 
       if (!editingCampaign) {
         getTemplatesApi(1, 1000).then((response: any) => {
@@ -99,7 +102,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
               label: t.name,
               value: t.id!.toString(),
               content: t.content,
-            }))
+            })),
           );
         });
       }
@@ -107,7 +110,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       if (editingCampaign) {
         setFormData({
           campaignName: editingCampaign.name,
-          vendor: editingCampaign.vendor ? String(editingCampaign.vendor) : "",
+          client: editingCampaign.client ? String(editingCampaign.client) : "",
           objective: editingCampaign.objective,
           audienceType: "specify",
           contactNumber: "",
@@ -129,7 +132,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       } else {
         setFormData({
           campaignName: "",
-          vendor: "",
+          client: "",
           objective: "Promotion",
           audienceType: "specify",
           contactNumber: "",
@@ -203,8 +206,8 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       toast.error("Campaign name is required.");
       return;
     }
-    if (!formData.vendor) {
-      toast.error("Vendor is required.");
+    if (!formData.client) {
+      toast.error("Client is required.");
       return;
     }
     if (isContentEmpty(quillContent)) {
@@ -217,7 +220,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     try {
       const dataToUpload = new FormData();
       dataToUpload.append("name", formData.campaignName);
-      dataToUpload.append("vendor", formData.vendor);
+      dataToUpload.append("client", formData.client);
       dataToUpload.append("objective", formData.objective);
       dataToUpload.append("content", quillContent);
 
@@ -266,7 +269,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
       setFormData({
         campaignName: "",
-        vendor: "",
+        client: "",
         objective: "Promotion",
         audienceType: "specify",
         contactNumber: "",
@@ -304,8 +307,8 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
         isViewMode
           ? "View Campaign"
           : editingCampaign
-          ? "Edit Campaign"
-          : "Create New Campaign"
+            ? "Edit Campaign"
+            : "Create New Campaign"
       }
       className="max-w-3xl"
     >
@@ -321,11 +324,11 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Select
-            label="Vendor"
-            value={formData.vendor}
-            onChange={(v) => handleSelectChange("vendor", v)}
-            options={vendorOptions}
-            placeholder="Select Vendor"
+            label="Client"
+            value={formData.client}
+            onChange={(v) => handleSelectChange("client", v)}
+            options={clientOptions}
+            placeholder="Select Client"
             disabled={isViewMode}
           />
           <Select
@@ -460,8 +463,8 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
               {isSubmitting
                 ? "Saving"
                 : editingCampaign
-                ? "Update Campaign"
-                : "Create Campaign"}
+                  ? "Update Campaign"
+                  : "Create Campaign"}
             </Button>
           )}
         </div>
