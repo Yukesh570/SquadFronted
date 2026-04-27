@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Trash, Edit, Megaphone, Calendar, Eye } from "lucide-react";
+import {
+  Home,
+  Plus,
+  Trash,
+  Edit,
+  Megaphone,
+  Calendar,
+  Eye,
+} from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -18,7 +26,9 @@ import Select from "../../components/ui/Select";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
-import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
+import ContextMenu, {
+  type ContextMenuItem,
+} from "../../components/ui/ContextMenu";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 import { actionHelper } from "../../helper/action";
 
@@ -30,13 +40,18 @@ const CampaignList: React.FC = () => {
 
   // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCampaign, setEditingCampaign] = useState<CampaignFormData | null>(null);
+  const [editingCampaign, setEditingCampaign] =
+    useState<CampaignFormData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
   // --- Context Menu State ---
-  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [selectedRowCampaign, setSelectedRowCampaign] = useState<CampaignFormData | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [selectedRowCampaign, setSelectedRowCampaign] =
+    useState<CampaignFormData | null>(null);
 
   // --- Filters ---
   const [nameFilter, setNameFilter] = useState("");
@@ -66,14 +81,14 @@ const CampaignList: React.FC = () => {
       };
 
       const cleanParams = Object.fromEntries(
-        Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
+        Object.entries(currentSearchParams).filter(([_, v]) => v !== ""),
       );
 
       const response: any = await getCampaignsApi(
         routeName,
         currentPage,
         rowsPerPage,
-        cleanParams
+        cleanParams,
       );
       if (response && response.results) {
         setCampaigns(response.results);
@@ -98,8 +113,16 @@ const CampaignList: React.FC = () => {
   }, [routeName, currentPage, rowsPerPage]);
 
   // --- Handlers ---
-  const handleSearch = () => { setCurrentPage(1); fetchCampaigns(); };
-  const handleClearFilters = () => { setNameFilter(""); setObjectiveFilter(""); setCurrentPage(1); fetchCampaigns({ name: "", objective: "" }); };
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchCampaigns();
+  };
+  const handleClearFilters = () => {
+    setNameFilter("");
+    setObjectiveFilter("");
+    setCurrentPage(1);
+    fetchCampaigns({ name: "", objective: "" });
+  };
 
   const handleDelete = async () => {
     if (deleteId && canDelete) {
@@ -114,38 +137,72 @@ const CampaignList: React.FC = () => {
     }
   };
 
-  const handleEdit = (campaign: CampaignFormData) => { if (!canUpdate) return; setEditingCampaign(campaign); setIsViewMode(false); setIsModalOpen(true); };
-  const handleAdd = () => { if (!canCreate) return; setEditingCampaign(null); setIsViewMode(false); setIsModalOpen(true); };
-  const handleView = (campaign: CampaignFormData) => { setEditingCampaign(campaign); setIsViewMode(true); setIsModalOpen(true); };
+  const handleEdit = (campaign: CampaignFormData) => {
+    if (!canUpdate) return;
+    setEditingCampaign(campaign);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+  const handleAdd = () => {
+    if (!canCreate) return;
+    setEditingCampaign(null);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+  const handleView = (campaign: CampaignFormData) => {
+    setEditingCampaign(campaign);
+    setIsViewMode(true);
+    setIsModalOpen(true);
+  };
 
   // --- Context Menu Logic ---
-  const handleContextMenu = (e: React.MouseEvent, campaign: CampaignFormData) => {
+  const handleContextMenu = (
+    e: React.MouseEvent,
+    campaign: CampaignFormData,
+  ) => {
     e.preventDefault();
     setContextMenuPos({ x: e.clientX, y: e.clientY });
     setSelectedRowCampaign(campaign);
   };
 
-  const menuItems: ContextMenuItem[] = selectedRowCampaign ? [
-    {
-      label: "View Details",
-      icon: <Eye size={16} />,
-      onClick: () => handleView(selectedRowCampaign),
-    },
-    ...(canUpdate ? [{
-      label: "Edit Campaign",
-      icon: <Edit size={16} />,
-      onClick: () => handleEdit(selectedRowCampaign),
-    }] : []),
-    ...(canDelete ? [{
-      label: "Delete Campaign",
-      icon: <Trash size={16} />,
-      variant: "danger" as const,
-      onClick: () => setDeleteId(selectedRowCampaign.id!),
-    }] : []),
-  ] : [];
+  const menuItems: ContextMenuItem[] = selectedRowCampaign
+    ? [
+        {
+          label: "View Details",
+          icon: <Eye size={16} />,
+          onClick: () => handleView(selectedRowCampaign),
+        },
+        ...(canUpdate
+          ? [
+              {
+                label: "Edit Campaign",
+                icon: <Edit size={16} />,
+                onClick: () => handleEdit(selectedRowCampaign),
+              },
+            ]
+          : []),
+        ...(canDelete
+          ? [
+              {
+                label: "Delete Campaign",
+                icon: <Trash size={16} />,
+                variant: "danger" as const,
+                onClick: () => setDeleteId(selectedRowCampaign.id!),
+              },
+            ]
+          : []),
+      ]
+    : [];
 
-  const headers = ["S.N.", "Name", "Vendor", "Objective", "Content", "Schedule"];
-  
+  const headers = [
+    "S.N.",
+    "Name",
+    "Client",
+    "Objective",
+    "Content",
+    "Schedule",
+  ];
+
   const objectiveOptions = [
     { label: "All", value: "" },
     { label: "Promotion", value: "Promotion" },
@@ -159,13 +216,16 @@ const CampaignList: React.FC = () => {
     if (!hasLoggedOpening.current) {
       // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
-        const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+        const activeLinks = document.querySelectorAll(
+          "aside a.active, nav a.active",
+        );
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-        
+        let moduleLabel =
+          activeItem?.innerText?.split("\n")[0].trim() || "Module";
+
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100); // Waits 0.1 seconds
-      
+
       hasLoggedOpening.current = true;
     }
   }, []);
@@ -178,7 +238,9 @@ const CampaignList: React.FC = () => {
         </h1>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
-          <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">Home</NavLink>
+          <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">
+            Home
+          </NavLink>
           <span>/</span>
           <span className="text-text-primary dark:text-white">Campaigns</span>
         </div>
@@ -210,29 +272,47 @@ const CampaignList: React.FC = () => {
         onRowsPerPageChange={setRowsPerPage}
         headers={headers}
         isLoading={isLoading}
-        headerActions={canCreate ? (
-          <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>
-            Create Campaign
-          </Button>
-        ) : null}
+        headerActions={
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Create Campaign
+            </Button>
+          ) : null
+        }
         renderRow={(campaign, index) => (
           <tr
             key={campaign.id || index}
             onContextMenu={(e) => handleContextMenu(e, campaign)}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">{campaign.name}</td>
-            {/* CHANGED TO vendorName */}
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">{campaign.vendorName || "-"}</td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <span className="flex items-center gap-2"><Megaphone size={14} /> {campaign.objective}</span>
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
+              {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300" title={campaign.content?.replace(/<[^>]*>/g, "")}>
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
+              {campaign.name}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {campaign.clientName || "-"}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              <span className="flex items-center gap-2">
+                <Megaphone size={14} /> {campaign.objective}
+              </span>
+            </td>
+            <td
+              className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300"
+              title={campaign.content?.replace(/<[^>]*>/g, "")}
+            >
               {formatContent(campaign.content)}
             </td>
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <span className="flex items-center gap-2"><Calendar size={14} /> {campaign.schedule}</span>
+              <span className="flex items-center gap-2">
+                <Calendar size={14} /> {campaign.schedule}
+              </span>
             </td>
           </tr>
         )}
