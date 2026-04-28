@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react";
+import { Home, Plus, Edit, Trash, Eye, Upload } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   getCurrenciesApi,
   deleteCurrencyApi,
+  importCurrencyApi,
+  getImportStatusApi,
   type CurrencyData,
 } from "../../../api/settingApi/currencyApi/currencyApi";
 import { CurrencyModal } from "../../../components/modals/Settings/CurrencyModal";
+import { ImportModal } from "../../../components/modals/ImportModal";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
@@ -24,6 +27,7 @@ const Currency: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingCurrency, setEditingCurrency] = useState<CurrencyData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -45,7 +49,7 @@ const Currency: React.FC = () => {
     setIsLoading(true);
     try {
       const currentSearchParams = overrideParams || {
-        name__icontains: nameFilter, // Updated to use icontains for backend filtering
+        name__icontains: nameFilter,
       };
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
@@ -117,7 +121,6 @@ const Currency: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Currency", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowCurrency.id!) }] : []),
   ] : [];
 
-  // Updated headers to match the new API fields
   const headers = ["S.N.", "Currency Name", "Code", "Numeric Code", "Symbol", "Decimals", "Status"];
 
   const hasLoggedOpening = useRef(false);
@@ -173,15 +176,26 @@ const Currency: React.FC = () => {
         headers={headers}
         isLoading={isLoading}
         headerActions={
-          canCreate ? (
-            <Button
-              variant="primary"
-              onClick={handleAdd}
-              leftIcon={<Plus size={18} />}
-            >
-              Add Currency
-            </Button>
-          ) : null
+          <div className="flex gap-2">
+            {canCreate && (
+              <Button
+                variant="secondary"
+                onClick={() => setIsImportModalOpen(true)}
+                leftIcon={<Upload size={18} />}
+              >
+                Import
+              </Button>
+            )}
+            {canCreate && (
+              <Button
+                variant="primary"
+                onClick={handleAdd}
+                leftIcon={<Plus size={18} />}
+              >
+                Add Currency
+              </Button>
+            )}
+          </div>
         }
         renderRow={(currency, index) => (
           <tr
@@ -232,6 +246,19 @@ const Currency: React.FC = () => {
         editingCurrency={editingCurrency}
         isViewMode={isViewMode}
       />
+      
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={fetchCurrencies}
+        importApi={importCurrencyApi}
+        checkStatusApi={getImportStatusApi}
+        title="Import Currencies"
+        sampleFileLink="/currency_sample.csv"
+        sampleFileName="currency_sample.csv"
+        fileKey="file"
+      />
+
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}

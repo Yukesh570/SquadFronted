@@ -78,3 +78,19 @@ export const deleteOperatorNetworkCodeApi = async (
 ): Promise<void> => {
   await api.delete(`/operatorNetworkCode/${module}/${id}/`);
 };
+
+// IMPORT
+export const importOperatorNetworkCodeApi = async (formData: FormData): Promise<any> => {
+  const response = await api.post(`/operatorNetworkCode/import`, formData, {
+    headers: {
+      "Content-Type": undefined,
+    },
+  });
+  return response.data;
+};
+
+// STATUS CHECK (Polling)
+export const getImportStatusApi = async (taskId: string): Promise<any> => {
+  const response = await api.get(`/status/${taskId}/`);
+  return response.data;
+};

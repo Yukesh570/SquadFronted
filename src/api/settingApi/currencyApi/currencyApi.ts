@@ -60,3 +60,19 @@ export const deleteCurrencyApi = async (
 ): Promise<void> => {
   await api.delete(`/currency/${module}/${id}/`);
 };
+
+// IMPORT
+export const importCurrencyApi = async (formData: FormData): Promise<any> => {
+  const response = await api.post(`/currency/import`, formData, {
+    headers: {
+      "Content-Type": undefined,
+    },
+  });
+  return response.data;
+};
+
+// STATUS CHECK (Polling)
+export const getImportStatusApi = async (taskId: string): Promise<any> => {
+  const response = await api.get(`/status/${taskId}/`);
+  return response.data;
+};

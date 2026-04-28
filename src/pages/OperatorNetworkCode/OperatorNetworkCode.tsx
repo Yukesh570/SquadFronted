@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react";
+import { Home, Plus, Edit, Trash, Eye, Upload } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   getOperatorNetworkCodesApi,
   deleteOperatorNetworkCodeApi,
+  importOperatorNetworkCodeApi,
+  getImportStatusApi,
   type OperatorNetworkCodeData,
 } from "../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 // @ts-ignore
 import { getOperatorsApi } from "../../api/operatorApi/operatorApi";
 import { OperatorNetworkCodeModal } from "../../components/modals/Operator/OperatorNetworkCodeModal";
+import { ImportModal } from "../../components/modals/ImportModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -53,6 +56,7 @@ const OperatorNetworkCode: React.FC = () => {
   const [operatorOptions, setOperatorOptions] = useState<Option[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingData, setEditingData] = useState<OperatorNetworkCodeData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -120,7 +124,6 @@ const OperatorNetworkCode: React.FC = () => {
     { label: "Yes", value: "true" }, { label: "No", value: "false" }
   ];
 
-  // FIX: Allow boolean or string, removed unused isStatus argument
   const renderBadge = (val: string | boolean) => (
     <span className={`px-2 py-0.5 rounded text-xs font-medium ${
       val === "ACTIVE" || val === "true" || val === true
@@ -306,7 +309,34 @@ const OperatorNetworkCode: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable serverSide={true} data={data} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} headers={tableHeaders} isLoading={isLoading} headerActions={canCreate ? <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>Add Network Code</Button> : null}
+      <DataTable 
+        serverSide={true} 
+        data={data} 
+        totalItems={totalItems} 
+        currentPage={currentPage} 
+        rowsPerPage={rowsPerPage} 
+        onPageChange={setCurrentPage} 
+        onRowsPerPageChange={setRowsPerPage} 
+        headers={tableHeaders} 
+        isLoading={isLoading} 
+        headerActions={
+          <div className="flex gap-2">
+            {canCreate && (
+              <Button
+                variant="secondary"
+                onClick={() => setIsImportModalOpen(true)}
+                leftIcon={<Upload size={18} />}
+              >
+                Import
+              </Button>
+            )}
+            {canCreate && (
+              <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>
+                Add Network Code
+              </Button>
+            )}
+          </div>
+        }
         renderRow={(item, index) => (
           <tr key={item.id || index} onContextMenu={(e) => handleContextMenu(e, item)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
@@ -321,7 +351,21 @@ const OperatorNetworkCode: React.FC = () => {
       />
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
-      <OperatorNetworkCodeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchData} moduleName={routeName} editingData={editingData} isViewMode={isViewMode} />
+      
+      <OperatorNetworkCodeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={() => fetchData()} moduleName={routeName} editingData={editingData} isViewMode={isViewMode} />
+      
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => fetchData()}
+        importApi={importOperatorNetworkCodeApi}
+        checkStatusApi={getImportStatusApi}
+        title="Import Operator Network Codes"
+        sampleFileLink="/operator_network_code_sample.csv"
+        sampleFileName="operator_network_code_sample.csv"
+        fileKey="file"
+      />
+
       <DeleteModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Network Code" message="Are you sure you want to delete this Operator Network Code?" />
     </div>
   );

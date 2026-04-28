@@ -1,0 +1,3 @@
+operator,country,MCC,MNC,networkName,networkType,isPrimary,status,effectiveFrom,effectiveTo,notes
+1,410,04,Ncell,GSM,GSM,TRUE,ACTIVE,1/1/2024,,Standard Routing
+1,410,04,Ncell,LTE,LTE,,,1/1/2024,,Backup Route

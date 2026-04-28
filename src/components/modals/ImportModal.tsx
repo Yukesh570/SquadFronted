@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Upload, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Upload, FileSpreadsheet, Loader2, Info } from "lucide-react";
 import { toast } from "react-toastify";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
@@ -61,6 +61,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     document.body.removeChild(link);
   };
 
+  const formatErrorMessage = (msg: string): string => {
+    if (typeof msg === 'string' && msg.toLowerCase().includes('utf-8')) {
+      return "Encoding Error: Please save your Excel file as 'CSV UTF-8 (Comma delimited)' and try again.";
+    }
+    return msg;
+  };
+
   const pollStatus = async (taskId: string) => {
     if (!checkStatusApi) return;
 
@@ -89,8 +96,6 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       }
 
       if (res) {
-        console.log(`Polling Status (Attempt ${attempts}):`, res);
-
         const status = (res.state || res.status || "").toUpperCase();
 
         if (res.progress) {
@@ -101,8 +106,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
         if (status === "FAILURE" || status === "FAILED" || status === "ERROR") {
           clearInterval(intervalId);
-          const errorMsg =
-            res.error || res.result || res.message || "Unknown error";
+          let errorMsg = res.error || res.result || res.message || "Unknown error";
+          errorMsg = formatErrorMessage(String(errorMsg));
+          
           toast.error(`Import failed: ${errorMsg}`);
           setIsPolling(false);
           setIsSubmitting(false);
@@ -131,12 +137,12 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             setIsSubmitting(false);
 
             const firstError = resultErrors[0];
-            const errorText =
+            let errorText =
               typeof firstError === "string"
                 ? firstError
                 : `Row ${firstError.row}: ${firstError.error}`;
 
-            toast.error(errorText);
+            toast.error(formatErrorMessage(errorText));
           } else {
             toast.success("Import completed successfully!");
             setIsPolling(false);
@@ -180,8 +186,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         pollStatus(response.task_id);
       } else {
         if (response.status === "error" || response.error) {
-          const msg = response.error || response.message || "Import failed.";
-          toast.error(msg);
+          let msg = response.error || response.message || "Import failed.";
+          toast.error(formatErrorMessage(String(msg)));
           setIsSubmitting(false);
           setProgress(null);
         } else {
@@ -197,14 +203,14 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       if (error.response?.data) {
         const data = error.response.data;
         if (typeof data === "object") {
-          const msg =
+          let msg =
             data.error ||
             data.message ||
             data.detail ||
             (data.result?.errors
               ? data.result.errors[0]?.error
               : "Validation failed.");
-          toast.error(msg);
+          toast.error(formatErrorMessage(String(msg)));
         } else {
           toast.error(data.message || "Failed to upload file.");
         }
@@ -219,17 +225,29 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} className="max-w-lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={title} className="max-w-lg overflow-visible">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex justify-between items-center mb-1">
-          <div className="text-sm text-text-secondary dark:text-gray-400">
-            Upload a CSV file to bulk import records.
+          
+          <div className="text-sm text-text-secondary dark:text-gray-400 flex items-center gap-1.5">
+            <span>Upload a CSV file to bulk import records.</span>
+            
+            {/* Prominent Hover Tooltip */}
+            <div className="group relative flex items-center mt-0.5">
+              <Info size={16} className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 cursor-help transition-colors drop-shadow-sm" />
+              
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-800 dark:bg-gray-700 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[60] text-center pointer-events-none border border-gray-700 dark:border-gray-600">
+                If using Microsoft Excel, please use <strong>"Save As"</strong> and select <strong>"CSV UTF-8 (Comma delimited)"</strong> to prevent formatting errors.
+                {/* Arrow Pointer */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-gray-800 dark:border-t-gray-700"></div>
+              </div>
+            </div>
           </div>
+
           {sampleFileLink && (
             <button
               type="button"
               onClick={handleDownloadSample}
-              // Changed to dynamic theme color
               className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
               title="Download Sample Format"
               disabled={isSubmitting}
@@ -240,7 +258,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-3 p-4 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
+        <div className="flex items-center gap-3 p-4 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 transition-colors">
           <Button
             type="button"
             variant="secondary"
