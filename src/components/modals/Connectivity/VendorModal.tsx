@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import { Eye, EyeOff } from "lucide-react";
 import {
   createVendorApi,
   updateVendorApi,
@@ -19,7 +20,6 @@ import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
 import Modal from "../../ui/Modal";
-import { Eye, EyeOff } from "lucide-react";
 
 interface VendorModalProps {
   isOpen: boolean;
@@ -48,6 +48,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     profileName: "",
     ratePlanName: "",
     connectionType: "SMPP",
+    invoicePolicy: "ON ATTEMPT",
     smppId: 0,
     smppHost: "",
     smppPort: "",
@@ -58,6 +59,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     sourceNPI: "",
     destTON: "",
     destNPI: "",
+    bindStatus: "OFFLINE",
+    session: "0/2",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,6 +72,12 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   const connectionTypeOptions = [
     { label: "SMPP", value: "SMPP" },
     { label: "HTTP", value: "HTTP" },
+  ];
+
+  const invoicePolicyOptions = [
+    { label: "On Attempt", value: "ON ATTEMPT" },
+    { label: "On Submit", value: "ON SUBMIT" },
+    { label: "On Delivered", value: "ON DELIVERED" },
   ];
 
   const bindModeOptions = [
@@ -115,6 +124,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           profileName: editingVendor.profileName,
           ratePlanName: editingVendor.ratePlanName || "",
           connectionType: editingVendor.connectionType || "",
+          invoicePolicy: editingVendor.invoicePolicy || "ON ATTEMPT",
           smppId: anyVendor.smpp || 0,
           smppHost: "",
           smppPort: "",
@@ -125,11 +135,13 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           sourceNPI: "",
           destTON: "",
           destNPI: "",
+          bindStatus: editingVendor.bindStatus || "OFFLINE",
+          session: editingVendor.session || "0/2",
         };
 
         setFormData(initialData);
 
-        // 2. Fetch fresh SMPP details if ID exists and type is SMPP
+        // Fetch fresh SMPP details
         if (anyVendor.connectionType === "SMPP" && anyVendor.smpp) {
           setIsLoadingDetails(true);
           try {
@@ -159,7 +171,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           company: "",
           profileName: "",
           ratePlanName: "",
-          connectionType: "",
+          connectionType: "SMPP",
+          invoicePolicy: "ON ATTEMPT",
           smppId: 0,
           smppHost: "",
           smppPort: "",
@@ -170,6 +183,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           sourceNPI: "",
           destTON: "",
           destNPI: "",
+          bindStatus: "OFFLINE",
+          session: "0/2",
         });
       }
     };
@@ -206,7 +221,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     try {
       let createdSmppId = formData.smppId;
 
-      // --- STEP 1: Handle SMPP Creation ---
       if (formData.connectionType === "SMPP") {
         const smppPayload = {
           smppHost: formData.smppHost,
@@ -242,6 +256,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         profileName: formData.profileName,
         ratePlanName: formData.ratePlanName,
         connectionType: formData.connectionType,
+        invoicePolicy: formData.invoicePolicy,
         smpp: finalSmppValue,
       };
 
@@ -278,7 +293,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       }
       className="max-w-3xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5 max-h-[80vh] overflow-y-auto px-1">
         {isLoadingDetails && (
           <div className="p-3 mb-2 text-sm text-blue-800 bg-blue-50 rounded border border-blue-200 flex items-center">
             <span className="mr-2 animate-spin">⏳</span> Loading configuration
@@ -286,52 +301,70 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <legend className="text-sm font-semibold text-primary px-2">
+            Identity & Commercials
+          </legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <Select
+              label="Company Name"
+              value={formData.company}
+              onChange={(v) => handleSelect("company", v)}
+              options={companyOptions}
+              placeholder="Select Company"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Profile Name"
+              name="profileName"
+              value={formData.profileName}
+              onChange={handleChange}
+              placeholder="Vendor A"
+              required
+              disabled={isViewMode}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select
+              label="Rate Plan Name"
+              value={formData.ratePlanName}
+              onChange={(v) => handleSelect("ratePlanName", v)}
+              options={ratePlanOptions}
+              placeholder="Select Rate Plan"
+              disabled={isViewMode}
+            />
+            <Select
+              label="Invoice Policy"
+              value={formData.invoicePolicy}
+              onChange={(v) => handleSelect("invoicePolicy", v)}
+              options={invoicePolicyOptions}
+              placeholder="Select Invoice Policy"
+              disabled={isViewMode}
+            />
+          </div>
+        </fieldset>
+
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <legend className="text-sm font-semibold text-primary px-2">
+            Connectivity
+          </legend>
           <Select
-            label="Company Name"
-            value={formData.company}
-            onChange={(v) => handleSelect("company", v)}
-            options={companyOptions}
-            placeholder="Select Company"
+            label="Connection Type"
+            value={formData.connectionType}
+            onChange={(v) => handleSelect("connectionType", v)}
+            options={connectionTypeOptions}
+            placeholder="Select Type"
             disabled={isViewMode}
           />
-
-          <Input
-            label="Profile Name"
-            name="profileName"
-            value={formData.profileName}
-            onChange={handleChange}
-            placeholder="Vendor A"
-            required
-            disabled={isViewMode}
-          />
-
-          <Select
-            label="Rate Plan Name"
-            value={formData.ratePlanName}
-            onChange={(v) => handleSelect("ratePlanName", v)}
-            options={ratePlanOptions}
-            placeholder="Select Rate Plan"
-            disabled={isViewMode}
-          />
-        </div>
-
-        <Select
-          label="Connection Type"
-          value={formData.connectionType}
-          onChange={(v) => handleSelect("connectionType", v)}
-          options={connectionTypeOptions}
-          placeholder="Select Type"
-          disabled={isViewMode}
-        />
+        </fieldset>
 
         {formData.connectionType === "SMPP" && (
           <div
-            className={`border-t border-gray-200 dark:border-gray-700 pt-4 mt-2 space-y-4 ${
+            className={`border border-gray-200 dark:border-gray-700 p-4 rounded-lg space-y-4 ${
               isLoadingDetails ? "opacity-50 pointer-events-none" : ""
             }`}
           >
-            <h3 className="text-sm font-semibold text-text-primary dark:text-white">
+            <h3 className="text-sm font-semibold text-primary">
               SMPP Configuration
             </h3>
 
@@ -395,6 +428,29 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               />
             </div>
 
+            {/* View & Edit Mode: Live Status (Always disabled) */}
+            {editingVendor && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <Input
+                  label="Live Bind Status"
+                  name="bindStatus"
+                  value={formData.bindStatus}
+                  disabled={true}
+                  className={
+                    formData.bindStatus === "ONLINE"
+                      ? "text-green-600 font-bold"
+                      : "text-gray-500"
+                  }
+                />
+                <Input
+                  label="Active Sessions"
+                  name="session"
+                  value={formData.session}
+                  disabled={true}
+                />
+              </div>
+            )}
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
               <Input
                 label="Source TON"
@@ -436,7 +492,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           </div>
         )}
 
-        <div className="flex justify-end space-x-3 pt-4">
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
           <Button type="button" variant="secondary" onClick={onClose}>
             {isViewMode ? "Close" : "Cancel"}
           </Button>
@@ -446,7 +502,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               variant="primary"
               disabled={isSubmitting || isLoadingDetails}
             >
-              {isSubmitting ? "Saving..." : "Save"}
+              {isSubmitting ? "Saving..." : "Save Vendor"}
             </Button>
           )}
         </div>

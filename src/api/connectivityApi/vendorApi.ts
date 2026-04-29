@@ -3,10 +3,16 @@ import api from "../axiosInstance";
 export interface VendorData {
   id?: number;
   company?: number;
-  companyName: string; 
+  companyName?: string; 
   profileName: string;
-  ratePlanName?: string; // NEW
+  ratePlanName?: string;
   connectionType: 'SMPP' | 'HTTP';
+  invoicePolicy?: string;
+  smpp?: number;
+  smppName?: string;
+  bindStatus?: string;
+  session?: string;
+  // createdAt removed here
 }
 
 export interface PaginatedResponse<T> {
@@ -21,7 +27,7 @@ export const getVendorsApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, string>
+  searchParams?: Record<string, any>
 ): Promise<PaginatedResponse<VendorData>> => {
   const params : any = {
     page: page,
