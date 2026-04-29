@@ -51,6 +51,7 @@ import ClientPolicy from "../pages/Policy/ClientPolicy";
 import VendorPolicy from "../pages/Policy/VendorPolicy";
 import OperatorNetworkCode from "../pages/OperatorNetworkCode/OperatorNetworkCode";
 import ClientSession from "../pages/ClientSession/ClientSession";
+// import GeneralSettings from "../pages/settings/GeneralSettings/GeneralSettings";
 // import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
 
 const componentMap: Record<string, JSX.Element> = {
@@ -99,7 +100,8 @@ const componentMap: Record<string, JSX.Element> = {
   clientPolicy: <ClientPolicy/>,
   vendorPolicy: <VendorPolicy/>,
   operatorNetworkCode: <OperatorNetworkCode/>,
-  clientSession: <ClientSession/>
+  clientSession: <ClientSession/>,
+  // generalSettings: <GeneralSettings/>
 };
 
 const AppRoutes = () => {
