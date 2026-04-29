@@ -44,7 +44,7 @@ const formatLocalDate = (date: Date) => {
 };
 
 const DEFAULT_SEARCH_COLUMNS = ["networkName", "MCC", "MNC", "operator_name", "country_name"];
-const DEFAULT_TABLE_COLUMNS = ["networkName", "operator_name", "country_name", "MCC", "MNC", "networkType", "status", "isPrimary"];
+const DEFAULT_TABLE_COLUMNS = ["networkName", "operator_name", "country_name", "MCC", "MNC", "networkType", "status", "isPrimary", "notes"];
 
 const OperatorNetworkCode: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -153,6 +153,19 @@ const OperatorNetworkCode: React.FC = () => {
     { key: "effectiveTo", label: "Effective To (Exact)", tableLabel: "Effective To", type: "date", filterKey: "effectiveTo" },
     { key: "effectiveTo__range", label: "Effective To (From/To)", type: "date_range", filterKey: "effectiveTo", isSearchOnly: true },
     { key: "effectiveTo__gt_lt", label: "Effective To (After/Before)", type: "date_gt_lt", filterKey: "effectiveTo", isSearchOnly: true },
+
+     // TRUNCATED NOTES FIX
+    { 
+      key: "notes", 
+      label: "Notes", 
+      type: "text", 
+      filterKey: "notes__icontains",
+      render: (item) => (
+        <div className="max-w-[150px] truncate" title={item.notes}>
+          {item.notes || "-"}
+        </div>
+      )
+    },
 
     { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt" },
     { key: "createdAt__range", label: "Created At (From/To)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
@@ -342,8 +355,21 @@ const OperatorNetworkCode: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
             {visibleTableFields.map((col) => {
               let cellData = (item as any)[col.key];
+              
+              if (col.key === "operator_name") {
+                  cellData = item.operator_name || item.operator;
+              } else if (col.key === "country_name") {
+                  cellData = item.country_name || item.country;
+              }
+
               if (col.render) return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{col.render(item)}</td>;
-              if (col.options) { const match = col.options.find((opt) => opt.value === String(cellData)); cellData = match ? match.label : cellData; }
+              
+              // FALLBACK RESOLUTION FIX: Look up the real Name using the ID from options array
+              if (col.options) { 
+                  const match = col.options.find((opt) => opt.value === String(cellData)); 
+                  cellData = match ? match.label : cellData; 
+              }
+              
               return <td key={col.key} className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "networkName" ? "font-medium text-text-primary dark:text-white" : ""}`}>{cellData || "-"}</td>;
             })}
           </tr>

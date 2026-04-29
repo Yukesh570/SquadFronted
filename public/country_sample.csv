@@ -1,8 +1,6 @@
-name,countryCode,MCC
-AFRICA,AFA,232
-CANADA,CAN,232
-INDONESIA,INDO,232
-INDIA,IND,4004
-RUSSIA,RUS,7893
-KOREA,KOR,747
-NEPAL,NP,977
+name,iso2,countryCode,region,subRegion
+Afghanistan,AF,93,,
+Nepal,NP,977,Asia,Southern Asia
+United States,US,1,Americas,Northern America
+United Kingdom,GB,44,Europe,Northern Europe
+Japan,JP,81,Asia,Eastern Asia

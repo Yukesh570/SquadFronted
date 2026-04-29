@@ -1,3 +1,6 @@
-operator,country,MCC,MNC,networkName,networkType,isPrimary,status,effectiveFrom,effectiveTo,notes
-1,410,04,Ncell,GSM,GSM,TRUE,ACTIVE,1/1/2024,,Standard Routing
-1,410,04,Ncell,LTE,LTE,,,1/1/2024,,Backup Route
+operator,country,MCC,MNC,networkName,networkType,isPrimary,effectiveFrom,effectiveTo,notes
+NTC,Nepal,429,2,Ncell Axiata,LTE,TRUE,1/1/2020,,Main LTE network
+NTC,Nepal,429,1,NTC GSM,GSM,FALSE,5/15/2010,,Legacy GSM network
+NTC,United States of America,310,410,AT&T Mobility,5G,TRUE,6/1/2022,,Primary 5G rollout
+NTC,United Kingdom,234,15,Vodafone UK,LTE,TRUE,1/1/2015,12/31/2035,Standard LTE
+NTC,United States of America,311,480,Verizon Wireless,CDMA,FALSE,1/1/2005,12/31/2023,Sunset CDMA network

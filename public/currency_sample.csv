@@ -1,4 +1,12 @@
-name,currencyCode,numericCode,symbol
-US Dollar,USD,840,$
-Euro,EUR,978,€
-Indian Rupee,INR,524,?
+name,currencyCode,numericCode,symbol,decimalPlaces
+US Dollar,USD,840,$,2
+Euro,EUR,978,ï¿½,3
+ Pound,GBP,826,,2
+ yen,JPY,392,,0
+ Swiss Franc(CHF),CHF,756,,2
+ Canadian Dollar,CAD,124,$,2
+ Australian Dollar,AUD,36,A$,2
+ New Zealand Dollar,NZD,554,$,2
+ Singapore Dollar(SGD),SGD,702,$,2
+ Hong Kong Dollar(HKD),HKD,344,$,2
+ Renminbi(CNY),CNY,156,Yuan,2
