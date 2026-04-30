@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react";
+import { Home, Plus, Edit, Trash, Eye, RefreshCw } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   getVendorsApi,
   deleteVendorApi,
   type VendorData,
+  updateVendorApi,
 } from "../../../api/connectivityApi/vendorApi";
 import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 
@@ -494,6 +495,21 @@ const Vendor: React.FC = () => {
     setSelectedRowVendor(vendor);
   };
 
+  const handleManualRetry = async (vendor: VendorData) => {
+    try {
+      const retryData = {
+        lastRetryAt: new Date().toISOString(),
+      };
+      await updateVendorApi(vendor.id!, retryData, routeName);
+      toast.info(`Connection retry signaled for ${vendor.profileName}`);
+
+      setContextMenuPos(null);
+    } catch (err) {
+      console.error("Manual retry failed", err);
+      toast.error("Failed to send retry signal.");
+    }
+  };
+
   const menuItems: ContextMenuItem[] = selectedRowVendor
     ? [
         {
@@ -501,6 +517,15 @@ const Vendor: React.FC = () => {
           icon: <Eye size={16} />,
           onClick: () => handleView(selectedRowVendor),
         },
+        ...(selectedRowVendor.bindStatus === "OFFLINE"
+          ? [
+              {
+                label: "Retry Bind",
+                icon: <RefreshCw size={16} />,
+                onClick: () => handleManualRetry(selectedRowVendor),
+              },
+            ]
+          : []),
         ...(canUpdate
           ? [
               {
