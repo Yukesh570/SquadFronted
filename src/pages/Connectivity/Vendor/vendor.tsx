@@ -10,7 +10,7 @@ import {
 import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 
 // @ts-ignore
-import { getVendorRatesApi } from "../../../api/rateApi/vendorRateApi"; 
+import { getVendorRatesApi } from "../../../api/rateApi/vendorRateApi";
 
 import { VendorModal } from "../../../components/modals/Connectivity/VendorModal";
 import Button from "../../../components/ui/Button";
@@ -19,13 +19,20 @@ import Select from "../../../components/ui/Select";
 import DatePicker from "../../../components/ui/DatePicker";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
-import AdvancedFilter, { type FilterColumn } from "../../../components/ui/AdvancedFilter";
+import AdvancedFilter, {
+  type FilterColumn,
+} from "../../../components/ui/AdvancedFilter";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
-import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
+import ContextMenu, {
+  type ContextMenuItem,
+} from "../../../components/ui/ContextMenu";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import { actionHelper } from "../../../helper/action";
 
-interface Option { label: string; value: string; }
+interface Option {
+  label: string;
+  value: string;
+}
 
 interface ColumnConfig extends FilterColumn {
   render?: (data: VendorData) => React.ReactNode;
@@ -70,11 +77,18 @@ const Vendor: React.FC = () => {
   const [isViewMode, setIsViewMode] = useState(false);
 
   // --- Context Menu States ---
-  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [selectedRowVendor, setSelectedRowVendor] = useState<VendorData | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [selectedRowVendor, setSelectedRowVendor] = useState<VendorData | null>(
+    null,
+  );
 
   // --- Dynamic Filters & Columns State ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(
+    DEFAULT_SEARCH_COLUMNS,
+  );
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
@@ -99,19 +113,22 @@ const Vendor: React.FC = () => {
       try {
         const compRes: any = await getCompaniesApi("company", 1, 1000);
         const list = compRes.results || (Array.isArray(compRes) ? compRes : []);
-        setCompanies(list.map((c: any) => ({ label: c.name, value: String(c.id) })));
+        setCompanies(
+          list.map((c: any) => ({ label: c.name, value: String(c.id) })),
+        );
       } catch (err: any) {
         console.error("Failed to load companies for filter", err);
       }
 
       try {
         const rateRes: any = await getVendorRatesApi("vendorRate", 1, 1000);
-        const rateList = rateRes.results || (Array.isArray(rateRes) ? rateRes : []);
+        const rateList =
+          rateRes.results || (Array.isArray(rateRes) ? rateRes : []);
         setRatePlanOptions(
           rateList.map((r: any) => ({
             label: r.ratePlan || r.ratePlanName || r.name,
             value: r.ratePlan || r.ratePlanName || r.name,
-          }))
+          })),
         );
       } catch (err: any) {
         console.error("Failed to load vendor rates for filter", err);
@@ -150,7 +167,7 @@ const Vendor: React.FC = () => {
                 };
               }
               return vendor;
-            })
+            }),
           );
         }
       } catch (err) {
@@ -181,11 +198,15 @@ const Vendor: React.FC = () => {
   const renderBindStatusBadge = (status?: string) => {
     if (!status) return "-";
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-        status === "ONLINE" ? "bg-green-100 text-green-800" 
-        : status === "OFFLINE" ? "bg-blue-100 text-blue-800" 
-        : "bg-red-100 text-red-800"
-      }`}>
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${
+          status === "ONLINE"
+            ? "bg-green-100 text-green-800"
+            : status === "OFFLINE"
+              ? "bg-blue-100 text-blue-800"
+              : "bg-red-100 text-red-800"
+        }`}
+      >
         {status}
       </span>
     );
@@ -197,27 +218,79 @@ const Vendor: React.FC = () => {
     const isFull = current === max && max !== "Unlimited";
 
     return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${
-        isFull ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400" : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-      }`}>
+      <span
+        className={`px-2 py-1 rounded text-xs font-medium ${
+          isFull
+            ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+        }`}
+      >
         {sessionStr}
       </span>
     );
   };
 
   const allColumns: ColumnConfig[] = [
-    { key: "profileName", label: "Profile Name", type: "text", filterKey: "profileName__icontains" },
-    { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
-    { key: "ratePlanName", label: "Rate Plan", type: "text", options: ratePlanOptions, filterKey: "ratePlanName" },
-    { key: "connectionType", label: "Connection Type", type: "text", options: connectionTypeOptions },
-    { key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions },
-    { key: "smppName", label: "SMPP Name", type: "text", filterKey: "smppName__icontains" },
-    { key: "bindStatus", label: "Bind Status", type: "text", options: bindStatusOptions, render: (c) => renderBindStatusBadge(c.bindStatus) },
-    { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", render: (c) => renderSessionBadge(c.session) },
+    {
+      key: "profileName",
+      label: "Profile Name",
+      type: "text",
+      filterKey: "profileName__icontains",
+    },
+    {
+      key: "companyName",
+      label: "Company",
+      type: "text",
+      options: companies,
+      filterKey: "company",
+    },
+    {
+      key: "ratePlanName",
+      label: "Rate Plan",
+      type: "text",
+      options: ratePlanOptions,
+      filterKey: "ratePlanName",
+    },
+    {
+      key: "connectionType",
+      label: "Connection Type",
+      type: "text",
+      options: connectionTypeOptions,
+    },
+    {
+      key: "invoicePolicy",
+      label: "Invoice Policy",
+      type: "text",
+      options: invoicePolicyOptions,
+    },
+    {
+      key: "smppName",
+      label: "SMPP Name",
+      type: "text",
+      filterKey: "smppName__icontains",
+    },
+    {
+      key: "bindStatus",
+      label: "Bind Status",
+      type: "text",
+      options: bindStatusOptions,
+      render: (c) => renderBindStatusBadge(c.bindStatus),
+    },
+    {
+      key: "session",
+      label: "Sessions (Current/Max)",
+      tableLabel: "Sessions",
+      type: "text",
+      render: (c) => renderSessionBadge(c.session),
+    },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
-  const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+  const visibleSearchFields = allColumns.filter((col) =>
+    searchColumns.includes(col.key),
+  );
+  const visibleTableFields = allColumns.filter((col) =>
+    tableColumns.includes(col.key),
+  );
 
   const tableFilterColumns = allColumns
     .filter((c) => !c.isSearchOnly)
@@ -227,7 +300,9 @@ const Vendor: React.FC = () => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const fetchVendors = async (filters: Record<string, string> | null = null) => {
+  const fetchVendors = async (
+    filters: Record<string, string> | null = null,
+  ) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
@@ -243,18 +318,25 @@ const Vendor: React.FC = () => {
           const columnDef = allColumns.find((c) => c.key === key);
 
           if (columnDef?.options) {
-            const selectedOption = columnDef.options.find((opt) => opt.value === value);
-            currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
+            const selectedOption = columnDef.options.find(
+              (opt) => opt.value === value,
+            );
+            currentSearchParams[columnDef.filterKey || key] = selectedOption
+              ? selectedOption.value
+              : value;
           } else if (columnDef?.type === "date") {
-            currentSearchParams[`${key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
+            currentSearchParams[`${key}__range`] =
+              `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_range") {
             const baseKey = key.split("__")[0];
             const [start, end] = value.split(",");
             if (start && end) {
               currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
             } else {
-              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
+              if (start)
+                currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
+              if (end)
+                currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
             }
           } else if (columnDef?.type === "date_gt_lt") {
             const baseKey = key.replace("__gt_lt", "");
@@ -284,7 +366,12 @@ const Vendor: React.FC = () => {
         }
       });
 
-      const response: any = await getVendorsApi(routeName, currentPage, rowsPerPage, currentSearchParams);
+      const response: any = await getVendorsApi(
+        routeName,
+        currentPage,
+        rowsPerPage,
+        currentSearchParams,
+      );
 
       if (newController.signal.aborted) return;
 
@@ -307,11 +394,68 @@ const Vendor: React.FC = () => {
 
   useEffect(() => {
     fetchVendors();
-    return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
   }, [routeName, currentPage, rowsPerPage, searchColumns]);
+  // --- Live WebSockets for Vendor SMPP Status ---
+  useEffect(() => {
+    const wsBase = import.meta.env.VITE_WS_BASE_URL;
+    const ws = new WebSocket(`${wsBase}/ws/status/`);
 
-  const handleSearch = () => { setCurrentPage(1); fetchVendors(); };
-  const handleClearFilters = () => { setFilterValues({}); setCurrentPage(1); fetchVendors({}); };
+    ws.onopen = () => console.log("✅ Vendor Table linked to live SMPP feed");
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        // 1. Handle Gateway Connection Status (The Green/Blue Badge)
+        if (data.action === "vendor_bind_update") {
+          setVendors((prev) =>
+            prev.map((v) =>
+              v.id === data.vendor.id
+                ? { ...v, bindStatus: data.vendor.bindStatus }
+                : v,
+            ),
+          );
+        }
+
+        // 2. Handle Session Counter (The 1/2, 2/2 Badge)
+        if (data.action === "vendor_session_update") {
+          setVendors((prev) =>
+            prev.map((v) => {
+              if (v.id === data.session.vendor_id) {
+                const currentSessionStr = v.session || "0/2";
+                const [count, max] = currentSessionStr.split("/");
+                let currentCount = parseInt(count, 10) || 0;
+
+                if (data.session.status === "ONLINE") currentCount += 1;
+                else if (data.session.status === "OFFLINE")
+                  currentCount = Math.max(0, currentCount - 1);
+
+                return { ...v, session: `${currentCount}/${max}` };
+              }
+              return v;
+            }),
+          );
+        }
+      } catch (err) {
+        console.error("Socket error", err);
+      }
+    };
+
+    ws.onclose = () => console.log("⚠️ Live SMPP feed disconnected");
+    return () => ws.close();
+  }, []);
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchVendors();
+  };
+  const handleClearFilters = () => {
+    setFilterValues({});
+    setCurrentPage(1);
+    fetchVendors({});
+  };
 
   const handleDelete = async () => {
     if (deleteId && canDelete) {
@@ -326,9 +470,23 @@ const Vendor: React.FC = () => {
     }
   };
 
-  const handleEdit = (vendor: VendorData) => { if (!canUpdate) return; setEditingVendor(vendor); setIsViewMode(false); setIsModalOpen(true); };
-  const handleAdd = () => { if (!canCreate) return; setEditingVendor(null); setIsViewMode(false); setIsModalOpen(true); };
-  const handleView = (vendor: VendorData) => { setEditingVendor(vendor); setIsViewMode(true); setIsModalOpen(true); };
+  const handleEdit = (vendor: VendorData) => {
+    if (!canUpdate) return;
+    setEditingVendor(vendor);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+  const handleAdd = () => {
+    if (!canCreate) return;
+    setEditingVendor(null);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+  const handleView = (vendor: VendorData) => {
+    setEditingVendor(vendor);
+    setIsViewMode(true);
+    setIsModalOpen(true);
+  };
 
   const handleContextMenu = (e: React.MouseEvent, vendor: VendorData) => {
     e.preventDefault();
@@ -336,22 +494,51 @@ const Vendor: React.FC = () => {
     setSelectedRowVendor(vendor);
   };
 
-  const menuItems: ContextMenuItem[] = selectedRowVendor ? [
-    { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowVendor) },
-    ...(canUpdate ? [{ label: "Edit Vendor", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowVendor) }] : []),
-    ...(canDelete ? [{ label: "Delete Vendor", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowVendor.id!) }] : []),
-  ] : [];
+  const menuItems: ContextMenuItem[] = selectedRowVendor
+    ? [
+        {
+          label: "View Details",
+          icon: <Eye size={16} />,
+          onClick: () => handleView(selectedRowVendor),
+        },
+        ...(canUpdate
+          ? [
+              {
+                label: "Edit Vendor",
+                icon: <Edit size={16} />,
+                onClick: () => handleEdit(selectedRowVendor),
+              },
+            ]
+          : []),
+        ...(canDelete
+          ? [
+              {
+                label: "Delete Vendor",
+                icon: <Trash size={16} />,
+                variant: "danger" as const,
+                onClick: () => setDeleteId(selectedRowVendor.id!),
+              },
+            ]
+          : []),
+      ]
+    : [];
 
-  const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
+  const tableHeaders = [
+    "S.N.",
+    ...visibleTableFields.map((col) => col.tableLabel || col.label),
+  ];
   const getBaseLabel = (label: string) => label.split(" (")[0].trim();
 
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
     if (!hasLoggedOpening.current) {
       setTimeout(() => {
-        const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+        const activeLinks = document.querySelectorAll(
+          "aside a.active, nav a.active",
+        );
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+        let moduleLabel =
+          activeItem?.innerText?.split("\n")[0].trim() || "Module";
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100);
       hasLoggedOpening.current = true;
@@ -362,39 +549,106 @@ const Vendor: React.FC = () => {
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Vendor Profiles</h1>
+          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
+            Vendor Profiles
+          </h1>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={(newCols) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter
+              columns={allColumns}
+              selectedColumns={searchColumns}
+              onFilter={(newCols) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
+            />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={tableFilterColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+            <AdvancedFilter
+              columns={tableFilterColumns}
+              selectedColumns={tableColumns}
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+            />
           </div>
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
-          <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">Home</NavLink>
-          <span>/</span><span className="text-text-primary dark:text-white">Vendor</span>
+          <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">
+            Home
+          </NavLink>
+          <span>/</span>
+          <span className="text-text-primary dark:text-white">Vendor</span>
         </div>
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
           const baseLabel = getBaseLabel(col.label);
-          
+
           if (col.options) {
-            return <Select key={col.key} label={`Search ${baseLabel}`} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} />;
+            return (
+              <Select
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                value={filterValues[col.key] || ""}
+                onChange={(val) => handleFilterChange(col.key, val)}
+                options={col.options}
+                placeholder={`Select ${baseLabel}`}
+              />
+            );
           }
 
           if (col.type === "date") {
-            return <DatePicker key={col.key} label={`Search ${baseLabel}`} selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null} onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")} />;
+            return (
+              <DatePicker
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                selected={
+                  filterValues[col.key] ? new Date(filterValues[col.key]) : null
+                }
+                onChange={(val: Date | null) =>
+                  handleFilterChange(col.key, val ? formatLocalDate(val) : "")
+                }
+              />
+            );
           }
 
           if (col.type === "date_range") {
             const [startStr, endStr] = (filterValues[col.key] || "").split(",");
             return (
               <React.Fragment key={col.key}>
-                <DatePicker label={`Search ${baseLabel} (From)`} selected={startStr ? new Date(startStr) : null} onChange={(val: Date | null) => { const newStart = val ? formatLocalDate(val) : ""; const currentEnd = endStr || ""; const newVal = newStart || currentEnd ? `${newStart},${currentEnd}` : ""; handleFilterChange(col.key, newVal); }} />
-                <DatePicker label={`Search ${baseLabel} (To)`} selected={endStr ? new Date(endStr) : null} onChange={(val: Date | null) => { const newEnd = val ? formatLocalDate(val) : ""; const currentStart = startStr || ""; const newVal = currentStart || newEnd ? `${currentStart},${newEnd}` : ""; handleFilterChange(col.key, newVal); }} />
+                <DatePicker
+                  label={`Search ${baseLabel} (From)`}
+                  selected={startStr ? new Date(startStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newStart = val ? formatLocalDate(val) : "";
+                    const currentEnd = endStr || "";
+                    const newVal =
+                      newStart || currentEnd ? `${newStart},${currentEnd}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (To)`}
+                  selected={endStr ? new Date(endStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newEnd = val ? formatLocalDate(val) : "";
+                    const currentStart = startStr || "";
+                    const newVal =
+                      currentStart || newEnd ? `${currentStart},${newEnd}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                />
               </React.Fragment>
             );
           }
@@ -403,8 +657,28 @@ const Vendor: React.FC = () => {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
               <React.Fragment key={col.key}>
-                <DatePicker label={`Search ${baseLabel} (> After)`} selected={gtStr ? new Date(gtStr) : null} onChange={(val: Date | null) => { const newGt = val ? formatLocalDate(val) : ""; const currentLt = ltStr || ""; const newVal = newGt || currentLt ? `${newGt},${currentLt}` : ""; handleFilterChange(col.key, newVal); }} />
-                <DatePicker label={`Search ${baseLabel} (< Before)`} selected={ltStr ? new Date(ltStr) : null} onChange={(val: Date | null) => { const newLt = val ? formatLocalDate(val) : ""; const currentGt = gtStr || ""; const newVal = currentGt || newLt ? `${currentGt},${newLt}` : ""; handleFilterChange(col.key, newVal); }} />
+                <DatePicker
+                  label={`Search ${baseLabel} (> After)`}
+                  selected={gtStr ? new Date(gtStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newGt = val ? formatLocalDate(val) : "";
+                    const currentLt = ltStr || "";
+                    const newVal =
+                      newGt || currentLt ? `${newGt},${currentLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (< Before)`}
+                  selected={ltStr ? new Date(ltStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newLt = val ? formatLocalDate(val) : "";
+                    const currentGt = gtStr || "";
+                    const newVal =
+                      currentGt || newLt ? `${currentGt},${newLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                />
               </React.Fragment>
             );
           }
@@ -413,8 +687,32 @@ const Vendor: React.FC = () => {
             const [minStr, maxStr] = (filterValues[col.key] || "").split(",");
             return (
               <React.Fragment key={col.key}>
-                <Input type="number" label={`Search ${baseLabel} (Min)`} value={minStr || ""} onChange={(e) => { const newMin = e.target.value; const currentMax = maxStr || ""; const newVal = newMin || currentMax ? `${newMin},${currentMax}` : ""; handleFilterChange(col.key, newVal); }} placeholder={`> Min`} />
-                <Input type="number" label={`Search ${baseLabel} (Max)`} value={maxStr || ""} onChange={(e) => { const newMax = e.target.value; const currentMin = minStr || ""; const newVal = currentMin || newMax ? `${currentMin},${newMax}` : ""; handleFilterChange(col.key, newVal); }} placeholder={`< Max`} />
+                <Input
+                  type="number"
+                  label={`Search ${baseLabel} (Min)`}
+                  value={minStr || ""}
+                  onChange={(e) => {
+                    const newMin = e.target.value;
+                    const currentMax = maxStr || "";
+                    const newVal =
+                      newMin || currentMax ? `${newMin},${currentMax}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`> Min`}
+                />
+                <Input
+                  type="number"
+                  label={`Search ${baseLabel} (Max)`}
+                  value={maxStr || ""}
+                  onChange={(e) => {
+                    const newMax = e.target.value;
+                    const currentMin = minStr || "";
+                    const newVal =
+                      currentMin || newMax ? `${currentMin},${newMax}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`< Max`}
+                />
               </React.Fragment>
             );
           }
@@ -423,13 +721,46 @@ const Vendor: React.FC = () => {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
               <React.Fragment key={col.key}>
-                <Input type="number" label={`Search ${baseLabel} (> Greater)`} value={gtStr || ""} onChange={(e) => { const newGt = e.target.value; const currentLt = ltStr || ""; const newVal = newGt || currentLt ? `${newGt},${currentLt}` : ""; handleFilterChange(col.key, newVal); }} placeholder={`> Greater than`} />
-                <Input type="number" label={`Search ${baseLabel} (< Less)`} value={ltStr || ""} onChange={(e) => { const newLt = e.target.value; const currentGt = gtStr || ""; const newVal = currentGt || newLt ? `${currentGt},${newLt}` : ""; handleFilterChange(col.key, newVal); }} placeholder={`< Less than`} />
+                <Input
+                  type="number"
+                  label={`Search ${baseLabel} (> Greater)`}
+                  value={gtStr || ""}
+                  onChange={(e) => {
+                    const newGt = e.target.value;
+                    const currentLt = ltStr || "";
+                    const newVal =
+                      newGt || currentLt ? `${newGt},${currentLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`> Greater than`}
+                />
+                <Input
+                  type="number"
+                  label={`Search ${baseLabel} (< Less)`}
+                  value={ltStr || ""}
+                  onChange={(e) => {
+                    const newLt = e.target.value;
+                    const currentGt = gtStr || "";
+                    const newVal =
+                      currentGt || newLt ? `${currentGt},${newLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`< Less than`}
+                />
               </React.Fragment>
             );
           }
 
-          return <Input key={col.key} type={col.type || "text"} label={`Search ${baseLabel}`} value={filterValues[col.key] || ""} onChange={(e) => handleFilterChange(col.key, e.target.value)} placeholder={`${baseLabel}`} />;
+          return (
+            <Input
+              key={col.key}
+              type={col.type || "text"}
+              label={`Search ${baseLabel}`}
+              value={filterValues[col.key] || ""}
+              onChange={(e) => handleFilterChange(col.key, e.target.value)}
+              placeholder={`${baseLabel}`}
+            />
+          );
         })}
       </FilterCard>
 
@@ -443,10 +774,26 @@ const Vendor: React.FC = () => {
         onRowsPerPageChange={setRowsPerPage}
         headers={tableHeaders}
         isLoading={isLoading}
-        headerActions={canCreate ? <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>Add Vendor</Button> : null}
+        headerActions={
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Add Vendor
+            </Button>
+          ) : null
+        }
         renderRow={(vendor: any, index) => (
-          <tr key={vendor.id || index} onContextMenu={(e) => handleContextMenu(e, vendor)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
+          <tr
+            key={vendor.id || index}
+            onContextMenu={(e) => handleContextMenu(e, vendor)}
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
+          >
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
+              {(currentPage - 1) * rowsPerPage + index + 1}
+            </td>
             {visibleTableFields.map((col) => {
               let cellData = (vendor as any)[col.key];
 
@@ -455,17 +802,35 @@ const Vendor: React.FC = () => {
               }
 
               if (col.render) {
-                return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{col.render(vendor)}</td>;
+                return (
+                  <td
+                    key={col.key}
+                    className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+                  >
+                    {col.render(vendor)}
+                  </td>
+                );
               }
               if (col.options) {
-                const match = col.options.find((opt) => opt.value === String(cellData));
+                const match = col.options.find(
+                  (opt) => opt.value === String(cellData),
+                );
                 cellData = match ? match.label : cellData;
               }
               return (
-                <td key={col.key} className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "profileName" ? "font-medium text-text-primary dark:text-white" : ""}`}>
+                <td
+                  key={col.key}
+                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "profileName" ? "font-medium text-text-primary dark:text-white" : ""}`}
+                >
                   {col.key === "connectionType" ? (
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${cellData === "SMPP" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"}`}>{cellData}</span>
-                  ) : (cellData || "-")}
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${cellData === "SMPP" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"}`}
+                    >
+                      {cellData}
+                    </span>
+                  ) : (
+                    cellData || "-"
+                  )}
                 </td>
               );
             })}
@@ -473,7 +838,11 @@ const Vendor: React.FC = () => {
         )}
       />
 
-      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+      <ContextMenu
+        position={contextMenuPos}
+        items={menuItems}
+        onClose={() => setContextMenuPos(null)}
+      />
 
       <VendorModal
         isOpen={isModalOpen}
@@ -483,7 +852,13 @@ const Vendor: React.FC = () => {
         editingVendor={editingVendor}
         isViewMode={isViewMode}
       />
-      <DeleteModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Vendor" message="Are you sure you want to delete this vendor? This action cannot be undone." />
+      <DeleteModal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Delete Vendor"
+        message="Are you sure you want to delete this vendor? This action cannot be undone."
+      />
     </div>
   );
 };
