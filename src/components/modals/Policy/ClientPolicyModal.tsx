@@ -57,7 +57,7 @@ export const ClientPolicyModal: React.FC<ClientPolicyModalProps> = ({
           else if (Array.isArray(res)) list = res;
 
           setClientOptions(
-            list.map((c: any) => ({ label: c.name, value: String(c.id) }))
+            list.map((c: any) => ({ label: c.name, value: String(c.id) })),
           );
         })
         .catch((err: any) => console.error("Failed to load clients", err));
@@ -68,13 +68,32 @@ export const ClientPolicyModal: React.FC<ClientPolicyModalProps> = ({
     if (isOpen && editingPolicy) {
       setFormData({
         client: String(editingPolicy.client || ""),
-        maxTps: editingPolicy.maxTps != null ? String(editingPolicy.maxTps) : "",
-        maxQueueDepth: editingPolicy.maxQueueDepth != null ? String(editingPolicy.maxQueueDepth) : "",
-        maxWindowPerSession: editingPolicy.maxWindowPerSession != null ? String(editingPolicy.maxWindowPerSession) : "",
-        maxWindowGlobal: editingPolicy.maxWindowGlobal != null ? String(editingPolicy.maxWindowGlobal) : "",
-        maxSessions: editingPolicy.maxSessions != null ? String(editingPolicy.maxSessions) : "",
-        idleTimeoutSec: editingPolicy.idleTimeoutSec != null ? String(editingPolicy.idleTimeoutSec) : "",
-        submitTimeoutSec: editingPolicy.submitTimeoutSec != null ? String(editingPolicy.submitTimeoutSec) : "",
+        maxTps:
+          editingPolicy.maxTps != null ? String(editingPolicy.maxTps) : "",
+        maxQueueDepth:
+          editingPolicy.maxQueueDepth != null
+            ? String(editingPolicy.maxQueueDepth)
+            : "",
+        maxWindowPerSession:
+          editingPolicy.maxWindowPerSession != null
+            ? String(editingPolicy.maxWindowPerSession)
+            : "",
+        maxWindowGlobal:
+          editingPolicy.maxWindowGlobal != null
+            ? String(editingPolicy.maxWindowGlobal)
+            : "",
+        maxSessions:
+          editingPolicy.maxSessions != null
+            ? String(editingPolicy.maxSessions)
+            : "",
+        idleTimeoutSec:
+          editingPolicy.idleTimeoutSec != null
+            ? String(editingPolicy.idleTimeoutSec)
+            : "",
+        submitTimeoutSec:
+          editingPolicy.submitTimeoutSec != null
+            ? String(editingPolicy.submitTimeoutSec)
+            : "",
         senderIdPolicy: editingPolicy.senderIdPolicy || "",
       });
     } else if (isOpen) {
@@ -116,20 +135,27 @@ export const ClientPolicyModal: React.FC<ClientPolicyModalProps> = ({
     };
 
     if (formData.maxTps) payload.maxTps = Number(formData.maxTps);
-    if (formData.maxQueueDepth) payload.maxQueueDepth = Number(formData.maxQueueDepth);
-    if (formData.maxWindowPerSession) payload.maxWindowPerSession = Number(formData.maxWindowPerSession);
-    if (formData.maxWindowGlobal) payload.maxWindowGlobal = Number(formData.maxWindowGlobal);
-    if (formData.maxSessions) payload.maxSessions = Number(formData.maxSessions);
-    if (formData.idleTimeoutSec) payload.idleTimeoutSec = Number(formData.idleTimeoutSec);
-    if (formData.submitTimeoutSec) payload.submitTimeoutSec = Number(formData.submitTimeoutSec);
-    if (formData.senderIdPolicy) payload.senderIdPolicy = formData.senderIdPolicy;
+    if (formData.maxQueueDepth)
+      payload.maxQueueDepth = Number(formData.maxQueueDepth);
+    if (formData.maxWindowPerSession)
+      payload.maxWindowPerSession = Number(formData.maxWindowPerSession);
+    if (formData.maxWindowGlobal)
+      payload.maxWindowGlobal = Number(formData.maxWindowGlobal);
+    if (formData.maxSessions)
+      payload.maxSessions = Number(formData.maxSessions);
+    if (formData.idleTimeoutSec)
+      payload.idleTimeoutSec = Number(formData.idleTimeoutSec);
+    if (formData.submitTimeoutSec)
+      payload.submitTimeoutSec = Number(formData.submitTimeoutSec);
+    if (formData.senderIdPolicy)
+      payload.senderIdPolicy = formData.senderIdPolicy;
 
     try {
       if (editingPolicy) {
-        await updateClientPolicyApi(editingPolicy.id!, payload, moduleName);
+        await updateClientPolicyApi(editingPolicy.id!, payload);
         toast.success("Client policy updated successfully!");
       } else {
-        await createClientPolicyApi(payload, moduleName);
+        await createClientPolicyApi(payload);
         toast.success("Client policy created successfully!");
       }
       onSuccess();
@@ -152,12 +178,15 @@ export const ClientPolicyModal: React.FC<ClientPolicyModalProps> = ({
         isViewMode
           ? "View Client Policy"
           : editingPolicy
-          ? "Edit Client Policy"
-          : "Add Client Policy"
+            ? "Edit Client Policy"
+            : "Add Client Policy"
       }
       className="max-w-3xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto px-1">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 max-h-[80vh] overflow-y-auto px-1"
+      >
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             General Settings
@@ -270,8 +299,8 @@ export const ClientPolicyModal: React.FC<ClientPolicyModalProps> = ({
               {isSubmitting
                 ? "Saving"
                 : editingPolicy
-                ? "Update Policy"
-                : "Add Policy"}
+                  ? "Update Policy"
+                  : "Add Policy"}
             </Button>
           )}
         </div>

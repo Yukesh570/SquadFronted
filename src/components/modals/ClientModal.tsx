@@ -15,6 +15,13 @@ import {
   deleteIpWhitelistApi,
 } from "../../api/ipWhitelistApi/ipWhitelistApi";
 
+// --- Policy APIs ---
+import {
+  createClientPolicyApi,
+  updateClientPolicyApi,
+  getClientPoliciesApi,
+} from "../../api/policyApi/clientPolicyApi";
+
 // @ts-ignore
 import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi";
 
@@ -64,14 +71,27 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     smppUsername: "",
     smppPassword: "",
     internalNotes: "",
-    bindStatus: "OFFLINE", // ⚡️ ADD THIS
+    bindStatus: "OFFLINE",
     session: "0/2",
+
+    // Policy Fields
+    maxTps: "",
+    maxQueueDepth: "",
+    maxWindowPerSession: "",
+    maxWindowGlobal: "",
+    maxSessions: "",
+    idleTimeoutSec: "",
+    submitTimeoutSec: "",
+    senderIdPolicy: "",
   });
 
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
   const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Track existing policy ID to know if we are updating or creating
+  const [existingPolicyId, setExistingPolicyId] = useState<number | null>(null);
 
   // --- Helper: Validate IP ---
   const isValidIp = (ip: string) => {
@@ -105,7 +125,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     { label: "Net 30", value: "NET30" },
   ];
 
-  // --- Effects ---
+  // --- Fetch Global Dropdowns ---
   useEffect(() => {
     if (isOpen) {
       getCompaniesApi("company", 1, 1000)
@@ -133,58 +153,126 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     }
   }, [isOpen]);
 
+  // --- Fetch Client Details, IPs, and Policy ---
   useEffect(() => {
-    if (isOpen && editingClient) {
-      setFormData({
-        company: String(editingClient.company || ""),
-        name: editingClient.name,
-        ratePlanName: editingClient.ratePlanName || "",
-        status: editingClient.status,
-        route: editingClient.route,
-        paymentTerms: editingClient.paymentTerms,
-        creditLimit: editingClient.creditLimit || "",
-        balanceAlertAmount: editingClient.balanceAlertAmount,
-        allowNetting: editingClient.allowNetting,
-        enableDlr: editingClient.enableDlr,
-        ipWhitelist: "",
-        smppUsername: editingClient.smppUsername || "",
-        smppPassword: editingClient.smppPassword || "",
-        internalNotes: editingClient.internalNotes || "",
-        bindStatus: editingClient.bindStatus || "OFFLINE", // ⚡️ ADD THIS
-        session: editingClient.session || "0/2",
-      });
-
-      if (editingClient.id) {
-        getIpWhitelistApi("ipWhitelist", 1, 1000, { client: editingClient.id })
-          .then((res) => {
-            const myIps = (res.results || []).filter(
-              (r: any) => r.client === editingClient.id,
-            );
-            const ipString = myIps.map((item) => item.ip).join(", ");
-            setFormData((prev) => ({ ...prev, ipWhitelist: ipString }));
-          })
-          .catch((err: any) => console.error("Failed to fetch IPs", err));
+    const loadData = async () => {
+      // 1. Immediately reset state when modal opens to prevent stale data
+      if (isOpen) {
+        setExistingPolicyId(null);
+        setFormData({
+          company: "",
+          name: "",
+          ratePlanName: "",
+          status: "ACTIVE",
+          route: "DIRECT",
+          paymentTerms: "PREPAID",
+          creditLimit: "",
+          balanceAlertAmount: "",
+          allowNetting: false,
+          enableDlr: false,
+          ipWhitelist: "",
+          smppUsername: "",
+          smppPassword: "",
+          internalNotes: "",
+          bindStatus: "OFFLINE",
+          session: "0/2",
+          maxTps: "",
+          maxQueueDepth: "",
+          maxWindowPerSession: "",
+          maxWindowGlobal: "",
+          maxSessions: "",
+          idleTimeoutSec: "",
+          submitTimeoutSec: "",
+          senderIdPolicy: "",
+        });
       }
-    } else if (isOpen) {
-      setFormData({
-        company: "",
-        name: "",
-        ratePlanName: "",
-        status: "ACTIVE",
-        route: "DIRECT",
-        paymentTerms: "PREPAID",
-        creditLimit: "",
-        balanceAlertAmount: "",
-        allowNetting: false,
-        enableDlr: false,
-        ipWhitelist: "",
-        smppUsername: "",
-        smppPassword: "",
-        internalNotes: "",
-        bindStatus: "OFFLINE", // ⚡️ ADD THIS
-        session: "0/2",
-      });
-    }
+
+      // 2. Populate editing data if it exists
+      if (isOpen && editingClient) {
+        setFormData((prev) => ({
+          ...prev,
+          company: String(editingClient.company || ""),
+          name: editingClient.name,
+          ratePlanName: editingClient.ratePlanName || "",
+          status: editingClient.status,
+          route: editingClient.route,
+          paymentTerms: editingClient.paymentTerms,
+          creditLimit: editingClient.creditLimit || "",
+          balanceAlertAmount: editingClient.balanceAlertAmount || "",
+          allowNetting: editingClient.allowNetting,
+          enableDlr: editingClient.enableDlr,
+          smppUsername: editingClient.smppUsername || "",
+          smppPassword: editingClient.smppPassword || "",
+          internalNotes: editingClient.internalNotes || "",
+          bindStatus: editingClient.bindStatus || "OFFLINE",
+          session: editingClient.session || "0/2",
+        }));
+
+        if (editingClient.id) {
+          // Fetch IPs
+          getIpWhitelistApi("ipWhitelist", 1, 1000, {
+            client: editingClient.id,
+          })
+            .then((res) => {
+              const myIps = (res.results || []).filter(
+                (r: any) => r.client === editingClient.id,
+              );
+              const ipString = myIps.map((item) => item.ip).join(", ");
+              setFormData((prev) => ({ ...prev, ipWhitelist: ipString }));
+            })
+            .catch((err: any) => console.error("Failed to fetch IPs", err));
+
+          // Fetch Client Policy
+          getClientPoliciesApi(1, 10, { client: editingClient.id })
+            .then((policyRes) => {
+              if (
+                policyRes &&
+                policyRes.results &&
+                policyRes.results.length > 0
+              ) {
+                const policyData = policyRes.results[0];
+                setExistingPolicyId(policyData.id || null);
+
+                setFormData((prev) => ({
+                  ...prev,
+                  maxTps:
+                    policyData.maxTps != null ? String(policyData.maxTps) : "",
+                  maxQueueDepth:
+                    policyData.maxQueueDepth != null
+                      ? String(policyData.maxQueueDepth)
+                      : "",
+                  maxWindowPerSession:
+                    policyData.maxWindowPerSession != null
+                      ? String(policyData.maxWindowPerSession)
+                      : "",
+                  maxWindowGlobal:
+                    policyData.maxWindowGlobal != null
+                      ? String(policyData.maxWindowGlobal)
+                      : "",
+                  maxSessions:
+                    policyData.maxSessions != null
+                      ? String(policyData.maxSessions)
+                      : "",
+                  idleTimeoutSec:
+                    policyData.idleTimeoutSec != null
+                      ? String(policyData.idleTimeoutSec)
+                      : "",
+                  submitTimeoutSec:
+                    policyData.submitTimeoutSec != null
+                      ? String(policyData.submitTimeoutSec)
+                      : "",
+                  senderIdPolicy: policyData.senderIdPolicy || "",
+                }));
+              }
+            })
+            .catch((err) =>
+              console.error("Failed to fetch client policy", err),
+            );
+        }
+      }
+    };
+
+    loadData();
   }, [isOpen, editingClient]);
 
   // --- Handlers ---
@@ -248,7 +336,21 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const { ipWhitelist, creditLimit, ...clientPayload } = formData;
+      // 1. Prepare Base Client Payload
+      const {
+        ipWhitelist,
+        creditLimit,
+        maxTps,
+        maxQueueDepth,
+        maxWindowPerSession,
+        maxWindowGlobal,
+        maxSessions,
+        idleTimeoutSec,
+        submitTimeoutSec,
+        senderIdPolicy,
+        ...clientPayload
+      } = formData;
+
       const payload = {
         ...clientPayload,
         company: Number(formData.company),
@@ -257,6 +359,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
       let savedClientId: number;
 
+      // 2. Save Client
       if (editingClient) {
         await updateClientApi(editingClient.id!, payload, moduleName);
         savedClientId = editingClient.id!;
@@ -265,7 +368,47 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         savedClientId = newClient.id!;
       }
 
+      // 3. Sync IPs
       await handleIpSync(savedClientId, ipList);
+
+      // 4. Handle Policy Configuration
+      if (savedClientId) {
+        const policyPayload: any = {};
+
+        if (formData.senderIdPolicy !== "")
+          policyPayload.senderIdPolicy = formData.senderIdPolicy;
+        if (formData.maxTps !== "")
+          policyPayload.maxTps = Number(formData.maxTps);
+        if (formData.maxQueueDepth !== "")
+          policyPayload.maxQueueDepth = Number(formData.maxQueueDepth);
+        if (formData.maxWindowPerSession !== "")
+          policyPayload.maxWindowPerSession = Number(
+            formData.maxWindowPerSession,
+          );
+        if (formData.maxWindowGlobal !== "")
+          policyPayload.maxWindowGlobal = Number(formData.maxWindowGlobal);
+        if (formData.maxSessions !== "")
+          policyPayload.maxSessions = Number(formData.maxSessions);
+        if (formData.idleTimeoutSec !== "")
+          policyPayload.idleTimeoutSec = Number(formData.idleTimeoutSec);
+        if (formData.submitTimeoutSec !== "")
+          policyPayload.submitTimeoutSec = Number(formData.submitTimeoutSec);
+
+        // Only save if there is actually policy data to push
+        if (Object.keys(policyPayload).length > 0 || existingPolicyId) {
+          try {
+            if (existingPolicyId) {
+              await updateClientPolicyApi(existingPolicyId, policyPayload);
+            } else {
+              policyPayload.client = savedClientId;
+              await createClientPolicyApi(policyPayload);
+            }
+          } catch (policyErr) {
+            console.error("Policy configuration save error:", policyErr);
+            toast.warning("Client saved, but policy settings failed to save.");
+          }
+        }
+      }
 
       toast.success(
         editingClient
@@ -311,7 +454,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             ? "Edit Client"
             : "Add New Client"
       }
-      className="max-w-4xl"
+      className="max-w-6xl"
     >
       <form
         onSubmit={handleSubmit}
@@ -436,7 +579,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 </button>
               }
             />
-            {/* ⚡️ ADD THIS BLOCK: Live Status (Visible only in view mode) */}
+
             {editingClient && (
               <>
                 <Input
@@ -458,24 +601,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 />
               </>
             )}
-            {/* ⚡️ END NEW BLOCK */}
 
-            {/* IP Whitelist - visible ONLY in view mode */}
-            {isViewMode && (
-              <div className="md:col-span-2">
-                <TextArea
-                  label="IP Whitelist"
-                  name="ipWhitelist"
-                  value={formData.ipWhitelist}
-                  onChange={handleChange}
-                  placeholder="Enter IPs separated by commas or new lines"
-                  disabled={isViewMode}
-                  rows={3}
-                />
-              </div>
-            )}
-
-            {/* IP Whitelist - visible ONLY in view mode */}
             {isViewMode && (
               <div className="md:col-span-2">
                 <TextArea
@@ -492,26 +618,102 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           </div>
         </fieldset>
 
-        {/* Notes */}
+        {/* Policy: Throughput & Limits */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
-            Notes
+            Throughput & Limits
           </legend>
-          <TextArea
-            label="Internal Notes"
-            name="internalNotes"
-            value={formData.internalNotes}
-            onChange={handleChange}
-            disabled={isViewMode}
-            rows={2}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              label="Max TPS"
+              name="maxTps"
+              type="number"
+              value={formData.maxTps}
+              onChange={handleChange}
+              placeholder="50"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Max Sessions"
+              name="maxSessions"
+              type="number"
+              value={formData.maxSessions}
+              onChange={handleChange}
+              placeholder="10"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Max Queue Depth"
+              name="maxQueueDepth"
+              type="number"
+              value={formData.maxQueueDepth}
+              onChange={handleChange}
+              placeholder="10000"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Max Window (Global)"
+              name="maxWindowGlobal"
+              type="number"
+              value={formData.maxWindowGlobal}
+              onChange={handleChange}
+              placeholder="50"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Max Window (Per Session)"
+              name="maxWindowPerSession"
+              type="number"
+              value={formData.maxWindowPerSession}
+              onChange={handleChange}
+              placeholder="10"
+              disabled={isViewMode}
+            />
+          </div>
         </fieldset>
 
-        {/* Settings */}
+        {/* Policy: Timeouts */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
-            Settings
+            Timeouts
           </legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Idle Timeout (Seconds)"
+              name="idleTimeoutSec"
+              type="number"
+              value={formData.idleTimeoutSec}
+              onChange={handleChange}
+              placeholder="60"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Submit Timeout (Seconds)"
+              name="submitTimeoutSec"
+              type="number"
+              value={formData.submitTimeoutSec}
+              onChange={handleChange}
+              placeholder="60"
+              disabled={isViewMode}
+            />
+          </div>
+        </fieldset>
+
+        {/* Settings & Extra */}
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <legend className="text-sm font-semibold text-primary px-2">
+            Settings & Rules
+          </legend>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <Input
+              label="Sender ID Policy"
+              name="senderIdPolicy"
+              value={formData.senderIdPolicy}
+              onChange={handleChange}
+              placeholder="DEFAULT"
+              disabled={isViewMode}
+            />
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className={isViewMode ? "pointer-events-none opacity-50" : ""}>
               <ToggleSwitch
@@ -530,6 +732,21 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           </div>
         </fieldset>
 
+        {/* Notes */}
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-2">
+          <legend className="text-sm font-semibold text-primary px-2">
+            Notes
+          </legend>
+          <TextArea
+            label="Internal Notes"
+            name="internalNotes"
+            value={formData.internalNotes}
+            onChange={handleChange}
+            disabled={isViewMode}
+            rows={2}
+          />
+        </fieldset>
+
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
           <Button type="button" variant="secondary" onClick={onClose}>
             {isViewMode ? "Close" : "Cancel"}
@@ -537,7 +754,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving"
+                ? "Saving..."
                 : editingClient
                   ? "Update Client"
                   : "Add Client"}

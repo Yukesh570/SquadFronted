@@ -36,12 +36,6 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     vendor: "",
-    sourceAddrTon: "",
-    sourceAddrNpi: "",
-    destAddrTon: "",
-    destAddrNpi: "",
-    addrTon: "",
-    addrNpi: "",
     rateTps: "",
     sendQueueLimit: "",
     delayTime: "",
@@ -81,7 +75,7 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
             list.map((v: any) => ({
               label: v.profileName || v.name || `Vendor ${v.id}`,
               value: String(v.id),
-            }))
+            })),
           );
         })
         .catch((err: any) => console.error("Failed to load vendors", err));
@@ -92,23 +86,48 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
     if (isOpen && editingPolicy) {
       setFormData({
         vendor: String(editingPolicy.vendor || ""),
-        sourceAddrTon: editingPolicy.sourceAddrTon != null ? String(editingPolicy.sourceAddrTon) : "",
-        sourceAddrNpi: editingPolicy.sourceAddrNpi != null ? String(editingPolicy.sourceAddrNpi) : "",
-        destAddrTon: editingPolicy.destAddrTon != null ? String(editingPolicy.destAddrTon) : "",
-        destAddrNpi: editingPolicy.destAddrNpi != null ? String(editingPolicy.destAddrNpi) : "",
-        addrTon: editingPolicy.addrTon != null ? String(editingPolicy.addrTon) : "",
-        addrNpi: editingPolicy.addrNpi != null ? String(editingPolicy.addrNpi) : "",
-        rateTps: editingPolicy.rateTps != null ? String(editingPolicy.rateTps) : "",
-        sendQueueLimit: editingPolicy.sendQueueLimit != null ? String(editingPolicy.sendQueueLimit) : "",
-        delayTime: editingPolicy.delayTime != null ? String(editingPolicy.delayTime) : "",
-        responseTimeout: editingPolicy.responseTimeout != null ? String(editingPolicy.responseTimeout) : "",
-        enquireLinkInterval: editingPolicy.enquireLinkInterval != null ? String(editingPolicy.enquireLinkInterval) : "",
-        connectionTimeout: editingPolicy.connectionTimeout != null ? String(editingPolicy.connectionTimeout) : "",
-        connectionRetryDelay: editingPolicy.connectionRetryDelay != null ? String(editingPolicy.connectionRetryDelay) : "",
-        connectionRetryCount: editingPolicy.connectionRetryCount != null ? String(editingPolicy.connectionRetryCount) : "",
-        bindRetryDelay: editingPolicy.bindRetryDelay != null ? String(editingPolicy.bindRetryDelay) : "",
-        bindRetryCount: editingPolicy.bindRetryCount != null ? String(editingPolicy.bindRetryCount) : "",
-        connectionRecoveryDelay: editingPolicy.connectionRecoveryDelay != null ? String(editingPolicy.connectionRecoveryDelay) : "",
+        rateTps:
+          editingPolicy.rateTps != null ? String(editingPolicy.rateTps) : "",
+        sendQueueLimit:
+          editingPolicy.sendQueueLimit != null
+            ? String(editingPolicy.sendQueueLimit)
+            : "",
+        delayTime:
+          editingPolicy.delayTime != null
+            ? String(editingPolicy.delayTime)
+            : "",
+        responseTimeout:
+          editingPolicy.responseTimeout != null
+            ? String(editingPolicy.responseTimeout)
+            : "",
+        enquireLinkInterval:
+          editingPolicy.enquireLinkInterval != null
+            ? String(editingPolicy.enquireLinkInterval)
+            : "",
+        connectionTimeout:
+          editingPolicy.connectionTimeout != null
+            ? String(editingPolicy.connectionTimeout)
+            : "",
+        connectionRetryDelay:
+          editingPolicy.connectionRetryDelay != null
+            ? String(editingPolicy.connectionRetryDelay)
+            : "",
+        connectionRetryCount:
+          editingPolicy.connectionRetryCount != null
+            ? String(editingPolicy.connectionRetryCount)
+            : "",
+        bindRetryDelay:
+          editingPolicy.bindRetryDelay != null
+            ? String(editingPolicy.bindRetryDelay)
+            : "",
+        bindRetryCount:
+          editingPolicy.bindRetryCount != null
+            ? String(editingPolicy.bindRetryCount)
+            : "",
+        connectionRecoveryDelay:
+          editingPolicy.connectionRecoveryDelay != null
+            ? String(editingPolicy.connectionRecoveryDelay)
+            : "",
         logLevel: editingPolicy.logLevel || "INFO",
         tlvTag: editingPolicy.tlvTag || "",
         tlvValue: editingPolicy.tlvValue || "",
@@ -116,12 +135,6 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
     } else if (isOpen) {
       setFormData({
         vendor: "",
-        sourceAddrTon: "",
-        sourceAddrNpi: "",
-        destAddrTon: "",
-        destAddrNpi: "",
-        addrTon: "",
-        addrNpi: "",
         rateTps: "",
         sendQueueLimit: "",
         delayTime: "",
@@ -164,36 +177,41 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
       logLevel: formData.logLevel,
     };
 
-    if (formData.sourceAddrTon !== "") payload.sourceAddrTon = Number(formData.sourceAddrTon);
-    if (formData.sourceAddrNpi !== "") payload.sourceAddrNpi = Number(formData.sourceAddrNpi);
-    if (formData.destAddrTon !== "") payload.destAddrTon = Number(formData.destAddrTon);
-    if (formData.destAddrNpi !== "") payload.destAddrNpi = Number(formData.destAddrNpi);
-    if (formData.addrTon !== "") payload.addrTon = Number(formData.addrTon);
-    if (formData.addrNpi !== "") payload.addrNpi = Number(formData.addrNpi);
-    
     if (formData.rateTps !== "") payload.rateTps = Number(formData.rateTps);
-    if (formData.sendQueueLimit !== "") payload.sendQueueLimit = Number(formData.sendQueueLimit);
-    if (formData.delayTime !== "") payload.delayTime = Number(formData.delayTime);
-    
-    if (formData.responseTimeout !== "") payload.responseTimeout = Number(formData.responseTimeout);
-    if (formData.enquireLinkInterval !== "") payload.enquireLinkInterval = Number(formData.enquireLinkInterval);
-    if (formData.connectionTimeout !== "") payload.connectionTimeout = Number(formData.connectionTimeout);
-    
-    if (formData.connectionRetryDelay !== "") payload.connectionRetryDelay = Number(formData.connectionRetryDelay);
-    if (formData.connectionRetryCount !== "") payload.connectionRetryCount = Number(formData.connectionRetryCount);
-    if (formData.bindRetryDelay !== "") payload.bindRetryDelay = Number(formData.bindRetryDelay);
-    if (formData.bindRetryCount !== "") payload.bindRetryCount = Number(formData.bindRetryCount);
-    if (formData.connectionRecoveryDelay !== "") payload.connectionRecoveryDelay = Number(formData.connectionRecoveryDelay);
-    
+    if (formData.sendQueueLimit !== "")
+      payload.sendQueueLimit = Number(formData.sendQueueLimit);
+    if (formData.delayTime !== "")
+      payload.delayTime = Number(formData.delayTime);
+
+    if (formData.responseTimeout !== "")
+      payload.responseTimeout = Number(formData.responseTimeout);
+    if (formData.enquireLinkInterval !== "")
+      payload.enquireLinkInterval = Number(formData.enquireLinkInterval);
+    if (formData.connectionTimeout !== "")
+      payload.connectionTimeout = Number(formData.connectionTimeout);
+
+    if (formData.connectionRetryDelay !== "")
+      payload.connectionRetryDelay = Number(formData.connectionRetryDelay);
+    if (formData.connectionRetryCount !== "")
+      payload.connectionRetryCount = Number(formData.connectionRetryCount);
+    if (formData.bindRetryDelay !== "")
+      payload.bindRetryDelay = Number(formData.bindRetryDelay);
+    if (formData.bindRetryCount !== "")
+      payload.bindRetryCount = Number(formData.bindRetryCount);
+    if (formData.connectionRecoveryDelay !== "")
+      payload.connectionRecoveryDelay = Number(
+        formData.connectionRecoveryDelay,
+      );
+
     if (formData.tlvTag !== "") payload.tlvTag = formData.tlvTag;
     if (formData.tlvValue !== "") payload.tlvValue = formData.tlvValue;
 
     try {
       if (editingPolicy) {
-        await updateVendorPolicyApi(editingPolicy.id!, payload, moduleName);
+        await updateVendorPolicyApi(editingPolicy.id!, payload);
         toast.success("Vendor policy updated successfully!");
       } else {
-        await createVendorPolicyApi(payload, moduleName);
+        await createVendorPolicyApi(payload);
         toast.success("Vendor policy created successfully!");
       }
       onSuccess();
@@ -216,13 +234,15 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
         isViewMode
           ? "View Vendor Policy"
           : editingPolicy
-          ? "Edit Vendor Policy"
-          : "Add Vendor Policy"
+            ? "Edit Vendor Policy"
+            : "Add Vendor Policy"
       }
       className="max-w-4xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto px-1">
-        
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 max-h-[80vh] overflow-y-auto px-1"
+      >
         {/* General Settings */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
@@ -235,7 +255,7 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
               onChange={(v) => handleSelect("vendor", v)}
               options={vendorOptions}
               placeholder="Select Vendor"
-              disabled={isViewMode || !!editingPolicy} 
+              disabled={isViewMode || !!editingPolicy}
             />
             <Select
               label="Log Level"
@@ -249,19 +269,6 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
         </fieldset>
 
         {/* Address & Routing */}
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <legend className="text-sm font-semibold text-primary px-2">
-            Address Configuration
-          </legend>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Input label="Source Addr TON" name="sourceAddrTon" type="number" value={formData.sourceAddrTon} onChange={handleChange} placeholder="5" disabled={isViewMode} />
-            <Input label="Source Addr NPI" name="sourceAddrNpi" type="number" value={formData.sourceAddrNpi} onChange={handleChange} placeholder="0" disabled={isViewMode} />
-            <Input label="Dest Addr TON" name="destAddrTon" type="number" value={formData.destAddrTon} onChange={handleChange} placeholder="1" disabled={isViewMode} />
-            <Input label="Dest Addr NPI" name="destAddrNpi" type="number" value={formData.destAddrNpi} onChange={handleChange} placeholder="1" disabled={isViewMode} />
-            <Input label="Addr TON" name="addrTon" type="number" value={formData.addrTon} onChange={handleChange} placeholder="1" disabled={isViewMode} />
-            <Input label="Addr NPI" name="addrNpi" type="number" value={formData.addrNpi} onChange={handleChange} placeholder="1" disabled={isViewMode} />
-          </div>
-        </fieldset>
 
         {/* Speed & Queueing */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -269,9 +276,34 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
             Speed & Queueing
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input label="Rate / TPS" name="rateTps" type="number" value={formData.rateTps} onChange={handleChange} placeholder="50" disabled={isViewMode} />
-            <Input label="Send Queue Limit" name="sendQueueLimit" type="number" value={formData.sendQueueLimit} onChange={handleChange} placeholder="10" disabled={isViewMode} />
-            <Input label="Delay Time (Sec)" name="delayTime" type="number" step="0.1" value={formData.delayTime} onChange={handleChange} placeholder="0.0" disabled={isViewMode} />
+            <Input
+              label="Rate / TPS"
+              name="rateTps"
+              type="number"
+              value={formData.rateTps}
+              onChange={handleChange}
+              placeholder="50"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Send Queue Limit"
+              name="sendQueueLimit"
+              type="number"
+              value={formData.sendQueueLimit}
+              onChange={handleChange}
+              placeholder="10"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Delay Time (Sec)"
+              name="delayTime"
+              type="number"
+              step="0.1"
+              value={formData.delayTime}
+              onChange={handleChange}
+              placeholder="0.0"
+              disabled={isViewMode}
+            />
           </div>
         </fieldset>
 
@@ -281,9 +313,36 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
             Timeouts
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input label="Response Timeout (s)" name="responseTimeout" type="number" step="0.1" value={formData.responseTimeout} onChange={handleChange} placeholder="30.0" disabled={isViewMode} />
-            <Input label="Enquire Link Interval (s)" name="enquireLinkInterval" type="number" step="0.1" value={formData.enquireLinkInterval} onChange={handleChange} placeholder="30.0" disabled={isViewMode} />
-            <Input label="Connection Timeout (s)" name="connectionTimeout" type="number" step="0.1" value={formData.connectionTimeout} onChange={handleChange} placeholder="10.0" disabled={isViewMode} />
+            <Input
+              label="Response Timeout (s)"
+              name="responseTimeout"
+              type="number"
+              step="0.1"
+              value={formData.responseTimeout}
+              onChange={handleChange}
+              placeholder="30.0"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Enquire Link Interval (s)"
+              name="enquireLinkInterval"
+              type="number"
+              step="0.1"
+              value={formData.enquireLinkInterval}
+              onChange={handleChange}
+              placeholder="30.0"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Connection Timeout (s)"
+              name="connectionTimeout"
+              type="number"
+              step="0.1"
+              value={formData.connectionTimeout}
+              onChange={handleChange}
+              placeholder="10.0"
+              disabled={isViewMode}
+            />
           </div>
         </fieldset>
 
@@ -293,11 +352,54 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
             Retries & Recovery
           </legend>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Input label="Conn Retry Delay (s)" name="connectionRetryDelay" type="number" step="0.1" value={formData.connectionRetryDelay} onChange={handleChange} placeholder="5.0" disabled={isViewMode} />
-            <Input label="Conn Retry Count" name="connectionRetryCount" type="number" value={formData.connectionRetryCount} onChange={handleChange} placeholder="3" disabled={isViewMode} />
-            <Input label="Bind Retry Delay (s)" name="bindRetryDelay" type="number" step="0.1" value={formData.bindRetryDelay} onChange={handleChange} placeholder="5.0" disabled={isViewMode} />
-            <Input label="Bind Retry Count" name="bindRetryCount" type="number" value={formData.bindRetryCount} onChange={handleChange} placeholder="3" disabled={isViewMode} />
-            <Input label="Conn Recovery Delay (s)" name="connectionRecoveryDelay" type="number" step="0.1" value={formData.connectionRecoveryDelay} onChange={handleChange} placeholder="60.0" disabled={isViewMode} />
+            <Input
+              label="Conn Retry Delay (s)"
+              name="connectionRetryDelay"
+              type="number"
+              step="0.1"
+              value={formData.connectionRetryDelay}
+              onChange={handleChange}
+              placeholder="5.0"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Conn Retry Count"
+              name="connectionRetryCount"
+              type="number"
+              value={formData.connectionRetryCount}
+              onChange={handleChange}
+              placeholder="3"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Bind Retry Delay (s)"
+              name="bindRetryDelay"
+              type="number"
+              step="0.1"
+              value={formData.bindRetryDelay}
+              onChange={handleChange}
+              placeholder="5.0"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Bind Retry Count"
+              name="bindRetryCount"
+              type="number"
+              value={formData.bindRetryCount}
+              onChange={handleChange}
+              placeholder="3"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Conn Recovery Delay (s)"
+              name="connectionRecoveryDelay"
+              type="number"
+              step="0.1"
+              value={formData.connectionRecoveryDelay}
+              onChange={handleChange}
+              placeholder="60.0"
+              disabled={isViewMode}
+            />
           </div>
         </fieldset>
 
@@ -307,8 +409,22 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
             TLVs Configuration
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="TLV Tag" name="tlvTag" value={formData.tlvTag} onChange={handleChange} placeholder="e.g. 0x1401" disabled={isViewMode} />
-            <Input label="TLV Value" name="tlvValue" value={formData.tlvValue} onChange={handleChange} placeholder="Enter TLV Value" disabled={isViewMode} />
+            <Input
+              label="TLV Tag"
+              name="tlvTag"
+              value={formData.tlvTag}
+              onChange={handleChange}
+              placeholder="e.g. 0x1401"
+              disabled={isViewMode}
+            />
+            <Input
+              label="TLV Value"
+              name="tlvValue"
+              value={formData.tlvValue}
+              onChange={handleChange}
+              placeholder="Enter TLV Value"
+              disabled={isViewMode}
+            />
           </div>
         </fieldset>
 
@@ -321,8 +437,8 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
               {isSubmitting
                 ? "Saving"
                 : editingPolicy
-                ? "Update Policy"
-                : "Add Policy"}
+                  ? "Update Policy"
+                  : "Add Policy"}
             </Button>
           )}
         </div>

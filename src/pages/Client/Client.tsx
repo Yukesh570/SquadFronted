@@ -33,6 +33,7 @@ import ContextMenu, {
 } from "../../components/ui/ContextMenu";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 import { actionHelper } from "../../helper/action";
+import { deleteClientPolicyApi } from "../../api/policyApi/clientPolicyApi";
 
 // --- Interfaces ---
 interface Option {
@@ -569,6 +570,11 @@ const Client: React.FC = () => {
     if (deleteId && canDelete) {
       try {
         await deleteClientApi(deleteId, routeName);
+        try {
+          await deleteClientPolicyApi(deleteId);
+        } catch (policyError) {
+          console.warn("No policy found to delete, ignoring.");
+        }
         toast.success("Client deleted successfully.");
         fetchClients();
       } catch (error) {

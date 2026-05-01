@@ -9,7 +9,6 @@ export interface OperatorNetworkCodeData {
   country_iso?: string;
   MCC: string;
   MNC: string;
-  networkName: string;
   networkType: "GSM" | "LTE" | "5G" | "CDMA" | "UNKNOWN";
   isPrimary: boolean;
   status: "ACTIVE" | "INACTIVE";
@@ -31,7 +30,7 @@ export const getOperatorNetworkCodesApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<OperatorNetworkCodeData>> => {
   const params: any = {
     page: page,
@@ -45,7 +44,7 @@ export const getOperatorNetworkCodesApi = async (
 // POST
 export const createOperatorNetworkCodeApi = async (
   data: any,
-  module: string
+  module: string,
 ): Promise<OperatorNetworkCodeData> => {
   const response = await api.post(`/operatorNetworkCode/${module}/`, data);
   return response.data;
@@ -55,7 +54,7 @@ export const createOperatorNetworkCodeApi = async (
 export const putOperatorNetworkCodeApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<OperatorNetworkCodeData> => {
   const response = await api.put(`/operatorNetworkCode/${module}/${id}/`, data);
   return response.data;
@@ -65,22 +64,27 @@ export const putOperatorNetworkCodeApi = async (
 export const updateOperatorNetworkCodeApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<OperatorNetworkCodeData> => {
-  const response = await api.patch(`/operatorNetworkCode/${module}/${id}/`, data);
+  const response = await api.patch(
+    `/operatorNetworkCode/${module}/${id}/`,
+    data,
+  );
   return response.data;
 };
 
 // DELETE
 export const deleteOperatorNetworkCodeApi = async (
   id: number,
-  module: string
+  module: string,
 ): Promise<void> => {
   await api.delete(`/operatorNetworkCode/${module}/${id}/`);
 };
 
 // IMPORT
-export const importOperatorNetworkCodeApi = async (formData: FormData): Promise<any> => {
+export const importOperatorNetworkCodeApi = async (
+  formData: FormData,
+): Promise<any> => {
   const response = await api.post(`/operatorNetworkCode/import`, formData, {
     headers: {
       "Content-Type": undefined,

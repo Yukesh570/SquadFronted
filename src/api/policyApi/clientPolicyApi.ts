@@ -26,26 +26,24 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getClientPoliciesApi = async (
-  module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<ClientPolicyData>> => {
   const params: any = {
     page: page,
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/clientPolicy/${module}/`, { params });
+  const response = await api.get(`/clientPolicy/`, { params });
   return response.data;
 };
 
 // POST
 export const createClientPolicyApi = async (
   data: any,
-  module: string
 ): Promise<ClientPolicyData> => {
-  const response = await api.post(`/clientPolicy/${module}/`, data);
+  const response = await api.post(`/clientPolicy/`, data);
   return response.data;
 };
 
@@ -53,9 +51,8 @@ export const createClientPolicyApi = async (
 export const putClientPolicyApi = async (
   id: number,
   data: any,
-  module: string
 ): Promise<ClientPolicyData> => {
-  const response = await api.put(`/clientPolicy/${module}/${id}/`, data);
+  const response = await api.put(`/clientPolicy/${id}/`, data);
   return response.data;
 };
 
@@ -63,16 +60,12 @@ export const putClientPolicyApi = async (
 export const updateClientPolicyApi = async (
   id: number,
   data: any,
-  module: string
 ): Promise<ClientPolicyData> => {
-  const response = await api.patch(`/clientPolicy/${module}/${id}/`, data);
+  const response = await api.patch(`/clientPolicy/${id}/`, data);
   return response.data;
 };
 
 // DELETE
-export const deleteClientPolicyApi = async (
-  id: number,
-  module: string
-): Promise<void> => {
-  await api.delete(`/clientPolicy/${module}/${id}/`);
+export const deleteClientPolicyApi = async (id: number): Promise<void> => {
+  await api.delete(`/clientPolicy/${id}/`);
 };

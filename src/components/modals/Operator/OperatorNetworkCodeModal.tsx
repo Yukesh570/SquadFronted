@@ -30,7 +30,9 @@ interface Option {
   value: string;
 }
 
-export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> = ({
+export const OperatorNetworkCodeModal: React.FC<
+  OperatorNetworkCodeModalProps
+> = ({
   isOpen,
   onClose,
   onSuccess,
@@ -43,7 +45,6 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
     country: "",
     MCC: "",
     MNC: "",
-    networkName: "",
     networkType: "GSM",
     isPrimary: false,
     status: "ACTIVE",
@@ -84,7 +85,7 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
           setCountryOptions(
-            list.map((c: any) => ({ label: c.name, value: String(c.id) }))
+            list.map((c: any) => ({ label: c.name, value: String(c.id) })),
           );
         })
         .catch(console.error);
@@ -93,7 +94,10 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
           setOperatorOptions(
-            list.map((o: any) => ({ label: o.name || o.operator_name, value: String(o.id) }))
+            list.map((o: any) => ({
+              label: o.name || o.operator_name,
+              value: String(o.id),
+            })),
           );
         })
         .catch(console.error);
@@ -107,23 +111,24 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
         country: String(editingData.country || ""),
         MCC: editingData.MCC || "",
         MNC: editingData.MNC || "",
-        networkName: editingData.networkName || "",
         networkType: editingData.networkType || "GSM",
         isPrimary: editingData.isPrimary || false,
         status: editingData.status || "ACTIVE",
         notes: editingData.notes || "",
       });
 
-      setEffectiveFromDate(editingData.effectiveFrom ? new Date(editingData.effectiveFrom) : null);
-      setEffectiveToDate(editingData.effectiveTo ? new Date(editingData.effectiveTo) : null);
-
+      setEffectiveFromDate(
+        editingData.effectiveFrom ? new Date(editingData.effectiveFrom) : null,
+      );
+      setEffectiveToDate(
+        editingData.effectiveTo ? new Date(editingData.effectiveTo) : null,
+      );
     } else if (isOpen) {
       setFormData({
         operator: "",
         country: "",
         MCC: "",
         MNC: "",
-        networkName: "",
         networkType: "GSM",
         isPrimary: false,
         status: "ACTIVE",
@@ -135,7 +140,7 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
   }, [isOpen, editingData]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -152,8 +157,15 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
     e.preventDefault();
     if (isViewMode) return;
 
-    if (!formData.operator || !formData.country || !formData.networkName || !formData.MCC || !formData.MNC) {
-      toast.error("Operator, Country, Network Name, MCC, and MNC are required.");
+    if (
+      !formData.operator ||
+      !formData.country ||
+      !formData.MCC ||
+      !formData.MNC
+    ) {
+      toast.error(
+        "Operator, Country, Network Name, MCC, and MNC are required.",
+      );
       return;
     }
 
@@ -164,19 +176,23 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
       country: Number(formData.country),
       MCC: formData.MCC,
       MNC: formData.MNC,
-      networkName: formData.networkName,
       networkType: formData.networkType,
       isPrimary: formData.isPrimary,
       status: formData.status,
     };
 
-    if (effectiveFromDate) payload.effectiveFrom = formatLocalDate(effectiveFromDate);
+    if (effectiveFromDate)
+      payload.effectiveFrom = formatLocalDate(effectiveFromDate);
     if (effectiveToDate) payload.effectiveTo = formatLocalDate(effectiveToDate);
     if (formData.notes) payload.notes = formData.notes;
 
     try {
       if (editingData) {
-        await updateOperatorNetworkCodeApi(editingData.id!, payload, moduleName);
+        await updateOperatorNetworkCodeApi(
+          editingData.id!,
+          payload,
+          moduleName,
+        );
         toast.success("Operator Network Code updated!");
       } else {
         await createOperatorNetworkCodeApi(payload, moduleName);
@@ -202,12 +218,15 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
         isViewMode
           ? "View Network Code"
           : editingData
-          ? "Edit Network Code"
-          : "Add Network Code"
+            ? "Edit Network Code"
+            : "Add Network Code"
       }
       className="max-w-3xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto px-1">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 max-h-[80vh] overflow-y-auto px-1"
+      >
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Linkages
@@ -237,15 +256,6 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
             Network Identity
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
-              label="Network Name"
-              name="networkName"
-              value={formData.networkName}
-              onChange={handleChange}
-              placeholder="e.g. Ncell"
-              required
-              disabled={isViewMode}
-            />
             <Input
               label="MCC"
               name="MCC"
@@ -286,7 +296,7 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
               options={statusOptions}
               disabled={isViewMode}
             />
-            
+
             <CustomDatePicker
               label="Effective From"
               selected={effectiveFromDate}
@@ -345,8 +355,8 @@ export const OperatorNetworkCodeModal: React.FC<OperatorNetworkCodeModalProps> =
               {isSubmitting
                 ? "Saving"
                 : editingData
-                ? "Save Details"
-                : "Create"}
+                  ? "Save Details"
+                  : "Create"}
             </Button>
           )}
         </div>

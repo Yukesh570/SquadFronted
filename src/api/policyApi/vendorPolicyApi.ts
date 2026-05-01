@@ -38,26 +38,24 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getVendorPoliciesApi = async (
-  module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<VendorPolicyData>> => {
   const params: any = {
     page: page,
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendorPolicy/${module}/`, { params });
+  const response = await api.get(`/vendorPolicy/`, { params });
   return response.data;
 };
 
 // POST
 export const createVendorPolicyApi = async (
   data: any,
-  module: string
 ): Promise<VendorPolicyData> => {
-  const response = await api.post(`/vendorPolicy/${module}/`, data);
+  const response = await api.post(`/vendorPolicy/`, data);
   return response.data;
 };
 
@@ -65,9 +63,8 @@ export const createVendorPolicyApi = async (
 export const putVendorPolicyApi = async (
   id: number,
   data: any,
-  module: string
 ): Promise<VendorPolicyData> => {
-  const response = await api.put(`/vendorPolicy/${module}/${id}/`, data);
+  const response = await api.put(`/vendorPolicy/${id}/`, data);
   return response.data;
 };
 
@@ -75,16 +72,12 @@ export const putVendorPolicyApi = async (
 export const updateVendorPolicyApi = async (
   id: number,
   data: any,
-  module: string
 ): Promise<VendorPolicyData> => {
-  const response = await api.patch(`/vendorPolicy/${module}/${id}/`, data);
+  const response = await api.patch(`/vendorPolicy/${id}/`, data);
   return response.data;
 };
 
 // DELETE
-export const deleteVendorPolicyApi = async (
-  id: number,
-  module: string
-): Promise<void> => {
-  await api.delete(`/vendorPolicy/${module}/${id}/`);
+export const deleteVendorPolicyApi = async (id: number): Promise<void> => {
+  await api.delete(`/vendorPolicy/${id}/`);
 };

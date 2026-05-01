@@ -29,6 +29,7 @@ import ContextMenu, {
 } from "../../../components/ui/ContextMenu";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import { actionHelper } from "../../../helper/action";
+import { deleteVendorPolicyApi } from "../../../api/policyApi/vendorPolicyApi";
 
 interface Option {
   label: string;
@@ -462,6 +463,11 @@ const Vendor: React.FC = () => {
     if (deleteId && canDelete) {
       try {
         await deleteVendorApi(deleteId, routeName);
+        try {
+          await deleteVendorPolicyApi(deleteId);
+        } catch (policyError) {
+          console.warn("No policy found to delete, ignoring.");
+        }
         toast.success("Vendor deleted.");
         fetchVendors();
       } catch (error) {
