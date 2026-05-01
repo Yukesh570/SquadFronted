@@ -30,7 +30,6 @@ export const VendorPolicyModal: React.FC<VendorPolicyModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  moduleName,
   editingPolicy,
   isViewMode = false,
 }) => {

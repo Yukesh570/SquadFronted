@@ -29,7 +29,6 @@ export const ClientPolicyModal: React.FC<ClientPolicyModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  moduleName,
   editingPolicy,
   isViewMode = false,
 }) => {
