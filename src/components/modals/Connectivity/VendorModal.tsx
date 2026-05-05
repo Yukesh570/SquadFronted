@@ -82,7 +82,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     tlvTag: "",
     tlvValue: "",
     bindStatus: "OFFLINE",
-    session: "0/2",
+    active_session_count: 0,
+    max_allowed_sessions: 1,
   });
 
   // UI & Loading States
@@ -190,7 +191,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           tlvTag: "",
           tlvValue: "",
           bindStatus: editingVendor.bindStatus || "OFFLINE",
-          session: editingVendor.session || "0/2",
+          active_session_count: anyVendor.active_session_count || 0,
+          max_allowed_sessions: anyVendor.max_allowed_sessions || 1,
         });
 
         setIsLoadingDetails(true);
@@ -319,7 +321,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           tlvTag: "",
           tlvValue: "",
           bindStatus: "OFFLINE",
-          session: "0/2",
+          active_session_count: 0,
+          max_allowed_sessions: 1,
         });
       }
     };
@@ -849,7 +852,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             <Input
               label="Active Sessions"
               name="session"
-              value={formData.session}
+              value={`${formData.active_session_count}/${formData.max_allowed_sessions}`}
               disabled={true}
             />
           </div>

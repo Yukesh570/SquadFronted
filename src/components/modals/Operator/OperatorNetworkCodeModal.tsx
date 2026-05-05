@@ -54,7 +54,6 @@ export const OperatorNetworkCodeModal: React.FC<
   const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(null);
   const [effectiveToDate, setEffectiveToDate] = useState<Date | null>(null);
 
-  const [operatorOptions, setOperatorOptions] = useState<Option[]>([]);
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -86,18 +85,6 @@ export const OperatorNetworkCodeModal: React.FC<
           const list = res.results || (Array.isArray(res) ? res : []);
           setCountryOptions(
             list.map((c: any) => ({ label: c.name, value: String(c.id) })),
-          );
-        })
-        .catch(console.error);
-
-      getOperatorsApi("operator", 1, 1000)
-        .then((res: any) => {
-          const list = res.results || (Array.isArray(res) ? res : []);
-          setOperatorOptions(
-            list.map((o: any) => ({
-              label: o.name || o.operator_name,
-              value: String(o.id),
-            })),
           );
         })
         .catch(console.error);
@@ -172,7 +159,7 @@ export const OperatorNetworkCodeModal: React.FC<
     setIsSubmitting(true);
 
     const payload: any = {
-      operator: Number(formData.operator),
+      operator: formData.operator,
       country: Number(formData.country),
       MCC: formData.MCC,
       MNC: formData.MNC,
@@ -232,14 +219,16 @@ export const OperatorNetworkCodeModal: React.FC<
             Linkages
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Select
+            <Input
               label="Operator"
+              name="Operator"
               value={formData.operator}
-              onChange={(v) => handleSelect("operator", v)}
-              options={operatorOptions}
-              placeholder="Select Operator"
+              onChange={handleChange}
+              placeholder="operator"
+              required
               disabled={isViewMode}
             />
+
             <Select
               label="Country"
               value={formData.country}

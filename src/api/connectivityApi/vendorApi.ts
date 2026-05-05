@@ -3,16 +3,16 @@ import api from "../axiosInstance";
 export interface VendorData {
   id?: number;
   company?: number;
-  companyName?: string; 
+  companyName?: string;
   profileName: string;
   ratePlanName?: string;
-  connectionType: 'SMPP' | 'HTTP';
+  connectionType: "SMPP" | "HTTP";
   invoicePolicy?: string;
   smpp?: number;
   smppName?: string;
   bindStatus?: string;
-  session?: string;
-  // createdAt removed here
+  active_session_count?: number;
+  max_allowed_sessions?: number; // createdAt removed here
 }
 
 export interface PaginatedResponse<T> {
@@ -27,21 +27,21 @@ export const getVendorsApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<VendorData>> => {
-  const params : any = {
+  const params: any = {
     page: page,
     page_size: pageSize,
-    ...searchParams
-  }
+    ...searchParams,
+  };
   const response = await api.get(`/vendor/${module}/`, { params });
   return response.data;
 };
 
 // POST
 export const createVendorApi = async (
-  data: any, 
-  module: string
+  data: any,
+  module: string,
 ): Promise<VendorData> => {
   const response = await api.post(`/vendor/${module}/`, data);
   return response.data;
@@ -51,7 +51,7 @@ export const createVendorApi = async (
 export const updateVendorApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<VendorData> => {
   const response = await api.patch(`/vendor/${module}/${id}/`, data);
   return response.data;
@@ -60,7 +60,7 @@ export const updateVendorApi = async (
 // DELETE
 export const deleteVendorApi = async (
   id: number,
-  module: string
+  module: string,
 ): Promise<void> => {
   await api.delete(`/vendor/${module}/${id}/`);
 };

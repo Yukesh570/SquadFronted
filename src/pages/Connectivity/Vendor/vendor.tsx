@@ -139,44 +139,60 @@ const Vendor: React.FC = () => {
     loadDropdowns();
   }, []);
 
-  // --- Live WebSockets for Vendor SMPP Status ---
+  // --- ⚡️ UNIFIED Live WebSockets for Vendor SMPP Status ---
   useEffect(() => {
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
     const ws = new WebSocket(`${wsBase}/ws/status/`);
+
     ws.onopen = () => console.log("✅ Vendor Table linked to live SMPP feed");
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.username && data.status) {
-          setVendors((prevVendors) =>
-            prevVendors.map((vendor) => {
-              if (vendor.smppName === data.username) {
-                const currentSessionStr = vendor.session || "0/2";
-                const [currentStr, maxLimit] = currentSessionStr.split("/");
-                let currentCount = parseInt(currentStr, 10) || 0;
 
-                if (data.status === "ONLINE") {
-                  currentCount += 1;
-                } else if (data.status === "OFFLINE") {
-                  currentCount = Math.max(0, currentCount - 1);
-                }
+        // 1. Handle Gateway Connection Status (The Green/Blue Badge)
+        if (data.action === "vendor_bind_update") {
+          setVendors((prev) =>
+            prev.map((v) =>
+              v.id === data.vendor.id
+                ? { ...v, bindStatus: data.vendor.bindStatus }
+                : v,
+            ),
+          );
+        }
 
+        // 2. Handle Session Counter (The 1/4, 2/4 Badge)
+        if (data.action === "vendor_session_update") {
+          setVendors((prev) =>
+            prev.map((v) => {
+              if (v.id === data.session.vendor_id) {
+                // Directly apply the absolute 'live_count' integer from the backend!
                 return {
-                  ...vendor,
-                  bindStatus: data.status,
-                  session: `${currentCount}/${maxLimit}`,
+                  ...v,
+                  active_session_count: data.session.live_count,
                 };
               }
-              return vendor;
+              return v;
             }),
           );
         }
       } catch (err) {
-        console.error("Error parsing websocket message", err);
+        console.error("Socket error", err);
       }
     };
-    ws.onclose = () => console.log("⚠️ Live SMPP feed disconnected");
+
+    ws.onclose = () => {
+      console.log("⚠️ Live SMPP feed disconnected");
+
+      // ⚡️ THE FIX: If the WebSocket dies, assume the server crashed and force UI offline!
+      setVendors((prev) =>
+        prev.map((v) => ({
+          ...v,
+          bindStatus: "OFFLINE",
+          active_session_count: 0,
+        })),
+      );
+    };
     return () => ws.close();
   }, []);
 
@@ -205,8 +221,8 @@ const Vendor: React.FC = () => {
           status === "ONLINE"
             ? "bg-green-100 text-green-800"
             : status === "OFFLINE"
-              ? "bg-blue-100 text-blue-800"
-              : "bg-red-100 text-red-800"
+              ? "bg-red-200 text-red-800"
+              : "bg-red-200 text-red-800"
         }`}
       >
         {status}
@@ -214,10 +230,14 @@ const Vendor: React.FC = () => {
     );
   };
 
-  const renderSessionBadge = (sessionStr?: string) => {
-    if (!sessionStr) return "-";
-    const [current, max] = sessionStr.split("/");
-    const isFull = current === max && max !== "Unlimited";
+  const renderSessionBadge = (vendor: any) => {
+    const current = vendor.active_session_count || 0;
+
+    // Look for the max_allowed_sessions from the API.
+    // If it's missing or 0, default to 0 instead of a hardcoded 1.
+    const max = vendor.max_allowed_sessions || 0;
+
+    const isFull = current === max && max > 0;
 
     return (
       <span
@@ -227,7 +247,7 @@ const Vendor: React.FC = () => {
             : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
         }`}
       >
-        {sessionStr}
+        {current}/{max}
       </span>
     );
   };
@@ -276,14 +296,22 @@ const Vendor: React.FC = () => {
       label: "Bind Status",
       type: "text",
       options: bindStatusOptions,
-      render: (c) => renderBindStatusBadge(c.bindStatus),
+      render: (c) => {
+        // ⚡️ THE FIX: Force it to a real number, fallback to 0 if missing/undefined
+        const currentCount = Number(c.active_session_count) || 0;
+
+        // If 0 sessions are active, force the badge offline regardless of database state
+        return renderBindStatusBadge(
+          currentCount === 0 ? "OFFLINE" : c.bindStatus,
+        );
+      },
     },
     {
       key: "session",
       label: "Sessions (Current/Max)",
       tableLabel: "Sessions",
       type: "text",
-      render: (c) => renderSessionBadge(c.session),
+      render: (c) => renderSessionBadge(c),
     },
   ];
 
@@ -400,59 +428,12 @@ const Vendor: React.FC = () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [routeName, currentPage, rowsPerPage, searchColumns]);
-  // --- Live WebSockets for Vendor SMPP Status ---
-  useEffect(() => {
-    const wsBase = import.meta.env.VITE_WS_BASE_URL;
-    const ws = new WebSocket(`${wsBase}/ws/status/`);
 
-    ws.onopen = () => console.log("✅ Vendor Table linked to live SMPP feed");
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-
-        // 1. Handle Gateway Connection Status (The Green/Blue Badge)
-        if (data.action === "vendor_bind_update") {
-          setVendors((prev) =>
-            prev.map((v) =>
-              v.id === data.vendor.id
-                ? { ...v, bindStatus: data.vendor.bindStatus }
-                : v,
-            ),
-          );
-        }
-
-        // 2. Handle Session Counter (The 1/2, 2/2 Badge)
-        if (data.action === "vendor_session_update") {
-          setVendors((prev) =>
-            prev.map((v) => {
-              if (v.id === data.session.vendor_id) {
-                const currentSessionStr = v.session || "0/2";
-                const [count, max] = currentSessionStr.split("/");
-                let currentCount = parseInt(count, 10) || 0;
-
-                if (data.session.status === "ONLINE") currentCount += 1;
-                else if (data.session.status === "OFFLINE")
-                  currentCount = Math.max(0, currentCount - 1);
-
-                return { ...v, session: `${currentCount}/${max}` };
-              }
-              return v;
-            }),
-          );
-        }
-      } catch (err) {
-        console.error("Socket error", err);
-      }
-    };
-
-    ws.onclose = () => console.log("⚠️ Live SMPP feed disconnected");
-    return () => ws.close();
-  }, []);
   const handleSearch = () => {
     setCurrentPage(1);
     fetchVendors();
   };
+
   const handleClearFilters = () => {
     setFilterValues({});
     setCurrentPage(1);
@@ -483,12 +464,14 @@ const Vendor: React.FC = () => {
     setIsViewMode(false);
     setIsModalOpen(true);
   };
+
   const handleAdd = () => {
     if (!canCreate) return;
     setEditingVendor(null);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
+
   const handleView = (vendor: VendorData) => {
     setEditingVendor(vendor);
     setIsViewMode(true);
@@ -558,6 +541,7 @@ const Vendor: React.FC = () => {
     "S.N.",
     ...visibleTableFields.map((col) => col.tableLabel || col.label),
   ];
+
   const getBaseLabel = (label: string) => label.split(" (")[0].trim();
 
   const hasLoggedOpening = useRef(false);
