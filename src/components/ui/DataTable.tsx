@@ -88,8 +88,10 @@ export function DataTable<T extends { id?: number | string }>({
   )} of ${activeTotal}`;
 
   return (
-    <div className="rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4">
+    <div className="rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col">
+      
+      {/* 1. LOCKED TOP BAR (Controls + Action Buttons) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 z-20">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <span className="text-sm text-text-secondary dark:text-gray-400">
@@ -129,9 +131,13 @@ export function DataTable<T extends { id?: number | string }>({
         {headerActions && <div>{headerActions}</div>}
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-900/50">
+      {/* 2. SCROLLABLE DATA TABLE */}
+      {/* Added max-h-[65vh] and overflow-auto to make ONLY the rows scroll */}
+      <div className="overflow-auto max-h-[65vh] min-h-[300px]">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 relative">
+          
+          {/* Added sticky top-0 z-10 so table headers never scroll away */}
+          <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10 shadow-sm border-b border-gray-200 dark:border-gray-700">
             <tr>
               {headers.map((header, i) => (
                 <th
@@ -174,6 +180,7 @@ export function DataTable<T extends { id?: number | string }>({
           </tbody>
         </table>
       </div>
+
     </div>
   );
 }
