@@ -55,6 +55,10 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   const [operatorOptions, setOperatorOptions] = useState<Option[]>([]);
   const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
 
+  // Raw arrays to look up company relationships
+  const [rawClients, setRawClients] = useState<any[]>([]);
+  const [rawVendors, setRawVendors] = useState<any[]>([]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetchingOptions, setIsFetchingOptions] = useState(false);
 
@@ -101,6 +105,10 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               getOperatorsApi("operator", 1, 1000),
               getVendorsApi("vendor", 1, 1000),
             ]);
+
+          // Save raw responses to map Clients and Vendors to their parent Companies
+          setRawClients(clients.results || (Array.isArray(clients) ? clients : (clients as any).data) || []);
+          setRawVendors(vendors.results || (Array.isArray(vendors) ? vendors : (vendors as any).data) || []);
 
           setCompanyOptions(extractOptions(companies, "name"));
           setClientOptions(extractOptions(clients, "name"));
@@ -156,28 +164,47 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   const handleSelectChange = (name: string, value: string) => {
     const isNumericField = !["priority", "status"].includes(name);
 
-    setFormData((prev: any) => ({
-      ...prev,
-      [name]: isNumericField ? Number(value) : value,
-    }));
+    setFormData((prev: any) => {
+      const nextData = { ...prev, [name]: isNumericField ? Number(value) : value };
+
+      // LOGIC: Auto-fill Originating Company ID when Originating Client is selected
+      if (name === "orginatingClient") {
+        const selectedClient = rawClients.find(c => c.id === Number(value));
+        if (selectedClient && selectedClient.company) {
+          nextData.orginatingCompany = Number(selectedClient.company);
+        } else {
+          nextData.orginatingCompany = 0;
+        }
+      }
+
+      // LOGIC: Auto-fill Terminating Company ID when Terminating Vendor is selected
+      if (name === "terminatingVendor") {
+        const selectedVendor = rawVendors.find(v => v.id === Number(value));
+        if (selectedVendor && selectedVendor.company) {
+          nextData.terminatingCompany = Number(selectedVendor.company);
+        } else {
+          nextData.terminatingCompany = 0;
+        }
+      }
+
+      return nextData;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewMode) return;
 
-    // ✅ STRICT VALIDATION for ALL Dropdowns
     if (!formData.name) {
       toast.error("Name is required.");
       return;
     }
-    // Added validation for Originating Company
-    if (!formData.orginatingCompany || formData.orginatingCompany === 0) {
-      toast.error("Originating Company is required.");
-      return;
-    }
     if (!formData.orginatingClient || formData.orginatingClient === 0) {
       toast.error("Originating Client is required.");
+      return;
+    }
+    if (!formData.orginatingCompany || formData.orginatingCompany === 0) {
+      toast.error("Originating Company is required.");
       return;
     }
     if (!formData.country || formData.country === 0) {
@@ -188,13 +215,12 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       toast.error("Operator is required.");
       return;
     }
-    // Added validation for Terminating Company
-    if (!formData.terminatingCompany || formData.terminatingCompany === 0) {
-      toast.error("Terminating Company is required.");
-      return;
-    }
     if (!formData.terminatingVendor || formData.terminatingVendor === 0) {
       toast.error("Terminating Vendor is required.");
+      return;
+    }
+    if (!formData.terminatingCompany || formData.terminatingCompany === 0) {
+      toast.error("Terminating Company is required.");
       return;
     }
     if (!formData.priority) {
@@ -232,6 +258,10 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Helper variables to get the actual company names to display in the read-only inputs
+  const orginatingCompanyName = companyOptions.find(c => c.value === String(formData.orginatingCompany))?.label || "";
+  const terminatingCompanyName = companyOptions.find(c => c.value === String(formData.terminatingCompany))?.label || "";
+
   return (
     <Modal
       isOpen={isOpen}
@@ -265,18 +295,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               disabled={isViewMode}
             />
             <Select
-              label="Originating Company"
-              value={
-                formData.orginatingCompany
-                  ? String(formData.orginatingCompany)
-                  : ""
-              }
-              onChange={(v) => handleSelectChange("orginatingCompany", v)}
-              options={companyOptions}
-              placeholder="Select Company"
-              disabled={isViewMode || isFetchingOptions}
-            />
-            <Select
               label="Originating Client"
               value={
                 formData.orginatingClient
@@ -287,6 +305,15 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               options={clientOptions}
               placeholder="Select Client"
               disabled={isViewMode || isFetchingOptions}
+            />
+            {/* Auto-populated read-only input */}
+            <Input
+              label="Originating Company"
+              name="orginatingCompanyDisplay"
+              value={isFetchingOptions ? "Loading..." : orginatingCompanyName}
+              onChange={() => {}} 
+              placeholder="Auto-filled from Client"
+              disabled={true}
             />
             <Select
               label="Priority"
@@ -339,19 +366,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select
-              label="Terminating Company"
-              value={
-                formData.terminatingCompany
-                  ? String(formData.terminatingCompany)
-                  : ""
-              }
-              onChange={(v) => handleSelectChange("terminatingCompany", v)}
-              options={companyOptions}
-              placeholder="Select Company"
-              disabled={isViewMode || isFetchingOptions}
-              placement="top"
-            />
-            <Select
               label="Terminating Vendor"
               value={
                 formData.terminatingVendor
@@ -363,6 +377,15 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               placeholder="Select Vendor"
               disabled={isViewMode || isFetchingOptions}
               placement="top"
+            />
+            {/* Auto-populated read-only input */}
+            <Input
+              label="Terminating Company"
+              name="terminatingCompanyDisplay"
+              value={isFetchingOptions ? "Loading..." : terminatingCompanyName}
+              onChange={() => {}} 
+              placeholder="Auto-filled from Vendor"
+              disabled={true}
             />
           </div>
         </fieldset>

@@ -22,6 +22,7 @@ const rowsOptions = [
   { value: "10", label: "10" },
   { value: "25", label: "25" },
   { value: "50", label: "50" },
+  { value: "100", label: "100" },
 ];
 
 export function DataTable<T extends { id?: number | string }>({
@@ -90,14 +91,15 @@ export function DataTable<T extends { id?: number | string }>({
   return (
     <div className="rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col">
       
-      {/* 1. LOCKED TOP BAR (Controls + Action Buttons) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 z-20">
+      {/* 1. LOCKED TOP BAR (Controls + Action Buttons) - Removed z-20 to prevent overlapping top filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <span className="text-sm text-text-secondary dark:text-gray-400">
               Rows per page:
             </span>
-            <div className="w-20">
+            {/* Widened from w-20 to w-24 to prevent "100" from clipping */}
+            <div className="w-24">
               <Select
                 value={String(activeRows)}
                 onChange={(val) => handleRowsChange(Number(val))}

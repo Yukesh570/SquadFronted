@@ -29,7 +29,6 @@ import ContextMenu, {
 } from "../../../components/ui/ContextMenu";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import { actionHelper } from "../../../helper/action";
-import { deleteVendorPolicyApi } from "../../../api/policyApi/vendorPolicyApi";
 
 interface Option {
   label: string;
@@ -213,6 +212,14 @@ const Vendor: React.FC = () => {
     { label: "offline", value: "OFFLINE" },
   ];
 
+  const logLevelOptions: Option[] = [
+    { label: "DEBUG", value: "DEBUG" },
+    { label: "INFO", value: "INFO" },
+    { label: "WARNING", value: "WARNING" },
+    { label: "ERROR", value: "ERROR" },
+    { label: "CRITICAL", value: "CRITICAL" },
+  ];
+
   const renderBindStatusBadge = (status?: string) => {
     if (!status) return "-";
     return (
@@ -313,6 +320,20 @@ const Vendor: React.FC = () => {
       type: "text",
       render: (c) => renderSessionBadge(c),
     },
+    // --- INTEGRATED POLICY COLUMNS ---
+    { key: "rateTps", label: "Rate TPS", type: "number" },
+    { key: "sendQueueLimit", label: "Queue Limit", type: "number" },
+    { key: "logLevel", label: "Log Level", type: "text", options: logLevelOptions },
+    { key: "responseTimeout", label: "Response Timeout (s)", type: "number" },
+    { key: "enquireLinkInterval", label: "Enquire Link Interval (s)", type: "number" },
+    { key: "connectionTimeout", label: "Conn. Timeout (s)", type: "number" },
+    { key: "connectionRetryDelay", label: "Conn Retry Delay (s)", type: "number" },
+    { key: "connectionRetryCount", label: "Conn Retry Count", type: "number" },
+    { key: "bindRetryDelay", label: "Bind Retry Delay (s)", type: "number" },
+    { key: "bindRetryCount", label: "Bind Retry Count", type: "number" },
+    { key: "connectionRecoveryDelay", label: "Conn Recovery Delay (s)", type: "number" },
+    { key: "tlvTag", label: "TLV Tag", type: "text" },
+    // --- End Integrated Policy Columns ---
   ];
 
   const visibleSearchFields = allColumns.filter((col) =>
@@ -386,7 +407,7 @@ const Vendor: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = lt;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = gt;
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -444,11 +465,6 @@ const Vendor: React.FC = () => {
     if (deleteId && canDelete) {
       try {
         await deleteVendorApi(deleteId, routeName);
-        try {
-          await deleteVendorPolicyApi(deleteId);
-        } catch (policyError) {
-          console.warn("No policy found to delete, ignoring.");
-        }
         toast.success("Vendor deleted.");
         fetchVendors();
       } catch (error) {

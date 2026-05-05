@@ -47,8 +47,6 @@ import AllNotifications from "../pages/Notifications/AllNotifications";
 import DLREvent from "../pages/Report/DLREvent";
 import MessageAttempt from "../pages/Report/MessageAttempt";
 import SmsMessagePart from "../pages/Report/SmsMessagePart";
-import ClientPolicy from "../pages/Policy/ClientPolicy";
-import VendorPolicy from "../pages/Policy/VendorPolicy";
 import OperatorNetworkCode from "../pages/OperatorNetworkCode/OperatorNetworkCode";
 import ClientSession from "../pages/ClientSession/ClientSession";
 import GeneralSettings from "../pages/settings/GeneralSettings/GeneralSettings";
@@ -97,8 +95,8 @@ const componentMap: Record<string, JSX.Element> = {
   messageAttempt: <MessageAttempt/>,
   dlrEvent: <DLREvent/>,
   smsMessagePart: <SmsMessagePart/>,
-  clientPolicy: <ClientPolicy/>,
-  vendorPolicy: <VendorPolicy/>,
+  // clientPolicy: <ClientPolicy/>,
+  // vendorPolicy: <VendorPolicy/>,
   operatorNetworkCode: <OperatorNetworkCode/>,
   clientSession: <ClientSession/>,
   generalSettings: <GeneralSettings/>

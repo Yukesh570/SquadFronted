@@ -33,7 +33,6 @@ import ContextMenu, {
 } from "../../components/ui/ContextMenu";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 import { actionHelper } from "../../helper/action";
-import { deleteClientPolicyApi } from "../../api/policyApi/clientPolicyApi";
 
 // --- Interfaces ---
 interface Option {
@@ -230,8 +229,6 @@ const Client: React.FC = () => {
 
   const renderSessionBadge = (sessionStr: string) => {
     if (!sessionStr) return "-";
-
-    // Optional: Make it red if it's full (e.g., "2/2")
     const [current, max] = sessionStr.split("/");
     const isFull = current === max && max !== "Unlimited";
 
@@ -326,10 +323,18 @@ const Client: React.FC = () => {
       label: "Sessions (Current/Max)",
       tableLabel: "Sessions",
       type: "text",
-      // Remove 'options: sessionOptions'
-      render: (c) => renderSessionBadge(c.session), // ⚡️ Point it to your new data!
+      render: (c) => renderSessionBadge(c.session),
     },
-    // --- Balance Alert Variants ---
+    // --- INTEGRATED POLICY COLUMNS ---
+    { key: "maxTps", label: "Max TPS", type: "number" },
+    { key: "maxSessions", label: "Max Sessions", type: "number" },
+    { key: "maxQueueDepth", label: "Max Queue Depth", type: "number" },
+    { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number" },
+    { key: "maxWindowPerSession", label: "Max Window (Per Session)", type: "number" },
+    { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number" },
+    { key: "submitTimeoutSec", label: "Submit Timeout (s)", type: "number" },
+    { key: "senderIdPolicy", label: "Sender ID Policy", type: "text" },
+    // --- End Integrated Policy Columns ---
     {
       key: "balanceAlertAmount",
       label: "Balance Alert (Exact)",
@@ -348,8 +353,6 @@ const Client: React.FC = () => {
       type: "number_gt_lt",
       isSearchOnly: true,
     },
-
-    // --- Created At Variants ---
     {
       key: "createdAt",
       label: "Created At (Exact)",
@@ -388,7 +391,6 @@ const Client: React.FC = () => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  // --- Fetch Data (Advanced Filter Logic) ---
   const fetchClients = async (
     filters: Record<string, string> | null = null,
   ) => {
@@ -445,7 +447,7 @@ const Client: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = lt;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = gt;
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -484,6 +486,7 @@ const Client: React.FC = () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [routeName, currentPage, rowsPerPage, searchColumns]);
+
   useEffect(() => {
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
     const ws = new WebSocket(`${wsBase}/ws/status/`);
@@ -496,19 +499,16 @@ const Client: React.FC = () => {
           setClients((prevClients) =>
             prevClients.map((client) => {
               if (client.smppUsername === data.username) {
-                // 1. Grab the current session string (e.g., "1/2" or "0/Unlimited")
                 const currentSessionStr = client.session || "0/2";
                 const [currentStr, maxLimit] = currentSessionStr.split("/");
                 let currentCount = parseInt(currentStr, 10) || 0;
 
-                // 2. Do the math based on the event
                 if (data.status === "ONLINE") {
                   currentCount += 1;
                 } else if (data.status === "OFFLINE") {
-                  currentCount = Math.max(0, currentCount - 1); // Never drop below 0
+                  currentCount = Math.max(0, currentCount - 1);
                 }
 
-                // 3. Update BOTH the bindStatus and the session string!
                 return {
                   ...client,
                   bindStatus: data.status,
@@ -517,32 +517,6 @@ const Client: React.FC = () => {
               }
               return client;
             }),
-          );
-        }
-      } catch (err) {
-        console.error("Error parsing websocket message", err);
-      }
-    };
-    ws.onclose = () => console.log("⚠️ Live SMPP feed disconnected");
-    return () => {
-      ws.close();
-    };
-  }, []);
-  useEffect(() => {
-    const wsBase = import.meta.env.VITE_WS_BASE_URL;
-    const ws = new WebSocket(`${wsBase}/ws/status/`);
-    ws.onopen = () => console.log("✅ Client Table linked to live SMPP feed");
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.username && data.status) {
-          setClients((prevClients) =>
-            prevClients.map((client) =>
-              client.smppUsername === data.username
-                ? { ...client, bindStatus: data.status }
-                : client,
-            ),
           );
         }
       } catch (err) {
@@ -570,11 +544,6 @@ const Client: React.FC = () => {
     if (deleteId && canDelete) {
       try {
         await deleteClientApi(deleteId, routeName);
-        try {
-          await deleteClientPolicyApi(deleteId);
-        } catch (policyError) {
-          console.warn("No policy found to delete, ignoring.");
-        }
         toast.success("Client deleted successfully.");
         fetchClients();
       } catch (error) {

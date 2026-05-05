@@ -224,7 +224,7 @@ export const OperatorNetworkCodeModal: React.FC<
               name="Operator"
               value={formData.operator}
               onChange={handleChange}
-              placeholder="operator"
+              placeholder="Operator"
               required
               disabled={isViewMode}
             />

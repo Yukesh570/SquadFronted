@@ -454,7 +454,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             ? "Edit Client"
             : "Add New Client"
       }
-      className="max-w-6xl"
+      className="max-w-4xl"
     >
       <form
         onSubmit={handleSubmit}

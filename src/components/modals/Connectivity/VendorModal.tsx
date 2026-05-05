@@ -490,7 +490,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             ? "Edit Vendor"
             : "Add Vendor"
       }
-      className="max-w-6xl"
+      className="max-w-4xl"
     >
       <form
         onSubmit={handleSubmit}
