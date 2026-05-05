@@ -7,7 +7,7 @@ import {
 } from "../../../api/rateApi/customerRateApi";
 import { getTimezoneApi } from "../../../api/settingApi/timezoneApi/timezoneApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
-import { getOperatorNetworkCodesApi } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
+import { getOperatorNetworkCodelookupApi } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
@@ -97,27 +97,29 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (formData.country) {
+    // Wait until fullCountriesList is populated to map ID to Name
+    if (formData.country && fullCountriesList.length > 0) {
       // IMMEDIATELY clear old options so they don't show while fetching
       setMccOptions([]);
       setMncOptions([]);
 
-      // Fetch MCC and MNC options only
-      getOperatorNetworkCodesApi("operatorNetworkCode", 1, 1000, { country: formData.country })
+      // Map the country ID back to the actual string name
+      const selectedCountry = fullCountriesList.find(
+        (c) => String(c.id) === formData.country
+      );
+      const countryNameParam = selectedCountry ? selectedCountry.name : "";
+
+      // Fetch MCC and MNC options using the high-speed lookup API with country__name
+      getOperatorNetworkCodelookupApi(1, 1000, { country__name: countryNameParam })
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
           
-          // STRICT LOCAL FILTER: Ensure we only use network codes that perfectly match the selected country ID
-          const matchedNetworkCodes = list.filter(
-            (item: any) => String(item.country) === String(formData.country)
-          );
-
           // Extract unique MCCs
-          const uniqueMccs = Array.from(new Set(matchedNetworkCodes.map((item: any) => item.MCC))).filter(Boolean);
+          const uniqueMccs = Array.from(new Set(list.map((item: any) => item.MCC))).filter(Boolean);
           setMccOptions(uniqueMccs.map((mcc) => ({ label: String(mcc), value: String(mcc) })));
 
           // Extract unique MNCs
-          const uniqueMncs = Array.from(new Set(matchedNetworkCodes.map((item: any) => item.MNC))).filter(Boolean);
+          const uniqueMncs = Array.from(new Set(list.map((item: any) => item.MNC))).filter(Boolean);
           setMncOptions(uniqueMncs.map((mnc) => ({ label: String(mnc), value: String(mnc) })));
 
           // SMART AUTO-SELECT: If there's exactly 1 option, auto-select it. Otherwise leave it alone (manual).
@@ -132,7 +134,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       setMccOptions([]);
       setMncOptions([]);
     }
-  }, [formData.country]); // Only depend on country to fetch networks
+  }, [formData.country, fullCountriesList]); // Added fullCountriesList dependency so Edit Mode triggers correctly
 
   useEffect(() => {
     if (isOpen && editingRate) {

@@ -45,3 +45,5 @@ lerna-debug.log*
 .settings
 .history
 Thumbs.db
+
+.env

@@ -7,7 +7,7 @@ import {
 } from "../../../api/rateApi/vendorRateApi";
 import { getTimezoneApi } from "../../../api/settingApi/timezoneApi/timezoneApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
-import { getOperatorNetworkCodesApi } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
+import { getOperatorNetworkCodelookupApi } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
@@ -64,7 +64,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [fullCountriesList, setFullCountriesList] = useState<CountryData[]>([]);
   const [mccOptions, setMccOptions] = useState<Option[]>([]);
-  const [mncOptions, setMncOptions] = useState<Option[]>([]); // ADDED
+  const [mncOptions, setMncOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -89,30 +89,30 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (formData.country) {
-      // IMMEDIATELY clear old options so they don't show while fetching
+    // Wait until fullCountriesList is populated to map ID to Name
+    if (formData.country && fullCountriesList.length > 0) {
       setMccOptions([]);
       setMncOptions([]);
 
-      // Fetch MCC and MNC options only
-      getOperatorNetworkCodesApi("operatorNetworkCode", 1, 1000, { country: formData.country })
+      // Map the country ID back to the actual string name
+      const selectedCountry = fullCountriesList.find(
+        (c) => String(c.id) === formData.country
+      );
+      const countryNameParam = selectedCountry ? selectedCountry.name : "";
+
+      // Fetch MCC and MNC options using the country__name parameter
+      getOperatorNetworkCodelookupApi(1, 1000, { country__name: countryNameParam })
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
           
-          // STRICT LOCAL FILTER: Ensure we only use network codes that perfectly match the selected country ID
-          const matchedNetworkCodes = list.filter(
-            (item: any) => String(item.country) === String(formData.country)
-          );
-
-          // Extract unique MCCs
-          const uniqueMccs = Array.from(new Set(matchedNetworkCodes.map((item: any) => item.MCC))).filter(Boolean);
+          // Since the API filters by name, we just extract unique codes
+          const uniqueMccs = Array.from(new Set(list.map((item: any) => item.MCC))).filter(Boolean);
           setMccOptions(uniqueMccs.map((mcc) => ({ label: String(mcc), value: String(mcc) })));
 
-          // Extract unique MNCs
-          const uniqueMncs = Array.from(new Set(matchedNetworkCodes.map((item: any) => item.MNC))).filter(Boolean);
+          const uniqueMncs = Array.from(new Set(list.map((item: any) => item.MNC))).filter(Boolean);
           setMncOptions(uniqueMncs.map((mnc) => ({ label: String(mnc), value: String(mnc) })));
 
-          // SMART AUTO-SELECT: If there's exactly 1 option, auto-select it. Otherwise leave it alone (manual).
+          // SMART AUTO-SELECT
           setFormData((prev) => ({
             ...prev,
             MCC: uniqueMccs.length === 1 ? String(uniqueMccs[0]) : prev.MCC,
@@ -124,7 +124,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
       setMccOptions([]);
       setMncOptions([]);
     }
-  }, [formData.country]); // Only depend on country to fetch networks
+  }, [formData.country, fullCountriesList]); // Added fullCountriesList so Edit Mode triggers correctly
 
   useEffect(() => {
     if (isOpen && editingRate) {
@@ -147,7 +147,6 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
         setSelectedDate(null);
       }
     } else if (isOpen) {
-      // Reset
       setFormData({
         ratePlan: "",
         timeZone: "",
@@ -171,7 +170,6 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
 
   const handleSelect = (name: string, value: string) => {
     if (name === "country") {
-      // EXPLICIT CLEAR: If user crosses out/deletes the country, wipe everything
       if (!value) {
         setFormData({
           ...formData,
@@ -183,12 +181,10 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
         return;
       }
 
-      // Find the country data to auto-fill the countryCode
       const selectedCountry = fullCountriesList.find(
         (c) => String(c.id) === value
       );
 
-      // Force completely reset MCC, MNC, and Country Code when user changes the Country manually
       setFormData({
         ...formData,
         [name]: value,

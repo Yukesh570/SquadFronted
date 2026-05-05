@@ -41,6 +41,22 @@ export const getOperatorNetworkCodesApi = async (
   return response.data;
 };
 
+// HIGH-SPEED LOOKUP (GET) - FIXED: Removed unused 'module' parameter
+export const getOperatorNetworkCodelookupApi = async (
+  page: number = 1,
+  pageSize: number = 1000,
+  searchParams?: Record<string, any>
+): Promise<PaginatedResponse<OperatorNetworkCodeData>> => {
+  const params: any = {
+    page: page,
+    page_size: pageSize,
+    ...searchParams,
+  };
+  // Explicitly calling the /lookup/ endpoint as per Swagger
+  const response = await api.get(`/operatorNetworkCode/lookup/`, { params });
+  return response.data;
+};
+
 // POST
 export const createOperatorNetworkCodeApi = async (
   data: any,
