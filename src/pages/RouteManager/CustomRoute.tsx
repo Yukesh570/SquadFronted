@@ -10,7 +10,6 @@ import {
 import { getCompaniesApi } from "../../api/companyApi/companyApi";
 import { getClientsApi } from "../../api/clientApi/clientApi";
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
-import { getOperatorsApi } from "../../api/operatorApi/operatorApi";
 import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
 import { CustomRouteModal } from "../../components/modals/RouteManager/CustomRouteModal";
 import Button from "../../components/ui/Button";
@@ -42,10 +41,11 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+// FIXED: Removed Operator entirely
 const DEFAULT_SEARCH_COLUMNS = ["name", "status", "orginatingCompanyName", "countryName"];
 const DEFAULT_TABLE_COLUMNS = [
   "name", "orginatingCompanyName", "orginatingClientName", "status", 
-  "countryName", "operatorName", "terminatingCompanyName", "terminatingVendorProfileName"
+  "countryName", "terminatingCompanyName", "terminatingVendorProfileName"
 ];
 
 const CustomRoute: React.FC = () => {
@@ -83,11 +83,7 @@ const CustomRoute: React.FC = () => {
 
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
   const [clientOptions, setClientOptions] = useState<Option[]>([]);
-  
-  // FIX: Restored countryOptions state
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
-  
-  const [operatorOptions, setOperatorOptions] = useState<Option[]>([]);
   const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
 
   const hasLoggedOpening = useRef(false);
@@ -118,16 +114,15 @@ const CustomRoute: React.FC = () => {
   useEffect(() => {
     const fetchAllOptions = async () => {
       try {
-        const [companies, clients, countries, operators, vendors] = await Promise.all([
+        // FIXED: Removed Operator fetching
+        const [companies, clients, countries, vendors] = await Promise.all([
           getCompaniesApi("company", 1, 1000), getClientsApi("client", 1, 1000),
-          getCountriesApi("country", 1, 1000), getOperatorsApi("operator", 1, 1000),
-          getVendorsApi("vendor", 1, 1000),
+          getCountriesApi("country", 1, 1000), getVendorsApi("vendor", 1, 1000),
         ]);
 
         setCompanyOptions(extractOptions(companies, "name"));
         setClientOptions(extractOptions(clients, "name"));
         setCountryOptions(extractOptions(countries, "name")); 
-        setOperatorOptions(extractOptions(operators, "name"));
         setVendorOptions(extractOptions(vendors, "profileName"));
       } catch (error) {
         console.error("Failed to load filter options", error);
@@ -141,19 +136,15 @@ const CustomRoute: React.FC = () => {
     { label: "Inactive", value: "INACTIVE" },
   ];
 
-  // FIX: Exactly mapped filterKeys to the Django Meta field array
+  // FIXED: Operator object entirely removed
   const allColumns: ColumnConfig[] = [
     { key: "name", label: "Name", type: "text", filterKey: "name__icontains" },
-    { key: "orginatingCompanyName", label: "Originating Company", type: "text", options: companyOptions, filterKey: "orginatingCompany__name" },
     { key: "orginatingClientName", label: "Originating Client", type: "text", options: clientOptions, filterKey: "orginatingClient__name" },
+    { key: "orginatingCompanyName", label: "Originating Company", type: "text", options: companyOptions, filterKey: "orginatingCompany__name" },
     { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status" },
-    
-    // FIX: Appended __icontains to bypass exact case-sensitivity match failure on "NEPAL"
     { key: "countryName", label: "Country", type: "text", options: countryOptions, filterKey: "country__name__icontains" },
-    
-    { key: "operatorName", label: "Operator", type: "text", options: operatorOptions, filterKey: "operator__name" },
-    { key: "terminatingCompanyName", label: "Terminating Company", type: "text", options: companyOptions, filterKey: "terminatingCompany__name" },
     { key: "terminatingVendorProfileName", label: "Terminating Vendor", type: "text", options: vendorOptions, filterKey: "terminatingVendor__profileName" },
+    { key: "terminatingCompanyName", label: "Terminating Company", type: "text", options: companyOptions, filterKey: "terminatingCompany__name" },
     { key: "priority", label: "Priority", type: "text", filterKey: "priority__icontains" },
 
     { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c: any) => (c.createdAt ? new Date(c.createdAt).toLocaleString() : "-") },
@@ -184,8 +175,6 @@ const CustomRoute: React.FC = () => {
 
           if (columnDef?.options) {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
-            
-            // FIX: If the Django filterKey specifically asks for a __name, send the label (text) instead of the value (ID)
             const isNameField = columnDef.filterKey?.includes("__name") || columnDef.filterKey?.includes("__profileName");
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? (isNameField ? selectedOption.label : selectedOption.value) : value;
           } 

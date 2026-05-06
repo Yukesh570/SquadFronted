@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useRef, Fragment } from "react";
-import ReactDOM from "react-dom";
-import { Popover, Transition } from "@headlessui/react";
-import { Check } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import Modal from "../../ui/Modal";
 import Button from "../../ui/Button";
 import Input from "../../ui/Input";
 import Select from "../../ui/Select";
+import { MultiSelectDropdown, type MultiSelectOption } from "../../ui/MultiSelectDropdown";
 import {
   createCustomRouteApi,
   updateCustomRouteApi,
@@ -27,13 +25,6 @@ interface CustomRouteModalProps {
   isViewMode?: boolean;
 }
 
-interface Option {
-  label: string;
-  value: string;
-  isAll?: boolean;
-  isUiOnly?: boolean; // True if it's an artificial header, False if it comes from the DB
-}
-
 interface CountryData {
   id?: number;
   name: string;
@@ -42,166 +33,6 @@ interface CountryData {
   region: string;
   subRegion: string;
 }
-
-// --- React Portal Helper ---
-const Portal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return ReactDOM.createPortal(children, document.body);
-};
-
-// --- Clean List Multi-Select Dropdown Component ---
-const MultiSelectDropdown = ({ label, options, selected, onChange, disabled, placeholder }: any) => {
-  const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  const updatePosition = () => {
-    if (buttonRef.current) {
-      setButtonRect(buttonRef.current.getBoundingClientRect());
-    }
-  };
-
-  useEffect(() => {
-    const handleResize = () => updatePosition();
-    window.addEventListener("resize", handleResize);
-    window.addEventListener("scroll", handleResize, true);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      window.removeEventListener("scroll", handleResize, true);
-    };
-  }, []);
-
-  let topPosition = 0;
-  let leftPosition = 0;
-  let maxDropdownHeight = 320;
-  let dropdownWidth = 280;
-
-  if (buttonRect) {
-    const windowHeight = window.innerHeight;
-    const spaceBelow = windowHeight - buttonRect.bottom - 20;
-    topPosition = buttonRect.bottom + 4;
-    maxDropdownHeight = Math.min(320, Math.max(220, spaceBelow));
-    leftPosition = buttonRect.left;
-    dropdownWidth = buttonRect.width; 
-  }
-
-  return (
-    <Popover className="relative flex flex-col w-full">
-      {({ open, close }) => (
-        <>
-          <label className="text-sm font-medium text-text-secondary dark:text-gray-400 mb-1">{label}</label>
-          <Popover.Button
-            ref={buttonRef}
-            onClick={updatePosition}
-            disabled={disabled}
-            className={`w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 flex justify-between items-center transition-all focus:outline-none focus:ring-1 focus:ring-primary shadow-sm ${
-              disabled ? "bg-gray-100 dark:bg-gray-800 opacity-60 cursor-not-allowed" : "bg-white dark:bg-gray-900 cursor-pointer hover:border-primary"
-            } ${open ? "ring-1 ring-primary border-primary" : ""}`}
-          >
-            <span className="text-sm truncate text-text-primary dark:text-white">
-              {selected.length > 0 ? `${selected.length} selected` : placeholder}
-            </span>
-            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-          </Popover.Button>
-
-          {open && buttonRect && !disabled && (
-            <Portal>
-              <div className="fixed inset-0 z-[9999]" onClick={() => close()}>
-                <div
-                  className="absolute flex flex-col"
-                  style={{
-                    top: topPosition,
-                    left: leftPosition,
-                    width: dropdownWidth,
-                    maxHeight: maxDropdownHeight,
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Transition
-                    appear={true}
-                    show={true}
-                    as={Fragment}
-                    enter="transition ease-out duration-100"
-                    enterFrom="opacity-0 translate-y-1"
-                    enterTo="opacity-100 translate-y-0"
-                    leave="transition ease-in duration-75"
-                    leaveFrom="opacity-100 translate-y-0"
-                    leaveTo="opacity-0 translate-y-1"
-                  >
-                    <div
-                      className="w-full rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
-                      style={{ maxHeight: "inherit" }}
-                    >
-                      {/* Clean Options List */}
-                      <div className="flex-1 overflow-y-auto min-h-0 py-1">
-                        {options.map((opt: any) => {
-                          let isSelected = false;
-                          
-                          // Smart dynamic checking for group headers
-                          if (opt.isAll) {
-                            if (opt.value === "ALL_MCC") {
-                              const standardOpts = options.filter((o:any) => !o.isUiOnly);
-                              isSelected = standardOpts.length > 0 && standardOpts.every((o:any) => selected.includes(o.value));
-                            } else {
-                              const mccPrefix = opt.value.split('-')[0];
-                              const standardOpts = options.filter((o:any) => o.value.startsWith(`${mccPrefix}-`) && !o.isUiOnly);
-                              isSelected = standardOpts.length > 0 && standardOpts.every((o:any) => selected.includes(o.value));
-                            }
-                          } else {
-                            isSelected = selected.includes(opt.value);
-                          }
-
-                          return (
-                            <button
-                              key={opt.value}
-                              type="button"
-                              onClick={() => {
-                                if (opt.isAll) {
-                                  onChange(selected, opt);
-                                } else {
-                                  if (isSelected) {
-                                    onChange(selected.filter((v: string) => v !== opt.value), opt);
-                                  } else {
-                                    onChange([...selected, opt.value], opt);
-                                  }
-                                }
-                              }}
-                              className={`w-full flex items-center justify-between px-4 py-2.5 text-left text-sm transition-colors
-                                ${
-                                  opt.isAll
-                                    ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium"
-                                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50"
-                                }
-                                ${
-                                  isSelected && !opt.isAll
-                                    ? "text-primary dark:text-primary font-medium"
-                                    : ""
-                                }
-                              `}
-                            >
-                              <span className="truncate">{opt.label}</span>
-                              {isSelected && <Check size={16} className="text-primary" strokeWidth={2.5} />}
-                            </button>
-                          );
-                        })}
-                        {options.length === 0 && (
-                          <div className="py-3 px-4 text-left text-gray-500 text-sm">
-                            No options available
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Transition>
-                </div>
-              </div>
-            </Portal>
-          )}
-        </>
-      )}
-    </Popover>
-  );
-};
-// ----------------------------------------------
 
 export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   isOpen,
@@ -224,15 +55,14 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     terminatingVendor: 0,
   });
 
-  const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
-  const [clientOptions, setClientOptions] = useState<Option[]>([]);
-  const [countryOptions, setCountryOptions] = useState<Option[]>([]);
-  const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
+  const [companyOptions, setCompanyOptions] = useState<MultiSelectOption[]>([]);
+  const [clientOptions, setClientOptions] = useState<MultiSelectOption[]>([]);
+  const [countryOptions, setCountryOptions] = useState<MultiSelectOption[]>([]);
+  const [vendorOptions, setVendorOptions] = useState<MultiSelectOption[]>([]);
   
-  const [mccOptions, setMccOptions] = useState<Option[]>([]);
-  const [mncOptions, setMncOptions] = useState<Option[]>([]);
+  const [mccOptions, setMccOptions] = useState<MultiSelectOption[]>([]);
+  const [mncOptions, setMncOptions] = useState<MultiSelectOption[]>([]);
 
-  // Raw arrays to look up relationships & network codes
   const [rawClients, setRawClients] = useState<any[]>([]);
   const [rawVendors, setRawVendors] = useState<any[]>([]);
   const [fullCountriesList, setFullCountriesList] = useState<CountryData[]>([]);
@@ -254,7 +84,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     { label: "5 (Low)", value: "5" },
   ];
 
-  const extractOptions = (response: any, labelKey: string = "name") => {
+  const extractOptions = (response: any, labelKey: string = "name"): MultiSelectOption[] => {
     let data = [];
     if (response && response.results) {
       data = response.results;
@@ -301,7 +131,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     }
   }, [isOpen]);
 
-  // 1. Fetch Networks and Generate MCC Options when Country Changes
   useEffect(() => {
     if (formData.country && fullCountriesList.length > 0) {
       const selectedCountry = fullCountriesList.find((c) => String(c.id) === String(formData.country));
@@ -313,7 +142,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           setFullNetworkList(list);
 
           const uniqueMccs = Array.from(new Set(list.map((item: any) => String(item.MCC)))).filter(Boolean);
-          const mccOpts: Option[] = [];
+          const mccOpts: MultiSelectOption[] = [];
           
           if (uniqueMccs.length > 1) {
             mccOpts.push({ label: "All MCCs", value: "ALL_MCC", isAll: true, isUiOnly: true });
@@ -337,7 +166,8 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   // 2. Generate MNC Options when MCC selection changes
   useEffect(() => {
     if (formData.MCC && formData.MCC.length > 0 && fullNetworkList.length > 0) {
-      const newMncOptions: Option[] = [];
+      const newMncOptions: MultiSelectOption[] = [];
+      let groupIdx = 0; 
       
       formData.MCC.forEach((mcc: string) => {
         if (mcc === "ALL_MCC") return;
@@ -346,52 +176,98 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
         const uniqueMncs = Array.from(new Set(specificMncs.map(n => String(n.MNC)))).filter(Boolean);
 
         if (uniqueMncs.length > 0) {
-          // Check if DB explicitly has an "All" or "In Rest" route
           const dbAllMnc = uniqueMncs.find(m => m.toLowerCase() === "all" || m.toLowerCase() === "in rest");
 
           if (dbAllMnc) {
-            // Merge DB's "All" route into the grey group header (isUiOnly: false)
-            newMncOptions.push({ label: `${mcc} ( ${dbAllMnc} )`, value: `${mcc}-${dbAllMnc}`, isAll: true, isUiOnly: false });
+            newMncOptions.push({ label: `${mcc} ( ${dbAllMnc} )`, value: `${mcc}(${dbAllMnc})`, isAll: true, isUiOnly: false, groupIndex: groupIdx });
           } else if (uniqueMncs.length > 1) {
-            // DB has no "All", so inject an artificial UI "Select All" header (isUiOnly: true)
-            newMncOptions.push({ label: `Select All ${mcc}`, value: `${mcc}-ALL_UI`, isAll: true, isUiOnly: true });
+            newMncOptions.push({ label: `${mcc} ( All )`, value: `${mcc}(ALL_UI)`, isAll: true, isUiOnly: true, groupIndex: groupIdx });
           }
 
-          // Push the rest of the standard MNCs
           uniqueMncs.forEach(mnc => {
             if (mnc !== dbAllMnc) {
-              newMncOptions.push({ label: `${mcc} ( ${mnc} )`, value: `${mcc}-${mnc}`, isAll: false, isUiOnly: false });
+              newMncOptions.push({ label: `${mcc} ( ${mnc} )`, value: `${mcc}(${mnc})`, isAll: false, isUiOnly: false, groupIndex: groupIdx });
             }
           });
+          
+          groupIdx++; 
         }
       });
       setMncOptions(newMncOptions);
 
-      // Clean up selected MNCs that belong to unselected MCCs
-      setFormData((prev: any) => {
-        const validMncValues = newMncOptions.map(o => o.value);
-        const filteredMncs = (prev.MNC || []).filter((m: string) => validMncValues.includes(m));
-        return { ...prev, MNC: filteredMncs };
-      });
+      // FIXED RACE CONDITION: Only aggressively clean up MNCs when in Create Mode. 
+      // If Editing/Viewing, trust the DB data. Running this in Edit mode was wiping data while the API loaded!
+      if (!editingRoute && !isViewMode) {
+        const sanitizeString = (str: string) => String(str).replace(/\s+/g, '').toLowerCase();
+
+        setFormData((prev: any) => {
+          const filteredMncs = (prev.MNC || []).map((m: string) => {
+            let sanitizedM = sanitizeString(m);
+            
+            if (sanitizedM.endsWith('(all)')) {
+              const expectedUiValue = sanitizedM.replace('(all)', '(all_ui)');
+              if (newMncOptions.some(o => sanitizeString(o.value) === expectedUiValue)) {
+                sanitizedM = expectedUiValue;
+              }
+            }
+
+            const match = newMncOptions.find(o => sanitizeString(o.value) === sanitizedM);
+            return match ? match.value : m;
+          }).filter((m: string) => newMncOptions.some(o => o.value === m));
+
+          return { ...prev, MNC: filteredMncs };
+        });
+      }
     } else {
       setMncOptions([]);
-      setFormData((prev: any) => ({ ...prev, MNC: [] }));
+      // Only clear MNC state if not editing/viewing
+      if (!editingRoute && !isViewMode) {
+        setFormData((prev: any) => ({ ...prev, MNC: [] }));
+      }
     }
-  }, [formData.MCC, fullNetworkList]);
+  }, [formData.MCC, fullNetworkList, editingRoute, isViewMode]);
 
   useEffect(() => {
     if (isOpen) {
       if (editingRoute) {
+        
+        const parseArrayField = (val: any): string[] => {
+          if (!val) return [];
+          if (Array.isArray(val)) return val.map(v => String(v).trim());
+          
+          if (typeof val === 'string') {
+            let cleaned = val.trim();
+            if (cleaned.startsWith('[') && cleaned.endsWith(']')) {
+              try {
+                const parsed = JSON.parse(cleaned);
+                if (Array.isArray(parsed)) return parsed.map(v => String(v).trim());
+              } catch (e) {
+                cleaned = cleaned.replace(/^\[|\]$/g, '').replace(/['"]/g, '');
+              }
+            }
+            return cleaned.split(",").map(v => v.trim()).filter(Boolean);
+          }
+          return [String(val).trim()];
+        };
+
+        const parsedMcc = parseArrayField((editingRoute as any).MCC);
+        let parsedMnc = parseArrayField((editingRoute as any).MNC);
+
+        parsedMnc = parsedMnc.map(m => {
+          if (m.includes("(")) return m;
+          if (parsedMcc.length === 1) return `${parsedMcc[0]}(${m})`; 
+          return m;
+        });
+
         setFormData({
-          name: editingRoute.name,
+          name: editingRoute.name || "",
           orginatingCompany: editingRoute.orginatingCompany || 0,
           orginatingClient: editingRoute.orginatingClient || 0,
           priority: editingRoute.priority || "",
           status: editingRoute.status || "ACTIVE",
           country: editingRoute.country || 0,
-          operator: editingRoute.operator || 0,
-          MCC: (editingRoute as any).MCC ? String((editingRoute as any).MCC).split(",") : [],
-          MNC: (editingRoute as any).MNC ? String((editingRoute as any).MNC).split(",") : [],
+          MCC: parsedMcc,
+          MNC: parsedMnc,
           terminatingCompany: editingRoute.terminatingCompany || 0,
           terminatingVendor: editingRoute.terminatingVendor || 0,
         });
@@ -403,7 +279,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           priority: "",
           status: "ACTIVE",
           country: 0,
-          operator: 0,
           MCC: [],
           MNC: [],
           terminatingCompany: 0,
@@ -467,11 +342,10 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
   const handleMncChange = (selectedValues: string[], clickedOption?: any) => {
     if (clickedOption && clickedOption.isAll) {
-      const mccPrefix = clickedOption.value.split("-")[0];
+      const mccPrefix = clickedOption.value.split('(')[0].trim();
       
-      // We toggle all standard options under this MCC
       const mncValuesForThisMcc = mncOptions
-        .filter(o => o.value.startsWith(`${mccPrefix}-`) && !o.isUiOnly)
+        .filter(o => o.value.startsWith(`${mccPrefix}(`) && !o.isUiOnly)
         .map(o => o.value);
 
       const isAllSelected = mncValuesForThisMcc.length > 0 && mncValuesForThisMcc.every(v => formData.MNC.includes(v));
@@ -489,7 +363,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     setFormData((prev: any) => ({ ...prev, MNC: selectedValues }));
   };
 
-  // External button correctly excludes the artificial UI headers from the payload
   const handleSelectAllMncExternal = () => {
     const allMncs = mncOptions.filter(o => !o.isUiOnly).map(o => o.value);
     setFormData((prev: any) => ({ ...prev, MNC: allMncs }));
@@ -516,8 +389,9 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     setIsSubmitting(true);
 
     const payload = { ...formData };
-    payload.MCC = Array.isArray(formData.MCC) ? formData.MCC.join(",") : formData.MCC;
-    payload.MNC = Array.isArray(formData.MNC) ? formData.MNC.join(",") : formData.MNC;
+    
+    payload.MCC = Array.isArray(formData.MCC) ? formData.MCC.join(",") : (formData.MCC || "");
+    payload.MNC = Array.isArray(formData.MNC) ? formData.MNC : [];
 
     try {
       if (editingRoute?.id) {
@@ -567,7 +441,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
         onSubmit={handleSubmit}
         className="space-y-6 max-h-[80vh] overflow-y-auto px-1"
       >
-        {/* Header Info */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Header Info
@@ -620,7 +493,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           </div>
         </fieldset>
 
-        {/* Destination */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Destination
@@ -633,7 +505,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                 onChange={(v) => handleSelectChange("country", v)}
                 options={countryOptions}
                 placeholder="Select Country"
-                disabled={isViewMode || isFetchingOptions}
+                disabled={!!editingRoute || isViewMode || isFetchingOptions}
                 placement="top"
               />
             </div>
@@ -644,7 +516,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                 options={mccOptions}
                 selected={formData.MCC}
                 onChange={handleMccChange}
-                disabled={!formData.country || isViewMode || isFetchingOptions}
+                disabled={!!editingRoute || !formData.country || isViewMode || isFetchingOptions}
                 placeholder={formData.country ? "Select MCC" : "Country First"}
               />
             </div>
@@ -656,11 +528,11 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                   options={mncOptions}
                   selected={formData.MNC}
                   onChange={handleMncChange}
-                  disabled={formData.MCC.length === 0 || isViewMode || isFetchingOptions}
+                  disabled={!!editingRoute || formData.MCC.length === 0 || isViewMode || isFetchingOptions}
                   placeholder={formData.MCC.length > 0 ? "Select MNC" : "MCC First"}
                 />
               </div>
-              {!isViewMode && (
+              {!isViewMode && !editingRoute && (
                 <div className="flex gap-2 mb-[2px]">
                   <Button 
                     type="button" 
@@ -686,7 +558,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           </div>
         </fieldset>
 
-        {/* Vendor Info */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Vendor Info

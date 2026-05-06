@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, History } from "lucide-react";
+import { Home, History, Eye } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getUserInformationApi } from "../../api/userLogApi/userLogApi";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import Input from "../../components/ui/Input";
+import { UserActionModal } from "../../components/modals/UserActionModal";
+import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import {
   getUserActionApi,
   type UserActionData,
@@ -21,6 +23,11 @@ const UserAction: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [titleFilter, setTitleFilter] = useState("");
+  
+  const [viewLog, setViewLog] = useState<UserActionData | null>(null);
+
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRowLog, setSelectedRowLog] = useState<UserActionData | null>(null);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -33,7 +40,7 @@ const UserAction: React.FC = () => {
     };
     fetchUserInfo();
   }, []);
-  //pushh
+
   const fetchUserLogs = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
@@ -96,11 +103,26 @@ const UserAction: React.FC = () => {
     fetchUserLogs({ title: "" });
   };
 
+  const handleContextMenu = (e: React.MouseEvent, log: UserActionData) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRowLog(log);
+  };
+
+  const menuItems: ContextMenuItem[] = selectedRowLog ? [
+    { 
+      label: "View Full Action", 
+      icon: <Eye size={16} />, 
+      onClick: () => {
+        setViewLog(selectedRowLog);
+      } 
+    },
+  ] : [];
+
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll(
           "aside a.active, nav a.active",
@@ -110,7 +132,7 @@ const UserAction: React.FC = () => {
           activeItem?.innerText?.split("\n")[0].trim() || "Module";
 
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100);
 
       hasLoggedOpening.current = true;
     }
@@ -124,7 +146,7 @@ const UserAction: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 pb-6 sm:px-6 lg:px-8">
+    <div className="container mx-auto px-4 pb-6 sm:px-6 lg:px-8" onClick={() => setContextMenuPos(null)}>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
           User Action
@@ -162,7 +184,8 @@ const UserAction: React.FC = () => {
         renderRow={(log, index) => (
           <tr
             key={log.id}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            onContextMenu={(e) => handleContextMenu(e, log)}
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 transition-colors cursor-context-menu"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
@@ -170,13 +193,16 @@ const UserAction: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 font-mono">
               {log.username}
             </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <div className="flex items-center gap-2">{log.title}</div>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
+              {log.title}
             </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <div className="flex items-center gap-2">{log.action}</div>
+            {/* FIXED: Removed inline button, simplified to just a truncated container */}
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 max-w-[150px] sm:max-w-[200px] md:max-w-[300px]">
+              <div className="truncate">
+                {log.action}
+              </div>
             </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
               <div className="flex items-center gap-2 text-xs">
                 <History size={14} className="text-orange-400" />
                 {formatDate(log.createdAt)}
@@ -184,6 +210,18 @@ const UserAction: React.FC = () => {
             </td>
           </tr>
         )}
+      />
+
+      <ContextMenu 
+        position={contextMenuPos} 
+        items={menuItems} 
+        onClose={() => setContextMenuPos(null)} 
+      />
+
+      <UserActionModal
+        isOpen={!!viewLog}
+        onClose={() => setViewLog(null)}
+        viewLog={viewLog}
       />
     </div>
   );
