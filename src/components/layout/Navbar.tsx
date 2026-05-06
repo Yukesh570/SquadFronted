@@ -49,6 +49,23 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
 
   const [recentColors, setRecentColors] = useState<string[]>([]);
 
+  // ---> NEW: Make timezone a state so it can re-render instantly <---
+  const [appTimezone, setAppTimezone] = useState(
+    localStorage.getItem("app_timezone") || "UTC"
+  );
+
+  // ---> NEW: Listen for the custom event from GeneralSettings <---
+  useEffect(() => {
+    const handleTimezoneChange = () => {
+      setAppTimezone(localStorage.getItem("app_timezone") || "UTC");
+    };
+
+    window.addEventListener("timezoneChanged", handleTimezoneChange);
+    return () => {
+      window.removeEventListener("timezoneChanged", handleTimezoneChange);
+    };
+  }, []);
+
   const fetchNotifications = async () => {
     try {
       const response: any = await getNotificationApi();
@@ -146,8 +163,9 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
         </div>
 
         <div className="flex items-center space-x-2">
+          {/* Live Clock using state appTimezone */}
           <div className="text-sm text-gray-900 dark:text-white font-medium hidden md:block">
-            {currentTime.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} | {currentTime.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+            {new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: appTimezone }).format(currentTime)} | {new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", timeZone: appTimezone }).format(currentTime)}
           </div>
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2 hidden md:block" />
 
@@ -209,9 +227,10 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                                 {notification.description}
                               </p>
+                              {/* Notification time using cached timezone */}
                               <div className="mt-2 flex items-center text-[11px] text-gray-400 dark:text-gray-500 font-medium">
                                 <Clock size={12} className="mr-1" />
-                                {notification.createdAt ? new Date(notification.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Just now"}
+                                {notification.createdAt ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: appTimezone }).format(new Date(notification.createdAt)) : "Just now"}
                               </div>
                             </div>
                           </div>

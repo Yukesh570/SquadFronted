@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import { NavItemsContext } from "../../context/navItemsContext";
+import { getGeneralSettingsApi } from "../../api/settingApi/generalSettingsApi/generalSettingsApi";
 
 const Layout = () => {
   // If no saved state found, default to 'false' (Expanded) as you requested.
@@ -23,6 +24,22 @@ const Layout = () => {
       JSON.stringify(isSidebarCollapsed)
     );
   }, [isSidebarCollapsed]);
+
+  // NEW: Auto-fetch and cache the global timezone when the app loads
+  useEffect(() => {
+    const initializeTimezone = async () => {
+      try {
+        const response = await getGeneralSettingsApi("generalSettings");
+        if (response && response.defaultTimezone) {
+          localStorage.setItem("app_timezone", response.defaultTimezone);
+        }
+      } catch (error) {
+        console.error("Failed to fetch initial timezone settings:", error);
+      }
+    };
+    
+    initializeTimezone();
+  }, []);
 
   // Intelligent Toggle: Works for both Mobile and Desktop
   const toggleSidebar = () => {

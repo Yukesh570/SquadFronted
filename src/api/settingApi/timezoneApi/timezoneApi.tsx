@@ -1,7 +1,10 @@
 import api from "../../axiosInstance";
+
 export interface TimezoneData {
   id?: number;
   name: string;
+  utcOffset: string;
+  abbreviation: string;
 }
 
 export interface PaginatedResponse<T> {

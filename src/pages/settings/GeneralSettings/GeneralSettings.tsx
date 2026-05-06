@@ -102,6 +102,10 @@ const GeneralSettings: React.FC = () => {
       if (newController.signal.aborted) return;
       
       if (response) {
+        if (response.defaultTimezone) {
+          localStorage.setItem("app_timezone", response.defaultTimezone);
+        }
+
         setFormData({
           companyName: response.companyName || "",
           defaultLanguage: response.defaultLanguage || "en",
@@ -145,6 +149,12 @@ const GeneralSettings: React.FC = () => {
     setIsSubmitting(true);
     try {
       await putGeneralSettingsApi(formData, routeName);
+
+      localStorage.setItem("app_timezone", formData.defaultTimezone);
+
+      // ---> NEW: Dispatch custom event so the Navbar instantly updates <---
+      window.dispatchEvent(new Event("timezoneChanged"));
+
       toast.success("Settings updated successfully!");
     } catch (error: any) {
       toast.error("Update failed.");

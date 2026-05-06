@@ -28,15 +28,21 @@ export const TimezoneModal: React.FC<TimezoneModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: "",
+    utcOffset: "",
+    abbreviation: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       if (editingTimezone) {
-        setFormData({ name: editingTimezone.name });
+        setFormData({ 
+          name: editingTimezone.name || "",
+          utcOffset: editingTimezone.utcOffset || "",
+          abbreviation: editingTimezone.abbreviation || "",
+        });
       } else {
-        setFormData({ name: "" });
+        setFormData({ name: "", utcOffset: "", abbreviation: "" });
       }
     }
   }, [isOpen, editingTimezone]);
@@ -53,9 +59,21 @@ export const TimezoneModal: React.FC<TimezoneModalProps> = ({
       toast.error("Timezone Name is required");
       return;
     }
+    if (!formData.utcOffset.trim()) {
+      toast.error("UTC Offset is required");
+      return;
+    }
+    if (!formData.abbreviation.trim()) {
+      toast.error("Abbreviation is required");
+      return;
+    }
 
     setIsSubmitting(true);
-    const dataToSend = { name: formData.name };
+    const dataToSend = { 
+      name: formData.name,
+      utcOffset: formData.utcOffset,
+      abbreviation: formData.abbreviation
+    };
 
     try {
       if (editingTimezone) {
@@ -107,7 +125,25 @@ export const TimezoneModal: React.FC<TimezoneModalProps> = ({
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="Asia/Kathmandu"
+          placeholder="e.g. Asia/Kathmandu"
+          required
+          disabled={isViewMode}
+        />
+        <Input
+          label="UTC Offset"
+          name="utcOffset"
+          value={formData.utcOffset}
+          onChange={handleChange}
+          placeholder="e.g. +05:45"
+          required
+          disabled={isViewMode}
+        />
+        <Input
+          label="Abbreviation"
+          name="abbreviation"
+          value={formData.abbreviation}
+          onChange={handleChange}
+          placeholder="e.g. NPT"
           required
           disabled={isViewMode}
         />

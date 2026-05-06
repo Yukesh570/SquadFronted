@@ -24,6 +24,9 @@ import ContextMenu, {
 } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
 
+// FIXED: Import the timezone formatter
+import { formatDateTime } from "../../../helper/dateFormatter";
+
 // --- Interfaces ---
 interface Option {
   label: string;
@@ -145,7 +148,8 @@ const Smpp: React.FC = () => {
     { key: "destNPI__gt_lt", label: "Dest NPI (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
 
     // --- Created At Variants ---
-    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c: any) => (c.createdAt ? new Date(c.createdAt).toLocaleString() : "-") },
+    // FIXED: Implement new timezone cache formatter
+    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
     { key: "createdAt__range", label: "Created At (From/To)", type: "date_range", isSearchOnly: true },
     { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
   ];

@@ -34,6 +34,9 @@ import ContextMenu, {
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 import { actionHelper } from "../../helper/action";
 
+// FIXED: Import the timezone formatter
+import { formatDateTime } from "../../helper/dateFormatter";
+
 // --- Interfaces ---
 interface Option {
   label: string;
@@ -359,8 +362,9 @@ const Client: React.FC = () => {
       tableLabel: "Created At",
       type: "date",
       filterKey: "createdAt__date",
+      // FIXED: Implement new timezone cache formatter
       render: (c) =>
-        c.createdAt ? new Date(c.createdAt).toLocaleString() : "-",
+        c.createdAt ? formatDateTime(c.createdAt) : "-",
     },
     {
       key: "createdAt__range",

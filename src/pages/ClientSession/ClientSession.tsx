@@ -19,6 +19,9 @@ import ContextMenu, {
 } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
+// FIXED: Import the timezone formatter
+import { formatDateTime } from "../../helper/dateFormatter";
+
 interface ColumnConfig extends FilterColumn {
   render?: (data: ClientSessionData) => React.ReactNode;
   filterKey?: string;
@@ -167,8 +170,9 @@ const ClientSession: React.FC = () => {
       tableLabel: "Connected At",
       type: "date",
       filterKey: "connectedAt",
+      // FIXED: Implement new timezone cache formatter
       render: (c) =>
-        c.connectedAt ? new Date(c.connectedAt).toLocaleString() : "-",
+        c.connectedAt ? formatDateTime(c.connectedAt) : "-",
     },
     {
       key: "connectedAt__range",
@@ -191,7 +195,8 @@ const ClientSession: React.FC = () => {
       tableLabel: "Bound At",
       type: "date",
       filterKey: "boundAt",
-      render: (c) => (c.boundAt ? new Date(c.boundAt).toLocaleString() : "-"),
+      // FIXED: Implement new timezone cache formatter
+      render: (c) => (c.boundAt ? formatDateTime(c.boundAt) : "-"),
     },
     {
       key: "boundAt__range",
@@ -214,8 +219,9 @@ const ClientSession: React.FC = () => {
       tableLabel: "Last Activity",
       type: "date",
       filterKey: "last_activityAt",
+      // FIXED: Implement new timezone cache formatter
       render: (c) =>
-        c.last_activityAt ? new Date(c.last_activityAt).toLocaleString() : "-",
+        c.last_activityAt ? formatDateTime(c.last_activityAt) : "-",
     },
     {
       key: "last_activityAt__range",

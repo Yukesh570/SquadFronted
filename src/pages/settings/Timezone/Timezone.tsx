@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -12,10 +12,8 @@ import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
-// ViewButton removed
 import { TimezoneModal } from "../../../components/modals/Settings/timezonemodal";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
-// NEW: Context Menu
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
 
@@ -121,21 +119,19 @@ const TimeZone: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Timezone", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowTimezone.id!) }] : []),
   ] : [];
 
-  // Removed "Actions" from headers
-  const headers = ["S.N.", "Timezone Name"];
+  const headers = ["S.N.", "Timezone Name", "UTC Offset", "Abbreviation"];
 
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100); 
       
       hasLoggedOpening.current = true;
     }
@@ -191,7 +187,7 @@ const TimeZone: React.FC = () => {
         renderRow={(timezone, index) => (
           <tr
             key={timezone.id || index}
-            onContextMenu={(e) => handleContextMenu(e, timezone)} // Right Click Handler
+            onContextMenu={(e) => handleContextMenu(e, timezone)} 
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
@@ -200,7 +196,12 @@ const TimeZone: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
               {timezone.name}
             </td>
-            {/* ACTION COLUMN REMOVED */}
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {timezone.utcOffset || "-"}
+            </td>
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {timezone.abbreviation || "-"}
+            </td>
           </tr>
         )}
       />
