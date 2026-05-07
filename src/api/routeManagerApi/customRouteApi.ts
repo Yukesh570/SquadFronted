@@ -1,7 +1,10 @@
 import api from "../axiosInstance";
+
 export interface CustomRouteData {
   id?: number;
   name: string;
+  routeGroup?: string;
+  
   // Header
   orginatingCompany?: number;
   orginatingCompanyName?: string;
@@ -32,7 +35,23 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// GET
+// NEW: GET GROUPED ROUTES (For Main Table)
+export const getGroupedCustomRoutesApi = async (
+  module: string,
+  page: number = 1,
+  pageSize: number = 10,
+  searchParams?: Record<string, any>,
+): Promise<PaginatedResponse<any>> => {
+  const params: any = {
+    page: page,
+    page_size: pageSize,
+    ...searchParams,
+  };
+  const response = await api.get(`/customRoute/grouped/${module}/`, { params });
+  return response.data;
+};
+
+// GET DETAILED ROUTES (For Sub-Table inside Modal)
 export const getCustomRoutesApi = async (
   module: string,
   page: number = 1,

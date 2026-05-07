@@ -19,6 +19,9 @@ import ContextMenu, { type ContextMenuItem } from "../../../components/ui/Contex
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import { actionHelper } from "../../../helper/action";
 
+// FIXED: Import the timezone formatter
+import { formatDateTime } from "../../../helper/dateFormatter";
+
 interface Option { label: string; value: string; }
 interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; }
 
@@ -109,10 +112,10 @@ const ClientInvoice: React.FC = () => {
       key: "createdAt", 
       label: "Created At", 
       type: "date",
+      // FIXED: Use the cached timezone helper instead of local browser time
       render: (data: any) => {
         if (!data.createdAt) return "-";
-        const dateObj = new Date(data.createdAt);
-        return `${dateObj.toLocaleDateString()} ${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        return formatDateTime(data.createdAt);
       }
     }
   ];
