@@ -12,26 +12,83 @@ export interface GeneralSettingsData {
   updatedAt?: string;
 }
 
-// GET
+export interface DashboardImageData {
+  id?: number;
+  image: string;
+  updatedBy?: number;
+  updatedAt?: string;
+}
+
+// GET (Authenticated)
 export const getGeneralSettingsApi = async (module: string): Promise<GeneralSettingsData> => {
   const response = await api.get(`/generalSettings/${module}/`);
-  return response.data;
+  return response?.data;
 };
 
-// PUT
+// POST (Authenticated)
+export const createGeneralSettingsApi = async (
+  data: Partial<GeneralSettingsData>,
+  module: string
+): Promise<GeneralSettingsData> => {
+  const response = await api.post(`/generalSettings/${module}/`, data);
+  return response?.data;
+};
+
+// PUT (Authenticated)
 export const putGeneralSettingsApi = async (
   data: Partial<GeneralSettingsData>,
   module: string
 ): Promise<GeneralSettingsData> => {
   const response = await api.put(`/generalSettings/${module}/`, data);
-  return response.data;
+  return response?.data;
 };
 
-// PATCH
+// PATCH (Authenticated)
 export const updateGeneralSettingsApi = async (
   data: Partial<GeneralSettingsData>,
   module: string
 ): Promise<GeneralSettingsData> => {
   const response = await api.patch(`/generalSettings/${module}/`, data);
-  return response.data;
+  return response?.data;
+};
+
+// GET Dashboard Image (Authenticated)
+export const getDashboardImageApi = async (): Promise<DashboardImageData> => {
+  const response = await api.get(`/dashboardImage/`);
+  return response?.data;
+};
+
+// PUT Dashboard Image
+export const putDashboardImageApi = async (data: FormData): Promise<DashboardImageData> => {
+  const response = await api.put(`/dashboardImage/`, data, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response?.data;
+};
+
+// ==========================================
+// PUBLIC API CALLS
+// ==========================================
+
+export const getPublicGeneralSettingsApi = async (): Promise<GeneralSettingsData> => {
+  let baseURL = api.defaults.baseURL?.replace(/\/$/, "") || "";
+  
+  // FIX: Strip out "/api" if it exists so we hit the ROOT endpoint exactly as the backend developer provided!
+  if (baseURL.endsWith("/api")) {
+    baseURL = baseURL.slice(0, -4);
+  }
+
+  const response = await fetch(`${baseURL}/displayGeneralSettings/`);
+  
+  if (!response.ok) throw new Error("Backend returned " + response.status);
+  return response.json();
+};
+
+export const getPublicDashboardImageApi = async (): Promise<DashboardImageData> => {
+  const baseURL = api.defaults.baseURL?.replace(/\/$/, "") || "";
+  // The image endpoint works fine with the /api prefix based on your previous logs
+  const response = await fetch(`${baseURL}/dashboardImage/`);
+  
+  if (!response.ok) throw new Error("Backend returned " + response.status);
+  return response.json();
 };

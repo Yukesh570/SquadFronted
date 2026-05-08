@@ -5,9 +5,9 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { NavItemsContext } from "../../context/navItemsContext";
 import FullLogo from "../../../src/assets/logos/logo.svg";
-import IconLogo from "../../../src/assets/logos/S-logo.svg";
 import type { navUserData } from "../../api/navUserRelationApi/navUserRelationApi";
 import type { PaginatedResponse } from "../../api/sidebarApi/sideBarApi";
+import { getDashboardImageApi } from "../../api/settingApi/generalSettingsApi/generalSettingsApi";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -15,15 +15,7 @@ interface SidebarProps {
   closeMobileSidebar: () => void;
 }
 
-const Tooltip = ({
-  text,
-  top,
-  left,
-}: {
-  text: string;
-  top: number;
-  left: number;
-}) => {
+const Tooltip = ({ text, top, left }: { text: string; top: number; left: number; }) => {
   return createPortal(
     <div
       className="fixed z-[9999] px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-md shadow-lg pointer-events-none transform -translate-y-1/2 animate-in fade-in zoom-in-95 duration-100 dark:bg-gray-700 border border-gray-700/50"
@@ -36,28 +28,59 @@ const Tooltip = ({
   );
 };
 
-const Sidebar = ({
-  isCollapsed,
-  isMobileOpen,
-  closeMobileSidebar,
-}: SidebarProps) => {
+const updateFavicon = (url: string) => {
+  let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    document.head.appendChild(link);
+  }
+  link.href = url;
+};
+
+const Sidebar = ({ isCollapsed, isMobileOpen, closeMobileSidebar }: SidebarProps) => {
   const { navItems } = useContext(NavItemsContext);
   const [openItems, setOpenItems] = useState<Record<number, boolean>>({});
   const location = useLocation();
 
-  const [hoveredItem, setHoveredItem] = useState<{
-    label: string;
-    top: number;
-    left: number;
-  } | null>(null);
+  const [hoveredItem, setHoveredItem] = useState<{ label: string; top: number; left: number; } | null>(null);
+
+  const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem("app_sidebar_logo") || FullLogo);
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const res = await getDashboardImageApi();
+        if (res && res.image && res.image !== logoUrl) {
+          setLogoUrl(res.image);
+          localStorage.setItem("app_sidebar_logo", res.image); 
+          updateFavicon(res.image);
+        }
+      } catch (e) {
+        console.error("Failed to load sidebar logo");
+      }
+    };
+    
+    fetchLogo();
+
+    // FIX: Listen for the new global event to forcefully refresh the logo cache instantly
+    const handleBrandingUpdate = () => {
+       const cachedLogo = localStorage.getItem("app_sidebar_logo");
+       if (cachedLogo) {
+           setLogoUrl(cachedLogo);
+           updateFavicon(cachedLogo);
+       }
+    };
+    
+    window.addEventListener("BrandingUpdated", handleBrandingUpdate);
+    return () => window.removeEventListener("BrandingUpdated", handleBrandingUpdate);
+  }, [logoUrl]);
 
   useEffect(() => {
     if (navItems.results) {
       navItems.results.forEach((parent) => {
         if (parent.children) {
-          const hasActiveChild = parent.children.some((child) =>
-            location.pathname.startsWith(`/${child.url}`)
-          );
+          const hasActiveChild = parent.children.some((child) => location.pathname.startsWith(`/${child.url}`));
           if (hasActiveChild && parent.id) {
             setOpenItems((prev) => ({ ...prev, [parent.id!]: true }));
           }
@@ -72,27 +95,18 @@ const Sidebar = ({
   };
 
   const renderIcon = (iconName: string | undefined, size: number) => {
-    const IconComponent =
-      iconName && (Icons as any)[iconName]
-        ? (Icons as any)[iconName]
-        : Icons.HelpCircle;
+    const IconComponent = iconName && (Icons as any)[iconName] ? (Icons as any)[iconName] : Icons.HelpCircle;
     return <IconComponent size={size} className="flex-shrink-0" />;
   };
 
   const handleMouseEnter = (e: React.MouseEvent, label: string) => {
     if (isCollapsed && window.innerWidth >= 768) {
       const rect = e.currentTarget.getBoundingClientRect();
-      setHoveredItem({
-        label,
-        top: rect.top + rect.height / 2,
-        left: rect.right + 10,
-      });
+      setHoveredItem({ label, top: rect.top + rect.height / 2, left: rect.right + 10 });
     }
   };
 
-  const handleMouseLeave = () => {
-    setHoveredItem(null);
-  };
+  const handleMouseLeave = () => setHoveredItem(null);
 
   const renderNavItems = (items: PaginatedResponse<navUserData>, level = 0) => {
     return items.results.map((item) => {
@@ -102,26 +116,12 @@ const Sidebar = ({
       const isOpen = item.id ? openItems[item.id] : false;
       const itemPath = `/${item.url}`;
 
-      const isActive =
-        location.pathname === itemPath ||
-        location.pathname.startsWith(`${itemPath}/`);
-
-      const baseClasses =
-        "group flex items-center rounded-lg transition-all duration-200 mb-1 relative cursor-pointer select-none";
-
+      const isActive = location.pathname === itemPath || location.pathname.startsWith(`${itemPath}/`);
+      const baseClasses = "group flex items-center rounded-lg transition-all duration-200 mb-1 relative cursor-pointer select-none";
       const isActuallyCollapsed = isCollapsed && window.innerWidth >= 768;
-
-      const layoutClasses = isActuallyCollapsed
-        ? "justify-center py-3 px-0 w-full"
-        : `justify-between py-2.5 px-3`;
-
-      const colorClasses = isActive
-        ? "bg-sidebar-active-bg dark:bg-transparent text-sidebar-active-text font-medium"
-        : "text-text-secondary hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white";
-
-      const paddingLeftStyle = !isActuallyCollapsed
-        ? { paddingLeft: `${level * 12 + 12}px` }
-        : {};
+      const layoutClasses = isActuallyCollapsed ? "justify-center py-3 px-0 w-full" : `justify-between py-2.5 px-3`;
+      const colorClasses = isActive ? "bg-sidebar-active-bg dark:bg-transparent text-sidebar-active-text font-medium" : "text-text-secondary hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white";
+      const paddingLeftStyle = !isActuallyCollapsed ? { paddingLeft: `${level * 12 + 12}px` } : {};
       const iconSize = level === 0 ? 20 : 18;
 
       return (
@@ -141,54 +141,20 @@ const Sidebar = ({
             onMouseEnter={(e) => handleMouseEnter(e, item.label)}
             onMouseLeave={handleMouseLeave}
           >
-            <div
-              className={`flex items-center ${
-                isActuallyCollapsed ? "justify-center" : "gap-3"
-              }`}
-            >
+            <div className={`flex items-center ${isActuallyCollapsed ? "justify-center" : "gap-3"}`}>
               {renderIcon(item.icon, iconSize)}
-              {!isActuallyCollapsed && (
-                <span className="text-sm leading-tight">{item.label}</span>
-              )}
+              {!isActuallyCollapsed && <span className="text-sm leading-tight">{item.label}</span>}
             </div>
-
-            {/* Chevron */}
             {!isActuallyCollapsed && hasChildren && (
-              <div className="text-gray-400">
-                {isOpen ? (
-                  <Icons.ChevronDown size={15} />
-                ) : (
-                  <Icons.ChevronRight size={15} />
-                )}
-              </div>
+              <div className="text-gray-400">{isOpen ? <Icons.ChevronDown size={15} /> : <Icons.ChevronRight size={15} />}</div>
             )}
-
             {isActuallyCollapsed && isActive && (
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-l-full"></div>
             )}
           </NavLink>
-
-          {/* Children Container */}
           {hasChildren && isOpen && (
-            <div
-              className={`
-                overflow-hidden transition-all duration-300
-                ${
-                  isActuallyCollapsed
-                    ? "bg-gray-100 dark:bg-gray-800/50 rounded-xl mx-1 mb-2 py-1 border border-gray-100 dark:border-gray-700"
-                    : "border-l-2 border-gray-100 dark:border-gray-700 ml-5 my-1"
-                }
-              `}
-            >
-              {renderNavItems(
-                {
-                  count: 0,
-                  next: null,
-                  previous: null,
-                  results: item.children!,
-                },
-                level + 1
-              )}
+            <div className={`overflow-hidden transition-all duration-300 ${isActuallyCollapsed ? "bg-gray-100 dark:bg-gray-800/50 rounded-xl mx-1 mb-2 py-1 border border-gray-100 dark:border-gray-700" : "border-l-2 border-gray-100 dark:border-gray-700 ml-5 my-1"}`}>
+              {renderNavItems({ count: 0, next: null, previous: null, results: item.children! }, level + 1)}
             </div>
           )}
         </div>
@@ -198,71 +164,19 @@ const Sidebar = ({
 
   return (
     <>
-      {/* Mobile Backdrop */}
-      {isMobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
-          onClick={closeMobileSidebar}
-        />
-      )}
-
-      {/* Sidebar Element */}
-      <aside
-        className={`
-          fixed md:static inset-y-0 left-0 z-50
-          flex flex-col h-screen 
-          bg-white dark:bg-gray-900 
-          border-r border-gray-200 dark:border-gray-800 
-          shadow-xl md:shadow-sm 
-          transition-all duration-300 ease-in-out transform
-          ${
-            isMobileOpen
-              ? "translate-x-0"
-              : "-translate-x-full md:translate-x-0"
-          }
-          ${isCollapsed ? "md:w-[88px]" : "md:w-64"}
-          w-64 
-        `}
-      >
-        {/* Logo Area */}
-        <div className="h-16 flex-shrink-0 flex items-center justify-center border-b border-gray-100 dark:border-gray-800 mb-2">
-          <NavLink
-            to="/dashboard"
-            className="flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
-            onClick={() => {
-              if (window.innerWidth < 768) closeMobileSidebar();
-            }}
-          >
-            {isCollapsed && window.innerWidth >= 768 ? (
-              <img
-                src={IconLogo}
-                alt="Logo"
-                className="h-9 w-auto object-contain"
-              />
-            ) : (
-              <img
-                src={FullLogo}
-                alt="Squad Logo"
-                className="h-[100px] w-auto cursor-pointer"
-              />
-            )}
+      {isMobileOpen && <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden" onClick={closeMobileSidebar} />}
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-xl md:shadow-sm transition-all duration-300 ease-in-out transform ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"} ${isCollapsed ? "md:w-[88px]" : "md:w-64"} w-64`}>
+        <div className="h-16 flex-shrink-0 flex items-center justify-center border-b border-gray-100 dark:border-gray-800 mb-2 px-2">
+          <NavLink to="/dashboard" className="flex items-center justify-center w-full h-full transition-transform hover:scale-105 active:scale-95 py-2" onClick={() => { if (window.innerWidth < 768) closeMobileSidebar(); }}>
+            <img src={logoUrl} alt="Dynamic Logo" className={`w-full h-full object-contain ${isCollapsed && window.innerWidth >= 768 ? "max-w-[40px]" : "max-w-[180px]"}`} />
           </NavLink>
         </div>
-
         <nav className="flex-1 px-3 py-2 overflow-y-auto scrollbar-hide space-y-0.5">
           {renderNavItems(navItems)}
         </nav>
-
         <div className="p-4 border-t border-gray-100 dark:border-gray-800"></div>
       </aside>
-
-      {hoveredItem && (
-        <Tooltip
-          text={hoveredItem.label}
-          top={hoveredItem.top}
-          left={hoveredItem.left}
-        />
-      )}
+      {hoveredItem && <Tooltip text={hoveredItem.label} top={hoveredItem.top} left={hoveredItem.left} />}
     </>
   );
 };
