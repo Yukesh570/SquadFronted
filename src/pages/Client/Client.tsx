@@ -36,6 +36,8 @@ import { actionHelper } from "../../helper/action";
 
 // FIXED: Import the timezone formatter
 import { formatDateTime } from "../../helper/dateFormatter";
+import { AssignRouteModal } from "../../components/modals/assignRouteModal";
+import { getGroupedCustomRoutesApi } from "../../api/routeManagerApi/customRouteApi";
 
 // --- Interfaces ---
 interface Option {
@@ -76,9 +78,15 @@ const Client: React.FC = () => {
 
   // --- Dropdown States ---
   const [companies, setCompanies] = useState<Option[]>([]);
+  const [routeGroup, setrouteGroup] = useState<Option[]>([]);
+
   const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
 
   // --- Modal States ---
+  const [isAssignRouteModalOpen, setIsAssignRouteModalOpen] = useState(false);
+  const [assignRouteClientId, setAssignRouteClientId] = useState<number | null>(
+    null,
+  );
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClientData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -141,19 +149,36 @@ const Client: React.FC = () => {
   }, []);
 
   // --- Fetch Dropdowns for Search ---
+  // --- Fetch Dropdowns for Search ---
   useEffect(() => {
     const loadDropdowns = async () => {
       try {
+        // 1. Fetch Companies
         const compRes: any = await getCompaniesApi("company", 1, 1000);
-        const list = compRes.results || (Array.isArray(compRes) ? compRes : []);
+        const compList =
+          compRes.results || (Array.isArray(compRes) ? compRes : []);
         setCompanies(
-          list.map((c: any) => ({ label: c.name, value: String(c.id) })),
+          compList.map((c: any) => ({ label: c.name, value: String(c.id) })),
         );
-      } catch (err: any) {
-        console.error("Failed to load companies for filter", err);
-      }
 
-      try {
+        // 2. Fetch Route Groups
+        // ⚡️ FIX: Ensure "customRoute" is the correct module name for your permission check
+        const rgRes: any = await getGroupedCustomRoutesApi(
+          "customRoute",
+          1,
+          1000,
+        );
+        const rgList = rgRes.results || (Array.isArray(rgRes) ? rgRes : []);
+
+        setrouteGroup(
+          rgList.map((rg: any) => ({
+            // ⚡️ Map from routeGroup__name (string) or id
+            label: rg.routeGroup__name,
+            value: String(rg.id),
+          })),
+        );
+
+        // 3. Fetch Rate Plans
         const rateRes: any = await getCustomerRatesApi("customerRate", 1, 1000);
         const rateList =
           rateRes.results || (Array.isArray(rateRes) ? rateRes : []);
@@ -164,11 +189,13 @@ const Client: React.FC = () => {
           })),
         );
       } catch (err: any) {
-        console.error("Failed to load customer rates for filter", err);
+        console.error("Dropdown load error:", err);
+        // If this catch block triggers a 401, your interceptor might be logging you out.
       }
     };
+
     loadDropdowns();
-  }, []);
+  }, []); // Empty dependency array is correct here to run only once
 
   // --- Column Configuration ---
   const statusOptions: Option[] = [
@@ -274,6 +301,13 @@ const Client: React.FC = () => {
       filterKey: "company",
     },
     {
+      key: "routeGroup",
+      label: "RouteGroup",
+      type: "text",
+      options: routeGroup,
+      filterKey: "routeGroup",
+    },
+    {
       key: "ratePlanName",
       label: "Rate Plan",
       type: "text",
@@ -333,7 +367,11 @@ const Client: React.FC = () => {
     { key: "maxSessions", label: "Max Sessions", type: "number" },
     { key: "maxQueueDepth", label: "Max Queue Depth", type: "number" },
     { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number" },
-    { key: "maxWindowPerSession", label: "Max Window (Per Session)", type: "number" },
+    {
+      key: "maxWindowPerSession",
+      label: "Max Window (Per Session)",
+      type: "number",
+    },
     { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number" },
     { key: "submitTimeoutSec", label: "Submit Timeout (s)", type: "number" },
     { key: "senderIdPolicy", label: "Sender ID Policy", type: "text" },
@@ -363,8 +401,7 @@ const Client: React.FC = () => {
       type: "date",
       filterKey: "createdAt__date",
       // FIXED: Implement new timezone cache formatter
-      render: (c) =>
-        c.createdAt ? formatDateTime(c.createdAt) : "-",
+      render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-"),
     },
     {
       key: "createdAt__range",
@@ -618,6 +655,20 @@ const Client: React.FC = () => {
                 label: "Add IP Whitelist",
                 icon: <ShieldPlus size={16} />,
                 onClick: () => handleAddIp(selectedRowClient),
+              },
+            ]
+          : []),
+        // ⚡️ NEW: Add Route conditionally if customRoute is null
+        ...(canUpdate && selectedRowClient.routeGroup === null
+          ? [
+              {
+                label: "Add Route",
+                icon: <Plus size={16} />, // You can import 'Route' or 'Link' from lucide-react if you prefer
+                onClick: () => {
+                  // ⚡️ Open the modal and pass the clicked client's ID
+                  setAssignRouteClientId(selectedRowClient.id!);
+                  setIsAssignRouteModalOpen(true);
+                },
               },
             ]
           : []),
@@ -975,7 +1026,18 @@ const Client: React.FC = () => {
         editingData={null}
         fixedClient={ipModalClient}
       />
-
+      <AssignRouteModal
+        isOpen={isAssignRouteModalOpen}
+        onClose={() => {
+          setIsAssignRouteModalOpen(false);
+          setAssignRouteClientId(null);
+        }}
+        onSuccess={() => {
+          fetchClients(); // Refresh the table so the new route shows up
+        }}
+        clientId={assignRouteClientId}
+        moduleName={routeName}
+      />
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}

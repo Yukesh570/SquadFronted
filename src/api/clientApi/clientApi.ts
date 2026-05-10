@@ -4,6 +4,8 @@ export interface ClientData {
   id?: number;
   company: number;
   companyName?: string;
+  routeGroup?: number;
+  routeGroupName?: string;
   ratePlanName?: string; // NEW
   name: string;
   status: "ACTIVE" | "TRIAL" | "SUSPENDED";

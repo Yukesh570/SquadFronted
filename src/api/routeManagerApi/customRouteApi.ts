@@ -4,7 +4,7 @@ export interface CustomRouteData {
   id?: number;
   name: string;
   routeGroup?: string;
-  
+
   // Header
   orginatingCompany?: number;
   orginatingCompanyName?: string;
@@ -47,7 +47,7 @@ export const getGroupedCustomRoutesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/customRoute/grouped/${module}/`, { params });
+  const response = await api.get(`/routeGroup/${module}/`, { params });
   return response.data;
 };
 
