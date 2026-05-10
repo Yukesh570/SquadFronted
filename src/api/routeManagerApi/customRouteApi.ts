@@ -6,10 +6,7 @@ export interface CustomRouteData {
   routeGroup?: string;
 
   // Header
-  orginatingCompany?: number;
-  orginatingCompanyName?: string;
-  orginatingClient?: number;
-  orginatingClientName?: string;
+
   priority: string;
   status: "ACTIVE" | "INACTIVE";
 

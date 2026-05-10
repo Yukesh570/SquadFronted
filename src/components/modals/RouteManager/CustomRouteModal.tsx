@@ -47,8 +47,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<any>({
     name: "",
-    orginatingCompany: 0,
-    orginatingClient: 0,
     priority: "",
     status: "ACTIVE",
     country: 0,
@@ -59,14 +57,12 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   });
 
   const [companyOptions, setCompanyOptions] = useState<MultiSelectOption[]>([]);
-  const [clientOptions, setClientOptions] = useState<MultiSelectOption[]>([]);
   const [countryOptions, setCountryOptions] = useState<MultiSelectOption[]>([]);
   const [vendorOptions, setVendorOptions] = useState<MultiSelectOption[]>([]);
 
   const [mccOptions, setMccOptions] = useState<MultiSelectOption[]>([]);
   const [mncOptions, setMncOptions] = useState<MultiSelectOption[]>([]);
 
-  const [rawClients, setRawClients] = useState<any[]>([]);
   const [rawVendors, setRawVendors] = useState<any[]>([]);
   const [fullCountriesList, setFullCountriesList] = useState<CountryData[]>([]);
   const [fullNetworkList, setFullNetworkList] = useState<any[]>([]);
@@ -117,11 +113,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
             getVendorsApi("vendor", 1, 1000),
           ]);
 
-          setRawClients(
-            clients.results ||
-              (Array.isArray(clients) ? clients : (clients as any).data) ||
-              [],
-          );
           setRawVendors(
             vendors.results ||
               (Array.isArray(vendors) ? vendors : (vendors as any).data) ||
@@ -136,7 +127,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           );
 
           setCompanyOptions(extractOptions(companies, "name"));
-          setClientOptions(extractOptions(clients, "name"));
           setCountryOptions(extractOptions(countries, "name"));
           setVendorOptions(extractOptions(vendors, "profileName"));
         } catch (error) {
@@ -337,8 +327,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
         setFormData({
           name: editingRoute.name || "",
-          orginatingCompany: editingRoute.orginatingCompany || 0,
-          orginatingClient: editingRoute.orginatingClient || 0,
           priority: editingRoute.priority || "",
           status: editingRoute.status || "ACTIVE",
           country: editingRoute.country || 0,
@@ -350,8 +338,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       } else {
         setFormData({
           name: "",
-          orginatingCompany: 0,
-          orginatingClient: 0,
           priority: "",
           status: "ACTIVE",
           country: 0,
@@ -380,15 +366,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       if (name === "country") {
         nextData.MCC = [];
         nextData.MNC = [];
-      }
-
-      if (name === "orginatingClient") {
-        const selectedClient = rawClients.find((c) => c.id === Number(value));
-        if (selectedClient && selectedClient.company) {
-          nextData.orginatingCompany = Number(selectedClient.company);
-        } else {
-          nextData.orginatingCompany = 0;
-        }
       }
 
       if (name === "terminatingVendor") {
@@ -527,9 +504,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
   if (!isOpen) return null;
 
-  const orginatingCompanyName =
-    companyOptions.find((c) => c.value === String(formData.orginatingCompany))
-      ?.label || "";
   const terminatingCompanyName =
     companyOptions.find((c) => c.value === String(formData.terminatingCompany))
       ?.label || "";
