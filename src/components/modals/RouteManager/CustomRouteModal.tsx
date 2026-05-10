@@ -106,7 +106,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       setIsFetchingOptions(true);
       const fetchAllOptions = async () => {
         try {
-          const [companies, clients, countries, vendors] = await Promise.all([
+          const [companies, , countries, vendors] = await Promise.all([
             getCompaniesApi("company", 1, 1000),
             getClientsApi("client", 1, 1000),
             getCountriesApi("country", 1, 1000),
