@@ -7,7 +7,7 @@ interface DataTableProps<T> {
   headers: string[];
   renderRow: (item: T, index: number) => React.ReactNode;
   isLoading?: boolean;
-  headerActions?: React.ReactNode; // For the "Add" button
+  headerActions?: React.ReactNode; 
 
   // Server-Side Pagination Props
   serverSide?: boolean;
@@ -49,7 +49,6 @@ export function DataTable<T extends { id?: number | string }>({
   const totalPages = Math.ceil(activeTotal / activeRows);
   const startIndex = (activePage - 1) * activeRows;
 
-  // Logic: If ServerSide, use data AS IS. If ClientSide, slice it.
   const displayData = serverSide
     ? data
     : data.slice(startIndex, startIndex + activeRows);
@@ -89,16 +88,17 @@ export function DataTable<T extends { id?: number | string }>({
   )} of ${activeTotal}`;
 
   return (
-    <div className="rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col">
+    // FIX: Added relative z-0 to ensure the table doesn't cover global UI elements like sidebar or toasts
+    <div className="rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0">
       
-      {/* 1. LOCKED TOP BAR (Controls + Action Buttons) - Removed z-20 to prevent overlapping top filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800">
+      {/* 1. TOP BAR (Controls + Action Buttons) */}
+      {/* FIX: Set a relative z-index of 10 to ensure dropdowns inside this bar work, but don't exceed navbar limits */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 relative z-10">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <span className="text-sm text-text-secondary dark:text-gray-400">
               Rows per page:
             </span>
-            {/* Widened from w-20 to w-24 to prevent "100" from clipping */}
             <div className="w-24">
               <Select
                 value={String(activeRows)}
@@ -134,17 +134,17 @@ export function DataTable<T extends { id?: number | string }>({
       </div>
 
       {/* 2. SCROLLABLE DATA TABLE */}
-      {/* Added max-h-[65vh] and overflow-auto to make ONLY the rows scroll */}
-      <div className="overflow-auto max-h-[65vh] min-h-[300px]">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 relative">
+      {/* Added relative z-0 so internal stickiness stays local to the card */}
+      <div className="overflow-auto max-h-[65vh] min-h-[300px] relative z-0">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
           
-          {/* Added sticky top-0 z-10 so table headers never scroll away */}
-          <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10 shadow-sm border-b border-gray-200 dark:border-gray-700">
+          {/* FIX: thead z-index kept at 10. This ensures it stays on top of rows while staying UNDER dashboard notifications */}
+          <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10 shadow-sm">
             <tr>
               {headers.map((header, i) => (
                 <th
                   key={i}
-                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-secondary dark:text-gray-400"
+                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-secondary dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
                 >
                   {header}
                 </th>
@@ -158,7 +158,7 @@ export function DataTable<T extends { id?: number | string }>({
                   colSpan={headers.length}
                   className="px-4 py-12 text-center text-text-secondary dark:text-gray-400"
                 >
-                  Loading
+                  Loading...
                 </td>
               </tr>
             ) : displayData.length === 0 ? (
