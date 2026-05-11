@@ -153,7 +153,8 @@ const Vendor: React.FC = () => {
         if (data.action === "vendor_bind_update") {
           setVendors((prev) =>
             prev.map((v) =>
-              v.id === data.vendor.id
+              // ⚡️ FIXED: Cast both to String to guarantee match
+              String(v.id) === String(data.vendor.id)
                 ? { ...v, bindStatus: data.vendor.bindStatus }
                 : v,
             ),
@@ -164,8 +165,8 @@ const Vendor: React.FC = () => {
         if (data.action === "vendor_session_update") {
           setVendors((prev) =>
             prev.map((v) => {
-              if (v.id === data.session.vendor_id) {
-                // Directly apply the absolute 'live_count' integer from the backend!
+              // ⚡️ FIXED: Cast both to String to guarantee match
+              if (String(v.id) === String(data.session.vendor_id)) {
                 return {
                   ...v,
                   active_session_count: data.session.live_count,
@@ -183,7 +184,7 @@ const Vendor: React.FC = () => {
     ws.onclose = () => {
       console.log("⚠️ Live SMPP feed disconnected");
 
-      // ⚡️ THE FIX: If the WebSocket dies, assume the server crashed and force UI offline!
+      // If WebSocket dies, force UI offline
       setVendors((prev) =>
         prev.map((v) => ({
           ...v,
@@ -239,7 +240,6 @@ const Vendor: React.FC = () => {
 
   const renderSessionBadge = (vendor: any) => {
     const current = vendor.active_session_count || 0;
-
     // Look for the max_allowed_sessions from the API.
     // If it's missing or 0, default to 0 instead of a hardcoded 1.
     const max = vendor.max_allowed_sessions || 0;
@@ -303,15 +303,8 @@ const Vendor: React.FC = () => {
       label: "Bind Status",
       type: "text",
       options: bindStatusOptions,
-      render: (c) => {
-        // ⚡️ THE FIX: Force it to a real number, fallback to 0 if missing/undefined
-        const currentCount = Number(c.active_session_count) || 0;
-
-        // If 0 sessions are active, force the badge offline regardless of database state
-        return renderBindStatusBadge(
-          currentCount === 0 ? "OFFLINE" : c.bindStatus,
-        );
-      },
+      // ⚡️ FIXED: Simply render the status. Let the WebSocket or API dictate truth.
+      render: (c) => renderBindStatusBadge(c.bindStatus),
     },
     {
       key: "session",
@@ -323,15 +316,32 @@ const Vendor: React.FC = () => {
     // --- INTEGRATED POLICY COLUMNS ---
     { key: "rateTps", label: "Rate TPS", type: "number" },
     { key: "sendQueueLimit", label: "Queue Limit", type: "number" },
-    { key: "logLevel", label: "Log Level", type: "text", options: logLevelOptions },
+    {
+      key: "logLevel",
+      label: "Log Level",
+      type: "text",
+      options: logLevelOptions,
+    },
     { key: "responseTimeout", label: "Response Timeout (s)", type: "number" },
-    { key: "enquireLinkInterval", label: "Enquire Link Interval (s)", type: "number" },
+    {
+      key: "enquireLinkInterval",
+      label: "Enquire Link Interval (s)",
+      type: "number",
+    },
     { key: "connectionTimeout", label: "Conn. Timeout (s)", type: "number" },
-    { key: "connectionRetryDelay", label: "Conn Retry Delay (s)", type: "number" },
+    {
+      key: "connectionRetryDelay",
+      label: "Conn Retry Delay (s)",
+      type: "number",
+    },
     { key: "connectionRetryCount", label: "Conn Retry Count", type: "number" },
     { key: "bindRetryDelay", label: "Bind Retry Delay (s)", type: "number" },
     { key: "bindRetryCount", label: "Bind Retry Count", type: "number" },
-    { key: "connectionRecoveryDelay", label: "Conn Recovery Delay (s)", type: "number" },
+    {
+      key: "connectionRecoveryDelay",
+      label: "Conn Recovery Delay (s)",
+      type: "number",
+    },
     { key: "tlvTag", label: "TLV Tag", type: "text" },
     // --- End Integrated Policy Columns ---
   ];
