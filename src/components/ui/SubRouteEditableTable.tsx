@@ -76,7 +76,8 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
 
   const fetchSubRoutes = () => {
     setLoading(true);
-    getCustomRoutesApi(moduleName, 1, 100, { routeGroup })
+    // FIX: Changed "routeGroup" to "routeGroup__name" to correctly filter the API
+    getCustomRoutesApi(moduleName, 1, 100, { routeGroup__name: routeGroup })
       .then((res) => {
         setData(res.results || []);
         setLoading(false);
@@ -168,10 +169,6 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
     { label: "Active", value: "ACTIVE" },
     { label: "Inactive", value: "INACTIVE" },
   ];
-  const priorityOptions = ["1", "2", "3", "4", "5"].map((v) => ({
-    label: v,
-    value: v,
-  }));
 
   return (
     <div
@@ -271,20 +268,14 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
               />
             </th>
 
-            <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
-              <div
-                className="w-full filter-control-wrapper"
-                style={{ minWidth: "90px" }}
-              >
-                <Select
-                  label=""
-                  value={columnFilters["priority"] || ""}
-                  onChange={(val) => handleFilterChange("priority", val)}
-                  options={[{ label: "All", value: "" }, ...priorityOptions]}
-                  placeholder="All"
-                  placement="bottom"
-                />
-              </div>
+            <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+              <FilterInput
+                fieldKey="priority"
+                placeholder="Search..."
+                value={columnFilters["priority"]}
+                onChange={handleFilterChange}
+                minWidth="90px"
+              />
             </th>
 
             <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
@@ -347,8 +338,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
               <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
                 <EditableCell
                   value={route.priority}
-                  type="select"
-                  options={priorityOptions}
+                  type="number"
                   onSave={(val) => handleInlineSave(route.id!, "priority", val)}
                   disabled={!canUpdate}
                   isEditing={activeCellId === `${route.id}-priority`}
@@ -430,13 +420,13 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
            border-radius: 4px !important;
         }
         
-        /* FIX: Specifically target the DatePicker input to add padding for the calendar icon */
+        /* Specifically target the DatePicker input to add padding for the calendar icon */
         .filter-control-wrapper .react-datepicker__input-container input {
            min-height: 28px !important;
            height: 28px !important;
            padding-top: 2px !important;
            padding-bottom: 2px !important;
-           padding-left: 34px !important; /* Forces the text away from the left-aligned calendar icon */
+           padding-left: 34px !important;
            padding-right: 6px !important;
            font-size: 12px !important;
            border-radius: 4px !important;

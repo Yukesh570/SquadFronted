@@ -11,6 +11,7 @@ import {
 import {
   createCustomRouteApi,
   updateCustomRouteApi,
+  bulkUpdateCustomRouteApi, 
   type CustomRouteData,
 } from "../../../api/routeManagerApi/customRouteApi";
 import { getCompaniesApi } from "../../../api/companyApi/companyApi";
@@ -26,6 +27,7 @@ interface CustomRouteModalProps {
   moduleName: string;
   editingRoute: CustomRouteData | null;
   isViewMode?: boolean;
+  lockedName?: string; 
 }
 
 interface CountryData {
@@ -44,6 +46,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   moduleName,
   editingRoute,
   isViewMode = false,
+  lockedName, 
 }) => {
   const [formData, setFormData] = useState<any>({
     name: "",
@@ -193,7 +196,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     }
   }, [formData.country, fullCountriesList]);
 
-  // 2. Generate MNC Options when MCC selection changes
   useEffect(() => {
     if (formData.MCC && formData.MCC.length > 0 && fullNetworkList.length > 0) {
       const newMncOptions: MultiSelectOption[] = [];
@@ -249,8 +251,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       });
       setMncOptions(newMncOptions);
 
-      // FIXED RACE CONDITION: Only aggressively clean up MNCs when in Create Mode.
-      // If Editing/Viewing, trust the DB data. Running this in Edit mode was wiping data while the API loaded!
       if (!editingRoute && !isViewMode) {
         const sanitizeString = (str: string) =>
           String(str).replace(/\s+/g, "").toLowerCase();
@@ -283,7 +283,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       }
     } else {
       setMncOptions([]);
-      // Only clear MNC state if not editing/viewing
       if (!editingRoute && !isViewMode) {
         setFormData((prev: any) => ({ ...prev, MNC: [] }));
       }
@@ -337,7 +336,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
         });
       } else {
         setFormData({
-          name: "",
+          name: lockedName || "", 
           priority: "",
           status: "ACTIVE",
           country: 0,
@@ -348,7 +347,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
         });
       }
     }
-  }, [isOpen, editingRoute]);
+  }, [isOpen, editingRoute, lockedName]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -480,6 +479,9 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       if (editingRoute?.id) {
         await updateCustomRouteApi(editingRoute.id, payload, moduleName);
         toast.success("Route updated successfully!");
+      } else if (lockedName) {
+         await bulkUpdateCustomRouteApi(payload, moduleName);
+         toast.success("Route added to group successfully!");
       } else {
         await createCustomRouteApi(payload, moduleName);
         toast.success("Route created successfully!");
@@ -517,13 +519,16 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           ? "View Custom Route"
           : editingRoute
             ? "Edit Custom Route"
-            : "Create Custom Route"
+            : lockedName
+              ? `Add New Route to ${lockedName}` 
+              : "Create Custom Route"
       }
       className="max-w-4xl"
     >
+      {/* FIX: Removed overflow-y-auto to stop the modal from trapping the dropdown menu inside a scrollbox */}
       <form
         onSubmit={handleSubmit}
-        className="space-y-6 max-h-[80vh] overflow-y-auto px-1"
+        className="space-y-6 px-1"
       >
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
@@ -537,7 +542,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               onChange={handleChange}
               placeholder="Route Name"
               required
-              disabled={isViewMode}
+              disabled={isViewMode || !!lockedName} 
             />
 
             <Select
@@ -558,7 +563,8 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           </div>
         </fieldset>
 
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        {/* FIX: Explicitly forced overflow-visible to let dropdowns bleed out */}
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 overflow-visible">
           <legend className="text-sm font-semibold text-primary px-2">
             Destination
           </legend>
@@ -571,7 +577,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                 options={countryOptions}
                 placeholder="Select Country"
                 disabled={!!editingRoute || isViewMode || isFetchingOptions}
-                placement="top"
+                // FIX: Removed "placement='top'" so it drops down naturally in front of everything
               />
             </div>
 
@@ -651,7 +657,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               options={vendorOptions}
               placeholder="Select Vendor"
               disabled={isViewMode || isFetchingOptions}
-              placement="top"
+              // FIX: Removed "placement='top'" 
             />
             <Input
               label="Terminating Company"
@@ -674,7 +680,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                 ? "Saving"
                 : editingRoute
                   ? "Update Route"
-                  : "Create Route"}
+                  : "Add Route"}
             </Button>
           )}
         </div>

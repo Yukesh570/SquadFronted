@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Select from "./Select";
 import { Edit2 } from "lucide-react";
+import { toast } from "react-toastify";
 
 interface Option {
   label: string;
@@ -9,7 +10,7 @@ interface Option {
 
 interface EditableCellProps {
   value: string;
-  type?: "text" | "select";
+  type?: "text" | "number" | "select";
   options?: Option[];
   onSave: (val: string) => void;
   disabled?: boolean;
@@ -39,6 +40,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
 
   const startEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     if (disabled) return;
     if (onEditStart) onEditStart();
     else setLocalIsEditing(true);
@@ -55,7 +57,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
 
   useEffect(() => {
     if (isEditing) {
-      if (type === "text" && inputRef.current) {
+      if ((type === "text" || type === "number") && inputRef.current) {
         inputRef.current.focus();
       }
       if (type === "select" && cellRef.current) {
@@ -82,33 +84,6 @@ export const EditableCell: React.FC<EditableCellProps> = ({
       setCurrentVal(value || "");
     }
   }, [isEditing, type, value]);
-
-  // Local outside click listener for when state is NOT controlled by parent
-  useEffect(() => {
-    if (controlledIsEditing !== undefined) return; // Let parent handle outside clicks
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (cellRef.current && cellRef.current.contains(event.target as Node)) {
-        return;
-      }
-      if (isEditing) {
-        endEdit();
-        if (currentVal !== value) {
-          onSave(currentVal);
-        }
-      }
-    };
-
-    if (isEditing) {
-      const timer = setTimeout(() => {
-        document.addEventListener("mousedown", handleClickOutside);
-      }, 50);
-      return () => {
-        clearTimeout(timer);
-        document.removeEventListener("mousedown", handleClickOutside);
-      };
-    }
-  }, [isEditing, currentVal, value, onSave, endEdit, controlledIsEditing]);
 
   const handleSelectChange = (newVal: string) => {
     setCurrentVal(newVal);
@@ -162,16 +137,54 @@ export const EditableCell: React.FC<EditableCellProps> = ({
     <div ref={cellRef} className="w-full relative z-[9999]">
       <input
         ref={inputRef}
-        type="text"
+        type="text" 
+        inputMode={type === "number" ? "numeric" : undefined} 
         value={currentVal}
-        onChange={(e) => setCurrentVal(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-             endEdit();
-             if (currentVal !== value) onSave(currentVal);
-          }
-          if (e.key === "Escape") { setCurrentVal(value); endEdit(); }
+        onClick={(e) => {
+           e.stopPropagation();
+           e.preventDefault();
         }}
+        onBlur={(e) => {
+           // We do absolutely nothing on blur to prevent accidental saves from parent
+           e.stopPropagation();
+           e.preventDefault();
+        }}
+        onChange={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          
+          const val = e.target.value;
+          
+          if (type === "number") {
+            // Allow empty string OR digits
+            if (val === "" || /^\d+$/.test(val)) {
+              setCurrentVal(val);
+            }
+          } else {
+            setCurrentVal(val);
+          }
+        }}
+        onKeyDown={(e) => {
+          e.stopPropagation(); 
+          
+          if (e.key === "Enter") {
+             e.preventDefault();
+             if (currentVal !== "" && currentVal !== value) {
+                 onSave(currentVal);
+                 endEdit();
+             } else if (currentVal === "") {
+                 toast.error("Value cannot be empty");
+             } else {
+                 endEdit();
+             }
+          } else if (e.key === "Escape") { 
+             e.preventDefault();
+             setCurrentVal(value); 
+             endEdit(); 
+          }
+        }}
+        onKeyUp={(e) => e.stopPropagation()}
+        onKeyPress={(e) => e.stopPropagation()}
         className="w-full px-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-primary text-text-primary dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
       />
     </div>

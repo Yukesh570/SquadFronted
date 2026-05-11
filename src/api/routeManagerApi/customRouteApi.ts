@@ -32,7 +32,7 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// NEW: GET GROUPED ROUTES (For Main Table)
+// GET GROUPED ROUTES (For Main Table)
 export const getGroupedCustomRoutesApi = async (
   module: string,
   page: number = 1,
@@ -99,4 +99,13 @@ export const deleteCustomRouteApi = async (
   module: string,
 ): Promise<void> => {
   await api.delete(`/customRoute/${module}/${id}/`);
+};
+
+// NEW: BULK UPDATE (Add new route to existing group)
+export const bulkUpdateCustomRouteApi = async (
+  data: any,
+  module: string,
+): Promise<CustomRouteData> => {
+  const response = await api.put(`/customRoute/bulkUpdate/${module}/`, data);
+  return response.data;
 };
