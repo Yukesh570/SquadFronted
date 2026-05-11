@@ -40,6 +40,7 @@ interface ClientModalProps {
   moduleName: string;
   editingClient: ClientData | null;
   isViewMode?: boolean;
+  routeGroupOptions: Option[]; // ⚡️ ADD THIS
 }
 
 interface Option {
@@ -54,14 +55,17 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   moduleName,
   editingClient,
   isViewMode = false,
+  routeGroupOptions,
 }) => {
   // --- State ---
   const [formData, setFormData] = useState({
     company: "",
     name: "",
     ratePlanName: "",
+    routeGroup: "",
     status: "ACTIVE",
     route: "DIRECT",
+    routeGroupName: "",
     paymentTerms: "PREPAID",
     creditLimit: "",
     balanceAlertAmount: "",
@@ -89,7 +93,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
   // Track existing policy ID to know if we are updating or creating
   const [existingPolicyId, setExistingPolicyId] = useState<number | null>(null);
 
@@ -163,6 +166,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           company: "",
           name: "",
           ratePlanName: "",
+          routeGroupName: "",
+          routeGroup: "",
           status: "ACTIVE",
           route: "DIRECT",
           paymentTerms: "PREPAID",
@@ -194,6 +199,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           company: String(editingClient.company || ""),
           name: editingClient.name,
           ratePlanName: editingClient.ratePlanName || "",
+          routeGroupName: editingClient.routeGroupName || "",
+          routeGroup: String(editingClient.routeGroup || ""), // ⚡️ ADD THIS to grab the ID!
           status: editingClient.status,
           route: editingClient.route,
           paymentTerms: editingClient.paymentTerms,
@@ -348,12 +355,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         idleTimeoutSec,
         submitTimeoutSec,
         senderIdPolicy,
+        routeGroupName,
         ...clientPayload
       } = formData;
 
       const payload = {
         ...clientPayload,
         company: Number(formData.company),
+        routeGroup: formData.routeGroup ? Number(formData.routeGroup) : null, // ⚡️ ADD THIS
         ipWhitelist: [],
       };
 
@@ -495,6 +504,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.route}
               onChange={(v) => handleSelect("route", v)}
               options={routeOptions}
+              disabled={isViewMode}
+            />
+            <Select
+              label="Route Group"
+              value={formData.routeGroup}
+              onChange={(v) => handleSelect("routeGroup", v)}
+              options={routeGroupOptions}
+              placeholder="Select Route Group"
               disabled={isViewMode}
             />
           </div>

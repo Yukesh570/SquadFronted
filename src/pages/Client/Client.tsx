@@ -1016,6 +1016,7 @@ const Client: React.FC = () => {
         moduleName={routeName}
         editingClient={editingClient}
         isViewMode={isViewMode}
+        routeGroupOptions={routeGroup}
       />
 
       <IpWhitelistModal
