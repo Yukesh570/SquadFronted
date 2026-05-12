@@ -150,30 +150,17 @@ const Vendor: React.FC = () => {
         const data = JSON.parse(event.data);
 
         // 1. Handle Gateway Connection Status (The Green/Blue Badge)
-        if (data.action === "vendor_bind_update") {
+        if (data.action === "vendor_state_update") {
           setVendors((prev) =>
             prev.map((v) =>
-              // ⚡️ FIXED: Cast both to String to guarantee match
               String(v.id) === String(data.vendor.id)
-                ? { ...v, bindStatus: data.vendor.bindStatus }
+                ? {
+                    ...v,
+                    bindStatus: data.vendor.bindStatus,
+                    active_session_count: data.vendor.live_count,
+                  }
                 : v,
             ),
-          );
-        }
-
-        // 2. Handle Session Counter (The 1/4, 2/4 Badge)
-        if (data.action === "vendor_session_update") {
-          setVendors((prev) =>
-            prev.map((v) => {
-              // ⚡️ FIXED: Cast both to String to guarantee match
-              if (String(v.id) === String(data.session.vendor_id)) {
-                return {
-                  ...v,
-                  active_session_count: data.session.live_count,
-                };
-              }
-              return v;
-            }),
           );
         }
       } catch (err) {
@@ -242,7 +229,7 @@ const Vendor: React.FC = () => {
     const current = vendor.active_session_count || 0;
     // Look for the max_allowed_sessions from the API.
     // If it's missing or 0, default to 0 instead of a hardcoded 1.
-    const max = vendor.max_allowed_sessions || 0;
+    const max = vendor.vendorPolicy?.maxSession || 1;
 
     const isFull = current === max && max > 0;
 
