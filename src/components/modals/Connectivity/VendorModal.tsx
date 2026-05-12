@@ -68,6 +68,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     destTON: "",
     destNPI: "",
     rateTps: "",
+    maxSession: "", // FIX: Added maxSession
     sendQueueLimit: "",
     delayTime: "",
     responseTimeout: "",
@@ -177,6 +178,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           destTON: "",
           destNPI: "",
           rateTps: "",
+          maxSession: "",
           sendQueueLimit: "",
           delayTime: "",
           responseTimeout: "",
@@ -233,48 +235,18 @@ export const VendorModal: React.FC<VendorModalProps> = ({
 
               setFormData((prev) => ({
                 ...prev,
-                rateTps:
-                  policyData.rateTps != null ? String(policyData.rateTps) : "",
-                sendQueueLimit:
-                  policyData.sendQueueLimit != null
-                    ? String(policyData.sendQueueLimit)
-                    : "",
-                delayTime:
-                  policyData.delayTime != null
-                    ? String(policyData.delayTime)
-                    : "",
-                responseTimeout:
-                  policyData.responseTimeout != null
-                    ? String(policyData.responseTimeout)
-                    : "",
-                enquireLinkInterval:
-                  policyData.enquireLinkInterval != null
-                    ? String(policyData.enquireLinkInterval)
-                    : "",
-                connectionTimeout:
-                  policyData.connectionTimeout != null
-                    ? String(policyData.connectionTimeout)
-                    : "",
-                connectionRetryDelay:
-                  policyData.connectionRetryDelay != null
-                    ? String(policyData.connectionRetryDelay)
-                    : "",
-                connectionRetryCount:
-                  policyData.connectionRetryCount != null
-                    ? String(policyData.connectionRetryCount)
-                    : "",
-                bindRetryDelay:
-                  policyData.bindRetryDelay != null
-                    ? String(policyData.bindRetryDelay)
-                    : "",
-                bindRetryCount:
-                  policyData.bindRetryCount != null
-                    ? String(policyData.bindRetryCount)
-                    : "",
-                connectionRecoveryDelay:
-                  policyData.connectionRecoveryDelay != null
-                    ? String(policyData.connectionRecoveryDelay)
-                    : "",
+                rateTps: policyData.rateTps != null ? String(policyData.rateTps) : "",
+                maxSession: policyData.maxSession != null ? String(policyData.maxSession) : "", // FIX: Read maxSession
+                sendQueueLimit: policyData.sendQueueLimit != null ? String(policyData.sendQueueLimit) : "",
+                delayTime: policyData.delayTime != null ? String(policyData.delayTime) : "",
+                responseTimeout: policyData.responseTimeout != null ? String(policyData.responseTimeout) : "",
+                enquireLinkInterval: policyData.enquireLinkInterval != null ? String(policyData.enquireLinkInterval) : "",
+                connectionTimeout: policyData.connectionTimeout != null ? String(policyData.connectionTimeout) : "",
+                connectionRetryDelay: policyData.connectionRetryDelay != null ? String(policyData.connectionRetryDelay) : "",
+                connectionRetryCount: policyData.connectionRetryCount != null ? String(policyData.connectionRetryCount) : "",
+                bindRetryDelay: policyData.bindRetryDelay != null ? String(policyData.bindRetryDelay) : "",
+                bindRetryCount: policyData.bindRetryCount != null ? String(policyData.bindRetryCount) : "",
+                connectionRecoveryDelay: policyData.connectionRecoveryDelay != null ? String(policyData.connectionRecoveryDelay) : "",
                 logLevel: policyData.logLevel || "INFO",
                 tlvTag: policyData.tlvTag || "",
                 tlvValue: policyData.tlvValue || "",
@@ -307,6 +279,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           destTON: "",
           destNPI: "",
           rateTps: "",
+          maxSession: "",
           sendQueueLimit: "",
           delayTime: "",
           responseTimeout: "",
@@ -415,39 +388,20 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           logLevel: formData.logLevel,
         };
 
-        if (formData.rateTps !== "")
-          policyPayload.rateTps = Number(formData.rateTps);
-        if (formData.sendQueueLimit !== "")
-          policyPayload.sendQueueLimit = Number(formData.sendQueueLimit);
-        if (formData.delayTime !== "")
-          policyPayload.delayTime = Number(formData.delayTime);
-        if (formData.responseTimeout !== "")
-          policyPayload.responseTimeout = Number(formData.responseTimeout);
-        if (formData.enquireLinkInterval !== "")
-          policyPayload.enquireLinkInterval = Number(
-            formData.enquireLinkInterval,
-          );
-        if (formData.connectionTimeout !== "")
-          policyPayload.connectionTimeout = Number(formData.connectionTimeout);
-        if (formData.connectionRetryDelay !== "")
-          policyPayload.connectionRetryDelay = Number(
-            formData.connectionRetryDelay,
-          );
-        if (formData.connectionRetryCount !== "")
-          policyPayload.connectionRetryCount = Number(
-            formData.connectionRetryCount,
-          );
-        if (formData.bindRetryDelay !== "")
-          policyPayload.bindRetryDelay = Number(formData.bindRetryDelay);
-        if (formData.bindRetryCount !== "")
-          policyPayload.bindRetryCount = Number(formData.bindRetryCount);
-        if (formData.connectionRecoveryDelay !== "")
-          policyPayload.connectionRecoveryDelay = Number(
-            formData.connectionRecoveryDelay,
-          );
+        if (formData.rateTps !== "") policyPayload.rateTps = Number(formData.rateTps);
+        if (formData.maxSession !== "") policyPayload.maxSession = Number(formData.maxSession); // FIX: Save maxSession
+        if (formData.sendQueueLimit !== "") policyPayload.sendQueueLimit = Number(formData.sendQueueLimit);
+        if (formData.delayTime !== "") policyPayload.delayTime = Number(formData.delayTime);
+        if (formData.responseTimeout !== "") policyPayload.responseTimeout = Number(formData.responseTimeout);
+        if (formData.enquireLinkInterval !== "") policyPayload.enquireLinkInterval = Number(formData.enquireLinkInterval);
+        if (formData.connectionTimeout !== "") policyPayload.connectionTimeout = Number(formData.connectionTimeout);
+        if (formData.connectionRetryDelay !== "") policyPayload.connectionRetryDelay = Number(formData.connectionRetryDelay);
+        if (formData.connectionRetryCount !== "") policyPayload.connectionRetryCount = Number(formData.connectionRetryCount);
+        if (formData.bindRetryDelay !== "") policyPayload.bindRetryDelay = Number(formData.bindRetryDelay);
+        if (formData.bindRetryCount !== "") policyPayload.bindRetryCount = Number(formData.bindRetryCount);
+        if (formData.connectionRecoveryDelay !== "") policyPayload.connectionRecoveryDelay = Number(formData.connectionRecoveryDelay);
         if (formData.tlvTag !== "") policyPayload.tlvTag = formData.tlvTag;
-        if (formData.tlvValue !== "")
-          policyPayload.tlvValue = formData.tlvValue;
+        if (formData.tlvValue !== "") policyPayload.tlvValue = formData.tlvValue;
 
         try {
           if (existingPolicyId) {
@@ -684,7 +638,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Speed & Queueing
           </legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Input
               label="Rate / TPS"
               name="rateTps"
@@ -694,8 +648,18 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="50"
               disabled={isViewMode}
             />
+            {/* FIX: Included maxSession field perfectly formatted */}
             <Input
-              label="Send Queue Limit"
+              label="Max Sessions"
+              name="maxSession"
+              type="number"
+              value={formData.maxSession}
+              onChange={handleChange}
+              placeholder="2"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Queue Limit"
               name="sendQueueLimit"
               type="number"
               value={formData.sendQueueLimit}
@@ -836,26 +800,33 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             />
           </div>
         </fieldset>
+        
+        {/* FIX: Corrected backend's UI mistake - Formatted Live Status into a proper Fieldset pattern */}
         {editingVendor && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <Input
-              label="Live Bind Status"
-              name="bindStatus"
-              value={formData.bindStatus}
-              disabled={true}
-              className={
-                formData.bindStatus === "ONLINE"
-                  ? "text-green-600 font-bold"
-                  : "text-gray-500"
-              }
-            />
-            <Input
-              label="Active Sessions"
-              name="session"
-              value={`${formData.active_session_count}/${formData.max_allowed_sessions}`}
-              disabled={true}
-            />
-          </div>
+          <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4 bg-gray-50/50 dark:bg-gray-800/30">
+            <legend className="text-sm font-semibold text-primary px-2">
+              Live Connection Status
+            </legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Live Bind Status"
+                name="bindStatus"
+                value={formData.bindStatus}
+                disabled={true}
+                className={`font-semibold ${
+                  formData.bindStatus === "ONLINE"
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-500 dark:text-red-400"
+                }`}
+              />
+              <Input
+                label="Active Sessions / Allowed"
+                name="session"
+                value={`${formData.active_session_count} / ${formData.maxSession || formData.max_allowed_sessions || 0}`}
+                disabled={true}
+              />
+            </div>
+          </fieldset>
         )}
 
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">

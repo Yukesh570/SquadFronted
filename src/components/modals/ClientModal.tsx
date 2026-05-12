@@ -67,7 +67,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     route: "DIRECT",
     routeGroupName: "",
     paymentTerms: "PREPAID",
-    creditLimit: "",
     balanceAlertAmount: "",
     allowNetting: false,
     enableDlr: false,
@@ -171,7 +170,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           status: "ACTIVE",
           route: "DIRECT",
           paymentTerms: "PREPAID",
-          creditLimit: "",
           balanceAlertAmount: "",
           allowNetting: false,
           enableDlr: false,
@@ -204,7 +202,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           status: editingClient.status,
           route: editingClient.route,
           paymentTerms: editingClient.paymentTerms,
-          creditLimit: editingClient.creditLimit || "",
           balanceAlertAmount: editingClient.balanceAlertAmount || "",
           allowNetting: editingClient.allowNetting,
           enableDlr: editingClient.enableDlr,
@@ -346,7 +343,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       // 1. Prepare Base Client Payload
       const {
         ipWhitelist,
-        creditLimit,
         maxTps,
         maxQueueDepth,
         maxWindowPerSession,
@@ -520,9 +516,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         {/* Commercials */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
-            Commercials & Credit
+            Commercials & Alerts
           </legend>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Select
               label="Rate Plan Name"
               value={formData.ratePlanName}
@@ -538,7 +534,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               options={paymentTermOptions}
               disabled={isViewMode}
             />
-
             <Input
               label="Balance Alert Amount"
               name="balanceAlertAmount"
@@ -549,20 +544,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               placeholder="0.0000"
               disabled={isViewMode}
             />
-
-            {/* Credit Limit - visible ONLY in view mode */}
-            {isViewMode && (
-              <Input
-                label="Credit Limit"
-                name="creditLimit"
-                type="number"
-                step="0.0001"
-                value={formData.creditLimit}
-                onChange={handleChange}
-                placeholder="0.0000"
-                disabled={isViewMode}
-              />
-            )}
           </div>
         </fieldset>
 

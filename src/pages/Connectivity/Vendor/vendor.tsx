@@ -240,9 +240,9 @@ const Vendor: React.FC = () => {
 
   const renderSessionBadge = (vendor: any) => {
     const current = vendor.active_session_count || 0;
-    // Look for the max_allowed_sessions from the API.
-    // If it's missing or 0, default to 0 instead of a hardcoded 1.
-    const max = vendor.max_allowed_sessions || 0;
+    
+    // FIX: Checked for maxSession if the backend returns it natively in the vendor loop
+    const max = vendor.maxSession || vendor.max_allowed_sessions || 0;
 
     const isFull = current === max && max > 0;
 
@@ -314,6 +314,7 @@ const Vendor: React.FC = () => {
       render: (c) => renderSessionBadge(c),
     },
     // --- INTEGRATED POLICY COLUMNS ---
+    { key: "maxSession", label: "Max Sessions", type: "number" }, // FIX: Integrated into table filter view
     { key: "rateTps", label: "Rate TPS", type: "number" },
     { key: "sendQueueLimit", label: "Queue Limit", type: "number" },
     {

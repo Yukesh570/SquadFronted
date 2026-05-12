@@ -12,7 +12,8 @@ export interface VendorData {
   smppName?: string;
   bindStatus?: string;
   active_session_count?: number;
-  max_allowed_sessions?: number; // createdAt removed here
+  max_allowed_sessions?: number; 
+  maxSession?: number; // FIX: Added maxSession to the interface mapping
 }
 
 export interface PaginatedResponse<T> {

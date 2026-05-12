@@ -9,6 +9,7 @@ import {
 } from "../../../api/settingApi/timezoneApi/timezoneApi";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
+import Select from "../../../components/ui/Select"; // ⚡️ NEW: Import Select
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
@@ -32,7 +33,12 @@ const TimeZone: React.FC = () => {
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRowTimezone, setSelectedRowTimezone] = useState<TimezoneData | null>(null);
 
+  // --- Filter States ---
   const [nameFilter, setNameFilter] = useState("");
+  const [abbreviationFilter, setAbbreviationFilter] = useState(""); // ⚡️ NEW: Filter state for Abbreviation
+
+  // --- Dropdown Options ---
+  const [abbreviationOptions, setAbbreviationOptions] = useState<{ label: string; value: string }[]>([]); // ⚡️ NEW: Options state
 
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,11 +48,38 @@ const TimeZone: React.FC = () => {
   const pathParts = location.pathname.split("/").filter(Boolean);
   const routeName = pathParts[pathParts.length - 1] || "timezone";
 
+  // ⚡️ NEW: Fetch unique abbreviations on mount to populate the dropdown
+  useEffect(() => {
+    const fetchAbbreviations = async () => {
+      try {
+        // Fetch a large chunk to get unique abbreviations
+        const res: any = await getTimezoneApi(routeName, 1, 1000);
+        let list = res.results || (Array.isArray(res) ? res : []);
+        
+        // Extract unique abbreviations
+        const uniqueAbbreviations = Array.from(new Set(list.map((tz: TimezoneData) => tz.abbreviation)))
+          .filter(Boolean)
+          .sort();
+
+        // Format for Select component
+        setAbbreviationOptions(uniqueAbbreviations.map((abbr) => ({
+          label: String(abbr),
+          value: String(abbr),
+        })));
+      } catch (err) {
+        console.error("Failed to fetch abbreviations for filter", err);
+      }
+    };
+    
+    fetchAbbreviations();
+  }, [routeName]);
+
   const fetchTimezones = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
       const currentSearchParams = overrideParams || {
         name: nameFilter,
+        abbreviation: abbreviationFilter, // ⚡️ NEW: Include abbreviation in search
       };
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
@@ -83,10 +116,12 @@ const TimeZone: React.FC = () => {
     setCurrentPage(1);
     fetchTimezones();
   };
+  
   const handleClearFilters = () => {
     setNameFilter("");
+    setAbbreviationFilter(""); // ⚡️ NEW: Clear abbreviation filter
     setCurrentPage(1);
-    fetchTimezones({ name: "" });
+    fetchTimezones({ name: "", abbreviation: "" });
   };
 
   const handleDelete = async () => {
@@ -159,7 +194,14 @@ const TimeZone: React.FC = () => {
           value={nameFilter}
           onChange={(e) => setNameFilter(e.target.value)}
           placeholder="Timezone Name"
-          className="md:col-span-2"
+        />
+        {/* ⚡️ NEW: Abbreviation Select Dropdown */}
+        <Select
+          label="Search Abbreviation"
+          value={abbreviationFilter}
+          onChange={setAbbreviationFilter}
+          options={abbreviationOptions}
+          placeholder="Select Abbreviation"
         />
       </FilterCard>
 
