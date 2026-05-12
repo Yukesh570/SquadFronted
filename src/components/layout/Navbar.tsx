@@ -177,7 +177,8 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
 
           {/* Improved Notification Popover */}
           <Popover className="relative">
-            {({ open }) => (
+            {/* FIX: Grabbed the `close` function explicitly from the Headless UI render prop */}
+            {({ open, close }) => (
               <>
                 <Popover.Button
                   as={Button}
@@ -227,7 +228,6 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                                 {notification.description}
                               </p>
-                              {/* Notification time using cached timezone */}
                               <div className="mt-2 flex items-center text-[11px] text-gray-400 dark:text-gray-500 font-medium">
                                 <Clock size={12} className="mr-1" />
                                 {notification.createdAt ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: appTimezone }).format(new Date(notification.createdAt)) : "Just now"}
@@ -247,7 +247,12 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                     </div>
 
                     <div className="p-3 border-t border-gray-100 dark:border-gray-700 text-center bg-white dark:bg-gray-800">
-                      <Link to="/notifications" className="text-xs font-bold text-primary hover:underline transition-all block py-1">
+                      {/* FIX: Executing the close() function explicitly when clicked */}
+                      <Link 
+                        to="/notifications" 
+                        onClick={() => close()} 
+                        className="text-xs font-bold text-primary hover:underline transition-all block py-1"
+                      >
                         View All Notifications
                       </Link>
                     </div>

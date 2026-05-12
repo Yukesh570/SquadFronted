@@ -11,6 +11,7 @@ export interface VendorPolicyData {
   addrTon?: number;
   addrNpi?: number;
   rateTps?: number;
+  maxSession?: number; // FIX: Added maxSession to the interface mapping
   sendQueueLimit?: number;
   delayTime?: number;
   responseTimeout?: number;

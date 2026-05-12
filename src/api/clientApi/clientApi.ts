@@ -12,7 +12,6 @@ export interface ClientData {
   bindStatus: "ONLINE" | "OFFLINE";
   route: "DIRECT" | "HIGH QUALITY" | "SIM" | "WHOLESALE" | "FULL" | "SPAM";
   paymentTerms: "PREPAID" | "POSTPAID" | "NET7" | "NET15" | "NET30";
-  creditLimit?: string; // Restored for View Mode
   balanceAlertAmount: string;
   allowNetting: boolean;
   enableDlr: boolean;

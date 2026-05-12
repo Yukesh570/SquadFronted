@@ -301,6 +301,7 @@ const Vendor: React.FC = () => {
       render: (c) => renderSessionBadge(c),
     },
     // --- INTEGRATED POLICY COLUMNS ---
+    { key: "maxSession", label: "Max Sessions", type: "number" }, // FIX: Integrated into table filter view
     { key: "rateTps", label: "Rate TPS", type: "number" },
     { key: "sendQueueLimit", label: "Queue Limit", type: "number" },
     {

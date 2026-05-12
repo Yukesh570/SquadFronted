@@ -88,18 +88,16 @@ export function DataTable<T extends { id?: number | string }>({
   )} of ${activeTotal}`;
 
   return (
-    // FIX: Added relative z-0 to ensure the table doesn't cover global UI elements like sidebar or toasts
     <div className="rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0">
       
       {/* 1. TOP BAR (Controls + Action Buttons) */}
-      {/* FIX: Set a relative z-index of 10 to ensure dropdowns inside this bar work, but don't exceed navbar limits */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 relative z-10">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-text-secondary dark:text-gray-400">
+            <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
               Rows per page:
             </span>
-            <div className="w-24">
+            <div className="w-24 shrink-0">
               <Select
                 value={String(activeRows)}
                 onChange={(val) => handleRowsChange(Number(val))}
@@ -108,10 +106,10 @@ export function DataTable<T extends { id?: number | string }>({
               />
             </div>
           </div>
-          <span className="text-sm text-text-secondary dark:text-gray-400">
+          <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
             {paginationLabel}
           </span>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 shrink-0">
             <button
               className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               onClick={handlePrev}
@@ -130,21 +128,20 @@ export function DataTable<T extends { id?: number | string }>({
             </button>
           </div>
         </div>
-        {headerActions && <div>{headerActions}</div>}
+        {headerActions && <div className="shrink-0">{headerActions}</div>}
       </div>
 
       {/* 2. SCROLLABLE DATA TABLE */}
-      {/* Added relative z-0 so internal stickiness stays local to the card */}
-      <div className="overflow-auto max-h-[65vh] min-h-[300px] relative z-0">
+      <div className="overflow-auto max-h-[65vh] min-h-[300px] relative z-0 custom-scrollbar">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
           
-          {/* FIX: thead z-index kept at 10. This ensures it stays on top of rows while staying UNDER dashboard notifications */}
           <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10 shadow-sm">
             <tr>
               {headers.map((header, i) => (
                 <th
                   key={i}
-                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-secondary dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
+                  /* FIX: Added whitespace-nowrap to keep headers perfectly on 1 line. Added min-width for safe spacing. */
+                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-secondary dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 whitespace-nowrap min-w-[120px]"
                 >
                   {header}
                 </th>
@@ -182,6 +179,20 @@ export function DataTable<T extends { id?: number | string }>({
           </tbody>
         </table>
       </div>
+
+      {/* Added subtle custom scrollbar styling so it looks good when scrolling horizontally */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+      `,
+        }}
+      />
 
     </div>
   );
