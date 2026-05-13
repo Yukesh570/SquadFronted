@@ -1,5 +1,27 @@
 import api from "../axiosInstance";
 
+// ⚡️ FIX: Added VendorPolicy sub-interface to match backend response exactly
+export interface VendorPolicyData {
+  id?: number;
+  vendor_name?: string;
+  rateTps?: number;
+  sendQueueLimit?: number;
+  delayTime?: number;
+  maxSession?: number;
+  responseTimeout?: number;
+  enquireLinkInterval?: number;
+  connectionTimeout?: number;
+  connectionRetryDelay?: number;
+  connectionRetryCount?: number;
+  bindRetryDelay?: number;
+  bindRetryCount?: number;
+  connectionRecoveryDelay?: number;
+  logLevel?: string;
+  tlvTag?: string;
+  tlvValue?: string;
+  isDeleted?: boolean;
+}
+
 export interface VendorData {
   id?: number;
   company?: number;
@@ -13,7 +35,8 @@ export interface VendorData {
   bindStatus?: string;
   active_session_count?: number;
   max_allowed_sessions?: number; 
-  maxSession?: number; // FIX: Added maxSession to the interface mapping
+  maxSession?: number;
+  vendorPolicy?: VendorPolicyData; // ⚡️ FIX: Added nested policy object
 }
 
 export interface PaginatedResponse<T> {

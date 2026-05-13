@@ -48,12 +48,12 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         isOpen={isOpen}
         onClose={onClose}
         title={`Routing Group Details: ${routeGroup || ""}`}
-        className="max-w-[90vw] w-full" 
+        className="max-w-[95vw] w-full" 
       >
-        <div className="p-4">
+        {/* FIX: Removed overflow-hidden to allow natural modal height adjustment */}
+        <div className="p-4 w-full flex flex-col">
           
-          {/* FIX: Visually separated the instructions from the warning for clarity */}
-          <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4 bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4 bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 w-full shrink-0">
             <div className="flex items-start gap-3 flex-1">
               <Info size={18} className="text-blue-500 shrink-0 mt-0.5" />
               <div className="flex flex-col space-y-1.5 text-[13px] text-gray-600 dark:text-gray-300 leading-tight">
@@ -81,14 +81,17 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           </div>
           
           {routeGroup && (
-            <SubRouteEditableTable
-              routeGroup={routeGroup}
-              moduleName={moduleName}
-              canUpdate={canUpdate}
-              canDelete={canDelete}
-              onDelete={(id) => setDeleteId(id)}
-              refreshTrigger={refreshTrigger}
-            />
+            // FIX: Removed min-h-[300px] and overflow-hidden to fix the massive empty space issue
+            <div className="w-full">
+              <SubRouteEditableTable
+                routeGroup={routeGroup}
+                moduleName={moduleName}
+                canUpdate={canUpdate}
+                canDelete={canDelete}
+                onDelete={(id) => setDeleteId(id)}
+                refreshTrigger={refreshTrigger}
+              />
+            </div>
           )}
         </div>
       </Modal>

@@ -16,7 +16,6 @@ import {
 import {
   createVendorPolicyApi,
   updateVendorPolicyApi,
-  getVendorPoliciesApi,
 } from "../../../api/policyApi/vendorPolicyApi";
 import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 
@@ -68,7 +67,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     destTON: "",
     destNPI: "",
     rateTps: "",
-    maxSession: "", // FIX: Added maxSession
+    maxSession: "",
     sendQueueLimit: "",
     delayTime: "",
     responseTimeout: "",
@@ -158,9 +157,11 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     const loadData = async () => {
       if (isOpen && editingVendor) {
         const anyVendor = editingVendor as any;
-        setExistingPolicyId(null); // Reset before fetching
+        
+        // ⚡️ FIX: Instantly grab policy ID from the nested object if it exists
+        setExistingPolicyId(anyVendor.vendorPolicy?.id || null);
 
-        // 1. Set top-level vendor data
+        // 1. Set top-level vendor data & immediately set policy data from the nested object
         setFormData({
           company: editingVendor.company ? String(editingVendor.company) : "",
           profileName: editingVendor.profileName,
@@ -177,30 +178,33 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           sourceNPI: "",
           destTON: "",
           destNPI: "",
-          rateTps: "",
-          maxSession: "",
-          sendQueueLimit: "",
-          delayTime: "",
-          responseTimeout: "",
-          enquireLinkInterval: "",
-          connectionTimeout: "",
-          connectionRetryDelay: "",
-          connectionRetryCount: "",
-          bindRetryDelay: "",
-          bindRetryCount: "",
-          connectionRecoveryDelay: "",
-          logLevel: "INFO",
-          tlvTag: "",
-          tlvValue: "",
+          
+          // ⚡️ FIX: Read directly from nested vendorPolicy
+          rateTps: anyVendor.vendorPolicy?.rateTps != null ? String(anyVendor.vendorPolicy.rateTps) : "",
+          maxSession: anyVendor.vendorPolicy?.maxSession != null ? String(anyVendor.vendorPolicy.maxSession) : "",
+          sendQueueLimit: anyVendor.vendorPolicy?.sendQueueLimit != null ? String(anyVendor.vendorPolicy.sendQueueLimit) : "",
+          delayTime: anyVendor.vendorPolicy?.delayTime != null ? String(anyVendor.vendorPolicy.delayTime) : "",
+          responseTimeout: anyVendor.vendorPolicy?.responseTimeout != null ? String(anyVendor.vendorPolicy.responseTimeout) : "",
+          enquireLinkInterval: anyVendor.vendorPolicy?.enquireLinkInterval != null ? String(anyVendor.vendorPolicy.enquireLinkInterval) : "",
+          connectionTimeout: anyVendor.vendorPolicy?.connectionTimeout != null ? String(anyVendor.vendorPolicy.connectionTimeout) : "",
+          connectionRetryDelay: anyVendor.vendorPolicy?.connectionRetryDelay != null ? String(anyVendor.vendorPolicy.connectionRetryDelay) : "",
+          connectionRetryCount: anyVendor.vendorPolicy?.connectionRetryCount != null ? String(anyVendor.vendorPolicy.connectionRetryCount) : "",
+          bindRetryDelay: anyVendor.vendorPolicy?.bindRetryDelay != null ? String(anyVendor.vendorPolicy.bindRetryDelay) : "",
+          bindRetryCount: anyVendor.vendorPolicy?.bindRetryCount != null ? String(anyVendor.vendorPolicy.bindRetryCount) : "",
+          connectionRecoveryDelay: anyVendor.vendorPolicy?.connectionRecoveryDelay != null ? String(anyVendor.vendorPolicy.connectionRecoveryDelay) : "",
+          logLevel: anyVendor.vendorPolicy?.logLevel || "INFO",
+          tlvTag: anyVendor.vendorPolicy?.tlvTag || "",
+          tlvValue: anyVendor.vendorPolicy?.tlvValue || "",
+          
           bindStatus: editingVendor.bindStatus || "OFFLINE",
           active_session_count: anyVendor.active_session_count || 0,
-          max_allowed_sessions: anyVendor.max_allowed_sessions || 1,
+          max_allowed_sessions: anyVendor.vendorPolicy?.maxSession || 1, // Fallback to 1 if no policy set
         });
 
         setIsLoadingDetails(true);
 
         try {
-          // 2. Fetch fresh SMPP details
+          // 2. Fetch fresh SMPP details (we still need this because SMPP isn't nested)
           if (anyVendor.connectionType === "SMPP" && anyVendor.smpp) {
             const smppData = await getSmppByIdApi(anyVendor.smpp, "smpp");
             setFormData((prev) => ({
@@ -216,46 +220,9 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               destNPI: String(smppData.destNPI || ""),
             }));
           }
-
-          // 3. Fetch fresh Policy details linked to this vendor
-          if (editingVendor.id) {
-            const policyRes = await getVendorPoliciesApi(1, 10, {
-              vendor: editingVendor.id,
-            });
-
-            if (
-              policyRes &&
-              policyRes.results &&
-              policyRes.results.length > 0
-            ) {
-              const policyData = policyRes.results[0];
-
-              // Save the existing policy ID so we update instead of create later
-              setExistingPolicyId(policyData.id || null);
-
-              setFormData((prev) => ({
-                ...prev,
-                rateTps: policyData.rateTps != null ? String(policyData.rateTps) : "",
-                maxSession: policyData.maxSession != null ? String(policyData.maxSession) : "", // FIX: Read maxSession
-                sendQueueLimit: policyData.sendQueueLimit != null ? String(policyData.sendQueueLimit) : "",
-                delayTime: policyData.delayTime != null ? String(policyData.delayTime) : "",
-                responseTimeout: policyData.responseTimeout != null ? String(policyData.responseTimeout) : "",
-                enquireLinkInterval: policyData.enquireLinkInterval != null ? String(policyData.enquireLinkInterval) : "",
-                connectionTimeout: policyData.connectionTimeout != null ? String(policyData.connectionTimeout) : "",
-                connectionRetryDelay: policyData.connectionRetryDelay != null ? String(policyData.connectionRetryDelay) : "",
-                connectionRetryCount: policyData.connectionRetryCount != null ? String(policyData.connectionRetryCount) : "",
-                bindRetryDelay: policyData.bindRetryDelay != null ? String(policyData.bindRetryDelay) : "",
-                bindRetryCount: policyData.bindRetryCount != null ? String(policyData.bindRetryCount) : "",
-                connectionRecoveryDelay: policyData.connectionRecoveryDelay != null ? String(policyData.connectionRecoveryDelay) : "",
-                logLevel: policyData.logLevel || "INFO",
-                tlvTag: policyData.tlvTag || "",
-                tlvValue: policyData.tlvValue || "",
-              }));
-            }
-          }
         } catch (error) {
           console.error("Failed to load details", error);
-          toast.error("Could not load all configuration details.");
+          toast.error("Could not load SMPP configuration details.");
         } finally {
           setIsLoadingDetails(false);
         }
@@ -389,7 +356,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         };
 
         if (formData.rateTps !== "") policyPayload.rateTps = Number(formData.rateTps);
-        if (formData.maxSession !== "") policyPayload.maxSession = Number(formData.maxSession); // FIX: Save maxSession
+        if (formData.maxSession !== "") policyPayload.maxSession = Number(formData.maxSession);
         if (formData.sendQueueLimit !== "") policyPayload.sendQueueLimit = Number(formData.sendQueueLimit);
         if (formData.delayTime !== "") policyPayload.delayTime = Number(formData.delayTime);
         if (formData.responseTimeout !== "") policyPayload.responseTimeout = Number(formData.responseTimeout);
@@ -648,7 +615,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="50"
               disabled={isViewMode}
             />
-            {/* FIX: Included maxSession field perfectly formatted */}
             <Input
               label="Max Sessions"
               name="maxSession"
@@ -801,7 +767,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           </div>
         </fieldset>
         
-        {/* FIX: Corrected backend's UI mistake - Formatted Live Status into a proper Fieldset pattern */}
         {editingVendor && (
           <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4 bg-gray-50/50 dark:bg-gray-800/30">
             <legend className="text-sm font-semibold text-primary px-2">
@@ -822,7 +787,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               <Input
                 label="Active Sessions / Allowed"
                 name="session"
-                value={`${formData.active_session_count} / ${formData.maxSession || formData.max_allowed_sessions || 0}`}
+                value={`${formData.active_session_count} / ${formData.max_allowed_sessions || 0}`}
                 disabled={true}
               />
             </div>

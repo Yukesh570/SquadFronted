@@ -227,8 +227,7 @@ const Vendor: React.FC = () => {
 
   const renderSessionBadge = (vendor: any) => {
     const current = vendor.active_session_count || 0;
-    // Look for the max_allowed_sessions from the API.
-    // If it's missing or 0, default to 0 instead of a hardcoded 1.
+    // ⚡️ FIX: Read maxSession from the nested vendorPolicy object!
     const max = vendor.vendorPolicy?.maxSession || 1;
 
     const isFull = current === max && max > 0;
@@ -290,7 +289,6 @@ const Vendor: React.FC = () => {
       label: "Bind Status",
       type: "text",
       options: bindStatusOptions,
-      // ⚡️ FIXED: Simply render the status. Let the WebSocket or API dictate truth.
       render: (c) => renderBindStatusBadge(c.bindStatus),
     },
     {
@@ -301,36 +299,86 @@ const Vendor: React.FC = () => {
       render: (c) => renderSessionBadge(c),
     },
     // --- INTEGRATED POLICY COLUMNS ---
-    { key: "maxSession", label: "Max Sessions", type: "number" }, // FIX: Integrated into table filter view
-    { key: "rateTps", label: "Rate TPS", type: "number" },
-    { key: "sendQueueLimit", label: "Queue Limit", type: "number" },
+    // ⚡️ FIX: Configured custom renders for all policy fields to safely extract them from vendor.vendorPolicy
+    { 
+      key: "maxSession", 
+      label: "Max Sessions", 
+      type: "number",
+      render: (c) => c.vendorPolicy?.maxSession ?? "-"
+    }, 
+    { 
+      key: "rateTps", 
+      label: "Rate TPS", 
+      type: "number",
+      render: (c) => c.vendorPolicy?.rateTps ?? "-"
+    },
+    { 
+      key: "sendQueueLimit", 
+      label: "Queue Limit", 
+      type: "number",
+      render: (c) => c.vendorPolicy?.sendQueueLimit ?? "-"
+    },
     {
       key: "logLevel",
       label: "Log Level",
       type: "text",
       options: logLevelOptions,
+      render: (c) => c.vendorPolicy?.logLevel ?? "-"
     },
-    { key: "responseTimeout", label: "Response Timeout (s)", type: "number" },
+    { 
+      key: "responseTimeout", 
+      label: "Response Timeout (s)", 
+      type: "number",
+      render: (c) => c.vendorPolicy?.responseTimeout ?? "-"
+    },
     {
       key: "enquireLinkInterval",
       label: "Enquire Link Interval (s)",
       type: "number",
+      render: (c) => c.vendorPolicy?.enquireLinkInterval ?? "-"
     },
-    { key: "connectionTimeout", label: "Conn. Timeout (s)", type: "number" },
+    { 
+      key: "connectionTimeout", 
+      label: "Conn. Timeout (s)", 
+      type: "number",
+      render: (c) => c.vendorPolicy?.connectionTimeout ?? "-"
+    },
     {
       key: "connectionRetryDelay",
       label: "Conn Retry Delay (s)",
       type: "number",
+      render: (c) => c.vendorPolicy?.connectionRetryDelay ?? "-"
     },
-    { key: "connectionRetryCount", label: "Conn Retry Count", type: "number" },
-    { key: "bindRetryDelay", label: "Bind Retry Delay (s)", type: "number" },
-    { key: "bindRetryCount", label: "Bind Retry Count", type: "number" },
+    { 
+      key: "connectionRetryCount", 
+      label: "Conn Retry Count", 
+      type: "number",
+      render: (c) => c.vendorPolicy?.connectionRetryCount ?? "-"
+    },
+    { 
+      key: "bindRetryDelay", 
+      label: "Bind Retry Delay (s)", 
+      type: "number",
+      render: (c) => c.vendorPolicy?.bindRetryDelay ?? "-"
+    },
+    { 
+      key: "bindRetryCount", 
+      label: "Bind Retry Count", 
+      type: "number",
+      render: (c) => c.vendorPolicy?.bindRetryCount ?? "-"
+    },
     {
       key: "connectionRecoveryDelay",
       label: "Conn Recovery Delay (s)",
       type: "number",
+      render: (c) => c.vendorPolicy?.connectionRecoveryDelay ?? "-"
     },
-    { key: "tlvTag", label: "TLV Tag", type: "text" },
+    { 
+      key: "tlvTag", 
+      label: "TLV Tag", 
+      type: "text",
+      render: (c) => c.vendorPolicy?.tlvTag ?? "-"
+    },
     // --- End Integrated Policy Columns ---
   ];
 

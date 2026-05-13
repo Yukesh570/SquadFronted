@@ -11,10 +11,10 @@ import {
 import {
   createCustomRouteApi,
   updateCustomRouteApi,
-  bulkUpdateCustomRouteApi, 
+  bulkUpdateCustomRouteApi,
+  updateRouteGroupApi,
   type CustomRouteData,
 } from "../../../api/routeManagerApi/customRouteApi";
-import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 import { getClientsApi } from "../../../api/clientApi/clientApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
 import { getVendorsApi } from "../../../api/connectivityApi/vendorApi";
@@ -27,7 +27,9 @@ interface CustomRouteModalProps {
   moduleName: string;
   editingRoute: CustomRouteData | null;
   isViewMode?: boolean;
-  lockedName?: string; 
+  lockedName?: string;
+  isEditingGroupStatus?: boolean;
+  groupData?: any;
 }
 
 interface CountryData {
@@ -46,7 +48,9 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   moduleName,
   editingRoute,
   isViewMode = false,
-  lockedName, 
+  lockedName,
+  isEditingGroupStatus = false,
+  groupData = null,
 }) => {
   const [formData, setFormData] = useState<any>({
     name: "",
@@ -55,23 +59,21 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     country: 0,
     MCC: [],
     MNC: [],
-    terminatingCompany: 0,
     terminatingVendor: 0,
   });
 
-  const [companyOptions, setCompanyOptions] = useState<MultiSelectOption[]>([]);
   const [countryOptions, setCountryOptions] = useState<MultiSelectOption[]>([]);
   const [vendorOptions, setVendorOptions] = useState<MultiSelectOption[]>([]);
-
   const [mccOptions, setMccOptions] = useState<MultiSelectOption[]>([]);
   const [mncOptions, setMncOptions] = useState<MultiSelectOption[]>([]);
 
-  const [rawVendors, setRawVendors] = useState<any[]>([]);
   const [fullCountriesList, setFullCountriesList] = useState<CountryData[]>([]);
   const [fullNetworkList, setFullNetworkList] = useState<any[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetchingOptions, setIsFetchingOptions] = useState(false);
+
+  const isFieldDisabled = isViewMode || isEditingGroupStatus;
 
   const statusOptions = [
     { label: "Active", value: "ACTIVE" },
@@ -105,22 +107,16 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   };
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !isEditingGroupStatus) {
       setIsFetchingOptions(true);
       const fetchAllOptions = async () => {
         try {
-          const [companies, , countries, vendors] = await Promise.all([
-            getCompaniesApi("company", 1, 1000),
+          const [, countries, vendors] = await Promise.all([
             getClientsApi("client", 1, 1000),
             getCountriesApi("country", 1, 1000),
             getVendorsApi("vendor", 1, 1000),
           ]);
 
-          setRawVendors(
-            vendors.results ||
-              (Array.isArray(vendors) ? vendors : (vendors as any).data) ||
-              [],
-          );
           setFullCountriesList(
             countries.results ||
               (Array.isArray(countries)
@@ -129,7 +125,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               [],
           );
 
-          setCompanyOptions(extractOptions(companies, "name"));
           setCountryOptions(extractOptions(countries, "name"));
           setVendorOptions(extractOptions(vendors, "profileName"));
         } catch (error) {
@@ -141,10 +136,14 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       };
       fetchAllOptions();
     }
-  }, [isOpen]);
+  }, [isOpen, isEditingGroupStatus]);
 
   useEffect(() => {
-    if (formData.country && fullCountriesList.length > 0) {
+    if (
+      !isEditingGroupStatus &&
+      formData.country &&
+      fullCountriesList.length > 0
+    ) {
       const selectedCountry = fullCountriesList.find(
         (c) => String(c.id) === String(formData.country),
       );
@@ -189,15 +188,20 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           }
         })
         .catch(console.error);
-    } else {
+    } else if (!isEditingGroupStatus) {
       setFullNetworkList([]);
       setMccOptions([]);
       setMncOptions([]);
     }
-  }, [formData.country, fullCountriesList]);
+  }, [formData.country, fullCountriesList, isEditingGroupStatus]);
 
   useEffect(() => {
-    if (formData.MCC && formData.MCC.length > 0 && fullNetworkList.length > 0) {
+    if (
+      !isEditingGroupStatus &&
+      formData.MCC &&
+      formData.MCC.length > 0 &&
+      fullNetworkList.length > 0
+    ) {
       const newMncOptions: MultiSelectOption[] = [];
       let groupIdx = 0;
 
@@ -250,48 +254,33 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
         }
       });
       setMncOptions(newMncOptions);
-
-      if (!editingRoute && !isViewMode) {
-        const sanitizeString = (str: string) =>
-          String(str).replace(/\s+/g, "").toLowerCase();
-
-        setFormData((prev: any) => {
-          const filteredMncs = (prev.MNC || [])
-            .map((m: string) => {
-              let sanitizedM = sanitizeString(m);
-
-              if (sanitizedM.endsWith("(all)")) {
-                const expectedUiValue = sanitizedM.replace("(all)", "(all_ui)");
-                if (
-                  newMncOptions.some(
-                    (o) => sanitizeString(o.value) === expectedUiValue,
-                  )
-                ) {
-                  sanitizedM = expectedUiValue;
-                }
-              }
-
-              const match = newMncOptions.find(
-                (o) => sanitizeString(o.value) === sanitizedM,
-              );
-              return match ? match.value : m;
-            })
-            .filter((m: string) => newMncOptions.some((o) => o.value === m));
-
-          return { ...prev, MNC: filteredMncs };
-        });
-      }
-    } else {
+    } else if (!isEditingGroupStatus) {
       setMncOptions([]);
       if (!editingRoute && !isViewMode) {
         setFormData((prev: any) => ({ ...prev, MNC: [] }));
       }
     }
-  }, [formData.MCC, fullNetworkList, editingRoute, isViewMode]);
+  }, [
+    formData.MCC,
+    fullNetworkList,
+    editingRoute,
+    isViewMode,
+    isEditingGroupStatus,
+  ]);
 
   useEffect(() => {
     if (isOpen) {
-      if (editingRoute) {
+      if (isEditingGroupStatus && groupData) {
+        setFormData({
+          name: groupData.routeGroup__name || "",
+          priority: "",
+          status: groupData.status || "ACTIVE",
+          country: 0,
+          MCC: [],
+          MNC: [],
+          terminatingVendor: 0,
+        });
+      } else if (editingRoute) {
         const parseArrayField = (val: any): string[] => {
           if (!val) return [];
           if (Array.isArray(val)) return val.map((v) => String(v).trim());
@@ -331,23 +320,21 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           country: editingRoute.country || 0,
           MCC: parsedMcc,
           MNC: parsedMnc,
-          terminatingCompany: editingRoute.terminatingCompany || 0,
           terminatingVendor: editingRoute.terminatingVendor || 0,
         });
       } else {
         setFormData({
-          name: lockedName || "", 
+          name: lockedName || "",
           priority: "",
           status: "ACTIVE",
           country: 0,
           MCC: [],
           MNC: [],
-          terminatingCompany: 0,
           terminatingVendor: 0,
         });
       }
     }
-  }, [isOpen, editingRoute, lockedName]);
+  }, [isOpen, editingRoute, lockedName, isEditingGroupStatus, groupData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -365,15 +352,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       if (name === "country") {
         nextData.MCC = [];
         nextData.MNC = [];
-      }
-
-      if (name === "terminatingVendor") {
-        const selectedVendor = rawVendors.find((v) => v.id === Number(value));
-        if (selectedVendor && selectedVendor.company) {
-          nextData.terminatingCompany = Number(selectedVendor.company);
-        } else {
-          nextData.terminatingCompany = 0;
-        }
       }
 
       return nextData;
@@ -399,43 +377,119 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     setFormData((prev: any) => ({ ...prev, MCC: selectedValues }));
   };
 
+  // ⚡️ FIX: Updated handleMncChange to completely isolate "All" tag logic
   const handleMncChange = (selectedValues: string[], clickedOption?: any) => {
     if (clickedOption && clickedOption.isAll) {
       const mccPrefix = clickedOption.value.split("(")[0].trim();
-
-      const mncValuesForThisMcc = mncOptions
-        .filter((o) => o.value.startsWith(`${mccPrefix}(`) && !o.isUiOnly)
-        .map((o) => o.value);
-
-      const isAllSelected =
-        mncValuesForThisMcc.length > 0 &&
-        mncValuesForThisMcc.every((v) => formData.MNC.includes(v));
       let newMnc = [...formData.MNC];
 
-      if (isAllSelected) {
-        newMnc = newMnc.filter((v) => !mncValuesForThisMcc.includes(v));
-      } else {
-        const toAdd = mncValuesForThisMcc.filter((v) => !newMnc.includes(v));
-        newMnc = [...newMnc, ...toAdd];
+      const allTag = mncOptions.find(
+        (o) => o.value.startsWith(`${mccPrefix}(`) && o.isAll,
+      );
+
+      if (allTag) {
+        if (newMnc.includes(allTag.value)) {
+          // Deselecting "All" -> clears everything for this MCC
+          newMnc = newMnc.filter((v) => !v.startsWith(`${mccPrefix}(`));
+        } else {
+          // Selecting "All" -> removes individual numbers for this MCC, adds "All" tag only
+          newMnc = newMnc.filter((v) => !v.startsWith(`${mccPrefix}(`));
+          newMnc.push(allTag.value);
+        }
       }
       setFormData((prev: any) => ({ ...prev, MNC: newMnc }));
       return;
     }
+
+    if (clickedOption && !clickedOption.isAll) {
+      const mccPrefix = clickedOption.value.split("(")[0].trim();
+      let newMnc = [...selectedValues];
+
+      // If user manually clicked an individual item, we MUST destroy the "All" tag
+      // and inject all OTHER individual items (minus the one they just deselected)
+      const allTag = mncOptions.find(
+        (o) => o.value.startsWith(`${mccPrefix}(`) && o.isAll,
+      );
+
+      if (allTag && formData.MNC.includes(allTag.value)) {
+        // Break the "All" tag into individual pieces
+        const individualMncs = mncOptions
+          .filter((o) => o.value.startsWith(`${mccPrefix}(`) && !o.isAll)
+          .map((o) => o.value);
+
+        newMnc = formData.MNC.filter((v: string) => v !== allTag.value);
+        newMnc.push(...individualMncs);
+        // Remove the one they actually clicked to deselect
+        newMnc = newMnc.filter((v: string) => v !== clickedOption.value);
+        // Clean duplicates
+        newMnc = Array.from(new Set(newMnc));
+      }
+
+      setFormData((prev: any) => ({ ...prev, MNC: newMnc }));
+      return;
+    }
+
     setFormData((prev: any) => ({ ...prev, MNC: selectedValues }));
   };
 
+  // ⚡️ FIX: Select All External Button ONLY grabs pure individual numbers and drops any "All" tags
   const handleSelectAllMncExternal = () => {
-    const allMncs = mncOptions.filter((o) => !o.isUiOnly).map((o) => o.value);
-    setFormData((prev: any) => ({ ...prev, MNC: allMncs }));
+    const allIndividualMncs = mncOptions
+      .filter((o) => !o.isAll && !o.isUiOnly)
+      .map((o) => o.value);
+    setFormData((prev: any) => ({ ...prev, MNC: allIndividualMncs }));
   };
 
   const handleClearMncExternal = () => {
     setFormData((prev: any) => ({ ...prev, MNC: [] }));
   };
 
+  // ⚡️ FIX: Compute display handles the visual trickery required by the dropdown
+  // If the state holds the "All" tag, we tell the dropdown to visually tick the individuals
+  const computeDisplayMnc = () => {
+    const display = [...(formData.MNC || [])];
+
+    (formData.MCC || []).forEach((mcc: string) => {
+      if (mcc === "ALL_MCC") return;
+
+      const allTagOpt = mncOptions.find(
+        (o) => o.value.startsWith(`${mcc}(`) && o.isAll,
+      );
+
+      if (allTagOpt && display.includes(allTagOpt.value)) {
+        // State holds "All" -> Visually tick all individual options for UI purposes
+        const individualMncs = mncOptions
+          .filter((o) => o.value.startsWith(`${mcc}(`) && !o.isAll)
+          .map((o) => o.value);
+        display.push(...individualMncs);
+      }
+    });
+
+    return Array.from(new Set(display)); // Return unique values to the dropdown
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewMode) return;
+
+    if (isEditingGroupStatus && groupData) {
+      setIsSubmitting(true);
+      try {
+        await updateRouteGroupApi(
+          groupData.id,
+          { status: formData.status },
+          moduleName,
+        );
+        toast.success("Route group updated successfully!");
+        onSuccess();
+        onClose();
+      } catch (err) {
+        toast.error("Failed to update route group status.");
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
 
     if (!formData.name) {
       toast.error("Name is required.");
@@ -457,10 +511,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       toast.error("Terminating Vendor is required.");
       return;
     }
-    if (!formData.terminatingCompany || formData.terminatingCompany === 0) {
-      toast.error("Terminating Company is required.");
-      return;
-    }
     if (!formData.priority) {
       toast.error("Priority is required.");
       return;
@@ -473,6 +523,9 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     payload.MCC = Array.isArray(formData.MCC)
       ? formData.MCC.join(",")
       : formData.MCC || "";
+
+    // ⚡️ FIX: Since formData.MNC perfectly stores EXACTLY what needs to go to the server, we just map it.
+    // If "All" was clicked in dropdown, it holds "404(ALL_UI)". If "Select All" outside button was clicked, it holds "404(10), 404(20)".
     payload.MNC = Array.isArray(formData.MNC) ? formData.MNC : [];
 
     try {
@@ -480,8 +533,8 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
         await updateCustomRouteApi(editingRoute.id, payload, moduleName);
         toast.success("Route updated successfully!");
       } else if (lockedName) {
-         await bulkUpdateCustomRouteApi(payload, moduleName);
-         toast.success("Route added to group successfully!");
+        await bulkUpdateCustomRouteApi(payload, moduleName);
+        toast.success("Route added to group successfully!");
       } else {
         await createCustomRouteApi(payload, moduleName);
         toast.success("Route created successfully!");
@@ -506,53 +559,60 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
   if (!isOpen) return null;
 
-  const terminatingCompanyName =
-    companyOptions.find((c) => c.value === String(formData.terminatingCompany))
-      ?.label || "";
-
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={
-        isViewMode
-          ? "View Custom Route"
-          : editingRoute
-            ? "Edit Custom Route"
-            : lockedName
-              ? `Add New Route to ${lockedName}` 
-              : "Create Custom Route"
+        isEditingGroupStatus
+          ? "Edit Route Group Status"
+          : isViewMode
+            ? "View Custom Route"
+            : editingRoute
+              ? "Edit Custom Route"
+              : lockedName
+                ? `Add New Route to ${lockedName}`
+                : "Create Custom Route"
       }
       className="max-w-4xl"
     >
-      {/* FIX: Removed overflow-y-auto to stop the modal from trapping the dropdown menu inside a scrollbox */}
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6 px-1"
-      >
+      <form onSubmit={handleSubmit} className="space-y-6 px-1">
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Header Info
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
-              label="Name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Route Name"
-              required
-              disabled={isViewMode || !!lockedName} 
-            />
+            {isEditingGroupStatus ? (
+              <Input
+                label="Route Group Name"
+                name="name"
+                value={formData.name}
+                onChange={() => {}}
+                disabled={true}
+              />
+            ) : (
+              <Input
+                label="Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Route Name"
+                required
+                disabled={isFieldDisabled || !!lockedName}
+              />
+            )}
 
-            <Select
-              label="Priority"
-              value={formData.priority}
-              onChange={(v) => handleSelectChange("priority", v)}
-              options={priorityOptions}
-              placeholder="Select Priority"
-              disabled={isViewMode}
-            />
+            {!isEditingGroupStatus && (
+              <Select
+                label="Priority"
+                value={formData.priority}
+                onChange={(v) => handleSelectChange("priority", v)}
+                options={priorityOptions}
+                placeholder="Select Priority"
+                disabled={isFieldDisabled}
+              />
+            )}
+
             <Select
               label="Status"
               value={formData.status}
@@ -563,112 +623,128 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           </div>
         </fieldset>
 
-        {/* FIX: Explicitly forced overflow-visible to let dropdowns bleed out */}
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 overflow-visible">
-          <legend className="text-sm font-semibold text-primary px-2">
-            Destination
-          </legend>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-3">
-              <Select
-                label="Country"
-                value={formData.country ? String(formData.country) : ""}
-                onChange={(v) => handleSelectChange("country", v)}
-                options={countryOptions}
-                placeholder="Select Country"
-                disabled={!!editingRoute || isViewMode || isFetchingOptions}
-                // FIX: Removed "placement='top'" so it drops down naturally in front of everything
-              />
-            </div>
-
-            <div className="lg:col-span-3">
-              <MultiSelectDropdown
-                label="MCC"
-                options={mccOptions}
-                selected={formData.MCC}
-                onChange={handleMccChange}
-                disabled={
-                  !!editingRoute ||
-                  !formData.country ||
-                  isViewMode ||
-                  isFetchingOptions
+        {isEditingGroupStatus ? (
+          <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <legend className="text-sm font-semibold text-primary px-2">
+              Route Group Details
+            </legend>
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+              <Input
+                label="Countries"
+                name="countries"
+                value={
+                  Array.isArray(groupData?.countries)
+                    ? groupData.countries.join(", ")
+                    : groupData?.countries || "-"
                 }
-                placeholder={formData.country ? "Select MCC" : "Country First"}
+                onChange={() => {}}
+                disabled={true}
               />
             </div>
+          </fieldset>
+        ) : (
+          <>
+            <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 overflow-visible">
+              <legend className="text-sm font-semibold text-primary px-2">
+                Destination
+              </legend>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                <div className="lg:col-span-3">
+                  <Select
+                    label="Country"
+                    value={formData.country ? String(formData.country) : ""}
+                    onChange={(v) => handleSelectChange("country", v)}
+                    options={countryOptions}
+                    placeholder="Select Country"
+                    disabled={
+                      !!editingRoute || isFieldDisabled || isFetchingOptions
+                    }
+                  />
+                </div>
 
-            <div className="lg:col-span-6 flex items-end gap-3">
-              <div className="flex-1">
-                <MultiSelectDropdown
-                  label="MNC"
-                  options={mncOptions}
-                  selected={formData.MNC}
-                  onChange={handleMncChange}
-                  disabled={
-                    !!editingRoute ||
-                    formData.MCC.length === 0 ||
-                    isViewMode ||
-                    isFetchingOptions
+                <div className="lg:col-span-3">
+                  <MultiSelectDropdown
+                    label="MCC"
+                    options={mccOptions}
+                    selected={formData.MCC}
+                    onChange={handleMccChange}
+                    disabled={
+                      !!editingRoute ||
+                      !formData.country ||
+                      isFieldDisabled ||
+                      isFetchingOptions
+                    }
+                    placeholder={
+                      formData.country ? "Select MCC" : "Country First"
+                    }
+                  />
+                </div>
+
+                <div className="lg:col-span-6 flex items-end gap-3">
+                  <div className="flex-1">
+                    <MultiSelectDropdown
+                      label="MNC"
+                      options={mncOptions}
+                      selected={computeDisplayMnc()}
+                      onChange={handleMncChange}
+                      disabled={
+                        !!editingRoute ||
+                        formData.MCC.length === 0 ||
+                        isFieldDisabled ||
+                        isFetchingOptions
+                      }
+                      placeholder={
+                        formData.MCC.length > 0 ? "Select MNC" : "MCC First"
+                      }
+                    />
+                  </div>
+                  {!isFieldDisabled && !editingRoute && (
+                    <div className="flex gap-2 mb-[2px]">
+                      <Button
+                        type="button"
+                        variant="primary"
+                        onClick={handleSelectAllMncExternal}
+                        className="px-3 py-[9px] text-xs shadow-sm"
+                        disabled={formData.MCC.length === 0}
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleClearMncExternal}
+                        className="px-3 py-[9px] text-xs shadow-sm"
+                        disabled={formData.MCC.length === 0}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <legend className="text-sm font-semibold text-primary px-2">
+                Vendor Info
+              </legend>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  label="Terminating Vendor"
+                  value={
+                    formData.terminatingVendor
+                      ? String(formData.terminatingVendor)
+                      : ""
                   }
-                  placeholder={
-                    formData.MCC.length > 0 ? "Select MNC" : "MCC First"
-                  }
+                  onChange={(v) => handleSelectChange("terminatingVendor", v)}
+                  options={vendorOptions}
+                  placeholder="Select Vendor"
+                  disabled={isFieldDisabled || isFetchingOptions}
                 />
               </div>
-              {!isViewMode && !editingRoute && (
-                <div className="flex gap-2 mb-[2px]">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={handleSelectAllMncExternal}
-                    className="px-3 py-[9px] text-xs shadow-sm"
-                    disabled={formData.MCC.length === 0}
-                  >
-                    Select All
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleClearMncExternal}
-                    className="px-3 py-[9px] text-xs shadow-sm"
-                    disabled={formData.MCC.length === 0}
-                  >
-                    Clear
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </fieldset>
-
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <legend className="text-sm font-semibold text-primary px-2">
-            Vendor Info
-          </legend>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Select
-              label="Terminating Vendor"
-              value={
-                formData.terminatingVendor
-                  ? String(formData.terminatingVendor)
-                  : ""
-              }
-              onChange={(v) => handleSelectChange("terminatingVendor", v)}
-              options={vendorOptions}
-              placeholder="Select Vendor"
-              disabled={isViewMode || isFetchingOptions}
-              // FIX: Removed "placement='top'" 
-            />
-            <Input
-              label="Terminating Company"
-              name="terminatingCompanyDisplay"
-              value={isFetchingOptions ? "Loading..." : terminatingCompanyName}
-              onChange={() => {}}
-              placeholder="Auto-filled from Vendor"
-              disabled={true}
-            />
-          </div>
-        </fieldset>
+            </fieldset>
+          </>
+        )}
 
         <div className="flex justify-end space-x-3 pt-2">
           <Button type="button" variant="secondary" onClick={onClose}>
@@ -678,9 +754,11 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
                 ? "Saving"
-                : editingRoute
-                  ? "Update Route"
-                  : "Add Route"}
+                : isEditingGroupStatus
+                  ? "Save Status"
+                  : editingRoute
+                    ? "Update Route"
+                    : "Add Route"}
             </Button>
           )}
         </div>

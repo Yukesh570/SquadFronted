@@ -19,7 +19,6 @@ import {
 import {
   createClientPolicyApi,
   updateClientPolicyApi,
-  getClientPoliciesApi,
 } from "../../api/policyApi/clientPolicyApi";
 
 // @ts-ignore
@@ -40,7 +39,7 @@ interface ClientModalProps {
   moduleName: string;
   editingClient: ClientData | null;
   isViewMode?: boolean;
-  routeGroupOptions: Option[]; // ⚡️ ADD THIS
+  routeGroupOptions: Option[];
 }
 
 interface Option {
@@ -92,7 +91,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  // Track existing policy ID to know if we are updating or creating
   const [existingPolicyId, setExistingPolicyId] = useState<number | null>(null);
 
   // --- Helper: Validate IP ---
@@ -155,10 +153,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     }
   }, [isOpen]);
 
-  // --- Fetch Client Details, IPs, and Policy ---
+  // --- Fetch Client Details & IPs ---
   useEffect(() => {
     const loadData = async () => {
-      // 1. Immediately reset state when modal opens to prevent stale data
       if (isOpen) {
         setExistingPolicyId(null);
         setFormData({
@@ -190,15 +187,17 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         });
       }
 
-      // 2. Populate editing data if it exists
       if (isOpen && editingClient) {
+        // ⚡️ FIX: Read policy data directly from the client object instead of fetching
+        setExistingPolicyId(editingClient.clientPolicy?.id || null);
+
         setFormData((prev) => ({
           ...prev,
           company: String(editingClient.company || ""),
           name: editingClient.name,
           ratePlanName: editingClient.ratePlanName || "",
           routeGroupName: editingClient.routeGroupName || "",
-          routeGroup: String(editingClient.routeGroup || ""), // ⚡️ ADD THIS to grab the ID!
+          routeGroup: String(editingClient.routeGroup || ""),
           status: editingClient.status,
           route: editingClient.route,
           paymentTerms: editingClient.paymentTerms,
@@ -210,10 +209,20 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           internalNotes: editingClient.internalNotes || "",
           bindStatus: editingClient.bindStatus || "OFFLINE",
           session: editingClient.session || "0/2",
+          
+          // ⚡️ FIX: Populate form from the nested policy
+          maxTps: editingClient.clientPolicy?.maxTps != null ? String(editingClient.clientPolicy.maxTps) : "",
+          maxQueueDepth: editingClient.clientPolicy?.maxQueueDepth != null ? String(editingClient.clientPolicy.maxQueueDepth) : "",
+          maxWindowPerSession: editingClient.clientPolicy?.maxWindowPerSession != null ? String(editingClient.clientPolicy.maxWindowPerSession) : "",
+          maxWindowGlobal: editingClient.clientPolicy?.maxWindowGlobal != null ? String(editingClient.clientPolicy.maxWindowGlobal) : "",
+          maxSessions: editingClient.clientPolicy?.maxSessions != null ? String(editingClient.clientPolicy.maxSessions) : "",
+          idleTimeoutSec: editingClient.clientPolicy?.idleTimeoutSec != null ? String(editingClient.clientPolicy.idleTimeoutSec) : "",
+          submitTimeoutSec: editingClient.clientPolicy?.submitTimeoutSec != null ? String(editingClient.clientPolicy.submitTimeoutSec) : "",
+          senderIdPolicy: editingClient.clientPolicy?.senderIdPolicy || "",
         }));
 
         if (editingClient.id) {
-          // Fetch IPs
+          // Fetch IPs only (since policy is already bundled)
           getIpWhitelistApi("ipWhitelist", 1, 1000, {
             client: editingClient.id,
           })
@@ -225,53 +234,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               setFormData((prev) => ({ ...prev, ipWhitelist: ipString }));
             })
             .catch((err: any) => console.error("Failed to fetch IPs", err));
-
-          // Fetch Client Policy
-          getClientPoliciesApi(1, 10, { client: editingClient.id })
-            .then((policyRes) => {
-              if (
-                policyRes &&
-                policyRes.results &&
-                policyRes.results.length > 0
-              ) {
-                const policyData = policyRes.results[0];
-                setExistingPolicyId(policyData.id || null);
-
-                setFormData((prev) => ({
-                  ...prev,
-                  maxTps:
-                    policyData.maxTps != null ? String(policyData.maxTps) : "",
-                  maxQueueDepth:
-                    policyData.maxQueueDepth != null
-                      ? String(policyData.maxQueueDepth)
-                      : "",
-                  maxWindowPerSession:
-                    policyData.maxWindowPerSession != null
-                      ? String(policyData.maxWindowPerSession)
-                      : "",
-                  maxWindowGlobal:
-                    policyData.maxWindowGlobal != null
-                      ? String(policyData.maxWindowGlobal)
-                      : "",
-                  maxSessions:
-                    policyData.maxSessions != null
-                      ? String(policyData.maxSessions)
-                      : "",
-                  idleTimeoutSec:
-                    policyData.idleTimeoutSec != null
-                      ? String(policyData.idleTimeoutSec)
-                      : "",
-                  submitTimeoutSec:
-                    policyData.submitTimeoutSec != null
-                      ? String(policyData.submitTimeoutSec)
-                      : "",
-                  senderIdPolicy: policyData.senderIdPolicy || "",
-                }));
-              }
-            })
-            .catch((err) =>
-              console.error("Failed to fetch client policy", err),
-            );
         }
       }
     };
@@ -358,7 +320,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       const payload = {
         ...clientPayload,
         company: Number(formData.company),
-        routeGroup: formData.routeGroup ? Number(formData.routeGroup) : null, // ⚡️ ADD THIS
+        routeGroup: formData.routeGroup ? Number(formData.routeGroup) : null,
         ipWhitelist: [],
       };
 

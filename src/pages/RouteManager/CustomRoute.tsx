@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Layers } from "lucide-react";
+import { Home, Plus, Layers, Edit } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getGroupedCustomRoutesApi } from "../../api/routeManagerApi/customRouteApi";
 
-// Corrected relative paths
 import { CustomRouteModal } from "../../components/modals/RouteManager/CustomRouteModal";
 import { SubRouteTableModal } from "../../components/modals/RouteManager/SubRouteTableModal";
 
@@ -57,8 +56,7 @@ const DEFAULT_SEARCH_COLUMNS = ["routeGroup__name", "status", "countries"];
 const DEFAULT_TABLE_COLUMNS = [
   "routeGroup__name",
   "countries",
-  "totalSubRoutes",
-  "status",
+  "status", 
   "createdAt",
 ];
 
@@ -72,6 +70,9 @@ const CustomRoute: React.FC = () => {
   const [isSubTableModalOpen, setIsSubTableModalOpen] = useState(false);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
+  // ⚡️ NEW: States to handle group editing through the main modal component
+  const [isEditGroupModalOpen, setIsEditGroupModalOpen] = useState(false);
 
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
@@ -130,7 +131,6 @@ const CustomRoute: React.FC = () => {
       label: "Country",
       type: "text",
       filterKey: "routeGroup__country__name__icontains",
-      //Render the array as a comma-separated string
       render: (row: any) => {
         if (Array.isArray(row.countries)) {
           return row.countries.join(", ");
@@ -139,17 +139,22 @@ const CustomRoute: React.FC = () => {
       },
     },
     {
-      key: "totalSubRoutes",
-      label: "Sub-Routes",
-      type: "number",
-      filterKey: "totalSubRoutes",
-    },
-    {
       key: "status",
       label: "Status",
       type: "text",
       options: statusOptions,
       filterKey: "status",
+      render: (c: any) => (
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-medium ${
+            c.status === "ACTIVE"
+              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+          }`}
+        >
+          {c.status}
+        </span>
+      ),
     },
     {
       key: "createdAt",
@@ -305,6 +310,18 @@ const CustomRoute: React.FC = () => {
           icon: <Layers size={16} />,
           onClick: () => openSubTableModal(selectedRowGroup.routeGroup__name),
         },
+        // ⚡️ FIX: Triggers CustomRouteModal with specific group flags
+        ...(canUpdate
+          ? [
+              {
+                label: "Edit Route Group",
+                icon: <Edit size={16} />,
+                onClick: () => {
+                  setIsEditGroupModalOpen(true);
+                },
+              },
+            ]
+          : []),
       ]
     : [];
 
@@ -314,8 +331,12 @@ const CustomRoute: React.FC = () => {
   ];
   const getBaseLabel = (label: string) => label.split(" (")[0].trim();
 
+  const handlePageClick = () => {
+    setContextMenuPos(null);
+  };
+
   return (
-    <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
+    <div className="container mx-auto" onClick={handlePageClick}>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
@@ -503,7 +524,7 @@ const CustomRoute: React.FC = () => {
                 return (
                   <td
                     key={col.key}
-                    className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+                    className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap`}
                   >
                     {col.render(routeGroupObj)}
                   </td>
@@ -513,17 +534,6 @@ const CustomRoute: React.FC = () => {
                   (opt) => opt.value === String(cellData),
                 );
                 cellData = match ? match.label : cellData;
-              }
-              if (col.key === "status") {
-                return (
-                  <td key={col.key} className="px-4 py-4 text-sm">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${routeGroupObj.status === "ACTIVE" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"}`}
-                    >
-                      {routeGroupObj.status}
-                    </span>
-                  </td>
-                );
               }
               if (col.key === "routeGroup__name") {
                 return (
@@ -559,7 +569,7 @@ const CustomRoute: React.FC = () => {
         onClose={() => {
           setIsSubTableModalOpen(false);
           setActiveRouteGroup(null);
-          fetchGroupedRoutes(); // Refresh main table on close
+          fetchGroupedRoutes(); 
         }}
         routeGroup={activeRouteGroup}
         moduleName={routeName}
@@ -567,7 +577,7 @@ const CustomRoute: React.FC = () => {
         canDelete={canDelete}
       />
 
-      {/* MODAL FOR CREATING A NEW ROUTE ONLY */}
+      {/* MODAL FOR CREATING A NEW ROUTE */}
       <CustomRouteModal
         isOpen={isCreateModalOpen}
         onClose={() => {
@@ -581,6 +591,17 @@ const CustomRoute: React.FC = () => {
         moduleName={routeName}
         editingRoute={null}
         isViewMode={false}
+      />
+
+      {/* ⚡️ FIX: Re-used Modal for Editing the Group Status */}
+      <CustomRouteModal
+        isOpen={isEditGroupModalOpen}
+        onClose={() => setIsEditGroupModalOpen(false)}
+        onSuccess={() => fetchGroupedRoutes()}
+        moduleName={routeName}
+        editingRoute={null}
+        isEditingGroupStatus={true} 
+        groupData={selectedRowGroup} 
       />
     </div>
   );

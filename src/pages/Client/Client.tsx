@@ -162,7 +162,6 @@ const Client: React.FC = () => {
         );
 
         // 2. Fetch Route Groups
-        // ⚡️ FIX: Ensure "customRoute" is the correct module name for your permission check
         const rgRes: any = await getGroupedCustomRoutesApi(
           "customRoute",
           1,
@@ -172,7 +171,6 @@ const Client: React.FC = () => {
 
         setrouteGroup(
           rgList.map((rg: any) => ({
-            // ⚡️ Map from routeGroup__name (string) or id
             label: rg.routeGroup__name,
             value: String(rg.id),
           })),
@@ -190,12 +188,11 @@ const Client: React.FC = () => {
         );
       } catch (err: any) {
         console.error("Dropdown load error:", err);
-        // If this catch block triggers a 401, your interceptor might be logging you out.
       }
     };
 
     loadDropdowns();
-  }, []); // Empty dependency array is correct here to run only once
+  }, []);
 
   // --- Column Configuration ---
   const statusOptions: Option[] = [
@@ -257,10 +254,14 @@ const Client: React.FC = () => {
     </span>
   );
 
-  const renderSessionBadge = (sessionStr: string) => {
-    if (!sessionStr) return "-";
-    const [current, max] = sessionStr.split("/");
-    const isFull = current === max && max !== "Unlimited";
+  const renderSessionBadge = (client: any) => {
+    // We grab the session string provided by websocket or default backend
+    const sessionStr = client.session || "0/2";
+    const [current] = sessionStr.split("/");
+    
+    // ⚡️ FIX: Compare against maxSessions from the nested policy
+    const max = client.clientPolicy?.maxSessions || 0;
+    const isFull = Number(current) === max && max > 0;
 
     return (
       <span
@@ -270,7 +271,7 @@ const Client: React.FC = () => {
             : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
         }`}
       >
-        {sessionStr}
+        {current}/{max}
       </span>
     );
   };
@@ -360,21 +361,58 @@ const Client: React.FC = () => {
       label: "Sessions (Current/Max)",
       tableLabel: "Sessions",
       type: "text",
-      render: (c) => renderSessionBadge(c.session),
+      render: (c) => renderSessionBadge(c),
     },
     // --- INTEGRATED POLICY COLUMNS ---
-    { key: "maxTps", label: "Max TPS", type: "number" },
-    { key: "maxSessions", label: "Max Sessions", type: "number" },
-    { key: "maxQueueDepth", label: "Max Queue Depth", type: "number" },
-    { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number" },
+    // ⚡️ FIX: Read directly from nested clientPolicy object
+    { 
+      key: "maxTps", 
+      label: "Max TPS", 
+      type: "number",
+      render: (c) => c.clientPolicy?.maxTps ?? "-"
+    },
+    { 
+      key: "maxSessions", 
+      label: "Max Sessions", 
+      type: "number",
+      render: (c) => c.clientPolicy?.maxSessions ?? "-"
+    },
+    { 
+      key: "maxQueueDepth", 
+      label: "Max Queue Depth", 
+      type: "number",
+      render: (c) => c.clientPolicy?.maxQueueDepth ?? "-"
+    },
+    { 
+      key: "maxWindowGlobal", 
+      label: "Max Window (Global)", 
+      type: "number",
+      render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-"
+    },
     {
       key: "maxWindowPerSession",
       label: "Max Window (Per Session)",
       type: "number",
+      render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-"
     },
-    { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number" },
-    { key: "submitTimeoutSec", label: "Submit Timeout (s)", type: "number" },
-    { key: "senderIdPolicy", label: "Sender ID Policy", type: "text" },
+    { 
+      key: "idleTimeoutSec", 
+      label: "Idle Timeout (s)", 
+      type: "number",
+      render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-"
+    },
+    { 
+      key: "submitTimeoutSec", 
+      label: "Submit Timeout (s)", 
+      type: "number",
+      render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-"
+    },
+    { 
+      key: "senderIdPolicy", 
+      label: "Sender ID Policy", 
+      type: "text",
+      render: (c) => c.clientPolicy?.senderIdPolicy ?? "-"
+    },
     // --- End Integrated Policy Columns ---
     {
       key: "balanceAlertAmount",
@@ -400,7 +438,6 @@ const Client: React.FC = () => {
       tableLabel: "Created At",
       type: "date",
       filterKey: "createdAt__date",
-      // FIXED: Implement new timezone cache formatter
       render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-"),
     },
     {
@@ -658,14 +695,12 @@ const Client: React.FC = () => {
               },
             ]
           : []),
-        // ⚡️ NEW: Add Route conditionally if customRoute is null
         ...(canUpdate && selectedRowClient.routeGroup === null
           ? [
               {
                 label: "Add Route",
-                icon: <Plus size={16} />, // You can import 'Route' or 'Link' from lucide-react if you prefer
+                icon: <Plus size={16} />,
                 onClick: () => {
-                  // ⚡️ Open the modal and pass the clicked client's ID
                   setAssignRouteClientId(selectedRowClient.id!);
                   setIsAssignRouteModalOpen(true);
                 },

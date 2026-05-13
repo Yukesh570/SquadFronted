@@ -6,7 +6,6 @@ export interface CustomRouteData {
   routeGroup?: string;
 
   // Header
-
   priority: string;
   status: "ACTIVE" | "INACTIVE";
 
@@ -16,9 +15,7 @@ export interface CustomRouteData {
   operator?: number;
   operatorName?: string;
 
-  // Vendor
-  terminatingCompany?: number;
-  terminatingCompanyName?: string;
+  // Vendor (FIX: Removed Terminating Company completely)
   terminatingVendor?: number;
   terminatingVendorProfileName?: string;
 
@@ -45,6 +42,16 @@ export const getGroupedCustomRoutesApi = async (
     ...searchParams,
   };
   const response = await api.get(`/routeGroup/${module}/`, { params });
+  return response.data;
+};
+
+// PATCH GROUPED ROUTES (For Inline Status Edit)
+export const updateRouteGroupApi = async (
+  id: number,
+  data: any,
+  module: string,
+): Promise<any> => {
+  const response = await api.patch(`/routeGroup/${module}/${id}/`, data);
   return response.data;
 };
 

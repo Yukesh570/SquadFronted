@@ -17,6 +17,7 @@ type ExtendedCustomRouteData = CustomRouteData & {
   MNC?: string;
 };
 
+// ⚡️ FIX: Removed selectedIds and setSelectedIds to completely eradicate bulk delete dependencies
 interface SubRouteEditableTableProps {
   routeGroup: string;
   moduleName: string;
@@ -76,7 +77,6 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
 
   const fetchSubRoutes = () => {
     setLoading(true);
-    // FIX: Changed "routeGroup" to "routeGroup__name" to correctly filter the API
     getCustomRoutesApi(moduleName, 1, 100, { routeGroup__name: routeGroup })
       .then((res) => {
         setData(res.results || []);
@@ -172,11 +172,11 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
 
   return (
     <div
-      className={`rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm max-h-[70vh] custom-grid-scroll ${data.length > 3 ? "overflow-auto" : "overflow-visible"}`}
+      className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm max-h-[70vh] w-full overflow-x-auto overflow-y-auto custom-grid-scroll"
       onClick={handleTableClick}
     >
-      <table className="w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
-        <thead className="bg-gray-100 dark:bg-gray-800 text-text-secondary dark:text-gray-300 sticky top-0 z-20">
+      <table className="min-w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
+        <thead className="bg-gray-100 dark:bg-gray-800 text-text-secondary dark:text-gray-300 sticky top-0 z-20 shadow-sm">
           <tr>
             <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">
               Route Name
@@ -189,9 +189,6 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
             </th>
             <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">
               MNC
-            </th>
-            <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">
-              Terminating Company
             </th>
             <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">
               Terminating Vendor
@@ -251,15 +248,6 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
             </th>
             <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
               <FilterInput
-                fieldKey="terminatingCompanyName"
-                placeholder="Search..."
-                value={columnFilters["terminatingCompanyName"]}
-                onChange={handleFilterChange}
-                minWidth="140px"
-              />
-            </th>
-            <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-              <FilterInput
                 fieldKey="terminatingVendorProfileName"
                 placeholder="Search..."
                 value={columnFilters["terminatingVendorProfileName"]}
@@ -267,7 +255,6 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
                 minWidth="120px"
               />
             </th>
-
             <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
               <FilterInput
                 fieldKey="priority"
@@ -277,12 +264,8 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
                 minWidth="90px"
               />
             </th>
-
             <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
-              <div
-                className="w-full filter-control-wrapper"
-                style={{ minWidth: "100px" }}
-              >
+              <div className="w-full filter-control-wrapper" style={{ minWidth: "100px" }}>
                 <Select
                   label=""
                   value={columnFilters["status"] || ""}
@@ -293,12 +276,8 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
                 />
               </div>
             </th>
-
             <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
-              <div
-                className="w-full filter-control-wrapper"
-                style={{ minWidth: "130px" }}
-              >
+              <div className="w-full filter-control-wrapper" style={{ minWidth: "130px" }}>
                 <DatePicker
                   label=""
                   selected={
@@ -330,10 +309,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
               <ReadOnlyCell>{route.countryName || "-"}</ReadOnlyCell>
               <ReadOnlyCell>{route.MCC || "-"}</ReadOnlyCell>
               <ReadOnlyCell>{route.MNC || "-"}</ReadOnlyCell>
-              <ReadOnlyCell>{route.terminatingCompanyName || "-"}</ReadOnlyCell>
-              <ReadOnlyCell>
-                {route.terminatingVendorProfileName || "-"}
-              </ReadOnlyCell>
+              <ReadOnlyCell>{route.terminatingVendorProfileName || "-"}</ReadOnlyCell>
 
               <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
                 <EditableCell

@@ -1,12 +1,27 @@
 import api from "../../api/axiosInstance";
 
+// ⚡️ FIX: Added nested ClientPolicy schema matching the backend response
+export interface ClientPolicyData {
+  id?: number;
+  client_name?: string;
+  maxTps?: number;
+  maxQueueDepth?: number;
+  maxWindowPerSession?: number;
+  maxWindowGlobal?: number;
+  maxSessions?: number;
+  idleTimeoutSec?: number;
+  submitTimeoutSec?: number;
+  senderIdPolicy?: string;
+  isDeleted?: boolean;
+}
+
 export interface ClientData {
   id?: number;
   company: number;
   companyName?: string;
   routeGroup?: number;
   routeGroupName?: string;
-  ratePlanName?: string; // NEW
+  ratePlanName?: string;
   name: string;
   status: "ACTIVE" | "TRIAL" | "SUSPENDED";
   bindStatus: "ONLINE" | "OFFLINE";
@@ -16,13 +31,11 @@ export interface ClientData {
   allowNetting: boolean;
   enableDlr: boolean;
   session: string;
-
-  // ipWhitelist: string | string[];
-
   smppUsername?: string;
   smppPassword?: string;
   internalNotes?: string;
   createdAt?: string;
+  clientPolicy?: ClientPolicyData; // ⚡️ FIX: Attached nested policy here
 }
 
 export interface PaginatedResponse<T> {
