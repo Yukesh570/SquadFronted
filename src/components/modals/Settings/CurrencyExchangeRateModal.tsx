@@ -11,6 +11,7 @@ import Button from "../../ui/Button";
 import Modal from "../../ui/Modal";
 import ToggleSwitch from "../../ui/ToggleSwitch";
 import Select from "../../ui/Select";
+import { MultiSelectDropdown, type MultiSelectOption } from "../../ui/MultiSelectDropdown";
 
 interface CurrencyExchangeRateModalProps {
   isOpen: boolean;
@@ -19,11 +20,6 @@ interface CurrencyExchangeRateModalProps {
   moduleName: string;
   editingRate: CurrencyExchangeRateData | null;
   isViewMode?: boolean;
-}
-
-interface Option {
-  label: string;
-  value: string;
 }
 
 export const CurrencyExchangeRateModal: React.FC<
@@ -38,7 +34,7 @@ export const CurrencyExchangeRateModal: React.FC<
 }) => {
   const [formData, setFormData] = useState({
     baseCurrency: "",
-    targetCurrency: "",
+    targetCurrency: [] as string[], // ⚡️ NEW: Converted to array for MultiSelect
     exchangeRate: "",
     isActive: true,
   });
@@ -46,7 +42,7 @@ export const CurrencyExchangeRateModal: React.FC<
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetchingOptions, setIsFetchingOptions] = useState(false);
   
-  const [currencyOptions, setCurrencyOptions] = useState<Option[]>([]);
+  const [currencyOptions, setCurrencyOptions] = useState<MultiSelectOption[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -73,7 +69,7 @@ export const CurrencyExchangeRateModal: React.FC<
       if (editingRate) {
         setFormData({
           baseCurrency: editingRate.baseCurrency || "",
-          targetCurrency: editingRate.targetCurrency || "",
+          targetCurrency: editingRate.targetCurrency ? [editingRate.targetCurrency] : [],
           exchangeRate: editingRate.exchangeRate
             ? String(editingRate.exchangeRate)
             : "",
@@ -82,7 +78,7 @@ export const CurrencyExchangeRateModal: React.FC<
       } else {
         setFormData({
           baseCurrency: "",
-          targetCurrency: "",
+          targetCurrency: [],
           exchangeRate: "",
           isActive: true, 
         });
@@ -98,6 +94,11 @@ export const CurrencyExchangeRateModal: React.FC<
     setFormData({ ...formData, [name]: value });
   };
 
+  // ⚡️ NEW: Handler for MultiSelect
+  const handleTargetCurrenciesChange = (selectedValues: string[]) => {
+    setFormData({ ...formData, targetCurrency: selectedValues });
+  };
+
   const handleToggle = (name: string, value: boolean) => {
     setFormData({ ...formData, [name]: value });
   };
@@ -110,18 +111,17 @@ export const CurrencyExchangeRateModal: React.FC<
       toast.error("Base Currency is required");
       return;
     }
-    if (!formData.targetCurrency) {
-      toast.error("Target Currency is required");
+    if (!formData.targetCurrency || formData.targetCurrency.length === 0) {
+      toast.error("At least one Target Currency is required");
       return;
     }
     
-    // We only require exchange rate when editing, since adding handles it via backend fetch
     if (editingRate && !formData.exchangeRate.trim()) {
       toast.error("Exchange Rate is required");
       return;
     }
 
-    if (!editingRate && formData.baseCurrency === formData.targetCurrency) {
+    if (!editingRate && formData.targetCurrency.includes(formData.baseCurrency)) {
       toast.error("Base and Target currency cannot be the same.");
       return;
     }
@@ -130,10 +130,9 @@ export const CurrencyExchangeRateModal: React.FC<
 
     try {
       if (editingRate?.id) {
-        // ⚡️ EDIT MODE: Standard Patch Update
         const payload = {
           baseCurrency: formData.baseCurrency.trim(),
-          targetCurrency: formData.targetCurrency.trim(),
+          targetCurrency: formData.targetCurrency[0].trim(), // Edit is strictly one-to-one
           exchangeRate: formData.exchangeRate.trim(),
           isActive: formData.isActive, 
         };
@@ -148,16 +147,14 @@ export const CurrencyExchangeRateModal: React.FC<
         onClose();
 
       } else {
-        // ⚡️ ADD MODE: Directly hit the Fetch API instead of POST
+        // ⚡️ ADD MODE: Send array of target currencies
         const response = await fetchExchangeRatesApi(
           formData.baseCurrency,
-          [formData.targetCurrency]
+          formData.targetCurrency
         );
         
         if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
-           const fetchedRate = response.data[0].exchangeRate;
-           // Display the fetched rate dynamically in the toast
-           toast.success(`Rate added! 1 ${formData.baseCurrency} = ${fetchedRate} ${formData.targetCurrency}`);
+           toast.success(`Successfully fetched and saved ${response.data.length} exchange rate(s) for ${formData.baseCurrency}.`);
            onSuccess();
            onClose();
         } else {
@@ -198,7 +195,7 @@ export const CurrencyExchangeRateModal: React.FC<
       }
       className="max-w-md"
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5 overflow-visible">
         <Select
           label="Base Currency"
           value={formData.baseCurrency}
@@ -207,16 +204,17 @@ export const CurrencyExchangeRateModal: React.FC<
           placeholder="Select Base Currency"
           disabled={isViewMode || isFetchingOptions}
         />
-        <Select
-          label="Target Currency"
-          value={formData.targetCurrency}
-          onChange={(v) => handleSelect("targetCurrency", v)}
+        
+        {/* ⚡️ FIX: Target Currency is now a MultiSelect when adding */}
+        <MultiSelectDropdown
+          label="Target Currencies"
+          selected={formData.targetCurrency}
+          onChange={handleTargetCurrenciesChange}
           options={currencyOptions}
-          placeholder="Select Target Currency"
-          disabled={isViewMode || isFetchingOptions}
+          placeholder="Select Target Currencies"
+          disabled={isViewMode || isFetchingOptions || !!editingRate} 
         />
         
-        {/* ⚡️ FIX: Exchange Rate Input is COMPLETELY removed when adding a new rate */}
         {editingRate && (
           <Input
             label="Exchange Rate"
