@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, Fragment } from "react";
 import ReactDOM from "react-dom";
 import { Popover, Transition } from "@headlessui/react";
-import { Check, X, ChevronDown } from "lucide-react";
+import { Check, X, ChevronDown, Search } from "lucide-react";
 
 export interface MultiSelectOption {
   label: string;
   value: string;
   isAll?: boolean;
-  isUiOnly?: boolean; // True if it's an artificial header, False if it comes from the DB
-  groupIndex?: number; // Used for zebra-striping different groups
+  isUiOnly?: boolean; 
+  groupIndex?: number; 
 }
 
 interface MultiSelectDropdownProps {
@@ -20,9 +20,8 @@ interface MultiSelectDropdownProps {
   placeholder?: string;
 }
 
-// --- React Portal Helper ---
 const Portal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  if (typeof document === "undefined") return null; // Safety for SSR/Next.js
+  if (typeof document === "undefined") return null; 
   return ReactDOM.createPortal(children, document.body);
 };
 
@@ -36,6 +35,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
 }) => {
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -69,13 +69,6 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
     dropdownWidth = buttonRect.width;
   }
 
-  const removeTag = (e: React.MouseEvent, value: string) => {
-    e.stopPropagation();
-    const option = options.find((o) => o.value === value);
-    const newSelected = selected.filter((v) => v !== value);
-    onChange(newSelected, option);
-  };
-
   const handleClearAll = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!disabled) {
@@ -84,8 +77,55 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
     }
   };
 
+  const getDisplayText = () => {
+    if (selected.length === 0) return placeholder;
+    if (selected.length === 1) {
+      const matchedOption = options.find((opt) => opt.value === selected[0]);
+      return matchedOption ? matchedOption.label : "1 selected";
+    }
+    return `${selected.length} selected`;
+  };
+
   const filteredOptions = options.filter((opt) =>
     opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const selectedOptions = filteredOptions.filter(opt => selected.includes(opt.value) && !opt.isAll);
+  const unselectedOptions = filteredOptions.filter(opt => !selected.includes(opt.value) || opt.isAll);
+
+  const renderOptionBtn = (opt: MultiSelectOption, isSelected: boolean, onChangeHandler: any) => (
+    <button
+      key={opt.value}
+      type="button"
+      onClick={() => {
+        if (opt.isAll) {
+          onChangeHandler(selected, opt);
+        } else {
+          if (isSelected) {
+            onChangeHandler(selected.filter((v) => v !== opt.value), opt);
+          } else {
+            onChangeHandler([...selected, opt.value], opt);
+          }
+        }
+      }}
+      className={`w-full flex items-center justify-between px-4 py-2 text-left text-sm transition-colors
+        ${
+          opt.isAll
+            ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-bold border-y border-gray-300 dark:border-gray-600"
+            : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+        }
+        ${isSelected && !opt.isAll ? "text-primary dark:text-primary font-medium bg-primary/5 hover:bg-primary/10" : ""}
+      `}
+    >
+      <span className="truncate">{opt.label}</span>
+      {isSelected && !opt.isAll ? (
+        <span className="flex items-center justify-center w-5 h-5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition-colors">
+            <X size={14} strokeWidth={2.5} />
+        </span>
+      ) : isSelected && opt.isAll ? (
+         <Check size={16} className="text-gray-800 dark:text-gray-200" strokeWidth={2.5} />
+      ) : null}
+    </button>
   );
 
   return (
@@ -105,72 +145,30 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
               ref={buttonRef}
               onClick={updatePosition}
               disabled={disabled}
-              className={`w-full min-h-[42px] border rounded-lg px-2 py-1.5 flex flex-wrap gap-1.5 items-center transition-all focus:outline-none focus:ring-1 focus:ring-primary shadow-sm ${
+              className={`w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 flex justify-between items-center transition-all focus:outline-none focus:ring-1 focus:ring-primary shadow-sm ${
                 disabled
-                  ? "bg-gray-100 dark:bg-gray-800 opacity-60 cursor-not-allowed border-gray-300 dark:border-gray-600"
-                  : "bg-white dark:bg-gray-900 cursor-text hover:border-primary border-gray-300 dark:border-gray-600"
+                  ? "bg-gray-100 dark:bg-gray-800 opacity-60 cursor-not-allowed"
+                  : "bg-white dark:bg-gray-900 cursor-pointer hover:border-primary"
               } ${open ? "ring-1 ring-primary border-primary" : ""}`}
             >
-              {/* Badges Container */}
-              {selected.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 max-h-[58px] overflow-y-auto custom-grid-scroll w-full mb-1 mt-1">
-                  {selected.map((val) => {
-                    const opt = options.find((o) => o.value === val);
-                    if (!opt) return null;
-                    return (
-                      <span
-                        key={val}
-                        // ⚡️ FIX: Switched to dynamic primary theme color
-                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary text-[13px] font-medium rounded-md border border-primary/20"
-                        onClick={(e) => e.stopPropagation()} 
-                      >
-                        <span className="truncate max-w-[150px]">{opt.label}</span>
-                        {!disabled && (
-                          <button
-                            type="button"
-                            onClick={(e) => removeTag(e, val)}
-                            className="hover:text-red-500 focus:outline-none transition-colors ml-0.5 rounded-full hover:bg-primary/20 p-0.5"
-                          >
-                            <X size={12} strokeWidth={2.5} />
-                          </button>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Inline Search Input & Icons Wrapper */}
-              <div className="flex flex-1 items-center justify-between min-w-[120px] px-1">
-                <input
-                  type="text"
-                  className="w-full bg-transparent border-none p-0 text-sm focus:ring-0 text-text-primary dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                  placeholder={selected.length === 0 ? placeholder : "Search..."}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  disabled={disabled}
-                  onClick={(e) => {
-                    if (open) e.stopPropagation(); 
-                  }}
+              <span className="text-sm truncate text-text-primary dark:text-white">
+                {getDisplayText()}
+              </span>
+              
+              <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                {selected.length > 0 && !disabled && (
+                  <div
+                    onClick={handleClearAll}
+                    className="text-gray-400 hover:text-red-500 p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none cursor-pointer"
+                    title="Clear all"
+                  >
+                    <X size={14} strokeWidth={2.5} />
+                  </div>
+                )}
+                <ChevronDown
+                  size={16}
+                  className={`text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
                 />
-                
-                <div className="flex items-center gap-1 shrink-0 ml-1">
-                  {selected.length > 0 && !disabled && (
-                    <button
-                      type="button"
-                      onClick={handleClearAll}
-                      className="text-gray-400 hover:text-red-500 p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none"
-                      title="Clear all"
-                    >
-                      <X size={16} />
-                    </button>
-                  )}
-                  
-                  <ChevronDown
-                    size={16}
-                    className={`text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-                  />
-                </div>
               </div>
             </Popover.Button>
 
@@ -202,80 +200,62 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                         className="w-full rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
                         style={{ maxHeight: "inherit" }}
                       >
-                        <div className="flex-1 overflow-y-auto min-h-0 relative py-1">
-                          {filteredOptions.map((opt) => {
-                            let isSelected = false;
+                        {/* Static Search Input Header */}
+                        <div className="p-2 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 z-20">
+                           <div className="relative">
+                              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                              <input
+                                ref={searchInputRef}
+                                autoFocus
+                                type="text"
+                                className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-text-primary dark:text-white placeholder-gray-400"
+                                placeholder="Search options..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                              />
+                           </div>
+                        </div>
 
-                            if (opt.isAll) {
-                              if (opt.value === "ALL_MCC") {
-                                const standardOpts = options.filter((o) => !o.isUiOnly);
-                                isSelected =
-                                  standardOpts.length > 0 &&
-                                  standardOpts.every((o) => selected.includes(o.value));
-                              } else {
-                                const mccPrefix = opt.value.split("(")[0];
-                                const standardOpts = options.filter(
-                                  (o) => o.value.startsWith(`${mccPrefix}(`) && !o.isUiOnly
-                                );
-                                isSelected =
-                                  standardOpts.length > 0 &&
-                                  standardOpts.every((o) => selected.includes(o.value));
-                              }
-                            } else {
-                              isSelected = selected.includes(opt.value);
-                            }
+                        {/* Scrolling List Container */}
+                        <div className="flex-1 overflow-y-auto min-h-0 relative py-1 custom-grid-scroll bg-white dark:bg-gray-800">
+                          
+                          {/* Selected Items Group - NO STICKY */}
+                          {selectedOptions.length > 0 && (
+                            <div className="mb-2">
+                               <div className="px-3 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                                  Selected ({selectedOptions.length})
+                               </div>
+                               {selectedOptions.map(opt => renderOptionBtn(opt, true, onChange))}
+                            </div>
+                          )}
 
-                            return (
-                              <button
-                                key={opt.value}
-                                type="button"
-                                onClick={() => {
-                                  if (opt.isAll) {
-                                    onChange(selected, opt);
-                                  } else {
-                                    if (isSelected) {
-                                      onChange(
-                                        selected.filter((v) => v !== opt.value),
-                                        opt
-                                      );
-                                    } else {
-                                      onChange([...selected, opt.value], opt);
-                                    }
-                                  }
-                                  setSearchTerm("");
-                                }}
-                                className={`w-full flex items-center justify-between px-4 py-2.5 text-left text-sm transition-colors
-                                  ${
-                                    opt.isAll
-                                      ? "sticky top-0 z-10 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-bold border-y border-gray-300 dark:border-gray-600 shadow-sm"
-                                      : opt.groupIndex !== undefined && opt.groupIndex % 2 !== 0
-                                      ? "bg-primary/5 text-gray-800 dark:text-gray-200 hover:bg-primary/10"
-                                      : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                                  }
-                                  ${
-                                    isSelected && !opt.isAll
-                                      ? "text-primary dark:text-primary font-medium"
-                                      : ""
-                                  }
-                                `}
-                              >
-                                <span className="truncate">{opt.label}</span>
-                                {isSelected && (
-                                  <Check
-                                    size={16}
-                                    className={
-                                      opt.isAll
-                                        ? "text-gray-800 dark:text-gray-200"
-                                        : "text-primary"
-                                    }
-                                    strokeWidth={2.5}
-                                  />
+                          {/* Unselected / Available Items Group - NO STICKY */}
+                          {unselectedOptions.length > 0 && (
+                             <div>
+                                {selectedOptions.length > 0 && (
+                                   <div className="px-3 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-100 dark:bg-gray-900 border-y border-gray-200 dark:border-gray-700">
+                                      Available Options
+                                   </div>
                                 )}
-                              </button>
-                            );
-                          })}
+                                {unselectedOptions.map(opt => {
+                                  let isSelected = false;
+                                  if (opt.isAll) {
+                                    if (opt.value === "ALL_MCC") {
+                                      const standardOpts = options.filter((o) => !o.isUiOnly);
+                                      isSelected = standardOpts.length > 0 && standardOpts.every((o) => selected.includes(o.value));
+                                    } else {
+                                      const mccPrefix = opt.value.split("(")[0];
+                                      const standardOpts = options.filter((o) => o.value.startsWith(`${mccPrefix}(`) && !o.isUiOnly);
+                                      isSelected = standardOpts.length > 0 && standardOpts.every((o) => selected.includes(o.value));
+                                    }
+                                  }
+                                  return renderOptionBtn(opt, isSelected, onChange);
+                                })}
+                             </div>
+                          )}
+
                           {filteredOptions.length === 0 && (
-                            <div className="py-3 px-4 text-center text-gray-500 text-sm">
+                            <div className="py-6 px-4 text-center text-gray-500 text-sm">
                               No matching options found
                             </div>
                           )}

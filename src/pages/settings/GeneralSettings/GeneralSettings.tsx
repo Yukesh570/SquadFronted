@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Save, Upload, Image as ImageIcon, Trash2, Crop as CropIcon, X, Check, ZoomIn } from "lucide-react";
+import { Home, Save, Upload, Image as ImageIcon, Crop as CropIcon, X, Check, ZoomIn } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import Cropper from 'react-easy-crop';
@@ -131,12 +131,6 @@ const GeneralSettings: React.FC = () => {
     }
   };
 
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
   const handleSaveCrop = async () => {
     if (!croppedAreaPixels || !imagePreview) return setIsCropping(false);
 
@@ -165,7 +159,6 @@ const GeneralSettings: React.FC = () => {
         canvas.height
       );
 
-      // Saves natively as PNG to retain transparency
       canvas.toBlob((blob) => {
         if (!blob) return toast.error("Canvas is empty");
         const croppedFile = new File([blob], "cropped_logo.png", { type: 'image/png' });
@@ -293,7 +286,6 @@ const GeneralSettings: React.FC = () => {
                 <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
                   <div className="flex flex-col items-center">
                     
-                    {/* The small preview area also gets the transparent checkerboard! */}
                     <div 
                       className="w-full max-w-sm h-[150px] rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden mb-6 relative shadow-sm group"
                       style={{
@@ -317,9 +309,6 @@ const GeneralSettings: React.FC = () => {
                     <div className="flex flex-wrap items-center justify-center gap-3 w-full">
                       <Button type="button" variant="primary" onClick={() => fileInputRef.current?.click()} leftIcon={<Upload size={16} />} disabled={!canUpdate}>Upload</Button>
                       <Button type="button" variant="secondary" onClick={() => setIsCropping(true)} leftIcon={<CropIcon size={16} />} disabled={!canUpdate || !imagePreview}>Crop / Edit</Button>
-                      <button type="button" onClick={handleRemoveImage} disabled={!canUpdate || !imagePreview} className="flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        <Trash2 size={16} /> Delete
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -334,7 +323,6 @@ const GeneralSettings: React.FC = () => {
           </div>
         )}
 
-        {/* MODAL CROPPER (Universal Standard Layout) */}
         {isCropping && (
           <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
@@ -347,7 +335,6 @@ const GeneralSettings: React.FC = () => {
                 <button onClick={() => setIsCropping(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-white rounded-full transition-colors"><X size={20} /></button>
               </div>
               
-              {/* FIX: Checkerboard "Box Box" Background Instead of Black! */}
               <div 
                 className="relative w-full h-[40vh] sm:h-[50vh]"
                 style={{
@@ -368,7 +355,7 @@ const GeneralSettings: React.FC = () => {
                   showGrid={false}
                   style={{
                     containerStyle: {
-                      backgroundColor: "transparent", // Forces cropper to show checkerboard underneath
+                      backgroundColor: "transparent",
                     }
                   }}
                 />
