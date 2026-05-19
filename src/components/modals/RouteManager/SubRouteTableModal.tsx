@@ -28,6 +28,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); 
+  const [isTableEmpty, setIsTableEmpty] = useState(true); // ⚡️ FIX: Tracks if the group is empty
 
   const handleDelete = async () => {
     if (deleteId && canDelete) {
@@ -50,7 +51,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         title={`Routing Group Details: ${routeGroup || ""}`}
         className="max-w-[95vw] w-full" 
       >
-        {/* FIX: Removed overflow-hidden to allow natural modal height adjustment */}
         <div className="p-4 w-full flex flex-col">
           
           <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4 bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 w-full shrink-0">
@@ -74,14 +74,14 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                   leftIcon={<Plus size={16} />}
                   className="w-full sm:w-auto text-sm py-1.5 px-4"
                 >
-                  Add Route
+                  {/* ⚡️ FIX: Intelligently transforms based on empty status */}
+                  {isTableEmpty ? "Create Route" : "Add Route"}
                 </Button>
               </div>
             )}
           </div>
           
           {routeGroup && (
-            // FIX: Removed min-h-[300px] and overflow-hidden to fix the massive empty space issue
             <div className="w-full">
               <SubRouteEditableTable
                 routeGroup={routeGroup}
@@ -90,6 +90,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                 canDelete={canDelete}
                 onDelete={(id) => setDeleteId(id)}
                 refreshTrigger={refreshTrigger}
+                onDataLoaded={(count) => setIsTableEmpty(count === 0)} // ⚡️ FIX: Checks data on fetch
               />
             </div>
           )}
@@ -114,6 +115,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         editingRoute={null}
         isViewMode={false}
         lockedName={routeGroup || undefined} 
+        isFirstRoute={isTableEmpty} // ⚡️ FIX: Passes flag down
       />
     </>
   );

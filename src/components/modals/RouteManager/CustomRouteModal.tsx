@@ -13,6 +13,7 @@ import {
   updateCustomRouteApi,
   bulkUpdateCustomRouteApi,
   updateRouteGroupApi,
+  createRouteGroupApi,
   type CustomRouteData,
 } from "../../../api/routeManagerApi/customRouteApi";
 import { getClientsApi } from "../../../api/clientApi/clientApi";
@@ -30,6 +31,8 @@ interface CustomRouteModalProps {
   lockedName?: string;
   isEditingGroupStatus?: boolean;
   groupData?: any;
+  isCreatingGroup?: boolean; 
+  isFirstRoute?: boolean; 
 }
 
 interface CountryData {
@@ -51,9 +54,12 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   lockedName,
   isEditingGroupStatus = false,
   groupData = null,
+  isCreatingGroup = false,
+  isFirstRoute = false,
 }) => {
   const [formData, setFormData] = useState<any>({
     name: "",
+    routingType: "PRIORITY",
     priority: "",
     status: "ACTIVE",
     country: 0,
@@ -107,7 +113,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   };
 
   useEffect(() => {
-    if (isOpen && !isEditingGroupStatus) {
+    if (isOpen && !isEditingGroupStatus && !isCreatingGroup) {
       setIsFetchingOptions(true);
       const fetchAllOptions = async () => {
         try {
@@ -136,11 +142,12 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       };
       fetchAllOptions();
     }
-  }, [isOpen, isEditingGroupStatus]);
+  }, [isOpen, isEditingGroupStatus, isCreatingGroup]);
 
   useEffect(() => {
     if (
       !isEditingGroupStatus &&
+      !isCreatingGroup &&
       formData.country &&
       fullCountriesList.length > 0
     ) {
@@ -193,11 +200,12 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       setMccOptions([]);
       setMncOptions([]);
     }
-  }, [formData.country, fullCountriesList, isEditingGroupStatus]);
+  }, [formData.country, fullCountriesList, isEditingGroupStatus, isCreatingGroup]);
 
   useEffect(() => {
     if (
       !isEditingGroupStatus &&
+      !isCreatingGroup &&
       formData.MCC &&
       formData.MCC.length > 0 &&
       fullNetworkList.length > 0
@@ -255,9 +263,14 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       });
       setMncOptions(newMncOptions);
     } else if (!isEditingGroupStatus) {
-      setMncOptions([]);
+      // ⚡️ FIX: Added strict length checks to prevent infinite "Maximum Update Depth" loops
+      if (mncOptions.length > 0) {
+         setMncOptions([]);
+      }
       if (!editingRoute && !isViewMode) {
-        setFormData((prev: any) => ({ ...prev, MNC: [] }));
+        if (formData.MNC && formData.MNC.length > 0) {
+           setFormData((prev: any) => ({ ...prev, MNC: [] }));
+        }
       }
     }
   }, [
@@ -266,11 +279,18 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     editingRoute,
     isViewMode,
     isEditingGroupStatus,
+    isCreatingGroup,
   ]);
 
   useEffect(() => {
     if (isOpen) {
-      if (isEditingGroupStatus && groupData) {
+      if (isCreatingGroup) {
+         setFormData({
+            name: "",
+            routingType: "PRIORITY",
+            status: "ACTIVE"
+         });
+      } else if (isEditingGroupStatus && groupData) {
         setFormData({
           name: groupData.routeGroup__name || "",
           priority: "",
@@ -334,14 +354,14 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
         });
       }
     }
-  }, [isOpen, editingRoute, lockedName, isEditingGroupStatus, groupData]);
+  }, [isOpen, editingRoute, lockedName, isEditingGroupStatus, groupData, isCreatingGroup]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    const isNumericField = !["priority", "status", "MCC", "MNC"].includes(name);
+    const isNumericField = !["priority", "status", "MCC", "MNC", "routingType"].includes(name);
 
     setFormData((prev: any) => {
       const nextData = {
@@ -377,7 +397,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     setFormData((prev: any) => ({ ...prev, MCC: selectedValues }));
   };
 
-  // ⚡️ FIX: Updated handleMncChange to completely isolate "All" tag logic
   const handleMncChange = (selectedValues: string[], clickedOption?: any) => {
     if (clickedOption && clickedOption.isAll) {
       const mccPrefix = clickedOption.value.split("(")[0].trim();
@@ -389,10 +408,8 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
       if (allTag) {
         if (newMnc.includes(allTag.value)) {
-          // Deselecting "All" -> clears everything for this MCC
           newMnc = newMnc.filter((v) => !v.startsWith(`${mccPrefix}(`));
         } else {
-          // Selecting "All" -> removes individual numbers for this MCC, adds "All" tag only
           newMnc = newMnc.filter((v) => !v.startsWith(`${mccPrefix}(`));
           newMnc.push(allTag.value);
         }
@@ -405,23 +422,18 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       const mccPrefix = clickedOption.value.split("(")[0].trim();
       let newMnc = [...selectedValues];
 
-      // If user manually clicked an individual item, we MUST destroy the "All" tag
-      // and inject all OTHER individual items (minus the one they just deselected)
       const allTag = mncOptions.find(
         (o) => o.value.startsWith(`${mccPrefix}(`) && o.isAll,
       );
 
       if (allTag && formData.MNC.includes(allTag.value)) {
-        // Break the "All" tag into individual pieces
         const individualMncs = mncOptions
           .filter((o) => o.value.startsWith(`${mccPrefix}(`) && !o.isAll)
           .map((o) => o.value);
 
         newMnc = formData.MNC.filter((v: string) => v !== allTag.value);
         newMnc.push(...individualMncs);
-        // Remove the one they actually clicked to deselect
         newMnc = newMnc.filter((v: string) => v !== clickedOption.value);
-        // Clean duplicates
         newMnc = Array.from(new Set(newMnc));
       }
 
@@ -432,7 +444,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     setFormData((prev: any) => ({ ...prev, MNC: selectedValues }));
   };
 
-  // ⚡️ FIX: Select All External Button ONLY grabs pure individual numbers and drops any "All" tags
   const handleSelectAllMncExternal = () => {
     const allIndividualMncs = mncOptions
       .filter((o) => !o.isAll && !o.isUiOnly)
@@ -444,8 +455,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     setFormData((prev: any) => ({ ...prev, MNC: [] }));
   };
 
-  // ⚡️ FIX: Compute display handles the visual trickery required by the dropdown
-  // If the state holds the "All" tag, we tell the dropdown to visually tick the individuals
   const computeDisplayMnc = () => {
     const display = [...(formData.MNC || [])];
 
@@ -457,7 +466,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       );
 
       if (allTagOpt && display.includes(allTagOpt.value)) {
-        // State holds "All" -> Visually tick all individual options for UI purposes
         const individualMncs = mncOptions
           .filter((o) => o.value.startsWith(`${mcc}(`) && !o.isAll)
           .map((o) => o.value);
@@ -465,12 +473,35 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       }
     });
 
-    return Array.from(new Set(display)); // Return unique values to the dropdown
+    return Array.from(new Set(display));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewMode) return;
+
+    if (isCreatingGroup) {
+      if (!formData.name) {
+        toast.error("Name is required.");
+        return;
+      }
+      setIsSubmitting(true);
+      try {
+        await createRouteGroupApi(
+          { name: formData.name, routingType: formData.routingType, status: formData.status },
+          moduleName
+        );
+        toast.success("Route Group created successfully!");
+        onSuccess();
+        onClose();
+      } catch (err: any) {
+        console.error(err);
+        toast.error("Failed to create route group.");
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
 
     if (isEditingGroupStatus && groupData) {
       setIsSubmitting(true);
@@ -524,18 +555,21 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       ? formData.MCC.join(",")
       : formData.MCC || "";
 
-    // ⚡️ FIX: Since formData.MNC perfectly stores EXACTLY what needs to go to the server, we just map it.
-    // If "All" was clicked in dropdown, it holds "404(ALL_UI)". If "Select All" outside button was clicked, it holds "404(10), 404(20)".
     payload.MNC = Array.isArray(formData.MNC) ? formData.MNC : [];
+
+    // ⚡️ FIX: This specifically fixes the "400 Bad Request" (Missing routeGroup)
+    if (lockedName) {
+      payload.routeGroup = lockedName;
+    }
 
     try {
       if (editingRoute?.id) {
         await updateCustomRouteApi(editingRoute.id, payload, moduleName);
         toast.success("Route updated successfully!");
-      } else if (lockedName) {
+      } else if (lockedName && !isFirstRoute) { 
         await bulkUpdateCustomRouteApi(payload, moduleName);
         toast.success("Route added to group successfully!");
-      } else {
+      } else { 
         await createCustomRouteApi(payload, moduleName);
         toast.success("Route created successfully!");
       }
@@ -564,185 +598,222 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={
-        isEditingGroupStatus
-          ? "Edit Route Group Status"
-          : isViewMode
-            ? "View Custom Route"
-            : editingRoute
-              ? "Edit Custom Route"
-              : lockedName
-                ? `Add New Route to ${lockedName}`
-                : "Create Custom Route"
+        isCreatingGroup
+          ? "Create Route Group"
+          : isEditingGroupStatus
+            ? "Edit Route Group Status"
+            : isViewMode
+              ? "View Custom Route"
+              : editingRoute
+                ? "Edit Custom Route"
+                : lockedName
+                  ? (isFirstRoute ? `Create Route in ${lockedName}` : `Add New Route to ${lockedName}`)
+                  : "Create Custom Route"
       }
       className="max-w-4xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6 px-1">
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <legend className="text-sm font-semibold text-primary px-2">
-            Header Info
-          </legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {isEditingGroupStatus ? (
-              <Input
-                label="Route Group Name"
-                name="name"
-                value={formData.name}
-                onChange={() => {}}
-                disabled={true}
-              />
-            ) : (
-              <Input
-                label="Name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Route Name"
-                required
-                disabled={isFieldDisabled || !!lockedName}
-              />
-            )}
-
-            {!isEditingGroupStatus && (
-              <Select
-                label="Priority"
-                value={formData.priority}
-                onChange={(v) => handleSelectChange("priority", v)}
-                options={priorityOptions}
-                placeholder="Select Priority"
-                disabled={isFieldDisabled}
-              />
-            )}
-
-            <Select
-              label="Status"
-              value={formData.status}
-              onChange={(v) => handleSelectChange("status", v)}
-              options={statusOptions}
-              disabled={isViewMode}
-            />
-          </div>
-        </fieldset>
-
-        {isEditingGroupStatus ? (
-          <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <legend className="text-sm font-semibold text-primary px-2">
-              Route Group Details
-            </legend>
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-              <Input
-                label="Countries"
-                name="countries"
-                value={
-                  Array.isArray(groupData?.countries)
-                    ? groupData.countries.join(", ")
-                    : groupData?.countries || "-"
-                }
-                onChange={() => {}}
-                disabled={true}
-              />
-            </div>
-          </fieldset>
+        {isCreatingGroup ? (
+           <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+             <legend className="text-sm font-semibold text-primary px-2">
+               Route Group Info
+             </legend>
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+               <Input
+                 label="Group Name"
+                 name="name"
+                 value={formData.name}
+                 onChange={handleChange}
+                 placeholder="Enter Route Name"
+                 required
+               />
+               <Select
+                 label="Routing Type"
+                 value={formData.routingType}
+                 onChange={(v) => handleSelectChange("routingType", v)}
+                 options={[
+                   { label: "Priority", value: "PRIORITY" },
+                   { label: "Percent", value: "PERCENT" },
+                 ]}
+               />
+               <Select
+                 label="Status"
+                 value={formData.status}
+                 onChange={(v) => handleSelectChange("status", v)}
+                 options={statusOptions}
+               />
+             </div>
+           </fieldset>
         ) : (
           <>
-            <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 overflow-visible">
-              <legend className="text-sm font-semibold text-primary px-2">
-                Destination
-              </legend>
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                <div className="lg:col-span-3">
-                  <Select
-                    label="Country"
-                    value={formData.country ? String(formData.country) : ""}
-                    onChange={(v) => handleSelectChange("country", v)}
-                    options={countryOptions}
-                    placeholder="Select Country"
-                    disabled={
-                      !!editingRoute || isFieldDisabled || isFetchingOptions
-                    }
-                  />
-                </div>
-
-                <div className="lg:col-span-3">
-                  <MultiSelectDropdown
-                    label="MCC"
-                    options={mccOptions}
-                    selected={formData.MCC}
-                    onChange={handleMccChange}
-                    disabled={
-                      !!editingRoute ||
-                      !formData.country ||
-                      isFieldDisabled ||
-                      isFetchingOptions
-                    }
-                    placeholder={
-                      formData.country ? "Select MCC" : "Country First"
-                    }
-                  />
-                </div>
-
-                <div className="lg:col-span-6 flex items-end gap-3">
-                  <div className="flex-1">
-                    <MultiSelectDropdown
-                      label="MNC"
-                      options={mncOptions}
-                      selected={computeDisplayMnc()}
-                      onChange={handleMncChange}
-                      disabled={
-                        !!editingRoute ||
-                        formData.MCC.length === 0 ||
-                        isFieldDisabled ||
-                        isFetchingOptions
-                      }
-                      placeholder={
-                        formData.MCC.length > 0 ? "Select MNC" : "MCC First"
-                      }
-                    />
-                  </div>
-                  {!isFieldDisabled && !editingRoute && (
-                    <div className="flex gap-2 mb-[2px]">
-                      <Button
-                        type="button"
-                        variant="primary"
-                        onClick={handleSelectAllMncExternal}
-                        className="px-3 py-[9px] text-xs shadow-sm"
-                        disabled={formData.MCC.length === 0}
-                      >
-                        Select All
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={handleClearMncExternal}
-                        className="px-3 py-[9px] text-xs shadow-sm"
-                        disabled={formData.MCC.length === 0}
-                      >
-                        Clear
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </fieldset>
-
             <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
               <legend className="text-sm font-semibold text-primary px-2">
-                Vendor Info
+                Header Info
               </legend>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {isEditingGroupStatus ? (
+                  <Input
+                    label="Route Group Name"
+                    name="name"
+                    value={formData.name}
+                    onChange={() => {}}
+                    disabled={true}
+                  />
+                ) : (
+                  <Input
+                    label="Name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Route Name"
+                    required
+                    disabled={isFieldDisabled || !!lockedName}
+                  />
+                )}
+
+                {!isEditingGroupStatus && (
+                  <Select
+                    label="Priority"
+                    value={formData.priority}
+                    onChange={(v) => handleSelectChange("priority", v)}
+                    options={priorityOptions}
+                    placeholder="Select Priority"
+                    disabled={isFieldDisabled}
+                  />
+                )}
+
                 <Select
-                  label="Terminating Vendor"
-                  value={
-                    formData.terminatingVendor
-                      ? String(formData.terminatingVendor)
-                      : ""
-                  }
-                  onChange={(v) => handleSelectChange("terminatingVendor", v)}
-                  options={vendorOptions}
-                  placeholder="Select Vendor"
-                  disabled={isFieldDisabled || isFetchingOptions}
+                  label="Status"
+                  value={formData.status}
+                  onChange={(v) => handleSelectChange("status", v)}
+                  options={statusOptions}
+                  disabled={isViewMode}
                 />
               </div>
             </fieldset>
+
+            {isEditingGroupStatus ? (
+              <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <legend className="text-sm font-semibold text-primary px-2">
+                  Route Group Details
+                </legend>
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                  <Input
+                    label="Countries"
+                    name="countries"
+                    value={
+                      Array.isArray(groupData?.countries)
+                        ? groupData.countries.join(", ")
+                        : groupData?.countries || "-"
+                    }
+                    onChange={() => {}}
+                    disabled={true}
+                  />
+                </div>
+              </fieldset>
+            ) : (
+              <>
+                <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 overflow-visible">
+                  <legend className="text-sm font-semibold text-primary px-2">
+                    Destination
+                  </legend>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <div className="lg:col-span-3">
+                      <Select
+                        label="Country"
+                        value={formData.country ? String(formData.country) : ""}
+                        onChange={(v) => handleSelectChange("country", v)}
+                        options={countryOptions}
+                        placeholder="Select Country"
+                        disabled={
+                          !!editingRoute || isFieldDisabled || isFetchingOptions
+                        }
+                      />
+                    </div>
+
+                    <div className="lg:col-span-3">
+                      <MultiSelectDropdown
+                        label="MCC"
+                        options={mccOptions}
+                        selected={formData.MCC}
+                        onChange={handleMccChange}
+                        disabled={
+                          !!editingRoute ||
+                          !formData.country ||
+                          isFieldDisabled ||
+                          isFetchingOptions
+                        }
+                        placeholder={
+                          formData.country ? "Select MCC" : "Country First"
+                        }
+                      />
+                    </div>
+
+                    <div className="lg:col-span-6 flex items-end gap-3">
+                      <div className="flex-1">
+                        <MultiSelectDropdown
+                          label="MNC"
+                          options={mncOptions}
+                          selected={computeDisplayMnc()}
+                          onChange={handleMncChange}
+                          disabled={
+                            !!editingRoute ||
+                            formData.MCC.length === 0 ||
+                            isFieldDisabled ||
+                            isFetchingOptions
+                          }
+                          placeholder={
+                            formData.MCC.length > 0 ? "Select MNC" : "MCC First"
+                          }
+                        />
+                      </div>
+                      {!isFieldDisabled && !editingRoute && (
+                        <div className="flex gap-2 mb-[2px]">
+                          <Button
+                            type="button"
+                            variant="primary"
+                            onClick={handleSelectAllMncExternal}
+                            className="px-3 py-[9px] text-xs shadow-sm"
+                            disabled={formData.MCC.length === 0}
+                          >
+                            Select All
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={handleClearMncExternal}
+                            className="px-3 py-[9px] text-xs shadow-sm"
+                            disabled={formData.MCC.length === 0}
+                          >
+                            Clear
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </fieldset>
+
+                <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <legend className="text-sm font-semibold text-primary px-2">
+                    Vendor Info
+                  </legend>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Select
+                      label="Terminating Vendor"
+                      value={
+                        formData.terminatingVendor
+                          ? String(formData.terminatingVendor)
+                          : ""
+                      }
+                      onChange={(v) => handleSelectChange("terminatingVendor", v)}
+                      options={vendorOptions}
+                      placeholder="Select Vendor"
+                      disabled={isFieldDisabled || isFetchingOptions}
+                    />
+                  </div>
+                </fieldset>
+              </>
+            )}
           </>
         )}
 
@@ -754,11 +825,13 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
                 ? "Saving"
-                : isEditingGroupStatus
-                  ? "Save Status"
-                  : editingRoute
-                    ? "Update Route"
-                    : "Add Route"}
+                : isCreatingGroup
+                  ? "Create Route Group"
+                  : isEditingGroupStatus
+                    ? "Save Status"
+                    : editingRoute
+                      ? "Update Route"
+                      : "Add Route"}
             </Button>
           )}
         </div>

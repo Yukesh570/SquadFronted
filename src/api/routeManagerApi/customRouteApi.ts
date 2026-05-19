@@ -15,7 +15,7 @@ export interface CustomRouteData {
   operator?: number;
   operatorName?: string;
 
-  // Vendor (FIX: Removed Terminating Company completely)
+  // Vendor 
   terminatingVendor?: number;
   terminatingVendorProfileName?: string;
 
@@ -42,6 +42,15 @@ export const getGroupedCustomRoutesApi = async (
     ...searchParams,
   };
   const response = await api.get(`/routeGroup/${module}/`, { params });
+  return response.data;
+};
+
+// ⚡️ NEW: POST ROUTE GROUP
+export const createRouteGroupApi = async (
+  data: any,
+  module: string,
+): Promise<any> => {
+  const response = await api.post(`/routeGroup/${module}/`, data);
   return response.data;
 };
 

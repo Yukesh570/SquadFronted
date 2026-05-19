@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useState, useEffect } from "react";
 import { Combobox, Transition } from "@headlessui/react";
 import { ChevronDown, Check, X } from "lucide-react";
 
@@ -33,6 +33,7 @@ const Select: React.FC<SelectProps> = ({
   className = "",
 }) => {
   const [query, setQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(50); 
   const hasLabel = !!label;
 
   const filteredOptions =
@@ -41,6 +42,22 @@ const Select: React.FC<SelectProps> = ({
       : options.filter((option) =>
           option.label.toLowerCase().includes(query.toLowerCase())
         );
+
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [query, options]);
+
+  // ⚡️ FIX: Changed HTMLUListElement to HTMLElement to resolve the strict TypeScript error
+  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
+    const target = e.currentTarget;
+    if (target.scrollHeight - target.scrollTop <= target.clientHeight + 100) {
+      if (visibleCount < filteredOptions.length) {
+        setVisibleCount((prev) => prev + 50);
+      }
+    }
+  };
+
+  const visibleOptions = filteredOptions.slice(0, visibleCount);
 
   const handleClear = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -126,7 +143,8 @@ const Select: React.FC<SelectProps> = ({
               afterLeave={() => setQuery("")}
             >
               <Combobox.Options
-                className={`absolute z-20 w-full overflow-auto rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700
+                onScroll={handleScroll}
+                className={`absolute z-20 w-full overflow-auto rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700 custom-grid-scroll
                 max-h-60 
                 ${placement === "top" ? "bottom-full mb-1" : "mt-1"}`}
               >
@@ -135,7 +153,7 @@ const Select: React.FC<SelectProps> = ({
                     Nothing found.
                   </div>
                 ) : (
-                  filteredOptions.map((option) => (
+                  visibleOptions.map((option) => (
                     <Combobox.Option
                       key={option.value}
                       className={({ active }) =>
@@ -167,6 +185,11 @@ const Select: React.FC<SelectProps> = ({
                       )}
                     </Combobox.Option>
                   ))
+                )}
+                {visibleCount < filteredOptions.length && (
+                  <div className="text-center py-2 text-xs text-gray-400">
+                    Scroll for more...
+                  </div>
                 )}
               </Combobox.Options>
             </Transition>

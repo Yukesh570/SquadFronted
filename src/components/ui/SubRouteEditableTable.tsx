@@ -17,7 +17,6 @@ type ExtendedCustomRouteData = CustomRouteData & {
   MNC?: string;
 };
 
-// ⚡️ FIX: Removed selectedIds and setSelectedIds to completely eradicate bulk delete dependencies
 interface SubRouteEditableTableProps {
   routeGroup: string;
   moduleName: string;
@@ -25,6 +24,7 @@ interface SubRouteEditableTableProps {
   canDelete: boolean;
   onDelete: (id: number) => void;
   refreshTrigger?: number;
+  onDataLoaded?: (count: number) => void; // ⚡️ FIX: New prop
 }
 
 const ReadOnlyCell = ({ children }: { children: React.ReactNode }) => (
@@ -66,6 +66,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
   canDelete,
   onDelete,
   refreshTrigger,
+  onDataLoaded, // ⚡️ FIX: Received
 }) => {
   const [data, setData] = useState<ExtendedCustomRouteData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
     getCustomRoutesApi(moduleName, 1, 100, { routeGroup__name: routeGroup })
       .then((res) => {
         setData(res.results || []);
+        if (onDataLoaded) onDataLoaded((res.results || []).length); // ⚡️ FIX: Pass data count up
         setLoading(false);
       })
       .catch(() => {
@@ -382,7 +384,6 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
            margin-bottom: 0 !important;
         }
         
-        /* Base styles for standard inputs and selects */
         .filter-control-wrapper input:not(.react-datepicker-ignore-class),
         .filter-control-wrapper select,
         .filter-control-wrapper button {
@@ -396,7 +397,6 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
            border-radius: 4px !important;
         }
         
-        /* Specifically target the DatePicker input to add padding for the calendar icon */
         .filter-control-wrapper .react-datepicker__input-container input {
            min-height: 28px !important;
            height: 28px !important;

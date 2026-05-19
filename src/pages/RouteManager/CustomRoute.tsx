@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Home, Plus, Layers, Edit } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
+// ⚡️ FIX: Updated all import paths to resolve the "Cannot find module" errors
 import { getGroupedCustomRoutesApi } from "../../api/routeManagerApi/customRouteApi";
 
 import { CustomRouteModal } from "../../components/modals/RouteManager/CustomRouteModal";
@@ -52,9 +53,10 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["routeGroup__name", "status", "countries"];
+const DEFAULT_SEARCH_COLUMNS = ["routeGroup__name", "routingType", "status", "countries"];
 const DEFAULT_TABLE_COLUMNS = [
   "routeGroup__name",
+  "routingType", 
   "countries",
   "status", 
   "createdAt",
@@ -70,8 +72,6 @@ const CustomRoute: React.FC = () => {
   const [isSubTableModalOpen, setIsSubTableModalOpen] = useState(false);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  
-  // ⚡️ NEW: States to handle group editing through the main modal component
   const [isEditGroupModalOpen, setIsEditGroupModalOpen] = useState(false);
 
   const [contextMenuPos, setContextMenuPos] = useState<{
@@ -125,6 +125,17 @@ const CustomRoute: React.FC = () => {
       label: "Route Group",
       type: "text",
       filterKey: "routeGroup__name__icontains",
+    },
+    {
+      key: "routingType",
+      label: "Routing Type",
+      type: "text",
+      options: [
+        { label: "Priority", value: "PRIORITY" },
+        { label: "Percent", value: "PERCENT" },
+      ],
+      filterKey: "routingType",
+      render: (row: any) => row.routingType || "PRIORITY",
     },
     {
       key: "countries",
@@ -310,7 +321,6 @@ const CustomRoute: React.FC = () => {
           icon: <Layers size={16} />,
           onClick: () => openSubTableModal(selectedRowGroup.routeGroup__name),
         },
-        // ⚡️ FIX: Triggers CustomRouteModal with specific group flags
         ...(canUpdate
           ? [
               {
@@ -506,7 +516,7 @@ const CustomRoute: React.FC = () => {
             </Button>
           ) : null
         }
-        renderRow={(routeGroupObj, index) => (
+        renderRow={(routeGroupObj: any, index: number) => (
           <tr
             key={index}
             onContextMenu={(e) => handleContextMenu(e, routeGroupObj)}
@@ -577,7 +587,6 @@ const CustomRoute: React.FC = () => {
         canDelete={canDelete}
       />
 
-      {/* MODAL FOR CREATING A NEW ROUTE */}
       <CustomRouteModal
         isOpen={isCreateModalOpen}
         onClose={() => {
@@ -591,9 +600,9 @@ const CustomRoute: React.FC = () => {
         moduleName={routeName}
         editingRoute={null}
         isViewMode={false}
+        isCreatingGroup={true} 
       />
 
-      {/* ⚡️ FIX: Re-used Modal for Editing the Group Status */}
       <CustomRouteModal
         isOpen={isEditGroupModalOpen}
         onClose={() => setIsEditGroupModalOpen(false)}
