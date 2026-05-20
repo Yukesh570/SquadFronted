@@ -263,7 +263,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       });
       setMncOptions(newMncOptions);
     } else if (!isEditingGroupStatus) {
-      // ⚡️ FIX: Added strict length checks to prevent infinite "Maximum Update Depth" loops
       if (mncOptions.length > 0) {
          setMncOptions([]);
       }
@@ -557,7 +556,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
     payload.MNC = Array.isArray(formData.MNC) ? formData.MNC : [];
 
-    // ⚡️ FIX: This specifically fixes the "400 Bad Request" (Missing routeGroup)
     if (lockedName) {
       payload.routeGroup = lockedName;
     }
@@ -633,7 +631,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                  onChange={(v) => handleSelectChange("routingType", v)}
                  options={[
                    { label: "Priority", value: "PRIORITY" },
-                   { label: "Percent", value: "PERCENT" },
+                   { label: "Percentage", value: "PERCENTAGE" },
                  ]}
                />
                <Select

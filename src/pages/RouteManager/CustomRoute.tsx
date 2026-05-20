@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { Home, Plus, Layers, Edit } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
-// ⚡️ FIX: Updated all import paths to resolve the "Cannot find module" errors
 import { getGroupedCustomRoutesApi } from "../../api/routeManagerApi/customRouteApi";
 
 import { CustomRouteModal } from "../../components/modals/RouteManager/CustomRouteModal";
@@ -132,7 +131,7 @@ const CustomRoute: React.FC = () => {
       type: "text",
       options: [
         { label: "Priority", value: "PRIORITY" },
-        { label: "Percent", value: "PERCENT" },
+        { label: "Percentage", value: "PERCENTAGE" },
       ],
       filterKey: "routingType",
       render: (row: any) => row.routingType || "PRIORITY",
@@ -582,6 +581,7 @@ const CustomRoute: React.FC = () => {
           fetchGroupedRoutes(); 
         }}
         routeGroup={activeRouteGroup}
+        routingType={groupedRoutes.find(r => r.routeGroup__name === activeRouteGroup)?.routingType || "PRIORITY"}
         moduleName={routeName}
         canUpdate={canUpdate}
         canDelete={canDelete}

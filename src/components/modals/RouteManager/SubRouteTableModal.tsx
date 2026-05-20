@@ -4,6 +4,7 @@ import { SubRouteEditableTable } from "../../ui/SubRouteEditableTable";
 import { DeleteModal } from "../DeleteModal";
 import { deleteCustomRouteApi } from "../../../api/routeManagerApi/customRouteApi";
 import { CustomRouteModal } from "./CustomRouteModal"; 
+import { CustomRoutePercentModal } from "./CustomRoutePercentModal"; 
 import { toast } from "react-toastify";
 import Button from "../../ui/Button"; 
 import { Plus, Info } from "lucide-react"; 
@@ -15,6 +16,7 @@ interface SubRouteTableModalProps {
   moduleName: string;
   canUpdate: boolean;
   canDelete: boolean;
+  routingType?: string; 
 }
 
 export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
@@ -24,11 +26,12 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   moduleName,
   canUpdate,
   canDelete,
+  routingType = "PRIORITY",
 }) => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); 
-  const [isTableEmpty, setIsTableEmpty] = useState(true); // ⚡️ FIX: Tracks if the group is empty
+  const [isTableEmpty, setIsTableEmpty] = useState(true); 
 
   const handleDelete = async () => {
     if (deleteId && canDelete) {
@@ -43,6 +46,8 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }
   };
 
+  const isPercentageRoute = String(routingType).toUpperCase() === "PERCENTAGE";
+
   return (
     <>
       <Modal
@@ -52,16 +57,15 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         className="max-w-[95vw] w-full" 
       >
         <div className="p-4 w-full flex flex-col">
-          
           <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4 bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 w-full shrink-0">
             <div className="flex items-start gap-3 flex-1">
               <Info size={18} className="text-blue-500 shrink-0 mt-0.5" />
               <div className="flex flex-col space-y-1.5 text-[13px] text-gray-600 dark:text-gray-300 leading-tight">
                 <p>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">To edit:</span> Click cells under <strong>Priority</strong> or <strong>Status</strong>. Press <kbd className="px-1 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs mx-0.5 shadow-sm">Enter</kbd> to save.
+                  <span className="font-medium text-gray-900 dark:text-gray-100">To edit:</span> Click cells under <strong>{isPercentageRoute ? "Weight (%)" : "Priority"}</strong> or <strong>Status</strong>. Press <kbd className="px-1 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs mx-0.5 shadow-sm">Enter</kbd> to save.
                 </p>
                 <p>
-                  <span className="font-medium text-red-500">Note:</span> Priority numbers must be unique among active routes.
+                  <span className="font-medium text-red-500">Note:</span> {isPercentageRoute ? "Weights must sum to 100% per destination." : "Priority numbers must be unique among active routes."}
                 </p>
               </div>
             </div>
@@ -74,7 +78,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                   leftIcon={<Plus size={16} />}
                   className="w-full sm:w-auto text-sm py-1.5 px-4"
                 >
-                  {/* ⚡️ FIX: Intelligently transforms based on empty status */}
                   {isTableEmpty ? "Create Route" : "Add Route"}
                 </Button>
               </div>
@@ -90,7 +93,8 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                 canDelete={canDelete}
                 onDelete={(id) => setDeleteId(id)}
                 refreshTrigger={refreshTrigger}
-                onDataLoaded={(count) => setIsTableEmpty(count === 0)} // ⚡️ FIX: Checks data on fetch
+                onDataLoaded={(count) => setIsTableEmpty(count === 0)}
+                routingType={routingType} // ⚡️ FIX: Pass routingType down
               />
             </div>
           )}
@@ -105,18 +109,27 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         message="Are you sure you want to delete this route? This action cannot be undone."
       />
 
-      <CustomRouteModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={() => {
-           setRefreshTrigger((prev) => prev + 1); 
-        }}
-        moduleName={moduleName}
-        editingRoute={null}
-        isViewMode={false}
-        lockedName={routeGroup || undefined} 
-        isFirstRoute={isTableEmpty} // ⚡️ FIX: Passes flag down
-      />
+      {isPercentageRoute ? (
+        <CustomRoutePercentModal
+           isOpen={isCreateModalOpen}
+           onClose={() => setIsCreateModalOpen(false)}
+           onSuccess={() => setRefreshTrigger((prev) => prev + 1)}
+           moduleName={moduleName}
+           lockedName={routeGroup || undefined}
+           isFirstRoute={isTableEmpty}
+        />
+      ) : (
+        <CustomRouteModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSuccess={() => setRefreshTrigger((prev) => prev + 1)}
+          moduleName={moduleName}
+          editingRoute={null}
+          isViewMode={false}
+          lockedName={routeGroup || undefined} 
+          isFirstRoute={isTableEmpty}
+        />
+      )}
     </>
   );
 };
