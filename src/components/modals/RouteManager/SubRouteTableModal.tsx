@@ -62,7 +62,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
               <Info size={18} className="text-blue-500 shrink-0 mt-0.5" />
               <div className="flex flex-col space-y-1.5 text-[13px] text-gray-600 dark:text-gray-300 leading-tight">
                 <p>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">To edit:</span> Click cells under <strong>{isPercentageRoute ? "Weight (%)" : "Priority"}</strong> or <strong>Status</strong>. Press <kbd className="px-1 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs mx-0.5 shadow-sm">Enter</kbd> to save.
+                  <span className="font-medium text-gray-900 dark:text-gray-100">To edit:</span> Click cells under <strong>{isPercentageRoute ? "Traffic %" : "Priority"}</strong> or <strong>Status</strong>. Press <kbd className="px-1 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs mx-0.5 shadow-sm">Enter</kbd> to save.
                 </p>
                 <p>
                   <span className="font-medium text-red-500">Note:</span> {isPercentageRoute ? "Weights must sum to 100% per destination." : "Priority numbers must be unique among active routes."}
@@ -94,7 +94,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                 onDelete={(id) => setDeleteId(id)}
                 refreshTrigger={refreshTrigger}
                 onDataLoaded={(count) => setIsTableEmpty(count === 0)}
-                routingType={routingType} // ⚡️ FIX: Pass routingType down
+                routingType={routingType}
               />
             </div>
           )}

@@ -16,6 +16,7 @@ type ExtendedCustomRouteData = CustomRouteData & {
   MCC?: string;
   MNC?: string;
   routingType?: string;
+  trafficPercentage?: string | number;
 };
 
 interface SubRouteEditableTableProps {
@@ -26,7 +27,7 @@ interface SubRouteEditableTableProps {
   onDelete: (id: number) => void;
   refreshTrigger?: number;
   onDataLoaded?: (count: number) => void;
-  routingType?: string; // ⚡️ FIX: Added prop
+  routingType?: string; 
 }
 
 const ReadOnlyCell = ({ children }: { children: React.ReactNode }) => (
@@ -69,7 +70,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
   onDelete,
   refreshTrigger,
   onDataLoaded,
-  routingType = "PRIORITY", // ⚡️ FIX: Default to PRIORITY
+  routingType = "PRIORITY", 
 }) => {
   const [data, setData] = useState<ExtendedCustomRouteData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +115,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
     setActiveCellId(null);
 
     const originalRow = data.find((r) => r.id === id);
-    if (!originalRow || (originalRow as any)[field] === newValue) return;
+    if (!originalRow || String((originalRow as any)[field]) === newValue) return;
 
     let updatePayload: any = { [field]: newValue };
 
@@ -184,15 +185,17 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
         <thead className="bg-gray-100 dark:bg-gray-800 text-text-secondary dark:text-gray-300 sticky top-0 z-20 shadow-sm">
           <tr>
             <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Route Name</th>
-            <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Routing Type</th>
             <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Country</th>
             <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">MCC</th>
             <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">MNC</th>
             <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Terminating Vendor</th>
-            {/* ⚡️ FIX: Conditional Priority Column */}
-            {!isPercentageRoute && (
+            
+            {!isPercentageRoute ? (
               <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Priority</th>
+            ) : (
+              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Traffic %</th>
             )}
+
             <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Status</th>
             <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 min-w-[150px]">Created At</th>
             {canDelete && (
@@ -202,15 +205,17 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
 
           <tr className="bg-gray-50 dark:bg-gray-800/80">
             <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="name" placeholder="Search..." value={columnFilters["name"]} onChange={handleFilterChange} minWidth="120px"/></th>
-            <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="routingType" placeholder="Search..." value={columnFilters["routingType"]} onChange={handleFilterChange} minWidth="100px"/></th>
             <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="countryName" placeholder="Search..." value={columnFilters["countryName"]} onChange={handleFilterChange} minWidth="100px"/></th>
             <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MCC" placeholder="Search..." value={columnFilters["MCC"]} onChange={handleFilterChange} minWidth="70px"/></th>
             <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MNC" placeholder="Search..." value={columnFilters["MNC"]} onChange={handleFilterChange} minWidth="70px"/></th>
             <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="terminatingVendorProfileName" placeholder="Search..." value={columnFilters["terminatingVendorProfileName"]} onChange={handleFilterChange} minWidth="120px"/></th>
-            {/* ⚡️ FIX: Conditional Priority Filter */}
-            {!isPercentageRoute && (
+            
+            {!isPercentageRoute ? (
               <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="priority" placeholder="Search..." value={columnFilters["priority"]} onChange={handleFilterChange} minWidth="90px"/></th>
+            ) : (
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="trafficPercentage" placeholder="Search..." value={columnFilters["trafficPercentage"]} onChange={handleFilterChange} minWidth="90px"/></th>
             )}
+
             <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
                <div className="w-full filter-control-wrapper" style={{ minWidth: "100px" }}>
                 <Select label="" value={columnFilters["status"] || ""} onChange={(val) => handleFilterChange("status", val)} options={[{ label: "All", value: "" }, ...statusOptions]} placeholder="All" placement="bottom"/>
@@ -228,17 +233,18 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
           {filteredData.map((route: ExtendedCustomRouteData) => (
             <tr key={route.id} className="hover:bg-blue-50/40 dark:hover:bg-primary/5 transition-colors relative z-0 hover:z-10 focus-within:z-50 group">
               <ReadOnlyCell>{route.name || "-"}</ReadOnlyCell>
-              <ReadOnlyCell>{route.routingType || "-"}</ReadOnlyCell>
               <ReadOnlyCell>{route.countryName || "-"}</ReadOnlyCell>
               <ReadOnlyCell>{route.MCC || "-"}</ReadOnlyCell>
               <ReadOnlyCell>{route.MNC || "-"}</ReadOnlyCell>
               <ReadOnlyCell>{route.terminatingVendorProfileName || "-"}</ReadOnlyCell>
               
-              {/* ⚡️ FIX: Conditional Priority Cell */}
-              {!isPercentageRoute && (
+              {!isPercentageRoute ? (
                 <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
-                  <EditableCell value={route.priority} type="number" onSave={(val) => handleInlineSave(route.id!, "priority", val)} disabled={!canUpdate} isEditing={activeCellId === `${route.id}-priority`} onEditStart={() => setActiveCellId(`${route.id}-priority`)} onEditEnd={() => setActiveCellId(null)}/>
+                  <EditableCell value={String(route.priority || "")} type="number" onSave={(val) => handleInlineSave(route.id!, "priority", val)} disabled={!canUpdate} isEditing={activeCellId === `${route.id}-priority`} onEditStart={() => setActiveCellId(`${route.id}-priority`)} onEditEnd={() => setActiveCellId(null)}/>
                 </td>
+              ) : (
+                /* ⚡️ FIX: View-only ReadOnlyCell for Percentage */
+                <ReadOnlyCell>{route.trafficPercentage || "0"}</ReadOnlyCell>
               )}
               
               <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">

@@ -6,7 +6,8 @@ export interface CustomRouteData {
   routeGroup?: string;
 
   // Header
-  priority: string;
+  priority?: string | number;
+  trafficPercentage?: string | number; // ⚡️ FIX: Added trafficPercentage
   status: "ACTIVE" | "INACTIVE";
 
   // Destination
@@ -45,7 +46,7 @@ export const getGroupedCustomRoutesApi = async (
   return response.data;
 };
 
-// ⚡️ NEW: POST ROUTE GROUP
+// POST ROUTE GROUP
 export const createRouteGroupApi = async (
   data: any,
   module: string,
@@ -82,7 +83,7 @@ export const getCustomRoutesApi = async (
 
 // POST
 export const createCustomRouteApi = async (
-  data: any,
+  data: any, // ⚡️ Can accept single object OR Array of objects
   module: string,
 ): Promise<CustomRouteData> => {
   const response = await api.post(`/customRoute/${module}/`, data);
@@ -117,7 +118,7 @@ export const deleteCustomRouteApi = async (
   await api.delete(`/customRoute/${module}/${id}/`);
 };
 
-// NEW: BULK UPDATE (Add new route to existing group)
+// BULK UPDATE (Add new route to existing group)
 export const bulkUpdateCustomRouteApi = async (
   data: any,
   module: string,

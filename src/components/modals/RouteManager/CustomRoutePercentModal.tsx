@@ -393,7 +393,8 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
 
     setIsSubmitting(true);
     try {
-      for (const vRow of vendorRows) {
+      // ⚡️ FIX: Map into a single array payload with trafficPercentage
+      const payloadArray = vendorRows.map((vRow) => {
         const rowPayload: any = { 
             name: formData.name,
             status: formData.status,
@@ -401,16 +402,18 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
             MCC: Array.isArray(formData.MCC) ? formData.MCC.join(",") : formData.MCC || "",
             MNC: Array.isArray(formData.MNC) ? formData.MNC : [],
             terminatingVendor: Number(vRow.terminatingVendor), 
-            percentage: Number(vRow.percentage) 
+            trafficPercentage: String(vRow.percentage) 
         };
 
         if (lockedName) {
           rowPayload.routeGroup = lockedName;
         }
 
-        // ⚡️ ALWAYS HITTING CREATE API FOR PERCENTAGE
-        await createCustomRouteApi(rowPayload, moduleName);
-      }
+        return rowPayload;
+      });
+
+      // ⚡️ FIX: Hit the create API ONCE with the full array of vendors
+      await createCustomRouteApi(payloadArray, moduleName);
 
       toast.success("Percentage routes created successfully!");
       onSuccess();
