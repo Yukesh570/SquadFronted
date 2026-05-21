@@ -168,7 +168,7 @@ const Sidebar = ({ isCollapsed, isMobileOpen, closeMobileSidebar }: SidebarProps
       <aside className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-xl md:shadow-sm transition-all duration-300 ease-in-out transform ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"} ${isCollapsed ? "md:w-[88px]" : "md:w-64"} w-64`}>
         <div className="h-16 flex-shrink-0 flex items-center justify-center border-b border-gray-100 dark:border-gray-800 mb-2 px-2">
           <NavLink to="/dashboard" className="flex items-center justify-center w-full h-full transition-transform hover:scale-105 active:scale-95 py-2" onClick={() => { if (window.innerWidth < 768) closeMobileSidebar(); }}>
-            <img src={logoUrl} alt="Dynamic Logo" className={`w-full h-full object-contain ${isCollapsed && window.innerWidth >= 768 ? "max-w-[40px]" : "max-w-[180px]"}`} />
+<img src={logoUrl} alt="Dynamic Logo" className={`w-full h-full object-contain ${isCollapsed && window.innerWidth >= 768 ? "max-w-[72px]" : "max-w-[180px]"}`} />
           </NavLink>
         </div>
         <nav className="flex-1 px-3 py-2 overflow-y-auto scrollbar-hide space-y-0.5">
