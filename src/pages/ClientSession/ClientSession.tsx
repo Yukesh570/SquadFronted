@@ -100,23 +100,59 @@ const ClientSession: React.FC = () => {
       hasLoggedOpening.current = true;
     }
   }, []);
-
+  const statusConfig: Record<
+    string,
+    { bg: string; text: string; darkBg: string; darkText: string }
+  > = {
+    CONNECTED: {
+      bg: "bg-green-100",
+      text: "text-green-800",
+      darkBg: "dark:bg-green-900/30",
+      darkText: "dark:text-green-400",
+    },
+    BOUND: {
+      bg: "bg-blue-100",
+      text: "text-blue-800",
+      darkBg: "dark:bg-blue-900/30",
+      darkText: "dark:text-blue-400",
+    },
+    UNBOUND: {
+      bg: "bg-yellow-100",
+      text: "text-yellow-800",
+      darkBg: "dark:bg-yellow-900/30",
+      darkText: "dark:text-yellow-400",
+    },
+    DISCONNECTED: {
+      bg: "bg-gray-200",
+      text: "text-gray-600",
+      darkBg: "dark:bg-gray-700",
+      darkText: "dark:text-gray-400",
+    },
+    FAILED_BIND: {
+      bg: "bg-red-100",
+      text: "text-red-800",
+      darkBg: "dark:bg-red-900/30",
+      darkText: "dark:text-red-400",
+    },
+    TIMEOUT: {
+      bg: "bg-orange-100",
+      text: "text-orange-800",
+      darkBg: "dark:bg-orange-900/30",
+      darkText: "dark:text-orange-400",
+    },
+  };
   const renderStatusBadge = (status: string) => {
-    const isActive = status?.toUpperCase() === "ONLINE";
+    const normalized = status?.toUpperCase() || "DISCONNECTED";
+    const config = statusConfig[normalized] ?? statusConfig.DISCONNECTED;
 
     return (
       <span
-        className={`px-2 py-0.5 rounded text-xs font-medium ${
-          isActive
-            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-            : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-        }`}
+        className={`px-2 py-0.5 rounded text-xs font-medium ${config.bg} ${config.text} ${config.darkBg} ${config.darkText}`}
       >
         {status || "UNKNOWN"}
       </span>
     );
   };
-
   const allColumns: ColumnConfig[] = [
     {
       key: "sessionId",
@@ -171,8 +207,7 @@ const ClientSession: React.FC = () => {
       type: "date",
       filterKey: "connectedAt",
       // FIXED: Implement new timezone cache formatter
-      render: (c) =>
-        c.connectedAt ? formatDateTime(c.connectedAt) : "-",
+      render: (c) => (c.connectedAt ? formatDateTime(c.connectedAt) : "-"),
     },
     {
       key: "connectedAt__range",
@@ -352,19 +387,16 @@ const ClientSession: React.FC = () => {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("⚡ Real-time status update:", data);
-
         if (data.action === "session_update") {
           const incomingSession = data.session;
-
           setData((prevData) => {
             const sessionExists = prevData.some(
               (item: any) =>
                 item.id === incomingSession.id ||
                 item.sessionId === incomingSession.id,
             );
-
             if (sessionExists) {
+              // Update status for any status change — not just CONNECTED
               return prevData.map((item: any) =>
                 item.id === incomingSession.id ||
                 item.sessionId === incomingSession.id
@@ -375,11 +407,11 @@ const ClientSession: React.FC = () => {
                     }
                   : item,
               );
-            } else if (incomingSession.status === "ONLINE") {
+            } else if (incomingSession.status === "BOUND") {
+              // ⚡️ A brand new session just bound — refetch to get full row data
               fetchData();
               return prevData;
             }
-
             return prevData;
           });
         }
