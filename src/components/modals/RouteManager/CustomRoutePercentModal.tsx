@@ -200,7 +200,7 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
           } else if (uniqueMncs.length > 1) {
             newMncOptions.push({
               label: `${mcc} ( All )`,
-              value: `${mcc}(ALL_UI)`,
+              value: `${mcc}(All)`,
               isAll: true,
               isUiOnly: true,
               groupIndex: groupIdx,
@@ -237,6 +237,7 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
     if (isOpen) {
       setFormData({
         name: lockedName || "",
+        routingType: "PERCENTAGE",
         status: "ACTIVE",
         country: 0,
         MCC: [],
@@ -264,38 +265,67 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
   };
 
   const handleMccChange = (selectedValues: string[], clickedOption?: any) => {
-    if (clickedOption && clickedOption.value === "ALL_MCC") {
-      const allMccValues = mccOptions
-        .filter((o) => !o.isUiOnly)
-        .map((o) => o.value);
-      const isAllSelected =
-        allMccValues.length > 0 &&
-        allMccValues.every((v) => formData.MCC.includes(v));
+  if (clickedOption && clickedOption.value === "ALL_MCC") {
+    const allMccValues = mccOptions
+      .filter((o: MultiSelectOption) => !o.isUiOnly)
+      .map((o: MultiSelectOption) => o.value);
+    const isAllSelected =
+      allMccValues.length > 0 &&
+      allMccValues.every((v: string) => formData.MCC.includes(v));
 
-      if (isAllSelected) {
-        setFormData((prev: any) => ({ ...prev, MCC: [], MNC: [] }));
-      } else {
-        setFormData((prev: any) => ({ ...prev, MCC: allMccValues }));
-      }
-      return;
+    if (isAllSelected) {
+      setFormData((prev: any) => ({ ...prev, MCC: [], MNC: [] }));
+    } else {
+      setFormData((prev: any) => ({ ...prev, MCC: allMccValues }));
     }
-    setFormData((prev: any) => ({ ...prev, MCC: selectedValues }));
-  };
+    return;
+  }
+
+  // Filter MNCs to only keep those belonging to still-selected MCCs
+  const filteredMnc = formData.MNC.filter((mnc: string) => {
+    const mccPrefix = mnc.split("(")[0].trim();
+    return selectedValues.includes(mccPrefix);
+  });
+
+  // For any newly added MCC, auto-restore its MNCs from fullNetworkList
+  const previousMccs: string[] = formData.MCC;
+  const newlyAddedMccs = selectedValues.filter((mcc: string) => !previousMccs.includes(mcc));
+
+  const restoredMncs: string[] = [];
+  newlyAddedMccs.forEach((mcc: string) => {
+    const specificMncs = fullNetworkList.filter((n) => String(n.MCC) === mcc);
+    const uniqueMncs = Array.from(
+      new Set(specificMncs.map((n) => String(n.MNC)))
+    ).filter(Boolean);
+
+    uniqueMncs.forEach((mnc) => {
+      const isDbAll = mnc.toLowerCase() === "all" || mnc.toLowerCase() === "in rest";
+      if (!isDbAll) {
+        restoredMncs.push(`${mcc}(${mnc})`);
+      }
+    });
+  });
+
+  const mergedMnc = Array.from(new Set([...filteredMnc, ...restoredMncs]));
+  setFormData((prev: any) => ({ ...prev, MCC: selectedValues, MNC: mergedMnc }));
+};
 
   const handleMncChange = (selectedValues: string[], clickedOption?: any) => {
+    let baseMnc = selectedValues.filter((v: string) => v !== "All(All)");
+
     if (clickedOption && clickedOption.isAll) {
       const mccPrefix = clickedOption.value.split("(")[0].trim();
-      let newMnc = [...formData.MNC];
+      let newMnc = [...formData.MNC].filter((v: string) => v !== "All(All)");
 
       const allTag = mncOptions.find(
-        (o) => o.value.startsWith(`${mccPrefix}(`) && o.isAll,
+        (o: MultiSelectOption) => o.value.startsWith(`${mccPrefix}(`) && o.isAll,
       );
 
       if (allTag) {
         if (newMnc.includes(allTag.value)) {
-          newMnc = newMnc.filter((v) => !v.startsWith(`${mccPrefix}(`));
+          newMnc = newMnc.filter((v: string) => !v.startsWith(`${mccPrefix}(`));
         } else {
-          newMnc = newMnc.filter((v) => !v.startsWith(`${mccPrefix}(`));
+          newMnc = newMnc.filter((v: string) => !v.startsWith(`${mccPrefix}(`));
           newMnc.push(allTag.value);
         }
       }
@@ -305,18 +335,18 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
 
     if (clickedOption && !clickedOption.isAll) {
       const mccPrefix = clickedOption.value.split("(")[0].trim();
-      let newMnc = [...selectedValues];
+      let newMnc = [...baseMnc];
 
       const allTag = mncOptions.find(
-        (o) => o.value.startsWith(`${mccPrefix}(`) && o.isAll,
+        (o: MultiSelectOption) => o.value.startsWith(`${mccPrefix}(`) && o.isAll,
       );
 
       if (allTag && formData.MNC.includes(allTag.value)) {
         const individualMncs = mncOptions
-          .filter((o) => o.value.startsWith(`${mccPrefix}(`) && !o.isAll)
-          .map((o) => o.value);
+          .filter((o: MultiSelectOption) => o.value.startsWith(`${mccPrefix}(`) && !o.isAll)
+          .map((o: MultiSelectOption) => o.value);
 
-        newMnc = formData.MNC.filter((v: string) => v !== allTag.value);
+        newMnc = formData.MNC.filter((v: string) => v !== allTag.value && v !== "All(All)");
         newMnc.push(...individualMncs);
         newMnc = newMnc.filter((v: string) => v !== clickedOption.value);
         newMnc = Array.from(new Set(newMnc));
@@ -330,14 +360,41 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
   };
 
   const handleSelectAllMncExternal = () => {
-    const allIndividualMncs = mncOptions
-      .filter((o) => !o.isAll && !o.isUiOnly)
-      .map((o) => o.value);
-    setFormData((prev: any) => ({ ...prev, MNC: allIndividualMncs }));
+    // Select all non-UI-only MCCs
+    const allMccValues = mccOptions
+      .filter((o: MultiSelectOption) => !o.isUiOnly)
+      .map((o: MultiSelectOption) => o.value);
+    
+    // Compute all possible MNC values based on those MCCs and fullNetworkList
+    const allIndividualMncs: string[] = [];
+    
+    allMccValues.forEach((mcc: string) => {
+      const specificMncs = fullNetworkList.filter(
+        (n) => String(n.MCC) === mcc,
+      );
+      const uniqueMncs = Array.from(
+        new Set(specificMncs.map((n) => String(n.MNC))),
+      ).filter(Boolean);
+      
+      uniqueMncs.forEach((mnc) => {
+        const dbAllMnc = mnc.toLowerCase() === "all" || mnc.toLowerCase() === "in rest";
+        if (!dbAllMnc) {
+          // Add individual MNCs in MCC(MNC) format
+          allIndividualMncs.push(`${mcc}(${mnc})`);
+        }
+      });
+    });
+    
+    // Set both MCCs and MNCs in one state update
+    setFormData((prev: any) => ({ 
+      ...prev, 
+      MCC: [...allMccValues], 
+      MNC: [...allIndividualMncs] 
+    }));
   };
 
   const handleClearMncExternal = () => {
-    setFormData((prev: any) => ({ ...prev, MNC: [] }));
+    setFormData((prev: any) => ({ ...prev, MCC: [], MNC: [] }));
   };
 
   const computeDisplayMnc = () => {
@@ -347,13 +404,13 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
       if (mcc === "ALL_MCC") return;
 
       const allTagOpt = mncOptions.find(
-        (o) => o.value.startsWith(`${mcc}(`) && o.isAll,
+        (o: MultiSelectOption) => o.value.startsWith(`${mcc}(`) && o.isAll,
       );
 
       if (allTagOpt && display.includes(allTagOpt.value)) {
         const individualMncs = mncOptions
-          .filter((o) => o.value.startsWith(`${mcc}(`) && !o.isAll)
-          .map((o) => o.value);
+          .filter((o: MultiSelectOption) => o.value.startsWith(`${mcc}(`) && !o.isAll)
+          .map((o: MultiSelectOption) => o.value);
         display.push(...individualMncs);
       }
     });
@@ -393,17 +450,33 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
 
     setIsSubmitting(true);
     try {
-      // ⚡️ FIX: Map into a single array payload with trafficPercentage
       const payloadArray = vendorRows.map((vRow) => {
         const rowPayload: any = { 
             name: formData.name,
             status: formData.status,
             country: formData.country,
-            MCC: Array.isArray(formData.MCC) ? formData.MCC.join(",") : formData.MCC || "",
-            MNC: Array.isArray(formData.MNC) ? formData.MNC : [],
             terminatingVendor: Number(vRow.terminatingVendor), 
-            trafficPercentage: String(vRow.percentage) 
+            trafficPercentage: Number(vRow.percentage) 
         };
+
+        // Get all possible individual MNCs that SHOULD be selected
+        const allIndividualMncsAvailable = mncOptions.filter(o => !o.isAll && !o.isUiOnly).map(o => o.value);
+        
+        // Check if current form data includes ALL individual MNCs
+        const isActuallyAllSelected = allIndividualMncsAvailable.length > 0 && 
+                                      allIndividualMncsAvailable.every(mnc => formData.MNC.includes(mnc));
+
+        if (isActuallyAllSelected) {
+          delete rowPayload.MCC; 
+          rowPayload.MNC = ["All(All)"];
+        } else {
+          rowPayload.MCC = Array.isArray(formData.MCC)
+            ? formData.MCC.filter((m: string) => m !== "ALL_MCC").join(",")
+            : formData.MCC || "";
+            
+          // ✅ CORRECT - keeps the MCC(MNC) format
+          rowPayload.MNC = Array.from(new Set(formData.MNC));
+        }
 
         if (lockedName) {
           rowPayload.routeGroup = lockedName;
@@ -412,7 +485,6 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
         return rowPayload;
       });
 
-      // ⚡️ FIX: Hit the create API ONCE with the full array of vendors
       await createCustomRouteApi(payloadArray, moduleName);
 
       toast.success("Percentage routes created successfully!");
@@ -508,7 +580,7 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
                   variant="primary"
                   onClick={handleSelectAllMncExternal}
                   className="px-3 py-[9px] text-xs shadow-sm"
-                  disabled={formData.MCC.length === 0}
+                  disabled={!formData.country || isFetchingOptions}
                 >
                   Select All
                 </Button>
@@ -517,7 +589,7 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
                   variant="secondary"
                   onClick={handleClearMncExternal}
                   className="px-3 py-[9px] text-xs shadow-sm"
-                  disabled={formData.MCC.length === 0}
+                  disabled={!formData.country || isFetchingOptions}
                 >
                   Clear
                 </Button>
@@ -537,20 +609,39 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
           </div>
           
           <div className="space-y-3">
-            {vendorRows.map((row, index) => (
-              <div key={index} className="flex items-end gap-3 bg-gray-50 dark:bg-gray-900/40 p-3 rounded-lg border border-gray-100 dark:border-gray-800">
-                <div className="flex-1">
-                  <Select label="Terminating Vendor" value={row.terminatingVendor} options={vendorOptions} onChange={(v) => updateVendorRow(index, "terminatingVendor", v)} placeholder="Select Vendor" />
-                </div>
-                <div className="w-32">
-                  <Input label="Percent (%)" name={`percentage-${index}`} type="number" value={row.percentage} onChange={(e) => updateVendorRow(index, "percentage", e.target.value)} placeholder="0-100" />
-                </div>
-                <button type="button" onClick={() => removeVendorRow(index)} className="p-2.5 mb-[2px] text-gray-400 hover:text-red-500 transition-colors bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-sm">
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            ))}
-          </div>
+  {vendorRows.map((row, index) => {
+    const selectedVendors = vendorRows
+      .filter((_, i) => i !== index)
+      .map((r) => r.terminatingVendor)
+      .filter(Boolean);
+
+    const availableVendorOptions = vendorOptions.map((option) => ({
+      ...option,
+      disabled: selectedVendors.includes(option.value),
+    }));
+
+    return (
+      <div key={index} className="flex items-end gap-3 bg-gray-50 dark:bg-gray-900/40 p-3 rounded-lg border border-gray-100 dark:border-gray-800">
+        <div className="flex-1">
+          <Select
+            label="Terminating Vendor"
+            value={row.terminatingVendor}
+            options={availableVendorOptions}
+            onChange={(v) => updateVendorRow(index, "terminatingVendor", v)}
+            placeholder="Select Vendor"
+            placement="top"
+          />
+        </div>
+        <div className="w-32">
+          <Input label="Percent (%)" name={`percentage-${index}`} type="number" value={row.percentage} onChange={(e) => updateVendorRow(index, "percentage", e.target.value)} placeholder="0-100" />
+        </div>
+        <button type="button" onClick={() => removeVendorRow(index)} className="p-2.5 mb-[2px] text-gray-400 hover:text-red-500 transition-colors bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-sm">
+          <Trash2 size={18} />
+        </button>
+      </div>
+    );
+  })}
+</div>
 
           <div className={`mt-4 p-3 rounded-lg flex items-center justify-between border ${isTotalValid ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400" : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400"}`}>
              <div className="flex items-center gap-2">

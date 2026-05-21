@@ -61,6 +61,13 @@ export const ClientSessionModal: React.FC<ClientSessionModalProps> = ({
               value={sessionData.last_activityAt ? new Date(sessionData.last_activityAt).toLocaleString() : "-"}
               disabled
             />
+            <Input
+              label="Disconnected At"
+              value={sessionData.disconnectedAt ? new Date(sessionData.disconnectedAt).toLocaleString() : "-"}
+              disabled
+            />
+            <Input label="Disconnect Reason" value={sessionData.disconnectReason || "-"} disabled />
+            <Input label="Disconnect Initiated By" value={sessionData.disconnectInitiatedBy || "-"} disabled />
           </div>
         </fieldset>
 

@@ -27,6 +27,7 @@ import {
   getClientSessionsApi,
   type ClientSessionData,
 } from "../../api/clientSessionApi/clientSessionApi";
+import api from "../../api/axiosInstance";
 
 // --- Static Fallbacks for unlinked APIs ---
 const initialTrafficData = [
@@ -55,11 +56,29 @@ const Dashboard: React.FC = () => {
   // --- SOON-TO-BE DYNAMIC STATES ---
   const [trafficData] = useState(initialTrafficData);
   const [dlrData] = useState(initialDlrData);
-  const [stats] = useState({
-    totalSms: "210,500",
+  const [stats, setStats] = useState({
+    totalSms: "-",
     deliveryRate: "82.5%",
     revenue: "$4,250.00",
   });
+
+  const fetchTodaySmsCount = async () => {
+    try {
+      const response = await api.get("/smppSMS/count", {
+        params: { today: true },
+      });
+      if (response && response.data !== undefined) {
+        const count =
+          response.data.count ?? response.data.total ?? response.data;
+        setStats((prev) => ({
+          ...prev,
+          totalSms: Number(count).toLocaleString(),
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to fetch today's SMS count.", error);
+    }
+  };
 
   // Fetch Live Session Data
   const fetchActiveSessions = async () => {
@@ -85,6 +104,7 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     // Initial fetch
+    fetchTodaySmsCount();
     fetchActiveSessions();
 
     // Real-time WebSocket connection for Dashboard

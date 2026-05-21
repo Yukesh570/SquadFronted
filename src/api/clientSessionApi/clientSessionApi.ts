@@ -13,6 +13,9 @@ export interface ClientSessionData {
   connectedAt: string;
   boundAt: string;
   last_activityAt: string;
+  disconnectedAt: string;
+  disconnectReason: string;
+  disconnectInitiatedBy: string;
   status: string;
 }
 
