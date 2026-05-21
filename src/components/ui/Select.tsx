@@ -5,6 +5,8 @@ import { ChevronDown, Check, X } from "lucide-react";
 interface SelectOption {
   value: string;
   label: string;
+  disabled?: boolean;
+
 }
 
 interface SelectProps {
@@ -155,16 +157,19 @@ const Select: React.FC<SelectProps> = ({
                 ) : (
                   visibleOptions.map((option) => (
                     <Combobox.Option
-                      key={option.value}
-                      className={({ active }) =>
-                        `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                          active
-                            ? "bg-primary/10 text-primary dark:text-primary dark:bg-primary/20"
-                            : "text-text-secondary dark:text-gray-300"
-                        }`
-                      }
-                      value={option.value}
-                    >
+  key={option.value}
+  disabled={option.disabled}
+  className={({ active }) =>
+    `relative cursor-default select-none py-2 pl-10 pr-4 ${
+      option.disabled
+        ? "opacity-40 cursor-not-allowed"
+        : active
+        ? "bg-primary/10 text-primary dark:text-primary dark:bg-primary/20"
+        : "text-text-secondary dark:text-gray-300"
+    }`
+  }
+  value={option.value}
+>
                       {({ selected }) => (
                         <>
                           <span
