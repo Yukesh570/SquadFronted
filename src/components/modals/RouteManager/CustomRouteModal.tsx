@@ -391,14 +391,34 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     }
     return;
   }
-  
-  // Filter MNCs to only keep those belonging to selected MCCs
+
+  // Filter MNCs to only keep those belonging to still-selected MCCs
   const filteredMnc = formData.MNC.filter((mnc: string) => {
     const mccPrefix = mnc.split("(")[0].trim();
     return selectedValues.includes(mccPrefix);
   });
-  
-  setFormData((prev: any) => ({ ...prev, MCC: selectedValues, MNC: filteredMnc }));
+
+  // For any newly added MCC, auto-restore its MNCs from fullNetworkList
+  const previousMccs: string[] = formData.MCC;
+  const newlyAddedMccs = selectedValues.filter((mcc: string) => !previousMccs.includes(mcc));
+
+  const restoredMncs: string[] = [];
+  newlyAddedMccs.forEach((mcc: string) => {
+    const specificMncs = fullNetworkList.filter((n) => String(n.MCC) === mcc);
+    const uniqueMncs = Array.from(
+      new Set(specificMncs.map((n) => String(n.MNC)))
+    ).filter(Boolean);
+
+    uniqueMncs.forEach((mnc) => {
+      const isDbAll = mnc.toLowerCase() === "all" || mnc.toLowerCase() === "in rest";
+      if (!isDbAll) {
+        restoredMncs.push(`${mcc}(${mnc})`);
+      }
+    });
+  });
+
+  const mergedMnc = Array.from(new Set([...filteredMnc, ...restoredMncs]));
+  setFormData((prev: any) => ({ ...prev, MCC: selectedValues, MNC: mergedMnc }));
 };
 
   const handleMncChange = (selectedValues: string[], clickedOption?: any) => {

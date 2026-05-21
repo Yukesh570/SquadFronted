@@ -265,30 +265,50 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
   };
 
   const handleMccChange = (selectedValues: string[], clickedOption?: any) => {
-    if (clickedOption && clickedOption.value === "ALL_MCC") {
-      const allMccValues = mccOptions
-        .filter((o: MultiSelectOption) => !o.isUiOnly)
-        .map((o: MultiSelectOption) => o.value);
-      const isAllSelected =
-        allMccValues.length > 0 &&
-        allMccValues.every((v: string) => formData.MCC.includes(v));
+  if (clickedOption && clickedOption.value === "ALL_MCC") {
+    const allMccValues = mccOptions
+      .filter((o: MultiSelectOption) => !o.isUiOnly)
+      .map((o: MultiSelectOption) => o.value);
+    const isAllSelected =
+      allMccValues.length > 0 &&
+      allMccValues.every((v: string) => formData.MCC.includes(v));
 
-      if (isAllSelected) {
-        setFormData((prev: any) => ({ ...prev, MCC: [], MNC: [] }));
-      } else {
-        setFormData((prev: any) => ({ ...prev, MCC: allMccValues }));
-      }
-      return;
+    if (isAllSelected) {
+      setFormData((prev: any) => ({ ...prev, MCC: [], MNC: [] }));
+    } else {
+      setFormData((prev: any) => ({ ...prev, MCC: allMccValues }));
     }
-    
-    // Filter MNCs to only keep those belonging to selected MCCs
-    const filteredMnc = formData.MNC.filter((mnc: string) => {
-      const mccPrefix = mnc.split("(")[0].trim();
-      return selectedValues.includes(mccPrefix);
+    return;
+  }
+
+  // Filter MNCs to only keep those belonging to still-selected MCCs
+  const filteredMnc = formData.MNC.filter((mnc: string) => {
+    const mccPrefix = mnc.split("(")[0].trim();
+    return selectedValues.includes(mccPrefix);
+  });
+
+  // For any newly added MCC, auto-restore its MNCs from fullNetworkList
+  const previousMccs: string[] = formData.MCC;
+  const newlyAddedMccs = selectedValues.filter((mcc: string) => !previousMccs.includes(mcc));
+
+  const restoredMncs: string[] = [];
+  newlyAddedMccs.forEach((mcc: string) => {
+    const specificMncs = fullNetworkList.filter((n) => String(n.MCC) === mcc);
+    const uniqueMncs = Array.from(
+      new Set(specificMncs.map((n) => String(n.MNC)))
+    ).filter(Boolean);
+
+    uniqueMncs.forEach((mnc) => {
+      const isDbAll = mnc.toLowerCase() === "all" || mnc.toLowerCase() === "in rest";
+      if (!isDbAll) {
+        restoredMncs.push(`${mcc}(${mnc})`);
+      }
     });
-    
-    setFormData((prev: any) => ({ ...prev, MCC: selectedValues, MNC: filteredMnc }));
-  };
+  });
+
+  const mergedMnc = Array.from(new Set([...filteredMnc, ...restoredMncs]));
+  setFormData((prev: any) => ({ ...prev, MCC: selectedValues, MNC: mergedMnc }));
+};
 
   const handleMncChange = (selectedValues: string[], clickedOption?: any) => {
     let baseMnc = selectedValues.filter((v: string) => v !== "All(All)");

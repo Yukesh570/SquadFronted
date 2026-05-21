@@ -100,6 +100,7 @@ const ClientSession: React.FC = () => {
       hasLoggedOpening.current = true;
     }
   }, []);
+
   const statusConfig: Record<
     string,
     { bg: string; text: string; darkBg: string; darkText: string }
@@ -141,6 +142,7 @@ const ClientSession: React.FC = () => {
       darkText: "dark:text-orange-400",
     },
   };
+
   const renderStatusBadge = (status: string) => {
     const normalized = status?.toUpperCase() || "DISCONNECTED";
     const config = statusConfig[normalized] ?? statusConfig.DISCONNECTED;
@@ -153,6 +155,7 @@ const ClientSession: React.FC = () => {
       </span>
     );
   };
+
   const allColumns: ColumnConfig[] = [
     {
       key: "sessionId",
@@ -206,7 +209,6 @@ const ClientSession: React.FC = () => {
       tableLabel: "Connected At",
       type: "date",
       filterKey: "connectedAt",
-      // FIXED: Implement new timezone cache formatter
       render: (c) => (c.connectedAt ? formatDateTime(c.connectedAt) : "-"),
     },
     {
@@ -230,7 +232,6 @@ const ClientSession: React.FC = () => {
       tableLabel: "Bound At",
       type: "date",
       filterKey: "boundAt",
-      // FIXED: Implement new timezone cache formatter
       render: (c) => (c.boundAt ? formatDateTime(c.boundAt) : "-"),
     },
     {
@@ -247,6 +248,27 @@ const ClientSession: React.FC = () => {
       filterKey: "boundAt",
       isSearchOnly: true,
     },
+    {
+      key: "disconnectedAt",
+      label: "Disconnected At (Exact)",
+      tableLabel: "Disconnected At",
+      type: "date",
+      filterKey: "disconnectedAt",
+      render: (c) =>
+        c.disconnectedAt ? formatDateTime(c.disconnectedAt) : "-",
+    },
+    {
+      key: "disconnectReason",
+      label: "Disconnect Reason",
+      type: "text",
+      filterKey: "disconnectReason__icontains",
+    },
+    {
+      key: "disconnectInitiatedBy",
+      label: "Disconnect Initiated By",
+      type: "text",
+      filterKey: "disconnectInitiatedBy__icontains",
+    },
 
     {
       key: "last_activityAt",
@@ -254,7 +276,6 @@ const ClientSession: React.FC = () => {
       tableLabel: "Last Activity",
       type: "date",
       filterKey: "last_activityAt",
-      // FIXED: Implement new timezone cache formatter
       render: (c) =>
         c.last_activityAt ? formatDateTime(c.last_activityAt) : "-",
     },
@@ -342,7 +363,6 @@ const ClientSession: React.FC = () => {
 
       if (newController.signal.aborted) return;
       if (response && response.results) {
-        // FIX: Map sessionId to id to satisfy DataTable
         const mappedList = response.results.map((item: any) => ({
           ...item,
           id: item.sessionId,
@@ -375,7 +395,7 @@ const ClientSession: React.FC = () => {
     };
   }, [routeName, currentPage, rowsPerPage, searchColumns]);
 
-  //real time websocket connection to listen for session updates
+  // real time websocket connection to listen for session updates
   useEffect(() => {
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
     const ws = new WebSocket(`${wsBase}/ws/status/`);
@@ -396,7 +416,6 @@ const ClientSession: React.FC = () => {
                 item.sessionId === incomingSession.id,
             );
             if (sessionExists) {
-              // Update status for any status change — not just CONNECTED
               return prevData.map((item: any) =>
                 item.id === incomingSession.id ||
                 item.sessionId === incomingSession.id
@@ -408,7 +427,6 @@ const ClientSession: React.FC = () => {
                   : item,
               );
             } else if (incomingSession.status === "BOUND") {
-              // ⚡️ A brand new session just bound — refetch to get full row data
               fetchData();
               return prevData;
             }
@@ -625,7 +643,7 @@ const ClientSession: React.FC = () => {
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
             {visibleTableFields.map((col) => {
-              let cellData = (item as any)[col.key];
+              const cellData = (item as any)[col.key];
               if (col.render)
                 return (
                   <td
@@ -635,12 +653,19 @@ const ClientSession: React.FC = () => {
                     {col.render(item)}
                   </td>
                 );
+              const isLongText = typeof cellData === "string" && cellData.length > 30;
               return (
                 <td
                   key={col.key}
                   className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "sessionId" ? "font-medium text-text-primary dark:text-white" : ""}`}
                 >
-                  {cellData || "-"}
+                  {isLongText ? (
+                    <span title={cellData} className="cursor-help">
+                      {cellData.slice(0, 30)}...
+                    </span>
+                  ) : (
+                    cellData || "-"
+                  )}
                 </td>
               );
             })}
