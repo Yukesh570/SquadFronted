@@ -109,19 +109,6 @@ const Vendor: React.FC = () => {
   const routeName = pathSegments[pathSegments.length - 1] || "vendor";
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // ✅ FIX: Track whether the component is currently mounted
-  // This prevents the WebSocket onclose from forcing OFFLINE
-  // when the user simply navigates away (which also closes the socket)
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      // When user navigates away, flip to false BEFORE the socket closes
-      isMountedRef.current = false;
-    };
-  }, []);
-
   useEffect(() => {
     const loadDropdowns = async () => {
       try {
@@ -151,57 +138,59 @@ const Vendor: React.FC = () => {
     loadDropdowns();
   }, []);
 
-  // --- ✅ FIXED WebSocket for Vendor SMPP Status ---
+  // --- ⚡️ UNIFIED Live WebSockets for Vendor SMPP Status ---
   useEffect(() => {
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
-    const ws = new WebSocket(`${wsBase}/ws/status/`);
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: any;
 
-    ws.onopen = () => console.log("✅ Vendor Table linked to live SMPP feed");
+    const connectWebSocket = () => {
+      ws = new WebSocket(`${wsBase}/ws/status/`);
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+      ws.onopen = () => console.log("✅ Vendor Table linked to live SMPP feed");
 
-        if (data.action === "vendor_state_update") {
-          setVendors((prev) =>
-            prev.map((v) =>
-              String(v.id) === String(data.vendor.id)
-                ? {
-                    ...v,
-                    bindStatus: data.vendor.bindStatus,
-                    active_session_count: data.vendor.live_count,
-                  }
-                : v,
-            ),
-          );
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.action === "vendor_state_update") {
+            setVendors((prev) =>
+              prev.map((v) =>
+                String(v.id) === String(data.vendor.id)
+                  ? {
+                      ...v,
+                      bindStatus: data.vendor.bindStatus,
+                      active_session_count: data.vendor.live_count,
+                    }
+                  : v,
+              ),
+            );
+          }
+        } catch (err) {
+          console.error("Socket error", err);
         }
-      } catch (err) {
-        console.error("Socket error", err);
-      }
+      };
+
+      ws.onclose = () => {
+        console.log("⚠️ Live SMPP feed disconnected. Attempting to reconnect...");
+        // ⚡️ FIX: Removed logic that set everyone to OFFLINE. 
+        // ⚡️ The backend already manages the actual state, and our REST API fetch gets the correct status on load.
+        
+        // Attempt to auto-reconnect after 5 seconds
+        reconnectTimeout = setTimeout(connectWebSocket, 5000);
+      };
     };
 
-    ws.onclose = () => {
-      console.log("⚠️ Live SMPP feed disconnected");
+    connectWebSocket();
 
-      // ✅ FIX: Only force OFFLINE if the component is still mounted.
-      // If isMountedRef.current is false, the user navigated away and
-      // React unmounted this component — the socket closing is expected
-      // and normal. We do NOT want to overwrite the API data with OFFLINE.
-      // If isMountedRef.current is true, the socket genuinely died while
-      // the user is still on the page — force OFFLINE so they know the
-      // live feed is dead.
-      if (isMountedRef.current) {
-        setVendors((prev) =>
-          prev.map((v) => ({
-            ...v,
-            bindStatus: "OFFLINE",
-            active_session_count: 0,
-          })),
-        );
+    return () => {
+      clearTimeout(reconnectTimeout);
+      if (ws) {
+        // Prevent onclose logic from firing when we intentionally close it during unmount
+        ws.onclose = null; 
+        ws.close();
       }
     };
-
-    return () => ws.close();
   }, []);
 
   // --- Static Options & Renders ---
@@ -249,6 +238,7 @@ const Vendor: React.FC = () => {
   const renderSessionBadge = (vendor: any) => {
     const current = vendor.active_session_count || 0;
     const max = vendor.vendorPolicy?.maxSession || 1;
+
     const isFull = current === max && max > 0;
 
     return (
@@ -317,84 +307,85 @@ const Vendor: React.FC = () => {
       type: "text",
       render: (c) => renderSessionBadge(c),
     },
-    {
-      key: "maxSession",
-      label: "Max Sessions",
+    // --- INTEGRATED POLICY COLUMNS ---
+    { 
+      key: "maxSession", 
+      label: "Max Sessions", 
       type: "number",
-      render: (c) => c.vendorPolicy?.maxSession ?? "-",
+      render: (c) => c.vendorPolicy?.maxSession ?? "-"
+    }, 
+    { 
+      key: "rateTps", 
+      label: "Rate TPS", 
+      type: "number",
+      render: (c) => c.vendorPolicy?.rateTps ?? "-"
     },
-    {
-      key: "rateTps",
-      label: "Rate TPS",
+    { 
+      key: "sendQueueLimit", 
+      label: "Queue Limit", 
       type: "number",
-      render: (c) => c.vendorPolicy?.rateTps ?? "-",
-    },
-    {
-      key: "sendQueueLimit",
-      label: "Queue Limit",
-      type: "number",
-      render: (c) => c.vendorPolicy?.sendQueueLimit ?? "-",
+      render: (c) => c.vendorPolicy?.sendQueueLimit ?? "-"
     },
     {
       key: "logLevel",
       label: "Log Level",
       type: "text",
       options: logLevelOptions,
-      render: (c) => c.vendorPolicy?.logLevel ?? "-",
+      render: (c) => c.vendorPolicy?.logLevel ?? "-"
     },
-    {
-      key: "responseTimeout",
-      label: "Response Timeout (s)",
+    { 
+      key: "responseTimeout", 
+      label: "Response Timeout (s)", 
       type: "number",
-      render: (c) => c.vendorPolicy?.responseTimeout ?? "-",
+      render: (c) => c.vendorPolicy?.responseTimeout ?? "-"
     },
     {
       key: "enquireLinkInterval",
       label: "Enquire Link Interval (s)",
       type: "number",
-      render: (c) => c.vendorPolicy?.enquireLinkInterval ?? "-",
+      render: (c) => c.vendorPolicy?.enquireLinkInterval ?? "-"
     },
-    {
-      key: "connectionTimeout",
-      label: "Conn. Timeout (s)",
+    { 
+      key: "connectionTimeout", 
+      label: "Conn. Timeout (s)", 
       type: "number",
-      render: (c) => c.vendorPolicy?.connectionTimeout ?? "-",
+      render: (c) => c.vendorPolicy?.connectionTimeout ?? "-"
     },
     {
       key: "connectionRetryDelay",
       label: "Conn Retry Delay (s)",
       type: "number",
-      render: (c) => c.vendorPolicy?.connectionRetryDelay ?? "-",
+      render: (c) => c.vendorPolicy?.connectionRetryDelay ?? "-"
     },
-    {
-      key: "connectionRetryCount",
-      label: "Conn Retry Count",
+    { 
+      key: "connectionRetryCount", 
+      label: "Conn Retry Count", 
       type: "number",
-      render: (c) => c.vendorPolicy?.connectionRetryCount ?? "-",
+      render: (c) => c.vendorPolicy?.connectionRetryCount ?? "-"
     },
-    {
-      key: "bindRetryDelay",
-      label: "Bind Retry Delay (s)",
+    { 
+      key: "bindRetryDelay", 
+      label: "Bind Retry Delay (s)", 
       type: "number",
-      render: (c) => c.vendorPolicy?.bindRetryDelay ?? "-",
+      render: (c) => c.vendorPolicy?.bindRetryDelay ?? "-"
     },
-    {
-      key: "bindRetryCount",
-      label: "Bind Retry Count",
+    { 
+      key: "bindRetryCount", 
+      label: "Bind Retry Count", 
       type: "number",
-      render: (c) => c.vendorPolicy?.bindRetryCount ?? "-",
+      render: (c) => c.vendorPolicy?.bindRetryCount ?? "-"
     },
     {
       key: "connectionRecoveryDelay",
       label: "Conn Recovery Delay (s)",
       type: "number",
-      render: (c) => c.vendorPolicy?.connectionRecoveryDelay ?? "-",
+      render: (c) => c.vendorPolicy?.connectionRecoveryDelay ?? "-"
     },
-    {
-      key: "tlvTag",
-      label: "TLV Tag",
+    { 
+      key: "tlvTag", 
+      label: "TLV Tag", 
       type: "text",
-      render: (c) => c.vendorPolicy?.tlvTag ?? "-",
+      render: (c) => c.vendorPolicy?.tlvTag ?? "-"
     },
   ];
 
@@ -569,6 +560,7 @@ const Vendor: React.FC = () => {
       };
       await updateVendorApi(vendor.id!, retryData, routeName);
       toast.info(`Connection retry signaled for ${vendor.profileName}`);
+
       setContextMenuPos(null);
     } catch (err) {
       console.error("Manual retry failed", err);
