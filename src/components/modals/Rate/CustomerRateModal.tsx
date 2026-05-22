@@ -7,6 +7,7 @@ import {
 } from "../../../api/rateApi/customerRateApi";
 import { getTimezoneApi } from "../../../api/settingApi/timezoneApi/timezoneApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
+import { getCurrenciesApi } from "../../../api/settingApi/currencyApi/currencyApi";
 import { getOperatorNetworkCodelookupApi } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
@@ -56,23 +57,25 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
     countryCode: "",
     rate: "",
     remark: "",
+    status: "DRAFT",
+    version: "0",
   });
 
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(null);
+  const [effectiveToDate, setEffectiveToDate] = useState<Date | null>(null);
 
   const [timezoneOptions, setTimezoneOptions] = useState<Option[]>([]);
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
+  const [currencyOptions, setCurrencyOptions] = useState<Option[]>([]);
   const [fullCountriesList, setFullCountriesList] = useState<CountryData[]>([]);
   const [mccOptions, setMccOptions] = useState<Option[]>([]);
   const [mncOptions, setMncOptions] = useState<Option[]>([]); 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const currencyOptions: Option[] = [
-    { label: "AUD", value: "AUD" },
-    { label: "NPR", value: "NPR" },
-    { label: "INR", value: "INR" },
-    { label: "ARD", value: "ARD" },
-    { label: "Eur", value: "Eur" },
+  const statusOptions: Option[] = [
+    { label: "DRAFT", value: "DRAFT" },
+    { label: "ACTIVE", value: "ACTIVE" },
+    { label: "EXPIRED", value: "EXPIRED" },
   ];
 
   useEffect(() => {
@@ -93,36 +96,39 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
           list.map((c: any) => ({ label: c.name, value: String(c.id) }))
         );
       });
+
+      getCurrenciesApi("currency", 1, 1000).then((res: any) => {
+        const list = res.results || (Array.isArray(res) ? res : []);
+        setCurrencyOptions(
+          list.map((c: any) => ({ 
+            label: `${c.name} (${c.currencyCode})`, // ⚡️ FIX: Format to Name (CODE) for dropdown UI
+            value: c.currencyCode // But strictly submit the code payload
+          }))
+        );
+      }).catch(console.error);
     }
   }, [isOpen]);
 
   useEffect(() => {
-    // Wait until fullCountriesList is populated to map ID to Name
     if (formData.country && fullCountriesList.length > 0) {
-      // IMMEDIATELY clear old options so they don't show while fetching
       setMccOptions([]);
       setMncOptions([]);
 
-      // Map the country ID back to the actual string name
       const selectedCountry = fullCountriesList.find(
         (c) => String(c.id) === formData.country
       );
       const countryNameParam = selectedCountry ? selectedCountry.name : "";
 
-      // Fetch MCC and MNC options using the high-speed lookup API with country__name
       getOperatorNetworkCodelookupApi(1, 1000, { country__name: countryNameParam })
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
           
-          // Extract unique MCCs
           const uniqueMccs = Array.from(new Set(list.map((item: any) => item.MCC))).filter(Boolean);
           setMccOptions(uniqueMccs.map((mcc) => ({ label: String(mcc), value: String(mcc) })));
 
-          // Extract unique MNCs
           const uniqueMncs = Array.from(new Set(list.map((item: any) => item.MNC))).filter(Boolean);
           setMncOptions(uniqueMncs.map((mnc) => ({ label: String(mnc), value: String(mnc) })));
 
-          // SMART AUTO-SELECT: If there's exactly 1 option, auto-select it. Otherwise leave it alone (manual).
           setFormData((prev) => ({
             ...prev,
             MCC: uniqueMccs.length === 1 ? String(uniqueMccs[0]) : prev.MCC,
@@ -134,13 +140,13 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       setMccOptions([]);
       setMncOptions([]);
     }
-  }, [formData.country, fullCountriesList]); // Added fullCountriesList dependency so Edit Mode triggers correctly
+  }, [formData.country, fullCountriesList]);
 
   useEffect(() => {
     if (isOpen && editingRate) {
       setFormData({
-        ratePlan: editingRate.ratePlan,
-        currencyCode: editingRate.currencyCode,
+        ratePlan: editingRate.ratePlan || "",
+        currencyCode: editingRate.currencyCode || "",
         timeZone: String(editingRate.timeZone || ""),
         country: String(editingRate.country || ""),
         MCC: String(editingRate.MCC || ""),
@@ -148,17 +154,24 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         countryCode: String(editingRate.countryCode || ""),
         rate: String(editingRate.rate || ""),
         remark: editingRate.remark || "",
+        status: editingRate.status || "DRAFT",
+        version: String(editingRate.version ?? "0"),
       });
 
-      if (editingRate.dateTime) {
-        const d = new Date(editingRate.dateTime);
-        if (!isNaN(d.getTime())) {
-          setSelectedDate(d);
-        } else {
-          setSelectedDate(null);
-        }
+      if (editingRate.effectiveFrom) {
+        const d = new Date(editingRate.effectiveFrom);
+        if (!isNaN(d.getTime())) setEffectiveFromDate(d);
+        else setEffectiveFromDate(null);
       } else {
-        setSelectedDate(null);
+        setEffectiveFromDate(null);
+      }
+
+      if (editingRate.effectiveTo) {
+        const d = new Date(editingRate.effectiveTo);
+        if (!isNaN(d.getTime())) setEffectiveToDate(d);
+        else setEffectiveToDate(null);
+      } else {
+        setEffectiveToDate(null);
       }
     } else if (isOpen) {
       setFormData({
@@ -171,8 +184,11 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         countryCode: "",
         rate: "",
         remark: "",
+        status: "DRAFT",
+        version: "0",
       });
-      setSelectedDate(null);
+      setEffectiveFromDate(null);
+      setEffectiveToDate(null);
     }
   }, [isOpen, editingRate]);
 
@@ -184,7 +200,6 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
 
   const handleSelect = (name: string, value: string) => {
     if (name === "country") {
-      // EXPLICIT CLEAR: If user crosses out/deletes the country, wipe everything
       if (!value) {
         setFormData({
           ...formData,
@@ -196,12 +211,10 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         return;
       }
 
-      // Find the country data to auto-fill the countryCode
       const selectedCountry = fullCountriesList.find(
         (c) => String(c.id) === value
       );
 
-      // Force completely reset MCC, MNC, and Country Code when user changes the Country manually
       setFormData({
         ...formData,
         [name]: value,
@@ -236,21 +249,21 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       ratePlan: formData.ratePlan,
       currencyCode: formData.currencyCode,
       timeZone: Number(formData.timeZone),
-      dateTime: selectedDate ? selectedDate.toISOString() : null,
+      effectiveFrom: effectiveFromDate ? effectiveFromDate.toISOString() : null,
+      status: formData.status, // We leave status in the payload, but UI doesn't allow editing on add
     };
 
     if (formData.country) payload.country = Number(formData.country);
     if (formData.MCC) payload.MCC = Number(formData.MCC);
     if (formData.MNC) payload.MNC = Number(formData.MNC); 
-    if (formData.countryCode)
-      payload.countryCode = Number(formData.countryCode);
+    if (formData.countryCode) payload.countryCode = Number(formData.countryCode);
     if (formData.rate) payload.rate = Number(formData.rate);
     if (formData.remark) payload.remark = formData.remark;
 
     try {
       if (editingRate) {
         await updateCustomerRateApi(editingRate.id!, payload, moduleName);
-        toast.success("Rate updated successfully!");
+        toast.success("Rate upgraded successfully!");
       } else {
         await createCustomerRateApi(payload, moduleName);
         toast.success("Rate plan created! Add details now.");
@@ -277,7 +290,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         isViewMode
           ? "View Customer Rate"
           : editingRate
-          ? "Edit Customer Rate"
+          ? "Edit/Upgrade Customer Rate"
           : "Create Rate Plan"
       }
       className={isCreateMode ? "max-w-xl" : "max-w-4xl"}
@@ -316,8 +329,29 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
             disabled={isViewMode}
           />
 
+          {/* ⚡️ FIX: Status is only rendered if NOT in Create Mode */}
+          {!isCreateMode && (
+            <Select
+              label="Status"
+              value={formData.status}
+              onChange={(v) => handleSelect("status", v)}
+              options={statusOptions}
+              placeholder="Select Status"
+              disabled={isViewMode}
+            />
+          )}
+
           {!isCreateMode && (
             <>
+              <Input
+                label="Version"
+                name="version"
+                type="number"
+                value={formData.version}
+                onChange={handleChange}
+                placeholder="0"
+                disabled={true} 
+              />
               <Select
                 label="Country"
                 value={formData.country}
@@ -367,13 +401,21 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
                 disabled={isViewMode}
               />
               <CustomDatePicker
-                label="Effective From (Date & Time)"
-                selected={selectedDate}
-                onChange={(date) => setSelectedDate(date)}
+                label="Effective From"
+                selected={effectiveFromDate}
+                onChange={(date) => setEffectiveFromDate(date)}
                 showTimeSelect
                 disabled={isViewMode}
                 placeholder="Select Date & Time"
                 isClearable
+              />
+              <CustomDatePicker
+                label="Effective To"
+                selected={effectiveToDate}
+                onChange={() => {}} 
+                showTimeSelect
+                disabled={true} 
+                placeholder="-"
               />
             </>
           )}
@@ -406,7 +448,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
               {isSubmitting
                 ? "Saving"
                 : editingRate
-                ? "Save Details"
+                ? "Upgrade/Save Details"
                 : "Create Plan"}
             </Button>
           )}

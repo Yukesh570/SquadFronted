@@ -9,6 +9,7 @@ import {
 } from "../../api/rateApi/customerRateApi";
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
+import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
 import { CustomerRateModal } from "../../components/modals/Rate/CustomerRateModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -39,8 +40,8 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["ratePlan"];
-const DEFAULT_TABLE_COLUMNS = ["ratePlan", "countryName", "countryCode", "timeZoneName", "MCC", "rate", "dateTime"];
+const DEFAULT_SEARCH_COLUMNS = ["ratePlan", "status"];
+const DEFAULT_TABLE_COLUMNS = ["ratePlan", "countryName", "countryCode", "timeZoneName", "MCC", "rate", "version", "status", "effectiveFrom", "effectiveTo"];
 
 const CustomerRate: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -50,6 +51,7 @@ const CustomerRate: React.FC = () => {
 
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [timezoneOptions, setTimezoneOptions] = useState<Option[]>([]);
+  const [currencyOptions, setCurrencyOptions] = useState<Option[]>([]);
   const [countryMap, setCountryMap] = useState<Record<string, string>>({});
   const [timezoneMap, setTimezoneMap] = useState<Record<string, string>>({});
 
@@ -98,6 +100,12 @@ const CustomerRate: React.FC = () => {
         setTimezoneMap(map); setTimezoneOptions(options.sort((a, b) => a.label.localeCompare(b.label)));
       }).catch(console.error);
     }
+    
+    getCurrenciesApi("currency", 1, 1000).then((res: any) => {
+      const list = res.results || (Array.isArray(res) ? res : []);
+      setCurrencyOptions(list.map((c: any) => ({ label: c.currencyCode, value: c.currencyCode })).sort((a: any, b: any) => a.label.localeCompare(b.label)));
+    }).catch(console.error);
+
   }, []);
 
   const hasLoggedOpening = useRef(false);
@@ -113,13 +121,6 @@ const CustomerRate: React.FC = () => {
     }
   }, []);
 
-  const currencyOptions: Option[] = [
-    { label: "AUD", value: "AUD" }, { label: "NPR", value: "NPR" },
-    { label: "INR", value: "INR" }, { label: "ARD", value: "ARD" },
-    { label: "EUR", value: "EUR" }, { label: "USD", value: "USD" }
-  ];
-
-  // FIX: Exactly mapped to CustomerRate Meta image (country__name and timeZone__name)
   const allColumns: ColumnConfig[] = [
     { key: "ratePlan", label: "Rate Plan", type: "text", filterKey: "ratePlan__icontains" },
     { key: "currencyCode", label: "Currency Code", type: "text", options: currencyOptions, filterKey: "currencyCode" },
@@ -135,9 +136,35 @@ const CustomerRate: React.FC = () => {
     { key: "rate__range", label: "Rate (Range)", type: "number_range", filterKey: "rate", isSearchOnly: true },
     { key: "rate__gt_lt", label: "Rate (GT / LT)", type: "number_gt_lt", filterKey: "rate", isSearchOnly: true },
 
-    { key: "dateTime", label: "Date Time (Exact)", tableLabel: "Date Time", type: "date", filterKey: "createdAt", render: (c: any) => (c.dateTime ? new Date(c.dateTime).toLocaleString() : "-") },
-    { key: "dateTime__range", label: "Date Time (From/To)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
-    { key: "dateTime__gt_lt", label: "Date Time (After / Before)", type: "date_gt_lt", filterKey: "createdAt", isSearchOnly: true },
+    { key: "version", label: "Version", type: "number", filterKey: "version" },
+    { 
+      key: "status", 
+      label: "Status", 
+      type: "text", 
+      options: [{ label: "DRAFT", value: "DRAFT" }, { label: "ACTIVE", value: "ACTIVE" }, { label: "EXPIRED", value: "EXPIRED" }], 
+      filterKey: "status",
+      render: (c: any) => (
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-medium ${
+            c.status === "ACTIVE"
+              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+              : c.status === "DRAFT"
+              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+          }`}
+        >
+          {c.status || "-"}
+        </span>
+      )
+    },
+
+    { key: "effectiveFrom", label: "Effective From (Exact)", tableLabel: "Effective From", type: "date", filterKey: "effectiveFrom__date", render: (c: any) => (c.effectiveFrom ? new Date(c.effectiveFrom).toLocaleString() : "-") },
+    { key: "effectiveFrom__range", label: "Effective From (From/To)", type: "date_range", filterKey: "effectiveFrom", isSearchOnly: true },
+    { key: "effectiveFrom__gt_lt", label: "Effective From (After / Before)", type: "date_gt_lt", filterKey: "effectiveFrom", isSearchOnly: true },
+
+    { key: "effectiveTo", label: "Effective To (Exact)", tableLabel: "Effective To", type: "date", filterKey: "effectiveTo__date", render: (c: any) => (c.effectiveTo ? new Date(c.effectiveTo).toLocaleString() : "-") },
+    { key: "effectiveTo__range", label: "Effective To (From/To)", type: "date_range", filterKey: "effectiveTo", isSearchOnly: true },
+    { key: "effectiveTo__gt_lt", label: "Effective To (After / Before)", type: "date_gt_lt", filterKey: "effectiveTo", isSearchOnly: true },
   ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
@@ -164,7 +191,6 @@ const CustomerRate: React.FC = () => {
 
           if (columnDef?.options) {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
-            // FIX: Added the isNameField logic so it sends "Nepal" instead of ID "15" for country__name
             const isNameField = columnDef.filterKey?.includes("__name") || columnDef.filterKey?.includes("__profileName");
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? (isNameField ? selectedOption.label : selectedOption.value) : value;
           } 
@@ -267,10 +293,10 @@ const CustomerRate: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Customer Rates</h1>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={(newCols) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter columns={allColumns as any} selectedColumns={searchColumns} onFilter={(newCols: any) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={tableFilterColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+            <AdvancedFilter columns={tableFilterColumns as any} selectedColumns={tableColumns} onFilter={(cols: any) => setTableColumns(cols)} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
           </div>
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">

@@ -1,4 +1,5 @@
 import api from "../axiosInstance";
+
 export interface VendorRateData {
   id?: number;
   country: number | string;
@@ -12,8 +13,12 @@ export interface VendorRateData {
   MCC: number;
   MNC: number;
   rate: number | string;
-  dateTime: string;
+  dateTime?: string;
   remark: string;
+  version?: number;
+  effectiveFrom?: string;
+  effectiveTo?: string;
+  status?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -48,13 +53,13 @@ export const createVendorRateApi = async (
   return response.data;
 };
 
-// PATCH
+// POST Upgrade (Replaced PATCH/PUT with Upgrade Rate API as requested)
 export const updateVendorRateApi = async (
   id: number,
   data: any,
   module: string,
 ): Promise<VendorRateData> => {
-  const response = await api.patch(`/vendorRate/${module}/${id}/`, data);
+  const response = await api.post(`/vendorRate/upgrade_rate/${module}/${id}/`, data);
   return response.data;
 };
 
