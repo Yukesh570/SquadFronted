@@ -258,7 +258,7 @@ const Client: React.FC = () => {
     // We grab the session string provided by websocket or default backend
     const sessionStr = client.session || "0/2";
     const [current] = sessionStr.split("/");
-    
+
     // ⚡️ FIX: Compare against maxSessions from the nested policy
     const max = client.clientPolicy?.maxSessions || 0;
     const isFull = Number(current) === max && max > 0;
@@ -365,53 +365,53 @@ const Client: React.FC = () => {
     },
     // --- INTEGRATED POLICY COLUMNS ---
     // ⚡️ FIX: Read directly from nested clientPolicy object
-    { 
-      key: "maxTps", 
-      label: "Max TPS", 
+    {
+      key: "maxTps",
+      label: "Max TPS",
       type: "number",
-      render: (c) => c.clientPolicy?.maxTps ?? "-"
+      render: (c) => c.clientPolicy?.maxTps ?? "-",
     },
-    { 
-      key: "maxSessions", 
-      label: "Max Sessions", 
+    {
+      key: "maxSessions",
+      label: "Max Sessions",
       type: "number",
-      render: (c) => c.clientPolicy?.maxSessions ?? "-"
+      render: (c) => c.clientPolicy?.maxSessions ?? "-",
     },
-    { 
-      key: "maxQueueDepth", 
-      label: "Max Queue Depth", 
+    {
+      key: "maxQueueDepth",
+      label: "Max Queue Depth",
       type: "number",
-      render: (c) => c.clientPolicy?.maxQueueDepth ?? "-"
+      render: (c) => c.clientPolicy?.maxQueueDepth ?? "-",
     },
-    { 
-      key: "maxWindowGlobal", 
-      label: "Max Window (Global)", 
+    {
+      key: "maxWindowGlobal",
+      label: "Max Window (Global)",
       type: "number",
-      render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-"
+      render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-",
     },
     {
       key: "maxWindowPerSession",
       label: "Max Window (Per Session)",
       type: "number",
-      render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-"
+      render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-",
     },
-    { 
-      key: "idleTimeoutSec", 
-      label: "Idle Timeout (s)", 
+    {
+      key: "idleTimeoutSec",
+      label: "Idle Timeout (s)",
       type: "number",
-      render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-"
+      render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-",
     },
-    { 
-      key: "submitTimeoutSec", 
-      label: "Submit Timeout (s)", 
+    {
+      key: "submitTimeoutSec",
+      label: "Submit Timeout (s)",
       type: "number",
-      render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-"
+      render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-",
     },
-    { 
-      key: "senderIdPolicy", 
-      label: "Sender ID Policy", 
+    {
+      key: "senderIdPolicy",
+      label: "Sender ID Policy",
       type: "text",
-      render: (c) => c.clientPolicy?.senderIdPolicy ?? "-"
+      render: (c) => c.clientPolicy?.senderIdPolicy ?? "-",
     },
     // --- End Integrated Policy Columns ---
     {
@@ -591,6 +591,21 @@ const Client: React.FC = () => {
                   ...client,
                   bindStatus: data.status,
                   session: `${currentCount}/${maxLimit}`,
+                };
+              }
+              return client;
+            }),
+          );
+        }
+        if (data.type === "session_count_change") {
+          setClients((prevClients) =>
+            prevClients.map((client) => {
+              if (client.smppUsername === data.username) {
+                const currentSessionStr = client.session || "0/2";
+                const [, maxLimit] = currentSessionStr.split("/");
+                return {
+                  ...client,
+                  session: `${data.current_sessions}/${maxLimit}`,
                 };
               }
               return client;
