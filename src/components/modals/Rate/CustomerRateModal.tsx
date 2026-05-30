@@ -53,7 +53,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
     timeZone: "",
     country: "",
     MCC: "",
-    MNC: "", 
+    MNC: "",
     countryCode: "",
     rate: "",
     remark: "",
@@ -69,7 +69,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
   const [currencyOptions, setCurrencyOptions] = useState<Option[]>([]);
   const [fullCountriesList, setFullCountriesList] = useState<CountryData[]>([]);
   const [mccOptions, setMccOptions] = useState<Option[]>([]);
-  const [mncOptions, setMncOptions] = useState<Option[]>([]); 
+  const [mncOptions, setMncOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const statusOptions: Option[] = [
@@ -100,9 +100,9 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       getCurrenciesApi("currency", 1, 1000).then((res: any) => {
         const list = res.results || (Array.isArray(res) ? res : []);
         setCurrencyOptions(
-          list.map((c: any) => ({ 
-            label: `${c.name} (${c.currencyCode})`, // ⚡️ FIX: Format to Name (CODE) for dropdown UI
-            value: c.currencyCode // But strictly submit the code payload
+          list.map((c: any) => ({
+            label: `${c.name} (${c.currencyCode})`,
+            value: c.currencyCode,
           }))
         );
       }).catch(console.error);
@@ -122,7 +122,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       getOperatorNetworkCodelookupApi(1, 1000, { country__name: countryNameParam })
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
-          
+
           const uniqueMccs = Array.from(new Set(list.map((item: any) => item.MCC))).filter(Boolean);
           setMccOptions(uniqueMccs.map((mcc) => ({ label: String(mcc), value: String(mcc) })));
 
@@ -150,7 +150,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         timeZone: String(editingRate.timeZone || ""),
         country: String(editingRate.country || ""),
         MCC: String(editingRate.MCC || ""),
-        MNC: String(editingRate.MNC || ""), 
+        MNC: String(editingRate.MNC || ""),
         countryCode: String(editingRate.countryCode || ""),
         rate: String(editingRate.rate || ""),
         remark: editingRate.remark || "",
@@ -180,7 +180,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         timeZone: "",
         country: "",
         MCC: "",
-        MNC: "", 
+        MNC: "",
         countryCode: "",
         rate: "",
         remark: "",
@@ -218,7 +218,9 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       setFormData({
         ...formData,
         [name]: value,
-        countryCode: selectedCountry?.countryCode ? String(selectedCountry.countryCode) : "",
+        countryCode: selectedCountry?.countryCode
+          ? String(selectedCountry.countryCode)
+          : "",
         MCC: "",
         MNC: "",
       });
@@ -236,6 +238,12 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       return;
     }
 
+    // FIX: Rate is required on create
+    if (!editingRate && !formData.rate) {
+      toast.error("Rate is required.");
+      return;
+    }
+
     if (editingRate) {
       if (!formData.country || !formData.rate || !formData.MCC) {
         toast.error("Country, MCC, and Rate are required.");
@@ -245,20 +253,32 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
 
     setIsSubmitting(true);
 
-    const payload: any = {
-      ratePlan: formData.ratePlan,
-      currencyCode: formData.currencyCode,
-      timeZone: Number(formData.timeZone),
-      effectiveFrom: effectiveFromDate ? effectiveFromDate.toISOString() : null,
-      status: formData.status, // We leave status in the payload, but UI doesn't allow editing on add
-    };
+    // FIX: Create mode only sends ratePlan, currencyCode, timeZone, rate
+    let payload: any;
 
-    if (formData.country) payload.country = Number(formData.country);
-    if (formData.MCC) payload.MCC = Number(formData.MCC);
-    if (formData.MNC) payload.MNC = Number(formData.MNC); 
-    if (formData.countryCode) payload.countryCode = Number(formData.countryCode);
-    if (formData.rate) payload.rate = Number(formData.rate);
-    if (formData.remark) payload.remark = formData.remark;
+    if (!editingRate) {
+      payload = {
+        ratePlan: formData.ratePlan,
+        currencyCode: formData.currencyCode,
+        timeZone: Number(formData.timeZone),
+        rate: Number(formData.rate),
+      };
+    } else {
+      payload = {
+        ratePlan: formData.ratePlan,
+        currencyCode: formData.currencyCode,
+        timeZone: Number(formData.timeZone),
+        effectiveFrom: effectiveFromDate ? effectiveFromDate.toISOString() : null,
+        status: formData.status,
+      };
+
+      if (formData.country) payload.country = Number(formData.country);
+      if (formData.MCC) payload.MCC = Number(formData.MCC);
+      if (formData.MNC) payload.MNC = Number(formData.MNC);
+      if (formData.countryCode) payload.countryCode = Number(formData.countryCode);
+      if (formData.rate) payload.rate = Number(formData.rate);
+      if (formData.remark) payload.remark = formData.remark;
+    }
 
     try {
       if (editingRate) {
@@ -266,7 +286,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         toast.success("Rate upgraded successfully!");
       } else {
         await createCustomerRateApi(payload, moduleName);
-        toast.success("Rate plan created! Add details now.");
+        toast.success("Rate plan created!");
       }
       onSuccess();
       onClose();
@@ -329,7 +349,19 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
             disabled={isViewMode}
           />
 
-          {/* ⚡️ FIX: Status is only rendered if NOT in Create Mode */}
+          {/* FIX: Rate shown in create mode */}
+          {isCreateMode && (
+            <Input
+              label="Rate"
+              name="rate"
+              type="number"
+              step="0.0001"
+              value={formData.rate}
+              onChange={handleChange}
+              placeholder="0.0000"
+            />
+          )}
+
           {!isCreateMode && (
             <Select
               label="Status"
@@ -350,7 +382,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
                 value={formData.version}
                 onChange={handleChange}
                 placeholder="0"
-                disabled={true} 
+                disabled={true}
               />
               <Select
                 label="Country"
@@ -412,9 +444,9 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
               <CustomDatePicker
                 label="Effective To"
                 selected={effectiveToDate}
-                onChange={() => {}} 
+                onChange={() => {}}
                 showTimeSelect
-                disabled={true} 
+                disabled={true}
                 placeholder="-"
               />
             </>
@@ -435,7 +467,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
 
         {isCreateMode && (
           <div className="text-sm text-text-secondary italic text-center p-2 rounded border border-dashed border-gray-200 dark:border-gray-700">
-            You can add Country, Rate, and Date details after creating the plan.
+            You can add Country, Network, and MCC details after editing the plan.
           </div>
         )}
 

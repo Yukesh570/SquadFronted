@@ -101,9 +101,9 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
       getCurrenciesApi("currency", 1, 1000).then((res: any) => {
         const list = res.results || (Array.isArray(res) ? res : []);
         setCurrencyOptions(
-          list.map((c: any) => ({ 
-            label: `${c.name} (${c.currencyCode})`, 
-            value: c.currencyCode 
+          list.map((c: any) => ({
+            label: `${c.name} (${c.currencyCode})`,
+            value: c.currencyCode,
           }))
         );
       }).catch(console.error);
@@ -123,7 +123,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
       getOperatorNetworkCodelookupApi(1, 1000, { country__name: countryNameParam })
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
-          
+
           const uniqueMccs = Array.from(new Set(list.map((item: any) => item.MCC))).filter(Boolean);
           setMccOptions(uniqueMccs.map((mcc) => ({ label: String(mcc), value: String(mcc) })));
 
@@ -221,7 +221,9 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
       setFormData({
         ...formData,
         [name]: value,
-        countryCode: selectedCountry?.countryCode ? String(selectedCountry.countryCode) : "",
+        countryCode: selectedCountry?.countryCode
+          ? String(selectedCountry.countryCode)
+          : "",
         MCC: "",
         MNC: "",
       });
@@ -234,8 +236,15 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
     e.preventDefault();
     if (isViewMode) return;
 
+    // FIX: Timezone is now required in both create and edit modes
     if (!formData.ratePlan || !formData.currencyCode || !formData.timeZone) {
       toast.error("Rate Plan, Currency, and Timezone are required.");
+      return;
+    }
+
+    // FIX: Rate is required on create
+    if (!editingRate && !formData.rate) {
+      toast.error("Rate is required.");
       return;
     }
 
@@ -248,21 +257,33 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
 
     setIsSubmitting(true);
 
-    const payload: any = {
-      ratePlan: formData.ratePlan,
-      currencyCode: formData.currencyCode,
-      timeZone: Number(formData.timeZone),
-      effectiveFrom: effectiveFromDate ? effectiveFromDate.toISOString() : null,
-      status: formData.status,
-    };
+    // FIX: Build payload based on mode — create only sends the 4 required fields
+    let payload: any;
 
-    if (formData.country) payload.country = Number(formData.country);
-    if (formData.countryCode) payload.countryCode = Number(formData.countryCode);
-    if (formData.network) payload.network = formData.network;
-    if (formData.MCC) payload.MCC = Number(formData.MCC);
-    if (formData.MNC) payload.MNC = Number(formData.MNC);
-    if (formData.rate) payload.rate = Number(formData.rate);
-    if (formData.remark) payload.remark = formData.remark;
+    if (!editingRate) {
+      payload = {
+        ratePlan: formData.ratePlan,
+        currencyCode: formData.currencyCode,
+        timeZone: Number(formData.timeZone),
+        rate: Number(formData.rate),
+      };
+    } else {
+      payload = {
+        ratePlan: formData.ratePlan,
+        currencyCode: formData.currencyCode,
+        timeZone: Number(formData.timeZone),
+        effectiveFrom: effectiveFromDate ? effectiveFromDate.toISOString() : null,
+        status: formData.status,
+      };
+
+      if (formData.country) payload.country = Number(formData.country);
+      if (formData.countryCode) payload.countryCode = Number(formData.countryCode);
+      if (formData.network) payload.network = formData.network;
+      if (formData.MCC) payload.MCC = Number(formData.MCC);
+      if (formData.MNC) payload.MNC = Number(formData.MNC);
+      if (formData.rate) payload.rate = Number(formData.rate);
+      if (formData.remark) payload.remark = formData.remark;
+    }
 
     try {
       if (editingRate) {
@@ -328,14 +349,27 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
             placeholder="Select Currency"
             disabled={isViewMode}
           />
-          {!isCreateMode && (
-            <Select
-              label="Timezone"
-              value={formData.timeZone}
-              onChange={(v) => handleSelect("timeZone", v)}
-              options={timezoneOptions}
-              placeholder="Select Timezone"
-              disabled={isViewMode}
+
+          {/* FIX: Timezone now shows in BOTH create and edit modes */}
+          <Select
+            label="Timezone"
+            value={formData.timeZone}
+            onChange={(v) => handleSelect("timeZone", v)}
+            options={timezoneOptions}
+            placeholder="Select Timezone"
+            disabled={isViewMode}
+          />
+
+          {/* FIX: Rate now shows in create mode */}
+          {isCreateMode && (
+            <Input
+              label="Rate"
+              name="rate"
+              type="number"
+              step="0.0001"
+              value={formData.rate}
+              onChange={handleChange}
+              placeholder="0.0000"
             />
           )}
 
@@ -359,7 +393,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
                 value={formData.version}
                 onChange={handleChange}
                 placeholder="0"
-                disabled={true} 
+                disabled={true}
               />
               <Select
                 label="Country"
@@ -429,29 +463,32 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
               <CustomDatePicker
                 label="Effective To"
                 selected={effectiveToDate}
-                onChange={() => {}} 
+                onChange={() => {}}
                 showTimeSelect
-                disabled={true} 
+                disabled={true}
                 placeholder="-"
               />
             </>
           )}
         </div>
 
-        <TextArea
-          label="Remark"
-          name="remark"
-          value={formData.remark}
-          onChange={handleChange}
-          disabled={isViewMode}
-          rows={2}
-          placeholder="Optional remarks"
-        />
+        {/* FIX: Remark only shown in edit/view mode */}
+        {!isCreateMode && (
+          <TextArea
+            label="Remark"
+            name="remark"
+            value={formData.remark}
+            onChange={handleChange}
+            disabled={isViewMode}
+            rows={2}
+            placeholder="Optional remarks"
+          />
+        )}
 
         {isCreateMode && (
           <div className="text-sm text-text-secondary italic text-center p-2 rounded border border-dashed border-gray-200 dark:border-gray-700">
-            You can add Country, Network, Rate, and MCC details after creating
-            the plan.
+            You can add Country, Network, and MCC details after editing the
+            plan.
           </div>
         )}
 
