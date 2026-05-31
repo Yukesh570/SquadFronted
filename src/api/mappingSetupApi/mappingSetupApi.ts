@@ -10,7 +10,7 @@ export interface MappingSetupData {
   MCC: string;
   MNC: string;
   rate: string;
-  dateTime: string;
+  effectiveFrom: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -27,7 +27,7 @@ export const getMappingSetupsApi = async (
   module: string,
   page: number = 1,
   pageSize: number = 10,
-  searchParams?: Record<string, any>
+  searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<MappingSetupData>> => {
   const params: any = {
     page: page,
@@ -41,7 +41,7 @@ export const getMappingSetupsApi = async (
 // POST
 export const createMappingSetupApi = async (
   data: any,
-  module: string
+  module: string,
 ): Promise<MappingSetupData> => {
   const response = await api.post(`/mappingSetup/${module}/`, data);
   return response.data;
@@ -51,7 +51,7 @@ export const createMappingSetupApi = async (
 export const updateMappingSetupApi = async (
   id: number,
   data: any,
-  module: string
+  module: string,
 ): Promise<MappingSetupData> => {
   const response = await api.patch(`/mappingSetup/${module}/${id}/`, data);
   return response.data;
@@ -60,7 +60,7 @@ export const updateMappingSetupApi = async (
 // DELETE
 export const deleteMappingSetupApi = async (
   id: number,
-  module: string
+  module: string,
 ): Promise<void> => {
   await api.delete(`/mappingSetup/${module}/${id}/`);
 };

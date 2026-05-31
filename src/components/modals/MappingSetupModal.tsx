@@ -35,7 +35,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
     MCC: "",
     MNC: "",
     rate: "",
-    dateTime: "",
+    effectiveFrom: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -51,7 +51,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
           MCC: editingMapping.MCC,
           MNC: editingMapping.MNC,
           rate: editingMapping.rate,
-          dateTime: editingMapping.dateTime,
+          effectiveFrom: editingMapping.effectiveFrom,
         });
       } else {
         setFormData({
@@ -63,7 +63,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
           MCC: "",
           MNC: "",
           rate: "",
-          dateTime: "",
+          effectiveFrom: "",
         });
       }
     }
@@ -119,8 +119,8 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
         isViewMode
           ? "View Mapping setup"
           : editingMapping
-          ? "Change mapping setup"
-          : "Add mapping setup"
+            ? "Change mapping setup"
+            : "Add mapping setup"
       }
       className="max-w-4xl"
     >
@@ -189,9 +189,9 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             disabled={isViewMode}
           />
           <Input
-            label="DateTime"
-            name="dateTime"
-            value={formData.dateTime}
+            label="EffectiveFrom"
+            name="effectiveFrom"
+            value={formData.effectiveFrom}
             onChange={handleChange}
             disabled={isViewMode}
           />

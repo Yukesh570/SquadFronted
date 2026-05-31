@@ -48,7 +48,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
     MCC: "",
     MNC: "",
     rate: "",
-    dateTime: "",
+    effectiveFrom: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,7 +82,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
           list.map((m) => ({
             label: m.ratePlan,
             value: String(m.id),
-          }))
+          })),
         );
       });
     } else {
@@ -97,7 +97,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
   useEffect(() => {
     if (selectedMappingId) {
       const selected = allMappings.find(
-        (m) => String(m.id) === selectedMappingId
+        (m) => String(m.id) === selectedMappingId,
       );
       if (selected) {
         setFormData({
@@ -109,7 +109,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
           MCC: selected.MCC,
           MNC: selected.MNC,
           rate: selected.rate,
-          dateTime: selected.dateTime,
+          effectiveFrom: selected.effectiveFrom,
         });
       }
     } else {
@@ -122,7 +122,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
         MCC: "",
         MNC: "",
         rate: "",
-        dateTime: "",
+        effectiveFrom: "",
       });
     }
   }, [selectedMappingId, allMappings]);
@@ -152,7 +152,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
         }
         timeoutRef.current = window.setTimeout(
           () => checkStatus(taskId, attempt + 1),
-          POLL_INTERVAL_MS
+          POLL_INTERVAL_MS,
         );
         return;
       }
@@ -161,7 +161,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
     if (statusRes) {
       console.log(
         `Polling Status (Attempt ${attempt}/${MAX_ATTEMPTS}):`,
-        statusRes
+        statusRes,
       );
 
       const state =
@@ -225,7 +225,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
       setProgress((prev) => (prev && prev < 90 ? prev + 15 : 90));
       timeoutRef.current = window.setTimeout(
         () => checkStatus(taskId, attempt + 1),
-        POLL_INTERVAL_MS
+        POLL_INTERVAL_MS,
       );
     }
   };
@@ -243,7 +243,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
     try {
       const response = (await importVendorRatesApi(
         csvFile,
-        selectedMappingId
+        selectedMappingId,
       )) as any;
 
       const task_id = response.task_id;
@@ -418,8 +418,8 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
               placeholder="-"
             />
             <Input
-              label="Date Time Header"
-              value={formData.dateTime}
+              label="Effective From Header"
+              value={formData.effectiveFrom}
               readOnly
               disabled
               placeholder="-"
