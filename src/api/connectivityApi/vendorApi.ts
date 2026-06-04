@@ -11,6 +11,7 @@ export interface VendorPolicyData {
   responseTimeout?: number;
   enquireLinkInterval?: number;
   connectionTimeout?: number;
+  maxMessageRetries?: number; // ⚡️ FIX: Added maxMessageRetries
   connectionRetryDelay?: number;
   connectionRetryCount?: number;
   bindRetryDelay?: number;

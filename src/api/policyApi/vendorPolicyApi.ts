@@ -11,12 +11,13 @@ export interface VendorPolicyData {
   addrTon?: number;
   addrNpi?: number;
   rateTps?: number;
-  maxSession?: number; // FIX: Added maxSession to the interface mapping
+  maxSession?: number; 
   sendQueueLimit?: number;
   delayTime?: number;
   responseTimeout?: number;
   enquireLinkInterval?: number;
   connectionTimeout?: number;
+  maxMessageRetries?: number; // ⚡️ FIX: Added maxMessageRetries to the interface
   connectionRetryDelay?: number;
   connectionRetryCount?: number;
   bindRetryDelay?: number;

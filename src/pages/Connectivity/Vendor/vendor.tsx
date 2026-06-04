@@ -173,10 +173,6 @@ const Vendor: React.FC = () => {
 
       ws.onclose = () => {
         console.log("⚠️ Live SMPP feed disconnected. Attempting to reconnect...");
-        // ⚡️ FIX: Removed logic that set everyone to OFFLINE. 
-        // ⚡️ The backend already manages the actual state, and our REST API fetch gets the correct status on load.
-        
-        // Attempt to auto-reconnect after 5 seconds
         reconnectTimeout = setTimeout(connectWebSocket, 5000);
       };
     };
@@ -186,7 +182,6 @@ const Vendor: React.FC = () => {
     return () => {
       clearTimeout(reconnectTimeout);
       if (ws) {
-        // Prevent onclose logic from firing when we intentionally close it during unmount
         ws.onclose = null; 
         ws.close();
       }
@@ -350,6 +345,13 @@ const Vendor: React.FC = () => {
       label: "Conn. Timeout (s)", 
       type: "number",
       render: (c) => c.vendorPolicy?.connectionTimeout ?? "-"
+    },
+    // ⚡️ FIX: Added the Max Msg Retries column here
+    {
+      key: "maxMessageRetries",
+      label: "Max Msg Retries",
+      type: "number",
+      render: (c) => c.vendorPolicy?.maxMessageRetries ?? "-"
     },
     {
       key: "connectionRetryDelay",

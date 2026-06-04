@@ -73,6 +73,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     responseTimeout: "",
     enquireLinkInterval: "",
     connectionTimeout: "",
+    maxMessageRetries: "", // ⚡️ FIX: Added maxMessageRetries field
     connectionRetryDelay: "",
     connectionRetryCount: "",
     bindRetryDelay: "",
@@ -187,6 +188,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           responseTimeout: anyVendor.vendorPolicy?.responseTimeout != null ? String(anyVendor.vendorPolicy.responseTimeout) : "",
           enquireLinkInterval: anyVendor.vendorPolicy?.enquireLinkInterval != null ? String(anyVendor.vendorPolicy.enquireLinkInterval) : "",
           connectionTimeout: anyVendor.vendorPolicy?.connectionTimeout != null ? String(anyVendor.vendorPolicy.connectionTimeout) : "",
+          maxMessageRetries: anyVendor.vendorPolicy?.maxMessageRetries != null ? String(anyVendor.vendorPolicy.maxMessageRetries) : "", // ⚡️ FIX: Handle maxMessageRetries
           connectionRetryDelay: anyVendor.vendorPolicy?.connectionRetryDelay != null ? String(anyVendor.vendorPolicy.connectionRetryDelay) : "",
           connectionRetryCount: anyVendor.vendorPolicy?.connectionRetryCount != null ? String(anyVendor.vendorPolicy.connectionRetryCount) : "",
           bindRetryDelay: anyVendor.vendorPolicy?.bindRetryDelay != null ? String(anyVendor.vendorPolicy.bindRetryDelay) : "",
@@ -252,6 +254,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           responseTimeout: "",
           enquireLinkInterval: "",
           connectionTimeout: "",
+          maxMessageRetries: "", // ⚡️ FIX: Reset maxMessageRetries
           connectionRetryDelay: "",
           connectionRetryCount: "",
           bindRetryDelay: "",
@@ -362,6 +365,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         if (formData.responseTimeout !== "") policyPayload.responseTimeout = Number(formData.responseTimeout);
         if (formData.enquireLinkInterval !== "") policyPayload.enquireLinkInterval = Number(formData.enquireLinkInterval);
         if (formData.connectionTimeout !== "") policyPayload.connectionTimeout = Number(formData.connectionTimeout);
+        if (formData.maxMessageRetries !== "") policyPayload.maxMessageRetries = Number(formData.maxMessageRetries); // ⚡️ FIX: Process maxMessageRetries
         if (formData.connectionRetryDelay !== "") policyPayload.connectionRetryDelay = Number(formData.connectionRetryDelay);
         if (formData.connectionRetryCount !== "") policyPayload.connectionRetryCount = Number(formData.connectionRetryCount);
         if (formData.bindRetryDelay !== "") policyPayload.bindRetryDelay = Number(formData.bindRetryDelay);
@@ -690,7 +694,17 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Retries & Recovery
           </legend>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* ⚡️ FIX: Added Max Msg Retries input */}
+            <Input
+              label="Max Msg Retries"
+              name="maxMessageRetries"
+              type="number"
+              value={formData.maxMessageRetries}
+              onChange={handleChange}
+              placeholder="3"
+              disabled={isViewMode}
+            />
             <Input
               label="Conn Retry Delay (s)"
               name="connectionRetryDelay"
