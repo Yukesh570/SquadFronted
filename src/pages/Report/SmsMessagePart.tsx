@@ -19,12 +19,99 @@ import { actionHelper } from "../../helper/action";
 interface Option { label: string; value: string; }
 interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; }
 
-const statusOptions: Option[] = [
-  { label: "QUEUED", value: "QUEUED" },
-  { label: "SUBMITTED", value: "SUBMITTED" },
-  { label: "DELIVERED", value: "DELIVERED" },
-  { label: "FAILED", value: "FAILED" },
-];
+const DLR_STATUS_COLORS: Record<string, { bg: string; text: string; border: string; label: string }> = {
+  DELIVERED: {
+    bg: "#DCFCE7",
+    text: "#166534",
+    border: "#16A34A",
+    label: "Delivered",
+  },
+  SUBMITTED: {
+    bg: "#DBEAFE",
+    text: "#1E40AF",
+    border: "#2563EB",
+    label: "Submitted",
+  },
+  SENT_TO_VENDOR: {
+    bg: "#E0E7FF",
+    text: "#3730A3",
+    border: "#4F46E5",
+    label: "Sent to Vendor",
+  },
+  SUBMITTING: {
+    bg: "#F3E8FF",
+    text: "#6B21A8",
+    border: "#9333EA",
+    label: "Submitting",
+  },
+  QUEUED: {
+    bg: "#F3F4F6",
+    text: "#374151",
+    border: "#6B7280",
+    label: "Queued",
+  },
+  PENDING: {
+    bg: "#FEF3C7",
+    text: "#92400E",
+    border: "#F59E0B",
+    label: "Pending",
+  },
+  UNDELIVERED: {
+    bg: "#FFEDD5",
+    text: "#9A3412",
+    border: "#EA580C",
+    label: "Undelivered",
+  },
+  FAILED: {
+    bg: "#FEE2E2",
+    text: "#991B1B",
+    border: "#DC2626",
+    label: "Failed",
+  },
+  REJECTED: {
+    bg: "#FEE2E2",
+    text: "#7F1D1D",
+    border: "#991B1B",
+    label: "Rejected",
+  },
+  EXPIRED: {
+    bg: "#FEF3C7",
+    text: "#78350F",
+    border: "#92400E",
+    label: "Expired",
+  },
+  UNKNOWN: {
+    bg: "#E2E8F0",
+    text: "#334155",
+    border: "#475569",
+    label: "Unknown",
+  },
+};
+
+const statusOptions: Option[] = Object.keys(DLR_STATUS_COLORS).map((key) => ({
+  label: DLR_STATUS_COLORS[key].label,
+  value: key,
+}));
+
+const renderStatusBadge = (status?: string) => {
+  if (!status) return <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">-</span>;
+  
+  const statusKey = status.toUpperCase();
+  const config = DLR_STATUS_COLORS[statusKey] || DLR_STATUS_COLORS.UNKNOWN;
+  
+  return (
+    <span
+      className="px-2 py-0.5 rounded text-xs font-medium border"
+      style={{
+        backgroundColor: config.bg,
+        color: config.text,
+        borderColor: config.border,
+      }}
+    >
+      {config.label || status}
+    </span>
+  );
+};
 
 const formatLocalDate = (date: Date) => {
   const year = date.getFullYear();
@@ -74,7 +161,7 @@ const SmsMessagePart: React.FC = () => {
       render: (data: any) => {
         if (!data.text) return "-";
         const strippedContent = data.text.replace(/<[^>]*>/g, "");
-        const limit = 50; // Truncate limit
+        const limit = 50; 
         return strippedContent.length > limit ? (
           <span title={strippedContent}>{strippedContent.substring(0, limit)}...</span>
         ) : (
@@ -93,19 +180,17 @@ const SmsMessagePart: React.FC = () => {
       type: "text", 
       options: statusOptions, 
       filterKey: "submit_status",
-      render: (log) => {
-        const statusKey = log.submit_status?.toLowerCase();
-        const colors: Record<string, string> = {
-          delivered: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-          failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-          submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-          queued: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-        };
-        return (<span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${colors[statusKey] || "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"}`}>{log.submit_status || "-"}</span>);
-      }
+      render: (log) => renderStatusBadge(log.submit_status)
     },
     { key: "vendor_msg_id", label: "Vendor Msg ID", type: "text", filterKey: "vendor_msg_id__icontains" },
-    { key: "vendor_submit_status", label: "Vendor Submit Status", type: "text", filterKey: "vendor_submit_status__icontains" },
+    { 
+      key: "vendor_submit_status", 
+      label: "Vendor Submit Status", 
+      type: "text", 
+      options: statusOptions,
+      filterKey: "vendor_submit_status__icontains",
+      render: (log) => renderStatusBadge(log.vendor_submit_status)
+    },
     { key: "submit_attempts", label: "Submit Attempts", type: "text", filterKey: "submit_attempts__icontains" },
     { key: "failure_reason", label: "Failure Reason", type: "text" },
     { key: "submitted_at", label: "Submitted At", type: "date", render: (data: any) => data.submitted_at ? new Date(data.submitted_at).toLocaleString() : "-" },
@@ -174,10 +259,10 @@ const SmsMessagePart: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Message Segments</h1>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter columns={allColumns as any} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+            <AdvancedFilter columns={allColumns as any} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
           </div>
         </div>
         
