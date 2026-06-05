@@ -64,7 +64,7 @@ const Dashboard: React.FC = () => {
 
   const fetchTodaySmsCount = async () => {
     try {
-      const response = await api.get("/smppSMS/count", {
+      const response = await api.get("/smppSMSCounts/", {
         params: { today: true },
       });
       if (response && response.data !== undefined) {
