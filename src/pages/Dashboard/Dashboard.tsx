@@ -4,8 +4,13 @@ import {
   MessageSquare,
   Activity,
   Monitor,
-  CreditCard,
+  XCircle,
+  Users,
+  Server,
   ArrowRight,
+  Bell,
+  TrendingUp,
+  DollarSign,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import StatCard from "../../components/ui/StatCard";
@@ -27,108 +32,197 @@ import {
   getClientSessionsApi,
   type ClientSessionData,
 } from "../../api/clientSessionApi/clientSessionApi";
-import api from "../../api/axiosInstance";
+import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
+import { getClientsApi } from "../../api/clientApi/clientApi";
+import { getNotificationApi, type NotificationData } from "../../api/userActionApi/notificationApi";
+import {
+  getSmsStatsApi,
+  getSmsHourlyApi,
+  getDlrStatsApi,
+  getRevenueApi,
+  type SmsHourlyData,
+  type RevenueData,
+} from "../../api/reportApi/smsCountsApi";
 
-// --- Static Fallbacks for unlinked APIs ---
-const initialTrafficData = [
-  { time: "00:00", volume: 12000 },
-  { time: "04:00", volume: 8500 },
-  { time: "08:00", volume: 32000 },
-  { time: "12:00", volume: 45000 },
-  { time: "16:00", volume: 58000 },
-  { time: "20:00", volume: 39000 },
-  { time: "23:59", volume: 15000 },
-];
-const initialDlrData = [
-  { name: "Delivered", value: 82.5, color: "#10b981" },
-  { name: "Failed", value: 12.0, color: "#ef4444" },
-  { name: "Pending", value: 3.5, color: "#f59e0b" },
-  { name: "Rejected", value: 2.0, color: "#6b7280" },
-];
+// DLR colours — stable, not derived from API
+const DLR_COLORS: Record<string, string> = {
+  Delivered: "#10b981",
+  Failed:    "#ef4444",
+  Pending:   "#f59e0b",
+  Rejected:  "#6b7280",
+};
 
 const Dashboard: React.FC = () => {
-  const isDark = document.documentElement.classList.contains("dark");
-
-  // --- DYNAMIC REAL-TIME STATES ---
-  const [activeSessionsCount, setActiveSessionsCount] = useState<number>(0);
-  const [liveSessions, setLiveSessions] = useState<ClientSessionData[]>([]);
-
-  // --- SOON-TO-BE DYNAMIC STATES ---
-  const [trafficData] = useState(initialTrafficData);
-  const [dlrData] = useState(initialDlrData);
-  const [stats, setStats] = useState({
-    totalSms: "-",
-    deliveryRate: "82.5%",
-    revenue: "$4,250.00",
-  });
-
-  const fetchTodaySmsCount = async () => {
-    try {
-      const response = await api.get("/smppSMSCounts/", {
-        params: { today: true },
-      });
-      if (response && response.data !== undefined) {
-        const count =
-          response.data.count ?? response.data.total ?? response.data;
-        setStats((prev) => ({
-          ...prev,
-          totalSms: Number(count).toLocaleString(),
-        }));
-      }
-    } catch (error) {
-      console.error("Failed to fetch today's SMS count.", error);
-    }
-  };
-
-  // Fetch Live Session Data
-  const fetchActiveSessions = async () => {
-    try {
-      // Fetch the first 5 sessions that are ONLINE
-      const response = await getClientSessionsApi("clientSession", 1, 5, {
-        status: "CONNECTED",
-      });
-      if (response && response.results) {
-        setLiveSessions(response.results);
-        setActiveSessionsCount(response.count);
-      } else if (Array.isArray(response)) {
-        setLiveSessions(response.slice(0, 5));
-        setActiveSessionsCount(response.length);
-      }
-    } catch (error) {
-      console.error(
-        "Failed to fetch active client sessions for dashboard.",
-        error,
-      );
-    }
-  };
+  const [isDark, setIsDark] = useState(
+    document.documentElement.classList.contains("dark")
+  );
 
   useEffect(() => {
-    // Initial fetch
-    fetchTodaySmsCount();
-    fetchActiveSessions();
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
-    // Real-time WebSocket connection for Dashboard
+  // --- KPI states ---
+  const [totalSms, setTotalSms]           = useState<string>("-");
+  const [deliveredCount, setDeliveredCount] = useState<string>("-");
+  const [failedCount, setFailedCount]     = useState<string>("-");
+  const [deliveryRate, setDeliveryRate]   = useState<string>("-");
+  const [activeSessionsCount, setActiveSessionsCount] = useState<number | string>("-");
+  const [onlineVendors, setOnlineVendors] = useState<number | string>("-");
+  const [onlineClients, setOnlineClients] = useState<number | string>("-");
+
+  // --- Chart states ---
+  const [trafficData, setTrafficData] = useState<SmsHourlyData[]>([]);
+  const [dlrData, setDlrData]         = useState<{ name: string; value: number; color: string }[]>([]);
+
+  // --- Table / panel states ---
+  const [liveSessions, setLiveSessions]     = useState<ClientSessionData[]>([]);
+  const [notifications, setNotifications]   = useState<NotificationData[]>([]);
+  const [revenue, setRevenue]               = useState<RevenueData | null>(null);
+
+  // ─── Fetchers ────────────────────────────────────────────────────────────────
+
+  const fetchSmsStats = async () => {
+    try {
+      const d = await getSmsStatsApi({ today: true });
+      setTotalSms(Number(d.count).toLocaleString());
+      setDeliveredCount(Number(d.deliveredCount).toLocaleString());
+      setFailedCount(Number(d.failedCount).toLocaleString());
+      setDeliveryRate(`${d.deliveryRate}%`);
+    } catch (e) {
+      console.error("fetchSmsStats failed", e);
+    }
+  };
+
+  const fetchHourlyTraffic = async () => {
+    try {
+      const data = await getSmsHourlyApi({ today: true });
+      setTrafficData(data);
+    } catch (e) {
+      console.error("fetchHourlyTraffic failed", e);
+    }
+  };
+
+  const fetchDlrStats = async () => {
+    try {
+      const d = await getDlrStatsApi({ today: true });
+      setDlrData([
+        { name: "Delivered", value: d.deliveredPercent, color: DLR_COLORS.Delivered },
+        { name: "Failed",    value: d.failedPercent,    color: DLR_COLORS.Failed    },
+        { name: "Pending",   value: d.pendingPercent,   color: DLR_COLORS.Pending   },
+        { name: "Rejected",  value: d.rejectedPercent,  color: DLR_COLORS.Rejected  },
+      ]);
+    } catch (e) {
+      console.error("fetchDlrStats failed", e);
+    }
+  };
+
+  const fetchActiveSessions = async () => {
+    try {
+      const [connectedRes, boundRes] = await Promise.all([
+        getClientSessionsApi("clientSession", 1, 5, { status: "CONNECTED" }),
+        getClientSessionsApi("clientSession", 1, 5, { status: "BOUND" }),
+      ]);
+      const connectedResults = connectedRes?.results ?? [];
+      const boundResults = boundRes?.results ?? [];
+      const connectedCount = connectedRes?.count ?? 0;
+      const boundCount = boundRes?.count ?? 0;
+
+      const seen = new Set<string>();
+      const merged: ClientSessionData[] = [];
+      for (const s of [...connectedResults, ...boundResults]) {
+        const key = s.sessionId || s.id || "";
+        if (!seen.has(String(key))) {
+          seen.add(String(key));
+          merged.push(s);
+        }
+      }
+
+      setLiveSessions(merged.slice(0, 5));
+      setActiveSessionsCount(connectedCount + boundCount);
+    } catch (e) {
+      console.error("fetchActiveSessions failed", e);
+    }
+  };
+
+  const fetchOnlineVendors = async () => {
+    try {
+      const res = await getVendorsApi("vendor", 1, 1, { bindStatus: "ONLINE" });
+      if (res?.count !== undefined) setOnlineVendors(res.count);
+    } catch (e) {
+      console.error("fetchOnlineVendors failed", e);
+    }
+  };
+
+  const fetchOnlineClients = async () => {
+    try {
+      const res = await getClientsApi("client", 1, 1, { bindStatus: "ONLINE" });
+      if (res?.count !== undefined) setOnlineClients(res.count);
+    } catch (e) {
+      console.error("fetchOnlineClients failed", e);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await getNotificationApi(1, 5);
+      if (res?.results) setNotifications(res.results);
+    } catch (e) {
+      console.error("fetchNotifications failed", e);
+    }
+  };
+
+  const fetchRevenue = async () => {
+    try {
+      const d = await getRevenueApi({ today: true });
+      setRevenue(d);
+    } catch (e) {
+      console.error("fetchRevenue failed", e);
+    }
+  };
+
+  // ─── Effects ─────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    fetchSmsStats();
+    fetchHourlyTraffic();
+    fetchDlrStats();
+    fetchActiveSessions();
+    fetchOnlineVendors();
+    fetchOnlineClients();
+    fetchNotifications();
+    fetchRevenue();
+
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
     if (!wsBase) return;
 
     const ws = new WebSocket(`${wsBase}/ws/status/`);
-
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.action === "session_update") {
-          // If a session updates, refetch the dashboard mini-table
-          fetchActiveSessions();
-        }
+        if (data.action === "session_update") fetchActiveSessions();
       } catch (err) {
-        console.error("WebSocket parsing error in Dashboard", err);
+        console.error("WebSocket parse error in Dashboard", err);
       }
     };
-
-    return () => {
-      ws.close();
-    };
+    return () => ws.close();
   }, []);
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+  const formatNotificationTime = (iso?: string) => {
+    if (!iso) return "";
+    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (diff < 60)   return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  };
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="container mx-auto pb-8">
@@ -148,148 +242,213 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Top Row: KPIs */}
+      {/* Row 1: KPI Cards — SMS stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard
           title="Total SMS (Today)"
-          value={stats.totalSms}
+          value={totalSms}
           icon={<MessageSquare size={24} />}
         />
         <StatCard
-          title="Avg. Delivery Rate"
-          value={stats.deliveryRate}
+          title="Delivered (Today)"
+          value={deliveredCount}
           icon={<Activity size={24} />}
         />
-        {/* DYNAMIC CARD */}
         <StatCard
-          title="Active Sessions"
+          title="Failed (Today)"
+          value={failedCount}
+          icon={<XCircle size={24} />}
+        />
+        <StatCard
+          title="Delivery Rate"
+          value={deliveryRate}
+          icon={<Activity size={24} />}
+          trendText="Today"
+        />
+      </div>
+
+      {/* Row 2: KPI Cards — Connectivity */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <StatCard
+          title="Active Client Sessions"
           value={activeSessionsCount}
           icon={<Monitor size={24} />}
           trendText="Live via WebSocket"
         />
         <StatCard
-          title="Est. Revenue (Today)"
-          value={stats.revenue}
-          icon={<CreditCard size={24} />}
+          title="Online Clients"
+          value={onlineClients}
+          icon={<Users size={24} />}
+          trendText="bindStatus: ONLINE"
+        />
+        <StatCard
+          title="Online Vendors"
+          value={onlineVendors}
+          icon={<Server size={24} />}
+          trendText="bindStatus: ONLINE"
         />
       </div>
 
-      {/* Middle Row: Charts (Awaiting APIs) */}
+      {/* Row 3: Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Traffic Volume */}
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-text-primary dark:text-white">
-              Traffic Volume (24h)
-            </h3>
-          </div>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={trafficData}
-                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke={isDark ? "#374151" : "#f3f4f6"}
-                />
-                <XAxis
-                  dataKey="time"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 12 }}
-                  dy={10}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 12 }}
-                  tickFormatter={(value) => `${value / 1000}k`}
-                  dx={-10}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#1f2937" : "#fff",
-                    borderColor: isDark ? "#374151" : "#e5e7eb",
-                    borderRadius: "0.5rem",
-                  }}
-                  itemStyle={{ color: "#8b5cf6", fontWeight: 600 }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="volume"
-                  stroke="#8b5cf6"
-                  strokeWidth={3}
-                  fillOpacity={1}
-                  fill="url(#colorVolume)"
-                  activeDot={{ r: 6, strokeWidth: 0 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <h3 className="text-lg font-semibold text-text-primary dark:text-white mb-4">
+            Traffic Volume (24h)
+          </h3>
+          <div className="h-[280px] w-full">
+            {trafficData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={trafficData}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="var(--color-primary)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0}   />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke={isDark ? "#374151" : "#f3f4f6"}
+                  />
+                  <XAxis
+                    dataKey="hour"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 11 }}
+                    dy={10}
+                    interval={3}
+                    tickFormatter={(h) => `${h}:00`}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 11 }}
+                    dx={-10}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isDark ? "#1f2937" : "#fff",
+                      borderColor:     isDark ? "#374151" : "#e5e7eb",
+                      borderRadius:    "0.5rem",
+                    }}
+                    itemStyle={{ color: "var(--color-primary)", fontWeight: 600 }}
+                    labelFormatter={(h) => `Hour ${h}:00`}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="count"
+                    stroke="var(--color-primary)"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorVolume)"
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-sm text-text-secondary dark:text-gray-500">
+                Loading traffic data…
+              </div>
+            )}
           </div>
         </div>
 
+        {/* DLR Breakdown */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm flex flex-col">
           <h3 className="text-lg font-semibold text-text-primary dark:text-white mb-4">
-            DLR Status Breakdown
+            DLR Breakdown (Today)
           </h3>
-          <div className="h-[300px] w-full flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={dlrData}
-                  cx="50%"
-                  cy="45%"
-                  innerRadius={70}
-                  outerRadius={100}
-                  paddingAngle={2}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {dlrData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#1f2937" : "#fff",
-                    borderColor: isDark ? "#374151" : "#e5e7eb",
-                    borderRadius: "0.5rem",
-                  }}
-                  itemStyle={{ fontWeight: 600 }}
-                  formatter={(value) => `${value}%`}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  iconType="circle"
-                  formatter={(value: string, entry) => {
-                    const p = entry.payload as { value?: number };
-                    return (
-                      <span className="text-sm text-text-secondary dark:text-gray-300">
-                        {value}{" "}
-                        <span className="font-medium text-text-primary dark:text-white ml-1">
-                          ({p?.value}%)
+          <div className="h-[280px] w-full flex-1">
+            {dlrData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={dlrData}
+                    cx="50%"
+                    cy="45%"
+                    innerRadius={70}
+                    outerRadius={100}
+                    paddingAngle={2}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {dlrData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isDark ? "#1f2937" : "#fff",
+                      borderColor:     isDark ? "#374151" : "#e5e7eb",
+                      borderRadius:    "0.5rem",
+                    }}
+                    itemStyle={{ fontWeight: 600 }}
+                    formatter={(value) => `${value}%`}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    iconType="circle"
+                    formatter={(value: string, entry) => {
+                      const p = entry.payload as { value?: number };
+                      return (
+                        <span className="text-sm text-text-secondary dark:text-gray-300">
+                          {value}{" "}
+                          <span className="font-medium text-text-primary dark:text-white ml-1">
+                            ({p?.value}%)
+                          </span>
                         </span>
-                      </span>
-                    );
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+                      );
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-sm text-text-secondary dark:text-gray-500">
+                Loading DLR data…
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Bottom Row: DYNAMIC Live Sessions Table */}
-      <div className="grid grid-cols-1 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+      {/* Row 4: Revenue Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <StatCard
+          title="Total Revenue"
+          value={revenue ? `$${revenue.total_revenue.toFixed(2)}` : "-"}
+          icon={<DollarSign size={24} />}
+          trendText="Received from clients"
+        />
+        <StatCard
+          title="Total Cost"
+          value={revenue ? `$${revenue.total_cost.toFixed(2)}` : "-"}
+          icon={<DollarSign size={24} />}
+          trendText="Paid to vendors"
+        />
+        <StatCard
+          title="Gross Margin"
+          value={revenue ? `$${revenue.gross_margin.toFixed(2)}` : "-"}
+          icon={<TrendingUp size={24} />}
+          trendText="Revenue minus cost"
+        />
+        <StatCard
+          title="Margin %"
+          value={revenue ? `${revenue.margin_pct}%` : "-"}
+          icon={<Activity size={24} />}
+          trendText="Gross margin percentage"
+        />
+      </div>
+
+      {/* Row 5: Live Sessions + Notifications */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Live Sessions Table — 2/3 width */}
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
           <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-text-primary dark:text-white flex items-center">
               Live Client Sessions
@@ -299,32 +458,20 @@ const Dashboard: React.FC = () => {
               </span>
             </h3>
             <NavLink to="/clientSession">
-              <Button
-                variant="secondary"
-                size="sm"
-                rightIcon={<ArrowRight size={14} />}
-              >
+              <Button variant="secondary" size="sm" rightIcon={<ArrowRight size={14} />}>
                 View All
               </Button>
             </NavLink>
           </div>
-
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
-                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">
-                    Session ID
-                  </th>
-                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">
-                    Client Name
-                  </th>
-                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">
-                    System ID
-                  </th>
-                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">
-                    Status
-                  </th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Session ID</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Client</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">System ID</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Bind Type</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -343,28 +490,69 @@ const Dashboard: React.FC = () => {
                       <td className="p-4 text-sm text-text-secondary dark:text-gray-300">
                         {session.systemId}
                       </td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">
+                        {session.bindType || "—"}
+                      </td>
                       <td className="p-4 text-sm">
                         <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                          {session.status || "ONLINE"}
+                          {session.status || "CONNECTED"}
                         </span>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="p-10 text-center">
-                      <Monitor
-                        size={40}
-                        className="mx-auto mb-3 text-gray-300 dark:text-gray-600"
-                      />
+                    <td colSpan={5} className="p-10 text-center">
+                      <Monitor size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                       <p className="text-text-secondary dark:text-gray-400 text-sm">
-                        No active sessions found at the moment.
+                        No active sessions found.
                       </p>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* Notifications — 1/3 width */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
+          <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-text-primary dark:text-white flex items-center gap-2">
+              <Bell size={18} />
+              Notifications
+            </h3>
+            <NavLink to="/notifications">
+              <Button variant="secondary" size="sm" rightIcon={<ArrowRight size={14} />}>
+                View All
+              </Button>
+            </NavLink>
+          </div>
+          <div className="flex-1 divide-y divide-gray-100 dark:divide-gray-700">
+            {notifications.length > 0 ? (
+              notifications.map((n, i) => (
+                <div key={n.id || i} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <div className="flex justify-between items-start gap-2 mb-1">
+                    <p className="text-sm font-medium text-text-primary dark:text-white leading-snug">
+                      {n.title}
+                    </p>
+                    <span className="text-xs text-text-secondary dark:text-gray-500 whitespace-nowrap flex-shrink-0">
+                      {formatNotificationTime(n.createdAt)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-secondary dark:text-gray-400 leading-relaxed">
+                    {n.description}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="p-10 text-center">
+                <Bell size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                <p className="text-text-secondary dark:text-gray-400 text-sm">
+                  No notifications yet.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
