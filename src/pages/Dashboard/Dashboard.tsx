@@ -11,6 +11,8 @@ import {
   Bell,
   TrendingUp,
   DollarSign,
+  ChevronDown,
+  Calendar,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import StatCard from "../../components/ui/StatCard";
@@ -66,28 +68,55 @@ const Dashboard: React.FC = () => {
   }, []);
 
   // --- KPI states ---
-  const [totalSms, setTotalSms]           = useState<string>("-");
+  const [totalSms, setTotalSms]             = useState<string>("-");
   const [deliveredCount, setDeliveredCount] = useState<string>("-");
-  const [failedCount, setFailedCount]     = useState<string>("-");
-  const [deliveryRate, setDeliveryRate]   = useState<string>("-");
+  const [failedCount, setFailedCount]       = useState<string>("-");
+  const [deliveryRate, setDeliveryRate]     = useState<string>("-");
   const [activeSessionsCount, setActiveSessionsCount] = useState<number | string>("-");
-  const [onlineVendors, setOnlineVendors] = useState<number | string>("-");
-  const [onlineClients, setOnlineClients] = useState<number | string>("-");
+  const [onlineVendors, setOnlineVendors]   = useState<number | string>("-");
+  const [onlineClients, setOnlineClients]   = useState<number | string>("-");
 
   // --- Chart states ---
   const [trafficData, setTrafficData] = useState<SmsHourlyData[]>([]);
   const [dlrData, setDlrData]         = useState<{ name: string; value: number; color: string }[]>([]);
 
   // --- Table / panel states ---
-  const [liveSessions, setLiveSessions]     = useState<ClientSessionData[]>([]);
-  const [notifications, setNotifications]   = useState<NotificationData[]>([]);
-  const [revenue, setRevenue]               = useState<RevenueData | null>(null);
+  const [liveSessions, setLiveSessions]   = useState<ClientSessionData[]>([]);
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  const [revenue, setRevenue]             = useState<RevenueData | null>(null);
+
+  // ─── Date range ──────────────────────────────────────────────────────────────
+
+  type RangeKey = "today" | "7d" | "30d" | "90d" | "365d" | "all";
+
+  const RANGE_OPTIONS: { key: RangeKey; label: string }[] = [
+    { key: "today", label: "Today"        },
+    { key: "7d",    label: "Last 7 Days"  },
+    { key: "30d",   label: "Last 30 Days" },
+    { key: "90d",   label: "Last 90 Days" },
+    { key: "365d",  label: "Last Year"    },
+    { key: "all",   label: "All"          },
+  ];
+
+  const [activeRange, setActiveRange] = useState<RangeKey>("today");
+  const [rangeOpen, setRangeOpen]     = useState(false);
+
+  const buildParams = (range: RangeKey): Record<string, any> => {
+    if (range === "today") return { today: true };
+    if (range === "all")   return {};          // no date filter → backend returns everything
+    const end   = new Date();
+    const start = new Date();
+    const days  = range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 365;
+    start.setDate(start.getDate() - days + 1);
+    const fmt = (d: Date) => d.toISOString().split("T")[0];
+    return { startDate: fmt(start), endDate: fmt(end) };
+  };
 
   // ─── Fetchers ────────────────────────────────────────────────────────────────
 
-  const fetchSmsStats = async () => {
+  const fetchSmsStats = async (range: RangeKey) => {
     try {
-      const d = await getSmsStatsApi({ today: true });
+      const d = await getSmsStatsApi(buildParams(range));
       setTotalSms(Number(d.count).toLocaleString());
       setDeliveredCount(Number(d.deliveredCount).toLocaleString());
       setFailedCount(Number(d.failedCount).toLocaleString());
@@ -97,18 +126,18 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const fetchHourlyTraffic = async () => {
+  const fetchHourlyTraffic = async (range: RangeKey) => {
     try {
-      const data = await getSmsHourlyApi({ today: true });
+      const data = await getSmsHourlyApi(buildParams(range));
       setTrafficData(data);
     } catch (e) {
       console.error("fetchHourlyTraffic failed", e);
     }
   };
 
-  const fetchDlrStats = async () => {
+  const fetchDlrStats = async (range: RangeKey) => {
     try {
-      const d = await getDlrStatsApi({ today: true });
+      const d = await getDlrStatsApi(buildParams(range));
       setDlrData([
         { name: "Delivered", value: d.deliveredPercent, color: DLR_COLORS.Delivered },
         { name: "Failed",    value: d.failedPercent,    color: DLR_COLORS.Failed    },
@@ -124,21 +153,18 @@ const Dashboard: React.FC = () => {
     try {
       const [connectedRes, boundRes] = await Promise.all([
         getClientSessionsApi("clientSession", 1, 5, { status: "CONNECTED" }),
-        getClientSessionsApi("clientSession", 1, 5, { status: "BOUND" }),
+        getClientSessionsApi("clientSession", 1, 5, { status: "BOUND"     }),
       ]);
       const connectedResults = connectedRes?.results ?? [];
-      const boundResults = boundRes?.results ?? [];
-      const connectedCount = connectedRes?.count ?? 0;
-      const boundCount = boundRes?.count ?? 0;
+      const boundResults     = boundRes?.results     ?? [];
+      const connectedCount   = connectedRes?.count   ?? 0;
+      const boundCount       = boundRes?.count       ?? 0;
 
       const seen = new Set<string>();
       const merged: ClientSessionData[] = [];
       for (const s of [...connectedResults, ...boundResults]) {
-        const key = s.sessionId || s.id || "";
-        if (!seen.has(String(key))) {
-          seen.add(String(key));
-          merged.push(s);
-        }
+        const key = String(s.sessionId || s.id || "");
+        if (!seen.has(key)) { seen.add(key); merged.push(s); }
       }
 
       setLiveSessions(merged.slice(0, 5));
@@ -175,9 +201,9 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const fetchRevenue = async () => {
+  const fetchRevenue = async (range: RangeKey) => {
     try {
-      const d = await getRevenueApi({ today: true });
+      const d = await getRevenueApi(buildParams(range));
       setRevenue(d);
     } catch (e) {
       console.error("fetchRevenue failed", e);
@@ -187,14 +213,14 @@ const Dashboard: React.FC = () => {
   // ─── Effects ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    fetchSmsStats();
-    fetchHourlyTraffic();
-    fetchDlrStats();
+    fetchSmsStats(activeRange);
+    fetchHourlyTraffic(activeRange);
+    fetchDlrStats(activeRange);
     fetchActiveSessions();
     fetchOnlineVendors();
     fetchOnlineClients();
     fetchNotifications();
-    fetchRevenue();
+    fetchRevenue(activeRange);
 
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
     if (!wsBase) return;
@@ -209,18 +235,20 @@ const Dashboard: React.FC = () => {
       }
     };
     return () => ws.close();
-  }, []);
+  }, [activeRange]);
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
 
   const formatNotificationTime = (iso?: string) => {
     if (!iso) return "";
     const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-    if (diff < 60)   return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 60)    return `${diff}s ago`;
+    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return `${Math.floor(diff / 86400)}d ago`;
   };
+
+  const activeRangeLabel = RANGE_OPTIONS.find((r) => r.key === activeRange)?.label ?? "";
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -233,29 +261,65 @@ const Dashboard: React.FC = () => {
             Dashboard Overview
           </h1>
           <p className="text-sm text-text-secondary dark:text-gray-400 mt-1">
-            Live system metrics and SMS traffic analytics.
+            Live system metrics and SMS traffic analytics.{" "}
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+              {activeRangeLabel}
+            </span>
           </p>
         </div>
-        <div className="flex items-center space-x-2 text-sm text-text-secondary">
-          <Home size={16} className="text-gray-400" />
-          <span className="text-text-primary dark:text-white">Dashboard</span>
+        <div className="flex items-center gap-3">
+          {/* Range dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setRangeOpen((o) => !o)}
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-medium text-text-primary dark:text-white shadow-sm hover:border-primary hover:text-primary transition-colors"
+            >
+              <Calendar size={15} className="text-primary" />
+              {activeRangeLabel}
+              <ChevronDown
+                size={15}
+                className={`transition-transform ${rangeOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+            {rangeOpen && (
+              <div className="absolute right-0 mt-1 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 overflow-hidden">
+                {RANGE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => { setActiveRange(opt.key); setRangeOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                      activeRange === opt.key
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-text-secondary dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center space-x-2 text-sm text-text-secondary">
+            <Home size={16} className="text-gray-400" />
+            <span className="text-text-primary dark:text-white">Dashboard</span>
+          </div>
         </div>
       </div>
 
       {/* Row 1: KPI Cards — SMS stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard
-          title="Total SMS (Today)"
+          title={`Total SMS (${activeRangeLabel})`}
           value={totalSms}
           icon={<MessageSquare size={24} />}
         />
         <StatCard
-          title="Delivered (Today)"
+          title={`Delivered (${activeRangeLabel})`}
           value={deliveredCount}
           icon={<Activity size={24} />}
         />
         <StatCard
-          title="Failed (Today)"
+          title={`Failed (${activeRangeLabel})`}
           value={failedCount}
           icon={<XCircle size={24} />}
         />
@@ -263,7 +327,7 @@ const Dashboard: React.FC = () => {
           title="Delivery Rate"
           value={deliveryRate}
           icon={<Activity size={24} />}
-          trendText="Today"
+          trendText={activeRangeLabel}
         />
       </div>
 
@@ -361,7 +425,7 @@ const Dashboard: React.FC = () => {
         {/* DLR Breakdown */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm flex flex-col">
           <h3 className="text-lg font-semibold text-text-primary dark:text-white mb-4">
-            DLR Breakdown (Today)
+            DLR Breakdown ({activeRangeLabel})
           </h3>
           <div className="h-[280px] w-full flex-1">
             {dlrData.length > 0 ? (
@@ -531,7 +595,10 @@ const Dashboard: React.FC = () => {
           <div className="flex-1 divide-y divide-gray-100 dark:divide-gray-700">
             {notifications.length > 0 ? (
               notifications.map((n, i) => (
-                <div key={n.id || i} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <div
+                  key={n.id || i}
+                  className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                >
                   <div className="flex justify-between items-start gap-2 mb-1">
                     <p className="text-sm font-medium text-text-primary dark:text-white leading-snug">
                       {n.title}
