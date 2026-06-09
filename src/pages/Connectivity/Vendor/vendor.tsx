@@ -195,9 +195,9 @@ const Vendor: React.FC = () => {
   ];
 
   const invoicePolicyOptions: Option[] = [
-    { label: "On Attempt", value: "ON ATTEMPT" },
-    { label: "On Submit", value: "ON SUBMIT" },
-    { label: "On Delivered", value: "ON DELIVERED" },
+    { label: "On Attempt", value: "ON_ATTEMPT" },
+    { label: "On Submit", value: "ON_SUBMIT" },
+    { label: "On Delivered", value: "ON_DELIVERED" },
   ];
 
   const bindStatusOptions: Option[] = [

@@ -27,6 +27,7 @@ export interface ClientData {
   bindStatus: "ONLINE" | "OFFLINE";
   route: "DIRECT" | "HIGH QUALITY" | "SIM" | "WHOLESALE" | "FULL" | "SPAM";
   paymentTerms: "PREPAID" | "POSTPAID" | "NET7" | "NET15" | "NET30";
+  invoicePolicy?: "ON_ATTEMPT" | "ON_SUBMIT" | "ON_DELIVERED" | string; // ⚡️ FIX: Added invoicePolicy
   balanceAlertAmount: string;
   allowNetting: boolean;
   enableDlr: boolean;
@@ -35,7 +36,7 @@ export interface ClientData {
   smppPassword?: string;
   internalNotes?: string;
   createdAt?: string;
-  clientPolicy?: ClientPolicyData; // ⚡️ FIX: Attached nested policy here
+  clientPolicy?: ClientPolicyData; // Attached nested policy here
 }
 
 export interface PaginatedResponse<T> {

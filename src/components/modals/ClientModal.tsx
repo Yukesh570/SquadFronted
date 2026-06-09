@@ -66,6 +66,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     route: "DIRECT",
     routeGroupName: "",
     paymentTerms: "PREPAID",
+    invoicePolicy: "ON_ATTEMPT", // ⚡️ FIX: Added invoicePolicy state
     balanceAlertAmount: "",
     allowNetting: false,
     enableDlr: false,
@@ -125,6 +126,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     { label: "Net 30", value: "NET30" },
   ];
 
+  // ⚡️ FIX: Added invoice policy options
+  const invoicePolicyOptions = [
+    { label: "On Attempt", value: "ON_ATTEMPT" },
+    { label: "On Submit", value: "ON_SUBMIT" },
+    { label: "On Delivered", value: "ON_DELIVERED" },
+  ];
+
   // --- Fetch Global Dropdowns ---
   useEffect(() => {
     if (isOpen) {
@@ -167,6 +175,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           status: "ACTIVE",
           route: "DIRECT",
           paymentTerms: "PREPAID",
+          invoicePolicy: "ON_ATTEMPT", // Reset
           balanceAlertAmount: "",
           allowNetting: false,
           enableDlr: false,
@@ -188,7 +197,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       }
 
       if (isOpen && editingClient) {
-        // ⚡️ FIX: Read policy data directly from the client object instead of fetching
         setExistingPolicyId(editingClient.clientPolicy?.id || null);
 
         setFormData((prev) => ({
@@ -201,6 +209,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           status: editingClient.status,
           route: editingClient.route,
           paymentTerms: editingClient.paymentTerms,
+          invoicePolicy: editingClient.invoicePolicy || "ON_ATTEMPT", // Load value
           balanceAlertAmount: editingClient.balanceAlertAmount || "",
           allowNetting: editingClient.allowNetting,
           enableDlr: editingClient.enableDlr,
@@ -210,7 +219,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           bindStatus: editingClient.bindStatus || "OFFLINE",
           session: editingClient.session || "0/2",
           
-          // ⚡️ FIX: Populate form from the nested policy
           maxTps: editingClient.clientPolicy?.maxTps != null ? String(editingClient.clientPolicy.maxTps) : "",
           maxQueueDepth: editingClient.clientPolicy?.maxQueueDepth != null ? String(editingClient.clientPolicy.maxQueueDepth) : "",
           maxWindowPerSession: editingClient.clientPolicy?.maxWindowPerSession != null ? String(editingClient.clientPolicy.maxWindowPerSession) : "",
@@ -222,7 +230,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         }));
 
         if (editingClient.id) {
-          // Fetch IPs only (since policy is already bundled)
           getIpWhitelistApi("ipWhitelist", 1, 1000, {
             client: editingClient.id,
           })
@@ -480,7 +487,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Commercials & Alerts
           </legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Select
               label="Rate Plan Name"
               value={formData.ratePlanName}
@@ -494,6 +501,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.paymentTerms}
               onChange={(v) => handleSelect("paymentTerms", v)}
               options={paymentTermOptions}
+              disabled={isViewMode}
+            />
+            {/* ⚡️ FIX: Added Invoice Policy dropdown */}
+            <Select
+              label="Invoice Policy"
+              value={formData.invoicePolicy}
+              onChange={(v) => handleSelect("invoicePolicy", v)}
+              options={invoicePolicyOptions}
+              placeholder="Select Invoice Policy"
               disabled={isViewMode}
             />
             <Input

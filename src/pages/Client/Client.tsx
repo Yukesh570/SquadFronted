@@ -59,6 +59,7 @@ const DEFAULT_TABLE_COLUMNS = [
   "name",
   "companyName",
   "ratePlanName",
+  "invoicePolicy", // ⚡️ FIX: Added to default views
   "status",
   "route",
 ];
@@ -149,7 +150,6 @@ const Client: React.FC = () => {
   }, []);
 
   // --- Fetch Dropdowns for Search ---
-  // --- Fetch Dropdowns for Search ---
   useEffect(() => {
     const loadDropdowns = async () => {
       try {
@@ -222,6 +222,13 @@ const Client: React.FC = () => {
     { label: "Net 30", value: "NET30" },
   ];
 
+  // ⚡️ FIX: Added Invoice Policy mapping
+  const invoicePolicyOptions: Option[] = [
+    { label: "On Attempt", value: "ON_ATTEMPT" },
+    { label: "On Submit", value: "ON_SUBMIT" },
+    { label: "On Delivered", value: "ON_DELIVERED" },
+  ];
+
   const booleanOptions: Option[] = [
     { label: "Yes", value: "true" },
     { label: "No", value: "false" },
@@ -255,11 +262,8 @@ const Client: React.FC = () => {
   );
 
   const renderSessionBadge = (client: any) => {
-    // We grab the session string provided by websocket or default backend
     const sessionStr = client.session || "0/2";
     const [current] = sessionStr.split("/");
-
-    // ⚡️ FIX: Compare against maxSessions from the nested policy
     const max = client.clientPolicy?.maxSessions || 0;
     const isFull = Number(current) === max && max > 0;
 
@@ -329,6 +333,13 @@ const Client: React.FC = () => {
       type: "text",
       options: paymentTermOptions,
     },
+    // ⚡️ FIX: Added Invoice Policy column
+    {
+      key: "invoicePolicy",
+      label: "Invoice Policy",
+      type: "text",
+      options: invoicePolicyOptions,
+    },
     {
       key: "allowNetting",
       label: "Allow Netting",
@@ -364,7 +375,6 @@ const Client: React.FC = () => {
       render: (c) => renderSessionBadge(c),
     },
     // --- INTEGRATED POLICY COLUMNS ---
-    // ⚡️ FIX: Read directly from nested clientPolicy object
     {
       key: "maxTps",
       label: "Max TPS",

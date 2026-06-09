@@ -105,9 +105,9 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   ];
 
   const invoicePolicyOptions = [
-    { label: "On Attempt", value: "ON ATTEMPT" },
-    { label: "On Submit", value: "ON SUBMIT" },
-    { label: "On Delivered", value: "ON DELIVERED" },
+    { label: "On Attempt", value: "ON_ATTEMPT" },
+    { label: "On Submit", value: "ON_SUBMIT" },
+    { label: "On Delivered", value: "ON_DELIVERED" },
   ];
 
   const bindModeOptions = [
@@ -168,7 +168,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           profileName: editingVendor.profileName,
           ratePlanName: editingVendor.ratePlanName || "",
           connectionType: editingVendor.connectionType || "",
-          invoicePolicy: editingVendor.invoicePolicy || "ON ATTEMPT",
+          invoicePolicy: editingVendor.invoicePolicy || "ON_ATTEMPT",
           smppId: anyVendor.smpp || 0,
           smppHost: "",
           smppPort: "",
