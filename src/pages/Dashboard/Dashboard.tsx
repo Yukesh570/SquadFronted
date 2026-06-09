@@ -358,7 +358,7 @@ const Dashboard: React.FC = () => {
         {/* Traffic Volume */}
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-text-primary dark:text-white mb-4">
-            Traffic Volume (24h)
+            Traffic Volume ({activeRangeLabel})
           </h3>
           <div className="h-[280px] w-full">
             {trafficData.length > 0 ? (
