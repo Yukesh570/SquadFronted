@@ -485,19 +485,19 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard
           title="Total Revenue"
-          value={revenue ? `$${revenue.total_revenue.toFixed(2)}` : "-"}
+          value={revenue ? `$${revenue.total_revenue.toFixed(4)}` : "-"}
           icon={<DollarSign size={24} />}
           trendText="Received from clients"
         />
         <StatCard
           title="Total Cost"
-          value={revenue ? `$${revenue.total_cost.toFixed(2)}` : "-"}
+          value={revenue ? `$${revenue.total_cost.toFixed(4)}` : "-"}
           icon={<DollarSign size={24} />}
           trendText="Paid to vendors"
         />
         <StatCard
           title="Gross Margin"
-          value={revenue ? `$${revenue.gross_margin.toFixed(2)}` : "-"}
+          value={revenue ? `$${revenue.gross_margin.toFixed(4)}` : "-"}
           icon={<TrendingUp size={24} />}
           trendText="Revenue minus cost"
         />
