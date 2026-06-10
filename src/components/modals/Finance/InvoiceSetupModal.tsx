@@ -42,8 +42,8 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
     billingAddressOverride: "",
     businessEntity: "",
     invoiceFrequency: "MONTHLY",
-    dueDays: 0,
-    tax: "",
+    dueDays: "" as number | string,
+    tax: "" as number | string, // ⚡️ FIX: Added string | number signature
     isTaxApplied: false,
   });
 
@@ -71,7 +71,6 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
       getEntityApi("entity", 1, 1000)
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
-          // FIXED: Set value to Numeric ID (converted to string for Select component compatibility)
           setEntityOptions(list.map((e: any) => ({ 
             label: e.legalEntityName || e.companyName, 
             value: String(e.id)
@@ -87,8 +86,8 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
         billingAddressOverride: editingSetup.billingAddressOverride || "",
         businessEntity: String(editingSetup.businessEntity || ""),
         invoiceFrequency: editingSetup.invoiceFrequency || "MONTHLY",
-        dueDays: editingSetup.dueDays || 0,
-        tax: editingSetup.tax || "",
+        dueDays: editingSetup.dueDays !== undefined && editingSetup.dueDays !== null ? editingSetup.dueDays : "",
+        tax: editingSetup.tax !== undefined && editingSetup.tax !== null ? editingSetup.tax : "",
         isTaxApplied: editingSetup.isTaxApplied || false,
       });
     } else if (isOpen) {
@@ -97,8 +96,8 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
         billingAddressOverride: "",
         businessEntity: "",
         invoiceFrequency: "MONTHLY",
-        dueDays: 0,
-        tax: "",
+        dueDays: "", 
+        tax: "", // ⚡️ FIX: Reset to empty string
         isTaxApplied: false,
       });
     }
@@ -107,7 +106,11 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
   // --- Handlers ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: name === "dueDays" ? Number(value) : value }));
+    // ⚡️ FIX: Allow backspace for both dueDays and tax so they don't lock at 0
+    setFormData((prev) => ({ 
+      ...prev, 
+      [name]: ["dueDays", "tax"].includes(name) ? (value === "" ? "" : Number(value)) : value 
+    }));
   };
 
   const handleSelect = (name: string, value: string) => {
@@ -137,9 +140,11 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // FIXED: Business Entity is now sent as a Number (ID) instead of a String
+      // ⚡️ FIX: Ensure both dueDays and tax safely convert to numbers in the API payload
       const payload = {
         ...formData,
+        dueDays: formData.dueDays === "" ? 0 : Number(formData.dueDays),
+        tax: formData.tax === "" ? 0 : Number(formData.tax),
         company: Number(formData.company),
         businessEntity: Number(formData.businessEntity)
       };
@@ -155,13 +160,14 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
       onSuccess();
       onClose();
     } catch (error: any) {
-const serverError = error.response?.data;
-const errorMsg = serverError?.detail || 
-                 (serverError && typeof serverError === 'object' 
-                  ? Object.values(serverError).flat()[0] 
-                  : "Failed to save Invoice Setup.");
+      const serverError = error.response?.data;
+      const errorMsg = serverError?.detail || 
+                       (serverError && typeof serverError === 'object' 
+                       ? Object.values(serverError).flat()[0] 
+                       : "Failed to save Invoice Setup.");
 
-toast.error(errorMsg);    } finally {
+      toast.error(errorMsg);    
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -227,12 +233,15 @@ toast.error(errorMsg);    } finally {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+          {/* ⚡️ FIX: Converted to number input with decimal support */}
           <Input
-            label="Tax Details"
+            label="Tax Details (%)"
             name="tax"
+            type="number"
+            step="0.01"
             value={formData.tax}
             onChange={handleChange}
-            placeholder="e.g. VAT 13%"
+            placeholder="e.g. 13"
             disabled={isViewMode}
           />
           <div className="pt-6">
