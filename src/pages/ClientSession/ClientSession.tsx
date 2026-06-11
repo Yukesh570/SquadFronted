@@ -22,6 +22,9 @@ import { actionHelper } from "../../helper/action";
 // FIXED: Import the timezone formatter
 import { formatDateTime } from "../../helper/dateFormatter";
 
+// ⚡️ FIX: Import the unified StatusBadge
+import { StatusBadge } from "../../components/ui/StatusBadge";
+
 interface ColumnConfig extends FilterColumn {
   render?: (data: ClientSessionData) => React.ReactNode;
   filterKey?: string;
@@ -101,59 +104,18 @@ const ClientSession: React.FC = () => {
     }
   }, []);
 
-  const statusConfig: Record<
-    string,
-    { bg: string; text: string; darkBg: string; darkText: string }
-  > = {
-    CONNECTED: {
-      bg: "bg-green-100",
-      text: "text-green-800",
-      darkBg: "dark:bg-green-900/30",
-      darkText: "dark:text-green-400",
-    },
-    BOUND: {
-      bg: "bg-blue-100",
-      text: "text-blue-800",
-      darkBg: "dark:bg-blue-900/30",
-      darkText: "dark:text-blue-400",
-    },
-    UNBOUND: {
-      bg: "bg-yellow-100",
-      text: "text-yellow-800",
-      darkBg: "dark:bg-yellow-900/30",
-      darkText: "dark:text-yellow-400",
-    },
-    DISCONNECTED: {
-      bg: "bg-gray-200",
-      text: "text-gray-600",
-      darkBg: "dark:bg-gray-700",
-      darkText: "dark:text-gray-400",
-    },
-    FAILED_BIND: {
-      bg: "bg-red-100",
-      text: "text-red-800",
-      darkBg: "dark:bg-red-900/30",
-      darkText: "dark:text-red-400",
-    },
-    TIMEOUT: {
-      bg: "bg-orange-100",
-      text: "text-orange-800",
-      darkBg: "dark:bg-orange-900/30",
-      darkText: "dark:text-orange-400",
-    },
-  };
-
-  const renderStatusBadge = (status: string) => {
-    const normalized = status?.toUpperCase() || "DISCONNECTED";
-    const config = statusConfig[normalized] ?? statusConfig.DISCONNECTED;
-
-    return (
-      <span
-        className={`px-2 py-0.5 rounded text-xs font-medium ${config.bg} ${config.text} ${config.darkBg} ${config.darkText}`}
-      >
-        {status || "UNKNOWN"}
-      </span>
-    );
+  // ⚡️ FIX: Removed statusConfig and renderStatusBadge, now mapping status to existing palette using StatusBadge
+  const getBadgeStatus = (status: string) => {
+    const s = status?.toUpperCase() || "DISCONNECTED";
+    switch (s) {
+      case "CONNECTED": return "DELIVERED"; // Green
+      case "BOUND": return "SUBMITTED";     // Blue
+      case "UNBOUND": return "QUEUED";      // Yellow
+      case "FAILED_BIND": return "FAILED";  // Red
+      case "TIMEOUT": return "UNDELIVERED"; // Orange
+      case "DISCONNECTED": 
+      default: return "UNKNOWN";            // Grey
+    }
   };
 
   const allColumns: ColumnConfig[] = [
@@ -199,7 +161,8 @@ const ClientSession: React.FC = () => {
       label: "Status",
       type: "text",
       filterKey: "status__icontains",
-      render: (c) => renderStatusBadge(c.status),
+      // ⚡️ FIX: Apply unified StatusBadge
+      render: (c) => <StatusBadge status={getBadgeStatus(c.status)} customText={c.status || "UNKNOWN"} />,
     },
 
     // Date Fields mapped dynamically
@@ -558,10 +521,9 @@ const ClientSession: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newStart = val ? formatLocalDate(val) : "";
                     const currentEnd = endStr || "";
-                    handleFilterChange(
-                      col.key,
-                      newStart || currentEnd ? `${newStart},${currentEnd}` : "",
-                    );
+                    const newVal =
+                      newStart || currentEnd ? `${newStart},${currentEnd}` : "";
+                    handleFilterChange(col.key, newVal);
                   }}
                 />
                 <DatePicker
@@ -570,10 +532,9 @@ const ClientSession: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newEnd = val ? formatLocalDate(val) : "";
                     const currentStart = startStr || "";
-                    handleFilterChange(
-                      col.key,
-                      currentStart || newEnd ? `${currentStart},${newEnd}` : "",
-                    );
+                    const newVal =
+                      currentStart || newEnd ? `${currentStart},${newEnd}` : "";
+                    handleFilterChange(col.key, newVal);
                   }}
                 />
               </React.Fragment>
@@ -589,10 +550,9 @@ const ClientSession: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newGt = val ? formatLocalDate(val) : "";
                     const currentLt = ltStr || "";
-                    handleFilterChange(
-                      col.key,
-                      newGt || currentLt ? `${newGt},${currentLt}` : "",
-                    );
+                    const newVal =
+                      newGt || currentLt ? `${newGt},${currentLt}` : "";
+                    handleFilterChange(col.key, newVal);
                   }}
                 />
                 <DatePicker
@@ -601,10 +561,9 @@ const ClientSession: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newLt = val ? formatLocalDate(val) : "";
                     const currentGt = gtStr || "";
-                    handleFilterChange(
-                      col.key,
-                      currentGt || newLt ? `${currentGt},${newLt}` : "",
-                    );
+                    const newVal =
+                      currentGt || newLt ? `${currentGt},${newLt}` : "";
+                    handleFilterChange(col.key, newVal);
                   }}
                 />
               </React.Fragment>

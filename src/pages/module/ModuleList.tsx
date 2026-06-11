@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { Plus, Edit, Trash, Home, Eye } from "lucide-react"; // Added Eye icon
+import { Plus, Edit, Trash, Home, Eye } from "lucide-react"; 
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -14,13 +14,14 @@ import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import { NavItemsContext } from "../../context/navItemsContext";
-// ViewButton removed
 import { usePagePermissions } from "../../hooks/usePagePermissions";
-// NEW: Context Menu
 import ContextMenu, {
   type ContextMenuItem,
 } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
+
+// ⚡️ FIX: Import the StatusBadge
+import { StatusBadge } from "../../components/ui/StatusBadge";
 
 const ModuleList: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -96,13 +97,6 @@ const ModuleList: React.FC = () => {
     setCurrentPage(1);
     fetchModules({ label: "", url: "" });
   };
-  const renderBooleanBadge = (value: boolean) => (
-    <span
-      className={`px-2 py-0.5 rounded text-xs font-medium ${value ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"}`}
-    >
-      {value ? "Yes" : "No"}
-    </span>
-  );
 
   const handleDelete = async () => {
     if (deleteId && canDelete) {
@@ -172,14 +166,12 @@ const ModuleList: React.FC = () => {
       ]
     : [];
 
-  // Removed "Actions" from headers
   const headers = ["S.N.", "Label", "URL", "Icon", "Order", "Display"];
 
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll(
           "aside a.active, nav a.active",
@@ -189,7 +181,7 @@ const ModuleList: React.FC = () => {
           activeItem?.innerText?.split("\n")[0].trim() || "Module";
 
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100); 
 
       hasLoggedOpening.current = true;
     }
@@ -245,7 +237,7 @@ const ModuleList: React.FC = () => {
         renderRow={(module, index) => (
           <tr
             key={module.id || index}
-            onContextMenu={(e) => handleContextMenu(e, module)} // Right Click Handler
+            onContextMenu={(e) => handleContextMenu(e, module)} 
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
@@ -264,9 +256,12 @@ const ModuleList: React.FC = () => {
               {module.order}
             </td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {renderBooleanBadge(module.is_active)}
+              {/* ⚡️ FIX: Applied StatusBadge matching "DELIVERED" (Green) for Yes, and "PENDING" (Orange) for No */}
+              <StatusBadge 
+                status={module.is_active ? "DELIVERED" : "PENDING"} 
+                customText={module.is_active ? "Yes" : "No"} 
+              />
             </td>
-            {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />

@@ -30,6 +30,9 @@ import ContextMenu, {
 } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
+// ⚡️ FIX: Import the StatusBadge component
+import { StatusBadge } from "../../components/ui/StatusBadge";
+
 interface Option {
   label: string;
   value: string;
@@ -171,17 +174,21 @@ const OperatorNetworkCode: React.FC = () => {
     { label: "No", value: "false" },
   ];
 
-  const renderBadge = (val: string | boolean) => (
-    <span
-      className={`px-2 py-0.5 rounded text-xs font-medium ${
-        val === "ACTIVE" || val === "true" || val === true
-          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-          : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-      }`}
-    >
-      {typeof val === "boolean" ? (val ? "Yes" : "No") : val}
-    </span>
-  );
+  // ⚡️ FIX: Replaced inline span styling with mapped StatusBadge rendering
+  const renderBadge = (val: string | boolean) => {
+    // If it's the boolean "Is Primary" field
+    if (typeof val === "boolean") {
+      const statusKey = val ? "DELIVERED" : "PENDING"; // Yes mapped to Delivered, No to Pending
+      return <StatusBadge status={statusKey} customText={val ? "Yes" : "No"} />;
+    }
+    
+    // If it's the string "Status" field
+    const stringVal = String(val).toUpperCase();
+    if (stringVal === "ACTIVE" || stringVal === "TRUE") {
+      return <StatusBadge status="DELIVERED" customText={String(val)} />;
+    }
+    return <StatusBadge status="PENDING" customText={String(val)} />;
+  };
 
   const allColumns: ColumnConfig[] = [
     {
@@ -270,7 +277,6 @@ const OperatorNetworkCode: React.FC = () => {
       isSearchOnly: true,
     },
 
-    // TRUNCATED NOTES FIX
     {
       key: "notes",
       label: "Notes",
@@ -574,10 +580,9 @@ const OperatorNetworkCode: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newStart = val ? formatLocalDate(val) : "";
                     const currentEnd = endStr || "";
-                    handleFilterChange(
-                      col.key,
-                      newStart || currentEnd ? `${newStart},${currentEnd}` : "",
-                    );
+                    const newVal =
+                      newStart || currentEnd ? `${newStart},${currentEnd}` : "";
+                    handleFilterChange(col.key, newVal);
                   }}
                 />
                 <DatePicker
@@ -586,10 +591,9 @@ const OperatorNetworkCode: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newEnd = val ? formatLocalDate(val) : "";
                     const currentStart = startStr || "";
-                    handleFilterChange(
-                      col.key,
-                      currentStart || newEnd ? `${currentStart},${newEnd}` : "",
-                    );
+                    const newVal =
+                      currentStart || newEnd ? `${currentStart},${newEnd}` : "";
+                    handleFilterChange(col.key, newVal);
                   }}
                 />
               </React.Fragment>
@@ -605,10 +609,9 @@ const OperatorNetworkCode: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newGt = val ? formatLocalDate(val) : "";
                     const currentLt = ltStr || "";
-                    handleFilterChange(
-                      col.key,
-                      newGt || currentLt ? `${newGt},${currentLt}` : "",
-                    );
+                    const newVal =
+                      newGt || currentLt ? `${newGt},${currentLt}` : "";
+                    handleFilterChange(col.key, newVal);
                   }}
                 />
                 <DatePicker
@@ -617,10 +620,9 @@ const OperatorNetworkCode: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newLt = val ? formatLocalDate(val) : "";
                     const currentGt = gtStr || "";
-                    handleFilterChange(
-                      col.key,
-                      currentGt || newLt ? `${currentGt},${newLt}` : "",
-                    );
+                    const newVal =
+                      currentGt || newLt ? `${currentGt},${newLt}` : "";
+                    handleFilterChange(col.key, newVal);
                   }}
                 />
               </React.Fragment>
