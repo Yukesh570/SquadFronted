@@ -79,6 +79,10 @@ const Dashboard: React.FC = () => {
   // --- Chart states ---
   const [trafficData, setTrafficData] = useState<SmsHourlyData[]>([]);
   const [dlrData, setDlrData]         = useState<{ name: string; value: number; color: string }[]>([]);
+  
+  // ⚡️ FIX: Dedicated loading states for charts to distinguish empty data from fetching
+  const [isTrafficLoading, setIsTrafficLoading] = useState(true);
+  const [isDlrLoading, setIsDlrLoading] = useState(true);
 
   // --- Table / panel states ---
   const [liveSessions, setLiveSessions]   = useState<ClientSessionData[]>([]);
@@ -127,25 +131,33 @@ const Dashboard: React.FC = () => {
   };
 
   const fetchHourlyTraffic = async (range: RangeKey) => {
+    setIsTrafficLoading(true);
     try {
       const data = await getSmsHourlyApi(buildParams(range));
       setTrafficData(data);
     } catch (e) {
       console.error("fetchHourlyTraffic failed", e);
+      setTrafficData([]);
+    } finally {
+      setIsTrafficLoading(false);
     }
   };
 
   const fetchDlrStats = async (range: RangeKey) => {
+    setIsDlrLoading(true);
     try {
       const d = await getDlrStatsApi(buildParams(range));
       setDlrData([
-        { name: "Delivered", value: d.deliveredPercent, color: DLR_COLORS.Delivered },
-        { name: "Failed",    value: d.failedPercent,    color: DLR_COLORS.Failed    },
-        { name: "Pending",   value: d.pendingPercent,   color: DLR_COLORS.Pending   },
-        { name: "Rejected",  value: d.rejectedPercent,  color: DLR_COLORS.Rejected  },
+        { name: "Delivered", value: d.deliveredPercent || 0, color: DLR_COLORS.Delivered },
+        { name: "Failed",    value: d.failedPercent || 0,    color: DLR_COLORS.Failed    },
+        { name: "Pending",   value: d.pendingPercent || 0,   color: DLR_COLORS.Pending   },
+        { name: "Rejected",  value: d.rejectedPercent || 0,  color: DLR_COLORS.Rejected  },
       ]);
     } catch (e) {
       console.error("fetchDlrStats failed", e);
+      setDlrData([]);
+    } finally {
+      setIsDlrLoading(false);
     }
   };
 
@@ -361,7 +373,12 @@ const Dashboard: React.FC = () => {
             Traffic Volume ({activeRangeLabel})
           </h3>
           <div className="h-[280px] w-full">
-            {trafficData.length > 0 ? (
+            {/* ⚡️ FIX: Check loading state first */}
+            {isTrafficLoading ? (
+              <div className="h-full flex items-center justify-center text-sm text-text-secondary dark:text-gray-500">
+                Loading traffic data…
+              </div>
+            ) : trafficData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={trafficData}
@@ -416,7 +433,7 @@ const Dashboard: React.FC = () => {
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex items-center justify-center text-sm text-text-secondary dark:text-gray-500">
-                Loading traffic data…
+                No traffic data available.
               </div>
             )}
           </div>
@@ -428,7 +445,12 @@ const Dashboard: React.FC = () => {
             DLR Breakdown ({activeRangeLabel})
           </h3>
           <div className="h-[280px] w-full flex-1">
-            {dlrData.length > 0 ? (
+            {/* ⚡️ FIX: Check loading state first, then check if ANY values actually exist > 0 */}
+            {isDlrLoading ? (
+              <div className="h-full flex items-center justify-center text-sm text-text-secondary dark:text-gray-500">
+                Loading DLR data…
+              </div>
+            ) : dlrData.some(d => d.value > 0) ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -474,7 +496,7 @@ const Dashboard: React.FC = () => {
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex items-center justify-center text-sm text-text-secondary dark:text-gray-500">
-                Loading DLR data…
+                No DLR data available.
               </div>
             )}
           </div>
