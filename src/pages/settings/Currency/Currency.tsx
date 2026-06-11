@@ -20,6 +20,9 @@ import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
 
+// ⚡️ FIX: Import the StatusBadge component
+import { StatusBadge } from "../../../components/ui/StatusBadge";
+
 const Currency: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [currencies, setCurrencies] = useState<CurrencyData[]>([]);
@@ -222,15 +225,8 @@ const Currency: React.FC = () => {
               {currency.decimalPlaces ?? "-"}
             </td>
             <td className="px-4 py-4 text-sm">
-              <span
-                className={`px-2 py-0.5 rounded text-xs font-medium ${
-                  currency.isActive
-                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                }`}
-              >
-                {currency.isActive ? "Active" : "Inactive"}
-              </span>
+              {/* ⚡️ FIX: Replaced custom span with StatusBadge. Assuming INACTIVE matches a red/warning color if defined, otherwise defaults cleanly */}
+              <StatusBadge status={currency.isActive ? "ACTIVE" : "INACTIVE"} />
             </td>
           </tr>
         )}

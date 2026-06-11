@@ -16,6 +16,9 @@ import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMe
 import { MessageAttemptModal } from "../../components/modals/Report/MessageAttemptModal";
 import { actionHelper } from "../../helper/action";
 
+// ⚡️ FIX: Import the StatusBadge
+import { StatusBadge } from "../../components/ui/StatusBadge";
+
 interface Option { label: string; value: string; }
 interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; }
 
@@ -77,16 +80,8 @@ const MessageAttempt: React.FC = () => {
       type: "text", 
       options: statusOptions, 
       filterKey: "status", 
-      render: (log) => {
-        const statusKey = log.status?.toLowerCase();
-        const colors: Record<string, string> = {
-          delivered: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-          failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-          submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-          queued: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-        };
-        return (<span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${colors[statusKey] || "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"}`}>{log.status || "-"}</span>);
-      }
+      // ⚡️ FIX: Implemented generic StatusBadge
+      render: (log) => <StatusBadge status={log.status} />
     },
     { key: "error_message", label: "Error Message", type: "text", filterKey: "error_message__icontains" },
     { key: "started_at", label: "Started At", type: "date", render: (data: any) => data.started_at ? new Date(data.started_at).toLocaleString() : "-" },

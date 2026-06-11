@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye, Mail } from "lucide-react"; // Added Mail icon
+import { Home, Plus, Edit, Trash, Eye, Mail } from "lucide-react"; 
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -8,7 +8,7 @@ import {
   type SmtpServerData,
 } from "../../../api/settingApi/smtpApi/smtpApi";
 import { SmtpModal } from "../../../components/modals/Settings/SmtpModal";
-import { TestEmailModal } from "../../../components/modals/Settings/TestEmailModal"; // Added Test Email Modal
+import { TestEmailModal } from "../../../components/modals/Settings/TestEmailModal"; 
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
@@ -18,6 +18,8 @@ import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
 
+import { StatusBadge } from "../../../components/ui/StatusBadge";
+
 const SmtpServer: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [servers, setServers] = useState<SmtpServerData[]>([]);
@@ -26,7 +28,7 @@ const SmtpServer: React.FC = () => {
 
   // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isTestModalOpen, setIsTestModalOpen] = useState(false); // New Test Modal State
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false); 
   const [editingServer, setEditingServer] = useState<SmtpServerData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -116,7 +118,7 @@ const SmtpServer: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowServer ? [
     { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowServer) },
-    { label: "Send Test Email", icon: <Mail size={16} />, onClick: () => setIsTestModalOpen(true) }, // Added Action
+    { label: "Send Test Email", icon: <Mail size={16} />, onClick: () => setIsTestModalOpen(true) }, 
     ...(canUpdate ? [{ label: "Edit Server", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowServer) }] : []),
     ...(canDelete ? [{ label: "Delete Server", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowServer.id!) }] : []),
   ] : [];
@@ -145,6 +147,12 @@ const SmtpServer: React.FC = () => {
       hasLoggedOpening.current = true;
     }
   }, []);
+
+  const getSecurityStatus = (sec?: string) => {
+    if (sec === "TLS") return "QUEUED"; 
+    if (sec === "SSL") return "DELIVERED";    
+    return "UNKNOWN";                      // Grey
+  };
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -215,14 +223,19 @@ const SmtpServer: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {server.smtpHost}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.smtpPort}
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {/* ⚡️ FIX: Used SUBMITTED (Blue) badge for Port */}
+              <StatusBadge status="SUBMITTED" customText={String(server.smtpPort)} />
             </td>
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {server.smtpUser}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.security}
+            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
+              {/* ⚡️ FIX: Security differentiates between TLS and SSL */}
+              <StatusBadge 
+                status={getSecurityStatus(server.security)} 
+                customText={server.security || "NONE"} 
+              />
             </td>
           </tr>
         )}

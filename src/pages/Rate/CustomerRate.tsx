@@ -23,6 +23,9 @@ import { usePagePermissions } from "../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
+// ⚡️ FIX: Import the StatusBadge
+import { StatusBadge } from "../../components/ui/StatusBadge";
+
 interface Option { label: string; value: string; }
 
 interface ColumnConfig extends FilterColumn {
@@ -143,19 +146,8 @@ const CustomerRate: React.FC = () => {
       type: "text", 
       options: [{ label: "DRAFT", value: "DRAFT" }, { label: "ACTIVE", value: "ACTIVE" }, { label: "EXPIRED", value: "EXPIRED" }], 
       filterKey: "status",
-      render: (c: any) => (
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${
-            c.status === "ACTIVE"
-              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-              : c.status === "DRAFT"
-              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-          }`}
-        >
-          {c.status || "-"}
-        </span>
-      )
+      // ⚡️ FIX: Implemented generic StatusBadge
+      render: (c: any) => <StatusBadge status={c.status} />
     },
 
     { key: "effectiveFrom", label: "Effective From (Exact)", tableLabel: "Effective From", type: "date", filterKey: "effectiveFrom__date", render: (c: any) => (c.effectiveFrom ? new Date(c.effectiveFrom).toLocaleString() : "-") },
@@ -221,7 +213,7 @@ const CustomerRate: React.FC = () => {
           else if (columnDef?.type === "number_gt_lt") {
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = lt;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = gt;
           } 
           else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;

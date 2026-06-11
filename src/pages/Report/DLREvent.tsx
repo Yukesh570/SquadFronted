@@ -16,6 +16,9 @@ import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMe
 import { DLREventModal } from "../../components/modals/Report/DLREventModal";
 import { actionHelper } from "../../helper/action";
 
+// ⚡️ FIX: Import the StatusBadge
+import { StatusBadge } from "../../components/ui/StatusBadge";
+
 interface Option { label: string; value: string; }
 interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; }
 
@@ -74,16 +77,8 @@ const DLREvent: React.FC = () => {
       type: "text", 
       options: statusOptions, 
       filterKey: "event_type", 
-      render: (log) => {
-        const statusKey = log.event_type?.toLowerCase();
-        const colors: Record<string, string> = {
-          delivered: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-          failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-          submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-          queued: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-        };
-        return (<span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${colors[statusKey] || "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"}`}>{log.event_type || "-"}</span>);
-      }
+      // ⚡️ FIX: Implemented generic StatusBadge
+      render: (log) => <StatusBadge status={log.event_type} />
     },
     { key: "segment_number", label: "Segment Number", type: "text", filterKey: "segment_number__icontains" },
     { key: "status_code", label: "Status Code", type: "text", filterKey: "status_code__icontains" },

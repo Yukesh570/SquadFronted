@@ -16,6 +16,9 @@ import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedF
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
+// ⚡️ FIX: Import the StatusBadge
+import { StatusBadge } from "../../components/ui/StatusBadge";
+
 interface Option { label: string; value: string; }
 
 interface ColumnConfig extends FilterColumn {
@@ -107,15 +110,9 @@ const DetailedReport: React.FC = () => {
       </div>
     )},
     
+    // ⚡️ FIX: Replaced inline mapping with reusable StatusBadge
     { key: "submitStatus", label: "Status", type: "text", options: statusOptions, filterKey: "submitStatus", render: (log) => {
-      const statusKey = log.submitStatus?.toLowerCase();
-      const colors: Record<string, string> = {
-        delivered: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-        failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-        submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-        queued: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-      };
-      return (<span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${colors[statusKey] || "bg-gray-100 text-gray-600"}`}>{log.submitStatus}</span>);
+      return <StatusBadge status={log.submitStatus} />;
     }},
 
     { key: "clientRate", label: "Client Rate", type: "number", filterKey: "clientRate__icontains" },

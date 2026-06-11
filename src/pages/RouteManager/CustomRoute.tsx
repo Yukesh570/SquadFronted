@@ -21,6 +21,9 @@ import ContextMenu, {
 import { actionHelper } from "../../helper/action";
 import { formatDateTime } from "../../helper/dateFormatter";
 
+// ⚡️ FIX: Import the StatusBadge
+import { StatusBadge } from "../../components/ui/StatusBadge";
+
 interface Option {
   label: string;
   value: string;
@@ -154,17 +157,8 @@ const CustomRoute: React.FC = () => {
       type: "text",
       options: statusOptions,
       filterKey: "status",
-      render: (c: any) => (
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${
-            c.status === "ACTIVE"
-              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-          }`}
-        >
-          {c.status}
-        </span>
-      ),
+      // ⚡️ FIX: Use generic StatusBadge instead of inline hardcoded colors
+      render: (c: any) => <StatusBadge status={c.status} />
     },
     {
       key: "createdAt",

@@ -12,7 +12,6 @@ import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 import { getStateApi } from "../../api/settingApi/stateApi/stateApi";
 import { getCompanyCategoryApi } from "../../api/settingApi/companyCategoryApi/companyCategoryApi";
 import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
-// import { getEntityApi } from "../../api/settingApi/entityApi/entityApi";
 import { getCompanyStatusApi } from "../../api/settingApi/companyStatusApi/companyStatusApi";
 import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
 import { CompanyModal } from "../../components/modals/CompanyModal";
@@ -25,14 +24,15 @@ import AdvancedFilter, {
   type FilterColumn,
 } from "../../components/ui/AdvancedFilter";
 import { DeleteModal } from "../../components/modals/DeleteModal";
-// ViewButton removed
 import { companyCsv, downloadStatus } from "../../api/downloadApi/downloadApi";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
-// NEW: Context Menu
 import ContextMenu, {
   type ContextMenuItem,
 } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
+
+// ⚡️ FIX: Import the reusable StatusBadge
+import { StatusBadge } from "../../components/ui/StatusBadge";
 
 // --- Interfaces ---
 interface Option {
@@ -78,7 +78,6 @@ const CompanyList: React.FC = () => {
   const [statuses, setStatuses] = useState<Option[]>([]);
   const [currencies, setCurrencies] = useState<Option[]>([]);
   const [timeZones, setTimeZones] = useState<Option[]>([]);
-  // const [entities, setEntities] = useState<Option[]>([]);
 
   // --- Filters ---
   const [searchColumns, setSearchColumns] = useState<string[]>(
@@ -123,20 +122,19 @@ const CompanyList: React.FC = () => {
     loadOptions(getStateApi, "state", setStates);
     loadOptions(getCompanyCategoryApi, "companyCategory", setCategories);
     loadOptions(getCurrenciesApi, "currency", setCurrencies);
-    // loadOptions(getEntityApi, "entity", setEntities);
     if (typeof getCompanyStatusApi === "function")
       loadOptions(getCompanyStatusApi, "companyStatus", setStatuses);
     if (typeof getTimezoneApi === "function")
       loadOptions(getTimezoneApi, "timeZone", setTimeZones);
   }, []);
 
-  const renderBooleanBadge = (value: boolean) => (
-    <span
-      className={`px-2 py-0.5 rounded text-xs font-medium ${value ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"}`}
-    >
-      {value ? "Yes" : "No"}
-    </span>
-  );
+  // ⚡️ FIX: No hex codes! We map the logic directly to the reusable component status keys
+  const renderBooleanBadge = (value: boolean) => {
+    const statusKey = value ? "DELIVERED" : "PENDING";
+    const labelText = value ? "Yes" : "No";
+    
+    return <StatusBadge status={statusKey} customText={labelText} />;
+  };
 
   const booleanOptions: Option[] = [
     { label: "Yes", value: "true" },
@@ -195,11 +193,9 @@ const CompanyList: React.FC = () => {
       filterKey: "timeZone__name",
     },
     { key: "customerCreditLimit", label: "Cust. Credit", type: "number" },
-    { key: "vendorCreditLimit", label: "Vend. Credit", type: "number" }, // Restored
+    { key: "vendorCreditLimit", label: "Vend. Credit", type: "number" }, 
     { key: "balanceAlertAmount", label: "Bal. Alert", type: "number" },
     { key: "referencNumber", label: "Ref. Number", type: "text" },
-    // { key: "businessEntity", label: "Entity", type: "text", options: entities, filterKey: "businessEntity__name" },
-    // { key: "vatNumber", label: "VAT Number", type: "text" },
     { key: "address", label: "Address", type: "text" },
     {
       key: "validityPeriod",
@@ -281,8 +277,6 @@ const CompanyList: React.FC = () => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  // --- Main Fetch Function (FIXED) ---
-  // Now accepts 'filters' as an argument. Defaults to current state if not provided.
   const fetchCompanies = async (
     filters: Record<string, string> | null = null,
   ) => {
@@ -292,7 +286,6 @@ const CompanyList: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // FIX: Use passed filters (e.g. empty object from Clear) OR state values
       const activeFilters = filters || filterValues;
       const currentSearchParams: Record<string, string> = {};
 
@@ -347,22 +340,21 @@ const CompanyList: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchCompanies(); // Uses state
+    fetchCompanies();
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [routeName, currentPage, rowsPerPage, searchColumns]); // Trigger on normal dependency changes
+  }, [routeName, currentPage, rowsPerPage, searchColumns]); 
 
   const handleSearch = () => {
     setCurrentPage(1);
-    fetchCompanies(); // Uses state
+    fetchCompanies(); 
   };
 
-  // --- FIX: CLEAR BUTTON ---
   const handleClearFilters = () => {
     setFilterValues({});
     setCurrentPage(1);
-    fetchCompanies({}); // Force fetch with EMPTY filters immediately
+    fetchCompanies({});
   };
 
   const handleDelete = async () => {
@@ -433,8 +425,6 @@ const CompanyList: React.FC = () => {
     : [];
 
   const handleExport = async () => {
-    /* Export logic maintained as is (omitted for brevity, assume previous logic) */
-    // ... (Paste your existing export logic here if needed, usually short enough to keep)
     try {
       const searchParam = filterValues["name"] || "";
       const data: any = await companyCsv(
@@ -479,14 +469,12 @@ const CompanyList: React.FC = () => {
     }
   };
 
-  // Removed Action Column from Headers
   const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll(
           "aside a.active, nav a.active",
@@ -496,7 +484,7 @@ const CompanyList: React.FC = () => {
           activeItem?.innerText?.split("\n")[0].trim() || "Module";
 
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100);
 
       hasLoggedOpening.current = true;
     }

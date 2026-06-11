@@ -30,6 +30,8 @@ import ContextMenu, {
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import { actionHelper } from "../../../helper/action";
 
+import { StatusBadge } from "../../../components/ui/StatusBadge";
+
 interface Option {
   label: string;
   value: string;
@@ -213,40 +215,14 @@ const Vendor: React.FC = () => {
     { label: "CRITICAL", value: "CRITICAL" },
   ];
 
-  const renderBindStatusBadge = (status?: string) => {
-    if (!status) return "-";
-    return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${
-          status === "ONLINE"
-            ? "bg-green-100 text-green-800"
-            : status === "OFFLINE"
-              ? "bg-red-200 text-red-800"
-              : "bg-red-200 text-red-800"
-        }`}
-      >
-        {status}
-      </span>
-    );
-  };
-
   const renderSessionBadge = (vendor: any) => {
     const current = vendor.active_session_count || 0;
     const max = vendor.vendorPolicy?.maxSession || 1;
-
     const isFull = current === max && max > 0;
 
-    return (
-      <span
-        className={`px-2 py-1 rounded text-xs font-medium ${
-          isFull
-            ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-        }`}
-      >
-        {current}/{max}
-      </span>
-    );
+    const statusKey = isFull ? "UNDELIVERED" : "SUBMITTED";
+
+    return <StatusBadge status={statusKey} customText={`${current}/${max}`} />;
   };
 
   const allColumns: ColumnConfig[] = [
@@ -275,12 +251,24 @@ const Vendor: React.FC = () => {
       label: "Connection Type",
       type: "text",
       options: connectionTypeOptions,
+      // ⚡️ FIX: Mapped SMPP to Green (DELIVERED) and HTTP to Blue (SUBMITTED)
+      render: (c) => {
+        const type = c.connectionType?.toUpperCase();
+        const statusKey = type === "SMPP" ? "DELIVERED" : "SUBMITTED";
+        return <StatusBadge status={statusKey} customText={c.connectionType} />;
+      }
     },
     {
       key: "invoicePolicy",
       label: "Invoice Policy",
       type: "text",
       options: invoicePolicyOptions,
+      // ⚡️ FIX: Removed StatusBadge, now renders plain text (matching dropdown label)
+      render: (c) => {
+        if (!c.invoicePolicy) return "-";
+        const match = invoicePolicyOptions.find(opt => opt.value === c.invoicePolicy);
+        return match ? match.label : c.invoicePolicy;
+      }
     },
     {
       key: "smppName",
@@ -293,7 +281,7 @@ const Vendor: React.FC = () => {
       label: "Bind Status",
       type: "text",
       options: bindStatusOptions,
-      render: (c) => renderBindStatusBadge(c.bindStatus),
+      render: (c) => <StatusBadge status={c.bindStatus} />,
     },
     {
       key: "session",
@@ -346,7 +334,6 @@ const Vendor: React.FC = () => {
       type: "number",
       render: (c) => c.vendorPolicy?.connectionTimeout ?? "-"
     },
-    // ⚡️ FIX: Added the Max Msg Retries column here
     {
       key: "maxMessageRetries",
       label: "Max Msg Retries",
@@ -908,15 +895,7 @@ const Vendor: React.FC = () => {
                   key={col.key}
                   className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "profileName" ? "font-medium text-text-primary dark:text-white" : ""}`}
                 >
-                  {col.key === "connectionType" ? (
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${cellData === "SMPP" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"}`}
-                    >
-                      {cellData}
-                    </span>
-                  ) : (
-                    cellData || "-"
-                  )}
+                  {cellData || "-"}
                 </td>
               );
             })}

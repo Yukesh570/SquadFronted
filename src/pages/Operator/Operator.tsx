@@ -21,6 +21,9 @@ import { usePagePermissions } from "../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
+// ⚡️ FIX: Import the StatusBadge component
+import { StatusBadge } from "../../components/ui/StatusBadge";
+
 const Operators: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [data, setData] = useState<OperatorData[]>([]);
@@ -267,9 +270,8 @@ const Operators: React.FC = () => {
             </td>
             
             <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <span className={`px-2 py-1 rounded text-xs font-medium ${item.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
-                {item.status || "-"}
-              </span>
+              {/* ⚡️ FIX: Implemented StatusBadge */}
+              <StatusBadge status={item.status} />
             </td>
           </tr>
         )}

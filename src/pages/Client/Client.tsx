@@ -39,6 +39,9 @@ import { formatDateTime } from "../../helper/dateFormatter";
 import { AssignRouteModal } from "../../components/modals/assignRouteModal";
 import { getGroupedCustomRoutesApi } from "../../api/routeManagerApi/customRouteApi";
 
+// ⚡️ FIX: Import the unified StatusBadge
+import { StatusBadge } from "../../components/ui/StatusBadge";
+
 // --- Interfaces ---
 interface Option {
   label: string;
@@ -59,7 +62,7 @@ const DEFAULT_TABLE_COLUMNS = [
   "name",
   "companyName",
   "ratePlanName",
-  "invoicePolicy", // ⚡️ FIX: Added to default views
+  "invoicePolicy", 
   "status",
   "route",
 ];
@@ -222,7 +225,6 @@ const Client: React.FC = () => {
     { label: "Net 30", value: "NET30" },
   ];
 
-  // ⚡️ FIX: Added Invoice Policy mapping
   const invoicePolicyOptions: Option[] = [
     { label: "On Attempt", value: "ON_ATTEMPT" },
     { label: "On Submit", value: "ON_SUBMIT" },
@@ -234,32 +236,12 @@ const Client: React.FC = () => {
     { label: "No", value: "false" },
   ];
 
-  const renderStatusBadge = (status: string) => (
-    <span
-      className={`px-2 py-1 rounded-full text-xs font-medium ${
-        status === "ACTIVE"
-          ? "bg-green-100 text-green-800"
-          : status === "TRIAL"
-            ? "bg-blue-100 text-blue-800"
-            : "bg-red-100 text-red-800"
-      }`}
-    >
-      {status}
-    </span>
-  );
-  const renderBindStatusBadge = (status: string) => (
-    <span
-      className={`px-2 py-1 rounded-full text-xs font-medium ${
-        status === "ONLINE"
-          ? "bg-green-100 text-green-800"
-          : status === "OFFLINE"
-            ? "bg-red-200 text-red-800"
-            : "bg-red-200 text-red-800"
-      }`}
-    >
-      {status}
-    </span>
-  );
+  // ⚡️ FIX: Converted to use unified StatusBadge with DLR equivalent colors
+  const renderBooleanBadge = (value: boolean) => {
+    const statusKey = value ? "DELIVERED" : "PENDING";
+    const labelText = value ? "Yes" : "No";
+    return <StatusBadge status={statusKey} customText={labelText} />;
+  };
 
   const renderSessionBadge = (client: any) => {
     const sessionStr = client.session || "0/2";
@@ -267,29 +249,10 @@ const Client: React.FC = () => {
     const max = client.clientPolicy?.maxSessions || 0;
     const isFull = Number(current) === max && max > 0;
 
-    return (
-      <span
-        className={`px-2 py-1 rounded text-xs font-medium ${
-          isFull
-            ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-        }`}
-      >
-        {current}/{max}
-      </span>
-    );
+    // ⚡️ FIX: Applied equivalent StatusBadge mapping
+    const statusKey = isFull ? "UNDELIVERED" : "SUBMITTED";
+    return <StatusBadge status={statusKey} customText={`${current}/${max}`} />;
   };
-  const renderBooleanBadge = (value: boolean) => (
-    <span
-      className={`px-2 py-0.5 rounded text-xs font-medium ${
-        value
-          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-          : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-      }`}
-    >
-      {value ? "Yes" : "No"}
-    </span>
-  );
 
   const allColumns: ColumnConfig[] = [
     {
@@ -319,12 +282,13 @@ const Client: React.FC = () => {
       options: ratePlanOptions,
       filterKey: "ratePlanName",
     },
+    // ⚡️ FIX: Mapped Status column to StatusBadge
     {
       key: "status",
       label: "Status",
       type: "text",
       options: statusOptions,
-      render: (c) => renderStatusBadge(c.status),
+      render: (c) => <StatusBadge status={c.status} />,
     },
     { key: "route", label: "Route Type", type: "text", options: routeOptions },
     {
@@ -333,13 +297,19 @@ const Client: React.FC = () => {
       type: "text",
       options: paymentTermOptions,
     },
-    // ⚡️ FIX: Added Invoice Policy column
+    // ⚡️ FIX: Set to plain text to match vendor table format
     {
       key: "invoicePolicy",
       label: "Invoice Policy",
       type: "text",
       options: invoicePolicyOptions,
+      render: (c) => {
+        if (!c.invoicePolicy) return "-";
+        const match = invoicePolicyOptions.find(opt => opt.value === c.invoicePolicy);
+        return match ? match.label : c.invoicePolicy;
+      }
     },
+    // ⚡️ FIX: Applied Boolean Badge
     {
       key: "allowNetting",
       label: "Allow Netting",
@@ -347,6 +317,7 @@ const Client: React.FC = () => {
       options: booleanOptions,
       render: (c) => renderBooleanBadge(c.allowNetting),
     },
+    // ⚡️ FIX: Applied Boolean Badge
     {
       key: "enableDlr",
       label: "Enable Dlr",
@@ -360,13 +331,15 @@ const Client: React.FC = () => {
       type: "text",
       filterKey: "smppUsername__icontains",
     },
+    // ⚡️ FIX: Mapped Bind Status to StatusBadge
     {
       key: "bindStatus",
       label: "Bind Status",
       type: "text",
       options: bindStatusOptions,
-      render: (c) => renderBindStatusBadge(c.bindStatus),
+      render: (c) => <StatusBadge status={c.bindStatus} />,
     },
+    // ⚡️ FIX: Mapped Session string to conditional StatusBadge
     {
       key: "session",
       label: "Sessions (Current/Max)",

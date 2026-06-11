@@ -25,6 +25,9 @@ import ContextMenu, {
 import { actionHelper } from "../../../helper/action";
 import { formatDateTime } from "../../../helper/dateFormatter";
 
+// ⚡️ FIX: Import the StatusBadge component
+import { StatusBadge } from "../../../components/ui/StatusBadge";
+
 interface Option {
   label: string;
   value: string;
@@ -107,17 +110,10 @@ const CurrencyExchangeRate: React.FC = () => {
     { label: "Inactive", value: "false" },
   ];
 
-  const renderBooleanBadge = (value: boolean) => (
-    <span
-      className={`px-2 py-0.5 rounded text-xs font-medium ${
-        value
-          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-          : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-      }`}
-    >
-      {value ? "Active" : "Inactive"}
-    </span>
-  );
+  // ⚡️ FIX: Implemented exact mapping using StatusBadge instead of inline hardcoded HTML
+  const renderBooleanBadge = (value: boolean) => {
+    return <StatusBadge status={value ? "ACTIVE" : "INACTIVE"} />;
+  };
 
   const allColumns: ColumnConfig[] = [
     {

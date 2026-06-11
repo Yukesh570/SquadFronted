@@ -11,7 +11,7 @@ import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 import { InvoiceSetupModal } from "../../../components/modals/Finance/InvoiceSetupModal";
 import Button from "../../../components/ui/Button";
 import Select from "../../../components/ui/Select";
-import Input from "../../../components/ui/Input"; // FIXED: Added missing import
+import Input from "../../../components/ui/Input"; 
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import AdvancedFilter, { type FilterColumn } from "../../../components/ui/AdvancedFilter";
@@ -19,6 +19,9 @@ import { DeleteModal } from "../../../components/modals/DeleteModal";
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import { actionHelper } from "../../../helper/action";
+
+// ⚡️ FIX: Import the StatusBadge
+import { StatusBadge } from "../../../components/ui/StatusBadge";
 
 interface Option {
   label: string;
@@ -109,14 +112,13 @@ const InvoiceSetup: React.FC = () => {
     { label: "No", value: "false" },
   ];
 
-  const renderBooleanBadge = (value: boolean) => (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-        value ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-      }`}
-    >
-      {value ? "Yes" : "No"}
-    </span>
-  );
+  // ⚡️ FIX: Implemented exact DLR Hex color codes mapped via StatusBadge
+  const renderBooleanBadge = (value: boolean) => {
+    const statusKey = value ? "DELIVERED" : "PENDING"; // Based on previous user instruction for Yes/No mapping
+    const labelText = value ? "Yes" : "No";
+    
+    return <StatusBadge status={statusKey} customText={labelText} />;
+  };
 
   const allColumns: ColumnConfig[] = [
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
@@ -124,7 +126,13 @@ const InvoiceSetup: React.FC = () => {
     { key: "invoiceFrequency", label: "Frequency", type: "text", options: frequencyOptions },
     { key: "dueDays", label: "Due Days", type: "number" },
     { key: "tax", label: "Tax Details", type: "text" },
-    { key: "isTaxApplied", label: "Tax Applied", type: "boolean", options: booleanOptions, render: (s: any) => renderBooleanBadge(s.isTaxApplied) },
+    { 
+      key: "isTaxApplied", 
+      label: "Tax Applied", 
+      type: "boolean", 
+      options: booleanOptions, 
+      render: (s: any) => renderBooleanBadge(s.isTaxApplied) 
+    },
   ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
@@ -241,7 +249,6 @@ const InvoiceSetup: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          // FIXED: Return a standard Input if the column has no options!
           if (col.options) {
             return (
               <Select 
