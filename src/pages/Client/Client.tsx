@@ -17,6 +17,7 @@ import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi";
 
 // --- Components ---
 import { ClientModal } from "../../components/modals/ClientModal";
+import { ClientRoutingRateModal } from "../../components/modals/ClientRoutingRateModal"; // ⚡️ FIX: Added new modal component
 import IpWhitelistModal from "../../components/modals/WhiteListIPModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -92,6 +93,7 @@ const Client: React.FC = () => {
     null,
   );
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [isRoutingModalOpen, setIsRoutingModalOpen] = useState(false); // ⚡️ FIX: New Route Modal state
   const [editingClient, setEditingClient] = useState<ClientData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -236,7 +238,6 @@ const Client: React.FC = () => {
     { label: "No", value: "false" },
   ];
 
-  // ⚡️ FIX: Converted to use unified StatusBadge with DLR equivalent colors
   const renderBooleanBadge = (value: boolean) => {
     const statusKey = value ? "DELIVERED" : "PENDING";
     const labelText = value ? "Yes" : "No";
@@ -249,7 +250,6 @@ const Client: React.FC = () => {
     const max = client.clientPolicy?.maxSessions || 0;
     const isFull = Number(current) === max && max > 0;
 
-    // ⚡️ FIX: Applied equivalent StatusBadge mapping
     const statusKey = isFull ? "UNDELIVERED" : "SUBMITTED";
     return <StatusBadge status={statusKey} customText={`${current}/${max}`} />;
   };
@@ -282,7 +282,6 @@ const Client: React.FC = () => {
       options: ratePlanOptions,
       filterKey: "ratePlanName",
     },
-    // ⚡️ FIX: Mapped Status column to StatusBadge
     {
       key: "status",
       label: "Status",
@@ -297,7 +296,6 @@ const Client: React.FC = () => {
       type: "text",
       options: paymentTermOptions,
     },
-    // ⚡️ FIX: Set to plain text to match vendor table format
     {
       key: "invoicePolicy",
       label: "Invoice Policy",
@@ -309,7 +307,6 @@ const Client: React.FC = () => {
         return match ? match.label : c.invoicePolicy;
       }
     },
-    // ⚡️ FIX: Applied Boolean Badge
     {
       key: "allowNetting",
       label: "Allow Netting",
@@ -317,7 +314,6 @@ const Client: React.FC = () => {
       options: booleanOptions,
       render: (c) => renderBooleanBadge(c.allowNetting),
     },
-    // ⚡️ FIX: Applied Boolean Badge
     {
       key: "enableDlr",
       label: "Enable Dlr",
@@ -331,7 +327,6 @@ const Client: React.FC = () => {
       type: "text",
       filterKey: "smppUsername__icontains",
     },
-    // ⚡️ FIX: Mapped Bind Status to StatusBadge
     {
       key: "bindStatus",
       label: "Bind Status",
@@ -339,7 +334,6 @@ const Client: React.FC = () => {
       options: bindStatusOptions,
       render: (c) => <StatusBadge status={c.bindStatus} />,
     },
-    // ⚡️ FIX: Mapped Session string to conditional StatusBadge
     {
       key: "session",
       label: "Sessions (Current/Max)",
@@ -635,17 +629,28 @@ const Client: React.FC = () => {
     setIsViewMode(false);
     setIsClientModalOpen(true);
   };
+  
+  // ⚡️ FIX: Added Routing/Rate Plan handler
+  const handleEditRouting = (client: ClientData) => {
+    if (!canUpdate) return;
+    setEditingClient(client);
+    setIsViewMode(false);
+    setIsRoutingModalOpen(true);
+  };
+
   const handleAdd = () => {
     if (!canCreate) return;
     setEditingClient(null);
     setIsViewMode(false);
     setIsClientModalOpen(true);
   };
+
   const handleView = (client: ClientData) => {
     setEditingClient(client);
     setIsViewMode(true);
     setIsClientModalOpen(true);
   };
+  
   const handleAddIp = (client: ClientData) => {
     if (!client.id) return;
     setIpModalClient({ id: client.id, name: client.name });
@@ -721,6 +726,12 @@ const Client: React.FC = () => {
                 label: "Edit Client",
                 icon: <Edit size={16} />,
                 onClick: () => handleEdit(selectedRowClient),
+              },
+              // ⚡️ FIX: Added Route & Rate Plan Action
+              {
+                label: "Edit Route & Rate Plan",
+                icon: <Edit size={16} />,
+                onClick: () => handleEditRouting(selectedRowClient),
               },
             ]
           : []),
@@ -1049,6 +1060,15 @@ const Client: React.FC = () => {
         moduleName={routeName}
         editingClient={editingClient}
         isViewMode={isViewMode}
+      />
+
+      {/* ⚡️ FIX: Embedded the new isolated Routing/Rate Plan edit modal */}
+      <ClientRoutingRateModal
+        isOpen={isRoutingModalOpen}
+        onClose={() => setIsRoutingModalOpen(false)}
+        onSuccess={fetchClients}
+        moduleName={routeName}
+        editingClient={editingClient}
         routeGroupOptions={routeGroup}
       />
 

@@ -21,9 +21,6 @@ import {
   updateClientPolicyApi,
 } from "../../api/policyApi/clientPolicyApi";
 
-// @ts-ignore
-import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi";
-
 // --- Components ---
 import Input from "../ui/Input";
 import Button from "../ui/Button";
@@ -39,7 +36,6 @@ interface ClientModalProps {
   moduleName: string;
   editingClient: ClientData | null;
   isViewMode?: boolean;
-  routeGroupOptions: Option[];
 }
 
 interface Option {
@@ -54,19 +50,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   moduleName,
   editingClient,
   isViewMode = false,
-  routeGroupOptions,
 }) => {
   // --- State ---
   const [formData, setFormData] = useState({
     company: "",
     name: "",
-    ratePlanName: "",
-    routeGroup: "",
     status: "ACTIVE",
     route: "DIRECT",
-    routeGroupName: "",
     paymentTerms: "PREPAID",
-    invoicePolicy: "ON_ATTEMPT", // ⚡️ FIX: Added invoicePolicy state
+    invoicePolicy: "ON_ATTEMPT", 
     balanceAlertAmount: "",
     allowNetting: false,
     enableDlr: false,
@@ -89,7 +81,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   });
 
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
-  const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [existingPolicyId, setExistingPolicyId] = useState<number | null>(null);
@@ -126,7 +117,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     { label: "Net 30", value: "NET30" },
   ];
 
-  // ⚡️ FIX: Added invoice policy options
   const invoicePolicyOptions = [
     { label: "On Attempt", value: "ON_ATTEMPT" },
     { label: "On Submit", value: "ON_SUBMIT" },
@@ -146,18 +136,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           );
         })
         .catch((err: any) => console.error("Failed to load companies", err));
-
-      getCustomerRatesApi("customerRate", 1, 1000)
-        .then((res: any) => {
-          let list = res.results || (Array.isArray(res) ? res : []);
-          setRatePlanOptions(
-            list.map((r: any) => ({
-              label: r.ratePlan || r.ratePlanName || r.name,
-              value: r.ratePlan || r.ratePlanName || r.name,
-            })),
-          );
-        })
-        .catch((err: any) => console.error("Failed to load rate plans", err));
     }
   }, [isOpen]);
 
@@ -169,9 +147,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         setFormData({
           company: "",
           name: "",
-          ratePlanName: "",
-          routeGroupName: "",
-          routeGroup: "",
           status: "ACTIVE",
           route: "DIRECT",
           paymentTerms: "PREPAID",
@@ -203,13 +178,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           ...prev,
           company: String(editingClient.company || ""),
           name: editingClient.name,
-          ratePlanName: editingClient.ratePlanName || "",
-          routeGroupName: editingClient.routeGroupName || "",
-          routeGroup: String(editingClient.routeGroup || ""),
           status: editingClient.status,
           route: editingClient.route,
           paymentTerms: editingClient.paymentTerms,
-          invoicePolicy: editingClient.invoicePolicy || "ON_ATTEMPT", // Load value
+          invoicePolicy: editingClient.invoicePolicy || "ON_ATTEMPT", 
           balanceAlertAmount: editingClient.balanceAlertAmount || "",
           allowNetting: editingClient.allowNetting,
           enableDlr: editingClient.enableDlr,
@@ -309,7 +281,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // 1. Prepare Base Client Payload
       const {
         ipWhitelist,
         maxTps,
@@ -320,14 +291,12 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         idleTimeoutSec,
         submitTimeoutSec,
         senderIdPolicy,
-        routeGroupName,
         ...clientPayload
       } = formData;
 
       const payload = {
         ...clientPayload,
         company: Number(formData.company),
-        routeGroup: formData.routeGroup ? Number(formData.routeGroup) : null,
         ipWhitelist: [],
       };
 
@@ -471,14 +440,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               options={routeOptions}
               disabled={isViewMode}
             />
-            <Select
-              label="Route Group"
-              value={formData.routeGroup}
-              onChange={(v) => handleSelect("routeGroup", v)}
-              options={routeGroupOptions}
-              placeholder="Select Route Group"
-              disabled={isViewMode}
-            />
           </div>
         </fieldset>
 
@@ -487,15 +448,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Commercials & Alerts
           </legend>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Select
-              label="Rate Plan Name"
-              value={formData.ratePlanName}
-              onChange={(v) => handleSelect("ratePlanName", v)}
-              options={ratePlanOptions}
-              placeholder="Select Rate Plan"
-              disabled={isViewMode}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Select
               label="Payment Terms"
               value={formData.paymentTerms}
@@ -503,7 +456,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               options={paymentTermOptions}
               disabled={isViewMode}
             />
-            {/* ⚡️ FIX: Added Invoice Policy dropdown */}
             <Select
               label="Invoice Policy"
               value={formData.invoicePolicy}
