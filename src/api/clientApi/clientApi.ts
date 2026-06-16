@@ -1,6 +1,5 @@
 import api from "../../api/axiosInstance";
 
-// ⚡️ FIX: Added nested ClientPolicy schema matching the backend response
 export interface ClientPolicyData {
   id?: number;
   client_name?: string;
@@ -27,7 +26,7 @@ export interface ClientData {
   bindStatus: "ONLINE" | "OFFLINE";
   route: "DIRECT" | "HIGH QUALITY" | "SIM" | "WHOLESALE" | "FULL" | "SPAM";
   paymentTerms: "PREPAID" | "POSTPAID" | "NET7" | "NET15" | "NET30";
-  invoicePolicy?: "ON_ATTEMPT" | "ON_SUBMIT" | "ON_DELIVERED" | string; // ⚡️ FIX: Added invoicePolicy
+  invoicePolicy?: "ON_ATTEMPT" | "ON_SUBMIT" | "ON_DELIVERED" | string;
   balanceAlertAmount: string;
   allowNetting: boolean;
   enableDlr: boolean;
@@ -36,7 +35,7 @@ export interface ClientData {
   smppPassword?: string;
   internalNotes?: string;
   createdAt?: string;
-  clientPolicy?: ClientPolicyData; // Attached nested policy here
+  clientPolicy?: ClientPolicyData; 
 }
 
 export interface PaginatedResponse<T> {
@@ -105,5 +104,15 @@ export const sendClientDetailsEmailApi = async (data: {
   clientId: number;
 }) => {
   const response = await api.post(`/sendMailToClient/`, data);
+  return response.data;
+};
+
+// --- NEW: Client Rate Overview API ---
+export const getClientRateOverViewApi = async (params: {
+  client: number;
+  routeGroup: string;
+  ratePlan: string;
+}) => {
+  const response = await api.get(`/clientRateOverView/`, { params });
   return response.data;
 };

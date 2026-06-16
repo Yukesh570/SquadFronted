@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { updateClientApi, type ClientData } from "../../api/clientApi/clientApi";
+import { updateClientApi, getClientRateOverViewApi, type ClientData } from "../../api/clientApi/clientApi";
 import Button from "../ui/Button";
 import Select from "../ui/Select";
 import Modal from "../ui/Modal";
@@ -32,6 +32,8 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
   });
   const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -39,7 +41,6 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
         .then((res: any) => {
           let list = res.results || (Array.isArray(res) ? res : []);
           
-          // ⚡️ FIX: Filter out duplicates using a Set
           const uniqueOptions: Option[] = [];
           const seenNames = new Set<string>();
 
@@ -57,6 +58,8 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
           setRatePlanOptions(uniqueOptions);
         })
         .catch((err: any) => console.error("Failed to load rate plans", err));
+    } else {
+      setWarningMessage(null); 
     }
   }, [isOpen]);
 
@@ -66,17 +69,50 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
         routeGroup: editingClient.routeGroup != null ? String(editingClient.routeGroup) : "",
         ratePlanName: editingClient.ratePlanName || "",
       });
+      setWarningMessage(null); 
     }
   }, [isOpen, editingClient]);
 
   const handleSelect = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
+    setWarningMessage(null); 
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingClient || !editingClient.id) return;
 
+    // Step 1: Pre-check for warnings
+    if (!warningMessage) {
+      setIsSubmitting(true);
+      try {
+        const routeGroupName = routeGroupOptions.find(o => o.value === formData.routeGroup)?.label || formData.routeGroup;
+
+        const overviewRes = await getClientRateOverViewApi({
+          client: editingClient.id,
+          routeGroup: routeGroupName || "", 
+          ratePlan: formData.ratePlanName
+        });
+
+        // If there is a warning, pause and show it
+        if (overviewRes && overviewRes.warning) {
+          setWarningMessage(overviewRes.warning); 
+          setIsSubmitting(false);
+          return; 
+        }
+      } catch (error: any) {
+        setIsSubmitting(false);
+        const serverError = error.response?.data;
+        if (serverError && serverError.detail) {
+           toast.error(serverError.detail);
+        } else {
+           toast.error("Error validating Route & Rate Plan.");
+        }
+        return; 
+      }
+    }
+
+    // Step 2: Safe Update (or user confirmed "Update Anyway")
     setIsSubmitting(true);
     try {
       const payload = {
@@ -84,6 +120,7 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
         ratePlanName: formData.ratePlanName || "",
       };
 
+      // If this fires and a green toast appears, the browser physically made this network request.
       await updateClientApi(editingClient.id, payload, moduleName);
       toast.success("Route & Rate Plan updated successfully!");
       onSuccess();
@@ -117,12 +154,25 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
           />
         </div>
 
+        {warningMessage && (
+          <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg animate-in fade-in zoom-in duration-300">
+            <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-400">
+              {warningMessage}
+            </p>
+          </div>
+        )}
+
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : "Update"}
+          <Button 
+            type="submit" 
+            variant="primary" 
+            disabled={isSubmitting || !formData.routeGroup || !formData.ratePlanName}
+            className={warningMessage ? "bg-yellow-600 hover:bg-yellow-700 text-white border-none" : ""}
+          >
+            {isSubmitting ? "Saving..." : warningMessage ? "Update Anyway" : "Update"}
           </Button>
         </div>
       </form>
