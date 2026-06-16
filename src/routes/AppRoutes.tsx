@@ -51,6 +51,7 @@ import OperatorNetworkCode from "../pages/OperatorNetworkCode/OperatorNetworkCod
 import ClientSession from "../pages/ClientSession/ClientSession";
 import GeneralSettings from "../pages/settings/GeneralSettings/GeneralSettings";
 import CurrencyExchangeRate from "../pages/settings/CurrencyExchangeRate/CurrencyExchangeRate";
+import ServerInfo from "../pages/Report/ServerInfo";
 // import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
 
 const componentMap: Record<string, JSX.Element> = {
@@ -102,6 +103,7 @@ const componentMap: Record<string, JSX.Element> = {
   clientSession: <ClientSession/>,
   generalSettings: <GeneralSettings/>,
   currencyExchangeRate: <CurrencyExchangeRate/>,
+  serverInfo: <ServerInfo/>
 };
 
 const AppRoutes = () => {
