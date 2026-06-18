@@ -95,6 +95,26 @@ const ImportRow: React.FC = () => {
     { label: "New", value: "NEW" },
   ];
 
+  // ⚡️ FIX: Added foolproof fallbacks to guarantee text always renders
+  const getStatusProps = (val: string | null | undefined) => {
+    if (!val) return { status: "PENDING", customText: "-" };
+
+    let colorStatus = "PENDING";
+    if (val === "VALID" || val === "NEW" || val === "UPDATED") colorStatus = "ACTIVE";
+    if (val === "INVALID") colorStatus = "EXPIRED";
+    if (val === "UNMAPPED" || val === "UNCHANGED") colorStatus = "SUSPENDED";
+
+    const option = statusOptions.find(o => o.value === val);
+    
+    // Capitalize the raw string if it's missing from options (e.g. "PENDING" -> "Pending")
+    const fallbackText = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+
+    return { 
+      status: colorStatus, 
+      customText: option ? option.label : fallbackText 
+    };
+  };
+
   const allColumns: ColumnConfig[] = [
     { key: "batch__vendor__profileName__icontains", label: "Vendor Profile (Search)", type: "text", isSearchOnly: true },
     { key: "rowNo", label: "Row No", type: "number", filterKey: "rowNo" },
@@ -113,7 +133,10 @@ const ImportRow: React.FC = () => {
       type: "text", 
       options: statusOptions, 
       filterKey: "rowStatus",
-      render: (c) => <StatusBadge status={c.rowStatus || "PENDING"} />
+      render: (c) => {
+        const props = getStatusProps(c.rowStatus);
+        return <StatusBadge status={props.status} customText={props.customText} />
+      }
     },
     { 
       key: "diffType", 
@@ -121,7 +144,10 @@ const ImportRow: React.FC = () => {
       type: "text", 
       options: statusOptions, 
       filterKey: "diffType",
-      render: (c) => <StatusBadge status={c.diffType || "PENDING"} />
+      render: (c) => {
+        const props = getStatusProps(c.diffType);
+        return <StatusBadge status={props.status} customText={props.customText} />
+      }
     },
     { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
     { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
