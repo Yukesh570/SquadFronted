@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react";
+import { Home, Plus, Edit, Trash, Eye, Layers } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -11,6 +11,7 @@ import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
 import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
 import { CustomerRateModal } from "../../components/modals/Rate/CustomerRateModal";
+import { RateVersionTableModal } from "../../components/modals/Rate/RateVersionTableModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -22,8 +23,6 @@ import { DeleteModal } from "../../components/modals/DeleteModal";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
-
-// ⚡️ FIX: Import the StatusBadge
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
 interface Option { label: string; value: string; }
@@ -59,6 +58,9 @@ const CustomerRate: React.FC = () => {
   const [timezoneMap, setTimezoneMap] = useState<Record<string, string>>({});
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
+  const [activeRatePlan, setActiveRatePlan] = useState<string | null>(null);
+
   const [editingRate, setEditingRate] = useState<CustomerRateData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -139,14 +141,19 @@ const CustomerRate: React.FC = () => {
     { key: "rate__range", label: "Rate (Range)", type: "number_range", filterKey: "rate", isSearchOnly: true },
     { key: "rate__gt_lt", label: "Rate (GT / LT)", type: "number_gt_lt", filterKey: "rate", isSearchOnly: true },
 
-    { key: "version", label: "Version", type: "number", filterKey: "version" },
+    { 
+      key: "version", 
+      label: "Version", 
+      type: "number", 
+      filterKey: "version",
+      // ⚡️ FIX: Removed the version count badge here, strictly just showing the version number
+    },
     { 
       key: "status", 
       label: "Status", 
       type: "text", 
       options: [{ label: "DRAFT", value: "DRAFT" }, { label: "ACTIVE", value: "ACTIVE" }, { label: "EXPIRED", value: "EXPIRED" }], 
       filterKey: "status",
-      // ⚡️ FIX: Implemented generic StatusBadge
       render: (c: any) => <StatusBadge status={c.status} />
     },
 
@@ -228,7 +235,23 @@ const CustomerRate: React.FC = () => {
       const response: any = await getCustomerRatesApi(routeName, currentPage, rowsPerPage, currentSearchParams);
 
       if (newController.signal.aborted) return;
-      if (response && response.results) { setRates(response.results); setTotalItems(response.count); } 
+      if (response && response.results) { 
+        const groupedMap = new Map<string, any>();
+        response.results.forEach((item: any) => {
+          const existing = groupedMap.get(item.ratePlan);
+          if (!existing) {
+            groupedMap.set(item.ratePlan, { ...item, _versionCount: 1 });
+          } else {
+            if (item.version > existing.version) {
+              groupedMap.set(item.ratePlan, { ...item, _versionCount: existing._versionCount + 1 });
+            } else {
+              existing._versionCount += 1;
+            }
+          }
+        });
+        setRates(Array.from(groupedMap.values())); 
+        setTotalItems(response.count); 
+      } 
       else if (Array.isArray(response)) { setRates(response); setTotalItems(response.length); } 
       else { setRates([]); setTotalItems(0); }
     } catch (error: any) {
@@ -257,6 +280,11 @@ const CustomerRate: React.FC = () => {
     }
   };
 
+  const openVersionsModal = (ratePlan: string) => {
+    setActiveRatePlan(ratePlan);
+    setIsVersionsModalOpen(true);
+  };
+
   const handleEdit = (rate: CustomerRateData) => { if (!canUpdate) return; setEditingRate(rate); setIsViewMode(false); setIsModalOpen(true); };
   const handleAdd = () => { if (!canCreate) return; setEditingRate(null); setIsViewMode(false); setIsModalOpen(true); };
   const handleView = (rate: CustomerRateData) => { setEditingRate(rate); setIsViewMode(true); setIsModalOpen(true); };
@@ -268,6 +296,7 @@ const CustomerRate: React.FC = () => {
   };
 
   const menuItems: ContextMenuItem[] = selectedRowRate ? [
+    { label: "Manage Versions", icon: <Layers size={16} />, onClick: () => openVersionsModal(selectedRowRate.ratePlan!) },
     { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowRate) },
     ...(canUpdate ? [{ label: "Edit Rate", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowRate) }] : []),
     ...(canDelete ? [{ label: "Delete Rate", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowRate.id!) }] : []),
@@ -278,6 +307,11 @@ const CustomerRate: React.FC = () => {
 
   const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
   const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+
+  const rateToDelete = rates.find(r => r.id === deleteId);
+  const deleteMessage = rateToDelete && (rateToDelete as any)._versionCount > 1
+    ? `Warning: There are ${(rateToDelete as any)._versionCount} versions of this rate plan. Are you sure you want to delete this latest version? Action cannot be undone.`
+    : "Are you sure you want to delete this rate? Action cannot be undone.";
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -360,8 +394,38 @@ const CustomerRate: React.FC = () => {
       />
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+      
       <CustomerRateModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchRates} moduleName={routeName} editingRate={editingRate} isViewMode={isViewMode} />
-      <DeleteModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Customer Rate" message="Are you sure you want to delete this rate?" />
+      
+      <RateVersionTableModal
+        isOpen={isVersionsModalOpen}
+        onClose={() => {
+          setIsVersionsModalOpen(false);
+          setActiveRatePlan(null);
+          fetchRates(); 
+        }}
+        ratePlan={activeRatePlan}
+        moduleName={routeName}
+        fetchApi={getCustomerRatesApi}
+        deleteApi={deleteCustomerRateApi}
+        countryMap={countryMap}
+        timezoneMap={timezoneMap}
+        onEdit={(rate) => {
+          setEditingRate(rate);
+          setIsViewMode(false);
+          setIsModalOpen(true);
+        }}
+        onView={(rate) => {
+          setEditingRate(rate);
+          setIsViewMode(true);
+          setIsModalOpen(true);
+        }}
+        onRefresh={fetchRates}
+        canUpdate={canUpdate}
+        canDelete={canDelete}
+      />
+
+      <DeleteModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Customer Rate" message={deleteMessage} />
     </div>
   );
 };

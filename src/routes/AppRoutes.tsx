@@ -28,7 +28,7 @@ import Operators from "../pages/Operator/Operator";
 import UserLog from "../pages/UserLog/UserLog";
 import CustomRoute from "../pages/RouteManager/CustomRoute";
 import { NavItemsContext } from "../context/navItemsContext";
-import { useContext, type JSX } from "react";
+import { useContext, useState, useEffect, type JSX } from "react";
 import TimeZone from "../pages/settings/Timezone/Timezone";
 import NotFound from "../pages/error/notFound";
 import LiveTraffic from "../pages/Report/LiveTraffic";
@@ -52,7 +52,9 @@ import ClientSession from "../pages/ClientSession/ClientSession";
 import GeneralSettings from "../pages/settings/GeneralSettings/GeneralSettings";
 import CurrencyExchangeRate from "../pages/settings/CurrencyExchangeRate/CurrencyExchangeRate";
 import ServerInfo from "../pages/Report/ServerInfo";
-// import WhiteListIP from "../pages/WhiteListIP/WhiteListIP";
+import EmailSource from "../pages/Rate/ImportVendor/EmailSource";
+import ImportAttachment from "../pages/Rate/ImportVendor/ImportAttachment";
+import ImportAudit from "../pages/Rate/ImportVendor/ImportAudit";
 
 const componentMap: Record<string, JSX.Element> = {
   dashboard: <Dashboard />,
@@ -88,7 +90,6 @@ const componentMap: Record<string, JSX.Element> = {
   detailedReport: <DetailedReport/>,
   clientTransaction: <ClientTransaction />,
   vendorTransaction: <VendorTransaction />,
-  // whiteListIP: <WhiteListIP />,
   invoiceSetup: <InvoiceSetup />,
   clientInvoice: <ClientInvoice />,
   generateClientInvoice: <GenerateClientInvoice />,
@@ -97,18 +98,21 @@ const componentMap: Record<string, JSX.Element> = {
   messageAttempt: <MessageAttempt/>,
   dlrEvent: <DLREvent/>,
   smsMessagePart: <SmsMessagePart/>,
-  // clientPolicy: <ClientPolicy/>,
-  // vendorPolicy: <VendorPolicy/>,
   operatorNetworkCode: <OperatorNetworkCode/>,
   clientSession: <ClientSession/>,
   generalSettings: <GeneralSettings/>,
   currencyExchangeRate: <CurrencyExchangeRate/>,
-  serverInfo: <ServerInfo/>
+  serverInfo: <ServerInfo/>,
+  emailSource: <EmailSource/>,
+  importAttachment: <ImportAttachment/>,
+  importAudit: <ImportAudit/>,
 };
 
 const AppRoutes = () => {
-  const { isAuthenticated, isLoading } = useAuth();
-  const { navItems } = useContext(NavItemsContext);
+  const { isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
+  
+  const { navItems, loading: isNavLoading, error: hasNavError } = useContext(NavItemsContext);
+  const [navTimeout, setNavTimeout] = useState(false);
 
   type NavUrl = {
     url: string;
@@ -131,43 +135,83 @@ const AppRoutes = () => {
     return result;
   };
 
+  // Safety net: If authenticated but navItems don't load within 5 seconds, assume backend is dead.
+  useEffect(() => {
+    let timer: number; // ⚡️ FIX: Used number instead of NodeJS.Timeout for standard browser typings
+    if (isAuthenticated && (!navItems || !navItems.results || navItems.results.length === 0)) {
+      timer = window.setTimeout(() => {
+        setNavTimeout(true);
+      }, 5000); // 5 second timeout
+    }
+    return () => window.clearTimeout(timer);
+  }, [isAuthenticated, navItems]);
+
   // 1. Initial Auth Check (Is token valid?)
-  if (isLoading) {
+  if (isAuthLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+          <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Authenticating...</p>
+        </div>
       </div>
     );
   }
 
   // 2. NOT Authenticated? -> Show Login Routes immediately.
-  // (Do NOT wait for navItems, because they won't load for unauth users)
   if (!isAuthenticated) {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
-        {/* Any other path redirects to Login */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     );
   }
 
-  // 3. Authenticated? -> NOW we wait for NavItems.
-  // If we are logged in but navItems haven't arrived yet, THEN show spinner.
-  if (!navItems || !navItems.results || navItems.results.length === 0) {
+  // 3. Backend Unreachable Safety Check (Immediate Feedback OR Timeout)
+  if (hasNavError || navTimeout) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900 px-4">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-red-100 dark:border-red-900/30 text-center max-w-md w-full">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Connection Failed</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+            Unable to reach the server to load your navigation menu. The backend may be offline or unreachable.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button onClick={() => window.location.reload()} className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors">
+              Retry Connection
+            </button>
+            <button onClick={logout} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors">
+              Logout
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
-  // 4. Authenticated AND NavItems Loaded -> Show Protected App
+  // 4. Authenticated? -> NOW we wait for NavItems.
+  if (isNavLoading || !navItems || !navItems.results || navItems.results.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+          <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Loading layout...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 5. Authenticated AND NavItems Loaded -> Show Protected App
   const urls = extractUrlsWithLabels(navItems.results);
 
   return (
     <Routes>
-      {/* If logged in user tries to go to login, send to dashboard */}
       <Route path="/login" element={<Navigate to="/dashboard" />} />
 
       <Route path="/" element={<Layout />}>
@@ -175,7 +219,6 @@ const AppRoutes = () => {
 
         <Route path="change-password" element={<ChangePassword />} />
         <Route path="notifications" element={<AllNotifications />} />
-
 
         {urls.map((item) => {
           const lastSegment = item.url.split("/").pop();
@@ -185,7 +228,6 @@ const AppRoutes = () => {
           ) : null;
         })}
 
-        {/* NotFound is now safe to uncomment because we waited for navItems above */}
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

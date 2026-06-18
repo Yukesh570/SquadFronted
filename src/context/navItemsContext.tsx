@@ -9,12 +9,14 @@ interface NavItemsContextType {
   navItems: PaginatedResponse<navUserData>;
   refreshNavItems: () => Promise<void>;
   loading: boolean;
+  error: boolean; // ⚡️ FIX: Added error state
 }
 
 export const NavItemsContext = createContext<NavItemsContextType>({
   navItems: { count: 0, next: null, previous: null, results: [] },
   refreshNavItems: async () => {},
   loading: true,
+  error: false,
 });
 
 export const NavItemProvider = ({
@@ -36,17 +38,19 @@ export const NavItemProvider = ({
   const [navItems, setNavItems] =
     useState<PaginatedResponse<navUserData>>(initialData);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false); // ⚡️ FIX: Initialize error state
 
   // Function to fetch data from API
   const refreshNavItems = async () => {
     setLoading(true);
+    setError(false);
     try {
       const data = await getUserSideBarApi();
       console.log("Fetched nav items:", data);
       setNavItems(data);
     } catch (error) {
       console.error("Error fetching nav items:", error);
-      // Optional: setNavItems(initialData) on error if you prefer strict clearing
+      setError(true); // ⚡️ FIX: Flag that the request completely failed
     } finally {
       setLoading(false);
     }
@@ -56,6 +60,7 @@ export const NavItemProvider = ({
   const clearNavItems = () => {
     console.log("Clearing Nav Items (Logout)");
     setNavItems(initialData);
+    setError(false);
   };
 
   // 3. THE LOGIC FIX:
@@ -71,7 +76,7 @@ export const NavItemProvider = ({
   }, [isAuthenticated]); // Dependency array ensures strict sync with Auth state
 
   return (
-    <NavItemsContext.Provider value={{ navItems, refreshNavItems, loading }}>
+    <NavItemsContext.Provider value={{ navItems, refreshNavItems, loading, error }}>
       {children}
     </NavItemsContext.Provider>
   );

@@ -14,16 +14,12 @@ import {
   createIpWhitelistApi,
   deleteIpWhitelistApi,
 } from "../../api/ipWhitelistApi/ipWhitelistApi";
-import { getGroupedCustomRoutesApi } from "../../api/routeManagerApi/customRouteApi";
 
 // --- Policy APIs ---
 import {
   createClientPolicyApi,
   updateClientPolicyApi,
 } from "../../api/policyApi/clientPolicyApi";
-
-// @ts-ignore
-import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi";
 
 // --- Components ---
 import Input from "../ui/Input";
@@ -72,10 +68,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     internalNotes: "",
     bindStatus: "OFFLINE",
     session: "0/2",
-    
-    // Hidden on edit, available on create
-    routeGroup: "",
-    ratePlanName: "",
 
     // Policy Fields
     maxTps: "",
@@ -89,8 +81,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   });
 
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
-  const [routeGroupOptions, setRouteGroupOptions] = useState<Option[]>([]);
-  const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [existingPolicyId, setExistingPolicyId] = useState<number | null>(null);
@@ -146,52 +136,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           );
         })
         .catch((err: any) => console.error("Failed to load companies", err));
-
-      if (!editingClient) {
-        // Fetch Route Groups (Filtered for duplicates)
-        getGroupedCustomRoutesApi("customRoute", 1, 1000)
-          .then((res: any) => {
-            const rgList = res.results || (Array.isArray(res) ? res : []);
-            const uniqueOptions: Option[] = [];
-            const seenNames = new Set<string>();
-
-            rgList.forEach((rg: any) => {
-              const name = rg.routeGroup__name;
-              if (name && !seenNames.has(name)) {
-                seenNames.add(name);
-                uniqueOptions.push({
-                  label: name,
-                  value: String(rg.id),
-                });
-              }
-            });
-            setRouteGroupOptions(uniqueOptions);
-          })
-          .catch((err: any) => console.error("Failed to load route groups", err));
-
-        // Fetch Rate Plans (Filtered for duplicates)
-        getCustomerRatesApi("customerRate", 1, 1000)
-          .then((res: any) => {
-            let list = res.results || (Array.isArray(res) ? res : []);
-            const uniqueOptions: Option[] = [];
-            const seenNames = new Set<string>();
-
-            list.forEach((r: any) => {
-              const planName = r.ratePlan || r.ratePlanName || r.name;
-              if (planName && !seenNames.has(planName)) {
-                seenNames.add(planName);
-                uniqueOptions.push({
-                  label: planName,
-                  value: planName,
-                });
-              }
-            });
-            setRatePlanOptions(uniqueOptions);
-          })
-          .catch((err: any) => console.error("Failed to load rate plans", err));
-      }
     }
-  }, [isOpen, editingClient]);
+  }, [isOpen]);
 
   // --- Fetch Client Details & IPs ---
   useEffect(() => {
@@ -214,8 +160,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           internalNotes: "",
           bindStatus: "OFFLINE",
           session: "0/2",
-          routeGroup: "",
-          ratePlanName: "",
           maxTps: "",
           maxQueueDepth: "",
           maxWindowPerSession: "",
@@ -347,8 +291,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         idleTimeoutSec,
         submitTimeoutSec,
         senderIdPolicy,
-        routeGroup,
-        ratePlanName,
         ...clientPayload
       } = formData;
 
@@ -357,12 +299,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         company: Number(formData.company),
         ipWhitelist: [],
       };
-
-      // Only attach Route Group and Rate Plan on creation, editing is isolated
-      if (!editingClient) {
-        payload.routeGroup = routeGroup ? Number(routeGroup) : null;
-        payload.ratePlanName = ratePlanName || "";
-      }
 
       let savedClientId: number;
 
@@ -504,27 +440,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               options={routeOptions}
               disabled={isViewMode}
             />
-            
-            {/* Render routing info ONLY when ADDING a new client */}
-            {!editingClient && (
-              <>
-                <Select
-                  label="Route Group"
-                  value={formData.routeGroup}
-                  onChange={(v) => handleSelect("routeGroup", v)}
-                  options={routeGroupOptions}
-                  placeholder="Select Route Group"
-                />
-                <Select
-                  label="Rate Plan Name"
-                  value={formData.ratePlanName}
-                  onChange={(v) => handleSelect("ratePlanName", v)}
-                  options={ratePlanOptions}
-                  placeholder="Select Rate Plan"
-                />
-              </>
-            )}
-
           </div>
         </fieldset>
 

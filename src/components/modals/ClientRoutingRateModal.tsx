@@ -82,7 +82,6 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
     e.preventDefault();
     if (!editingClient || !editingClient.id) return;
 
-    // Step 1: Pre-check for warnings
     if (!warningMessage) {
       setIsSubmitting(true);
       try {
@@ -94,7 +93,6 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
           ratePlan: formData.ratePlanName
         });
 
-        // If there is a warning, pause and show it
         if (overviewRes && overviewRes.warning) {
           setWarningMessage(overviewRes.warning); 
           setIsSubmitting(false);
@@ -112,7 +110,6 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
       }
     }
 
-    // Step 2: Safe Update (or user confirmed "Update Anyway")
     setIsSubmitting(true);
     try {
       const payload = {
@@ -120,7 +117,6 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
         ratePlanName: formData.ratePlanName || "",
       };
 
-      // If this fires and a green toast appears, the browser physically made this network request.
       await updateClientApi(editingClient.id, payload, moduleName);
       toast.success("Route & Rate Plan updated successfully!");
       onSuccess();
@@ -134,8 +130,13 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
 
   if (!isOpen) return null;
 
+  // ⚡️ FIX: Dynamic title checking if routing info already exists
+  const modalTitle = (!editingClient?.routeGroup && !editingClient?.ratePlanName) 
+    ? "Add Route & Rate Plan" 
+    : "Edit Route & Rate Plan";
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Edit Route & Rate Plan" className="max-w-md">
+    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} className="max-w-md">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
           <Select

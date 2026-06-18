@@ -17,7 +17,7 @@ import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi";
 
 // --- Components ---
 import { ClientModal } from "../../components/modals/ClientModal";
-import { ClientRoutingRateModal } from "../../components/modals/ClientRoutingRateModal"; // ⚡️ FIX: Added new modal component
+import { ClientRoutingRateModal } from "../../components/modals/ClientRoutingRateModal"; 
 import IpWhitelistModal from "../../components/modals/WhiteListIPModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -34,13 +34,9 @@ import ContextMenu, {
 } from "../../components/ui/ContextMenu";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 import { actionHelper } from "../../helper/action";
-
-// FIXED: Import the timezone formatter
 import { formatDateTime } from "../../helper/dateFormatter";
 import { AssignRouteModal } from "../../components/modals/assignRouteModal";
 import { getGroupedCustomRoutesApi } from "../../api/routeManagerApi/customRouteApi";
-
-// ⚡️ FIX: Import the unified StatusBadge
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
 // --- Interfaces ---
@@ -93,7 +89,7 @@ const Client: React.FC = () => {
     null,
   );
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-  const [isRoutingModalOpen, setIsRoutingModalOpen] = useState(false); // ⚡️ FIX: New Route Modal state
+  const [isRoutingModalOpen, setIsRoutingModalOpen] = useState(false); 
   const [editingClient, setEditingClient] = useState<ClientData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -158,7 +154,6 @@ const Client: React.FC = () => {
   useEffect(() => {
     const loadDropdowns = async () => {
       try {
-        // 1. Fetch Companies
         const compRes: any = await getCompaniesApi("company", 1, 1000);
         const compList =
           compRes.results || (Array.isArray(compRes) ? compRes : []);
@@ -166,7 +161,6 @@ const Client: React.FC = () => {
           compList.map((c: any) => ({ label: c.name, value: String(c.id) })),
         );
 
-        // 2. Fetch Route Groups
         const rgRes: any = await getGroupedCustomRoutesApi(
           "customRoute",
           1,
@@ -181,7 +175,6 @@ const Client: React.FC = () => {
           })),
         );
 
-        // 3. Fetch Rate Plans
         const rateRes: any = await getCustomerRatesApi("customerRate", 1, 1000);
         const rateList =
           rateRes.results || (Array.isArray(rateRes) ? rateRes : []);
@@ -630,7 +623,6 @@ const Client: React.FC = () => {
     setIsClientModalOpen(true);
   };
   
-  // ⚡️ FIX: Added Routing/Rate Plan handler
   const handleEditRouting = (client: ClientData) => {
     if (!canUpdate) return;
     setEditingClient(client);
@@ -687,6 +679,7 @@ const Client: React.FC = () => {
     setSelectedRowClient(client);
   };
 
+  // ⚡️ FIX: Context menu dynamically switches text
   const menuItems: ContextMenuItem[] = selectedRowClient
     ? [
         ...(canUpdate
@@ -727,10 +720,9 @@ const Client: React.FC = () => {
                 icon: <Edit size={16} />,
                 onClick: () => handleEdit(selectedRowClient),
               },
-              // ⚡️ FIX: Added Route & Rate Plan Action
               {
-                label: "Edit Route & Rate Plan",
-                icon: <Edit size={16} />,
+                label: (!selectedRowClient.routeGroup && !selectedRowClient.ratePlanName) ? "Add Route & Rate Plan" : "Edit Route & Rate Plan",
+                icon: (!selectedRowClient.routeGroup && !selectedRowClient.ratePlanName) ? <Plus size={16} /> : <Edit size={16} />,
                 onClick: () => handleEditRouting(selectedRowClient),
               },
             ]
@@ -1062,7 +1054,6 @@ const Client: React.FC = () => {
         isViewMode={isViewMode}
       />
 
-      {/* ⚡️ FIX: Embedded the new isolated Routing/Rate Plan edit modal */}
       <ClientRoutingRateModal
         isOpen={isRoutingModalOpen}
         onClose={() => setIsRoutingModalOpen(false)}
