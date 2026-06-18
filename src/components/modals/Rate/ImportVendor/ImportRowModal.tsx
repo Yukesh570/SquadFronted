@@ -113,7 +113,7 @@ export const ImportRowModal: React.FC<ImportRowModalProps> = ({
         
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">Raw Data</legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pointer-events-none opacity-80">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input label="Row No" name="rowNo" value={editingData?.rowNo != null ? String(editingData.rowNo) : "-"} disabled={true} onChange={() => {}} />
             <Input label="Destination" name="rawDestination" value={editingData?.rawDestination || "-"} disabled={true} onChange={() => {}} />
             <Input label="Operator" name="rawOperator" value={editingData?.rawOperator || "-"} disabled={true} onChange={() => {}} />
@@ -125,7 +125,7 @@ export const ImportRowModal: React.FC<ImportRowModalProps> = ({
 
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">Normalized & Parsed Data</legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pointer-events-none opacity-80">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
              <Input label="Destination Key" name="destinationKey" value={editingData?.destinationKey || "-"} disabled={true} onChange={() => {}} />
              <Input label="Imported Rate" name="importedRate" value={editingData?.importedRate != null ? String(editingData.importedRate) : "-"} disabled={true} onChange={() => {}} />
              <Input label="Currency" name="currency" value={editingData?.currency || "-"} disabled={true} onChange={() => {}} />
