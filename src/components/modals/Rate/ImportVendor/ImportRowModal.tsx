@@ -56,7 +56,6 @@ export const ImportRowModal: React.FC<ImportRowModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Omitting isDeleted, carrying over uneditable fields
       const payload = {
         rowStatus: formData.rowStatus,
         diffType: formData.diffType,
@@ -112,11 +111,10 @@ export const ImportRowModal: React.FC<ImportRowModalProps> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-6 px-1 max-h-[80vh] overflow-y-auto custom-scrollbar">
         
-        {/* ⚡️ FIX: Added disabled={true} explicitly to all read-only Input fields */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">Raw Data</legend>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pointer-events-none opacity-80">
-            <Input label="Row No" name="rowNo" value={String(editingData?.rowNo ?? "-")} disabled={true} onChange={() => {}} />
+            <Input label="Row No" name="rowNo" value={editingData?.rowNo != null ? String(editingData.rowNo) : "-"} disabled={true} onChange={() => {}} />
             <Input label="Destination" name="rawDestination" value={editingData?.rawDestination || "-"} disabled={true} onChange={() => {}} />
             <Input label="Operator" name="rawOperator" value={editingData?.rawOperator || "-"} disabled={true} onChange={() => {}} />
             <Input label="MCC" name="rawMcc" value={editingData?.rawMcc || "-"} disabled={true} onChange={() => {}} />
@@ -129,7 +127,7 @@ export const ImportRowModal: React.FC<ImportRowModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">Normalized & Parsed Data</legend>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pointer-events-none opacity-80">
              <Input label="Destination Key" name="destinationKey" value={editingData?.destinationKey || "-"} disabled={true} onChange={() => {}} />
-             <Input label="Imported Rate" name="importedRate" value={String(editingData?.importedRate ?? "-")} disabled={true} onChange={() => {}} />
+             <Input label="Imported Rate" name="importedRate" value={editingData?.importedRate != null ? String(editingData.importedRate) : "-"} disabled={true} onChange={() => {}} />
              <Input label="Currency" name="currency" value={editingData?.currency || "-"} disabled={true} onChange={() => {}} />
           </div>
         </fieldset>
