@@ -39,7 +39,14 @@ export const ImportAuditModal: React.FC<ImportAuditModalProps> = ({
         action: editingData.action || "",
         actionBy: editingData.actionBy || "",
         notes: editingData.notes || "",
-        batch: editingData.batch ? String(editingData.batch) : "",
+        batch: editingData.batch != null ? String(editingData.batch) : "",
+      });
+    } else if (isOpen) {
+      setFormData({
+        action: "",
+        actionBy: "",
+        notes: "",
+        batch: "",
       });
     }
   }, [isOpen, editingData]);
@@ -54,7 +61,6 @@ export const ImportAuditModal: React.FC<ImportAuditModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Omitting isDeleted as per rules
       const payload = {
         action: formData.action,
         actionBy: formData.actionBy,
@@ -83,17 +89,18 @@ export const ImportAuditModal: React.FC<ImportAuditModalProps> = ({
       className="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 px-1 max-h-[80vh] overflow-y-auto custom-scrollbar">
+        {/* The || "" fallback permanently prevents the uncontrolled input error */}
         <Input 
           label="Action" 
           name="action" 
-          value={formData.action} 
+          value={formData.action || ""} 
           onChange={handleChange} 
           disabled={isViewMode} 
         />
         <Input 
           label="Action By" 
           name="actionBy" 
-          value={formData.actionBy} 
+          value={formData.actionBy || ""} 
           onChange={handleChange} 
           disabled={isViewMode} 
         />
@@ -101,7 +108,7 @@ export const ImportAuditModal: React.FC<ImportAuditModalProps> = ({
           label="Batch ID" 
           name="batch" 
           type="number"
-          value={formData.batch} 
+          value={formData.batch || ""} 
           onChange={handleChange} 
           disabled={isViewMode} 
         />
@@ -110,7 +117,7 @@ export const ImportAuditModal: React.FC<ImportAuditModalProps> = ({
           <Input 
             label="Action Time" 
             name="actionTime" 
-            value={formatDateTime(editingData.actionTime)} 
+            value={formatDateTime(editingData.actionTime) || ""} 
             disabled={true} 
             onChange={() => {}}
           />
@@ -119,7 +126,7 @@ export const ImportAuditModal: React.FC<ImportAuditModalProps> = ({
         <TextArea 
           label="Notes" 
           name="notes" 
-          value={formData.notes} 
+          value={formData.notes || ""} 
           onChange={handleChange} 
           disabled={isViewMode} 
           rows={3} 
