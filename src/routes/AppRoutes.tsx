@@ -55,6 +55,9 @@ import ServerInfo from "../pages/Report/ServerInfo";
 import EmailSource from "../pages/Rate/ImportVendor/EmailSource";
 import ImportAttachment from "../pages/Rate/ImportVendor/ImportAttachment";
 import ImportAudit from "../pages/Rate/ImportVendor/ImportAudit";
+import ImportBatch from "../pages/Rate/ImportVendor/ImportBatch";
+import ImportMail from "../pages/Rate/ImportVendor/ImportMail";
+import ImportRow from "../pages/Rate/ImportVendor/ImportRow";
 
 const componentMap: Record<string, JSX.Element> = {
   dashboard: <Dashboard />,
@@ -106,6 +109,9 @@ const componentMap: Record<string, JSX.Element> = {
   emailSource: <EmailSource/>,
   importAttachment: <ImportAttachment/>,
   importAudit: <ImportAudit/>,
+  importBatch: <ImportBatch />,
+  importMail: <ImportMail />,
+  importRow: <ImportRow />,
 };
 
 const AppRoutes = () => {
@@ -113,7 +119,7 @@ const AppRoutes = () => {
   
   const { navItems, loading: isNavLoading, error: hasNavError } = useContext(NavItemsContext);
   const [navTimeout, setNavTimeout] = useState(false);
-
+ 
   type NavUrl = {
     url: string;
     label: string;
