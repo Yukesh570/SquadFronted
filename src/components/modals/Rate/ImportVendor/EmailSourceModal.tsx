@@ -6,6 +6,7 @@ import {
   type EmailSourceData,
 } from "../../../../api/rateApi/ImportVendor/emailSourceApi";
 import { getVendorsApi } from "../../../../api/connectivityApi/vendorApi";
+import { getMappingSetupsApi } from "../../../../api/mappingSetupApi/mappingSetupApi"; 
 import Input from "../../../ui/Input";
 import Button from "../../../ui/Button";
 import Select from "../../../ui/Select";
@@ -26,6 +27,32 @@ interface Option {
   value: string;
 }
 
+// ⚡️ FIX: Custom read-only field specifically mimicking MultiEmailInput without 'x' buttons
+const ReadOnlyEmailField = ({ label, value }: { label: string; value: string | undefined }) => {
+  // Support comma-separated emails if backend sends multiple
+  const emails = value ? value.split(',').map(e => e.trim()).filter(e => e) : [];
+
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+      <div className="min-h-[38px] px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md flex items-center flex-wrap gap-2 cursor-not-allowed opacity-80">
+        {emails.length > 0 ? (
+          emails.map((email, idx) => (
+            <span
+              key={idx}
+              className="inline-flex items-center px-2 py-0.5 rounded text-sm font-medium bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600"
+            >
+              {email}
+            </span>
+          ))
+        ) : (
+          <span className="text-sm text-gray-400 dark:text-gray-500 italic">Not set</span>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
   isOpen,
   onClose,
@@ -36,13 +63,14 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     vendor: "",
-    allowedEmail: "",
+    mappingSetup: "", 
     allowedDomain: "",
     subjectPattern: "",
     active: true,
   });
 
   const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
+  const [mappingOptions, setMappingOptions] = useState<Option[]>([]); 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -59,6 +87,19 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
           );
         })
         .catch((err: any) => console.error("Failed to load vendors", err));
+
+      // Fetch Mapping Setups
+      getMappingSetupsApi("mappingSetup", 1, 1000)
+        .then((res: any) => {
+          let list = res.results || (Array.isArray(res) ? res : []);
+          setMappingOptions(
+            list.map((m: any) => ({
+              label: m.name || `Setup ${m.id}`,
+              value: String(m.id),
+            }))
+          );
+        })
+        .catch((err: any) => console.error("Failed to load mappings", err));
     }
   }, [isOpen]);
 
@@ -67,7 +108,7 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
       if (editingData) {
         setFormData({
           vendor: editingData.vendor ? String(editingData.vendor) : "",
-          allowedEmail: editingData.allowedEmail || "",
+          mappingSetup: editingData.mappingSetup ? String(editingData.mappingSetup) : "", 
           allowedDomain: editingData.allowedDomain || "",
           subjectPattern: editingData.subjectPattern || "",
           active: editingData.active ?? true,
@@ -75,7 +116,7 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
       } else {
         setFormData({
           vendor: "",
-          allowedEmail: "",
+          mappingSetup: "",
           allowedDomain: "",
           subjectPattern: "",
           active: true,
@@ -103,13 +144,13 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Build payload strictly matching Swagger specs (omitting isDeleted, createdBy, updatedBy)
+      // Omit allowedEmail from payload entirely as per backend requirements
       const payload: any = {
-        allowedEmail: formData.allowedEmail,
         allowedDomain: formData.allowedDomain,
         subjectPattern: formData.subjectPattern,
         active: formData.active,
         vendor: formData.vendor ? Number(formData.vendor) : null,
+        mappingSetup: formData.mappingSetup ? Number(formData.mappingSetup) : null, 
       };
 
       if (editingData && editingData.id) {
@@ -167,15 +208,20 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
               placeholder="Select Vendor"
               disabled={isViewMode}
             />
-            <Input
-              label="Allowed Email"
-              name="allowedEmail"
-              type="email"
-              value={formData.allowedEmail}
-              onChange={handleChange}
-              placeholder="user@example.com"
+            <Select
+              label="Mapping Setup"
+              value={formData.mappingSetup}
+              onChange={(v: string) => handleSelect("mappingSetup", v)}
+              options={mappingOptions}
+              placeholder="Select Mapping Setup"
               disabled={isViewMode}
             />
+            
+            {/* ⚡️ Show read-only allowedEmail block ONLY when viewing/editing existing data */}
+            {editingData && (
+               <ReadOnlyEmailField label="Allowed Email" value={editingData.allowedEmail} />
+            )}
+
             <Input
               label="Allowed Domain"
               name="allowedDomain"

@@ -27,6 +27,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
   isViewMode = false,
 }) => {
   const [formData, setFormData] = useState({
+    name: "",
     ratePlan: "",
     country: "",
     countryCode: "",
@@ -43,6 +44,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
     if (isOpen) {
       if (editingMapping) {
         setFormData({
+          name: editingMapping.name || "",
           ratePlan: editingMapping.ratePlan,
           country: editingMapping.country,
           countryCode: editingMapping.countryCode,
@@ -55,6 +57,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
         });
       } else {
         setFormData({
+          name: "",
           ratePlan: "",
           country: "",
           countryCode: "",
@@ -76,6 +79,11 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewMode) return;
+
+    if (!formData.name) {
+      toast.error("Name is required");
+      return;
+    }
 
     if (!formData.ratePlan) {
       toast.error("RatePlan is required");
@@ -131,6 +139,14 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <Input
+            label="Name"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+            disabled={isViewMode}
+          />
           <Input
             label="RatePlan"
             name="ratePlan"

@@ -44,8 +44,9 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["ratePlan", "country"];
+const DEFAULT_SEARCH_COLUMNS = ["name", "ratePlan", "country"];
 const DEFAULT_TABLE_COLUMNS = [
+  "name",
   "ratePlan",
   "country",
   "countryCode",
@@ -122,6 +123,12 @@ const MappingSetup: React.FC = () => {
 
   // EXACT MATCH TO DJANGO META FIELDS
   const allColumns: ColumnConfig[] = [
+    {
+      key: "name",
+      label: "Name",
+      type: "text",
+      filterKey: "name__icontains",
+    },
     {
       key: "ratePlan",
       label: "Rate Plan",
@@ -572,7 +579,7 @@ const MappingSetup: React.FC = () => {
               return (
                 <td
                   key={col.key}
-                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "ratePlan" ? "font-medium text-text-primary dark:text-white" : ""}`}
+                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "ratePlan" || col.key === "name" ? "font-medium text-text-primary dark:text-white" : ""}`}
                 >
                   {cellData || "-"}
                 </td>

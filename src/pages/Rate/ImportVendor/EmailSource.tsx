@@ -9,6 +9,7 @@ import {
   type EmailSourceData,
 } from "../../../api/rateApi/ImportVendor/emailSourceApi";
 import { getVendorsApi } from "../../../api/connectivityApi/vendorApi";
+import { getMappingSetupsApi } from "../../../api/mappingSetupApi/mappingSetupApi"; 
 
 import { EmailSourceModal } from "../../../components/modals/Rate/ImportVendor/EmailSourceModal";
 import Button from "../../../components/ui/Button";
@@ -30,10 +31,8 @@ interface Option {
   value: string;
 }
 
-// ⚡️ FIX: Strictly typing the exact union expected by AdvancedFilter to fix TS Error 2430
 type FilterColumnType = "number" | "boolean" | "date" | "date_range" | "date_gt_lt" | "text" | "number_range" | "number_gt_lt";
 
-// ⚡️ FIX: Using Omit to ensure we don't cause interface override conflicts
 interface ColumnConfig extends Omit<FilterColumn, 'type' | 'key' | 'label'> {
   key: string;
   label: string;
@@ -53,7 +52,7 @@ const formatLocalDate = (date: Date) => {
 };
 
 const DEFAULT_SEARCH_COLUMNS = ["vendor__profileName__icontains", "active"];
-const DEFAULT_TABLE_COLUMNS = ["vendor", "allowedEmail", "allowedDomain", "subjectPattern", "active", "createdAt"];
+const DEFAULT_TABLE_COLUMNS = ["vendor", "mappingSetup", "allowedEmail", "allowedDomain", "subjectPattern", "active", "createdAt"];
 
 const EmailSource: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -64,6 +63,9 @@ const EmailSource: React.FC = () => {
   // Mappings
   const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
   const [vendorMap, setVendorMap] = useState<Record<string, string>>({});
+  
+  const [mappingOptions, setMappingOptions] = useState<Option[]>([]); 
+  const [mappingMap, setMappingMap] = useState<Record<string, string>>({}); 
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -101,7 +103,7 @@ const EmailSource: React.FC = () => {
     const moduleLabel = activeItem?.innerText?.split("\n")[0].trim() || "Email Source";
     actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
 
-    // Fetch mappings
+    // Fetch Vendor mappings
     getVendorsApi("vendor", 1, 1000).then((res: any) => {
       const list = res.results || (Array.isArray(res) ? res : []);
       const map: Record<string, string> = {};
@@ -114,6 +116,21 @@ const EmailSource: React.FC = () => {
       setVendorMap(map);
       setVendorOptions(options.sort((a, b) => a.label.localeCompare(b.label)));
     }).catch(console.error);
+
+    // Fetch Mapping Setup mappings for data table display
+    getMappingSetupsApi("mappingSetup", 1, 1000).then((res: any) => {
+      const list = res.results || (Array.isArray(res) ? res : []);
+      const map: Record<string, string> = {};
+      const options: Option[] = [];
+      list.forEach((m: any) => {
+        const name = m.name || `Setup ${m.id}`; // Strictly using name
+        map[String(m.id)] = name;
+        options.push({ label: name, value: String(m.id) });
+      });
+      setMappingMap(map);
+      setMappingOptions(options.sort((a, b) => a.label.localeCompare(b.label)));
+    }).catch(console.error);
+
   }, []);
 
   const booleanOptions: Option[] = [
@@ -124,7 +141,25 @@ const EmailSource: React.FC = () => {
   const allColumns: ColumnConfig[] = [
     { key: "vendor", label: "Vendor", type: "text", options: vendorOptions, filterKey: "vendor" },
     { key: "vendor__profileName__icontains", label: "Vendor Name (Search)", type: "text", isSearchOnly: true },
-    { key: "allowedEmail", label: "Allowed Email", type: "text", filterKey: "allowedEmail__icontains" },
+    { key: "mappingSetup", label: "Mapping Setup", type: "text", options: mappingOptions, filterKey: "mappingSetup" },
+    { 
+      key: "allowedEmail", 
+      label: "Allowed Email", 
+      type: "text", 
+      filterKey: "allowedEmail__icontains",
+      render: (c) => {
+        if (!c.allowedEmail) return "-";
+        const emails = c.allowedEmail.split(',').map(e => e.trim()).filter(e => e);
+        if (emails.length === 0) return "-";
+        if (emails.length === 1) return emails[0];
+        // ⚡️ FIX: Truncate display to first email + count of others
+        return (
+          <span title={c.allowedEmail}>
+            {emails[0]} <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded ml-1">+{emails.length - 1}</span>
+          </span>
+        );
+      }
+    },
     { key: "allowedDomain", label: "Allowed Domain", type: "text", filterKey: "allowedDomain__icontains" },
     { key: "subjectPattern", label: "Subject Pattern", type: "text", filterKey: "subjectPattern__icontains" },
     { 
@@ -301,6 +336,8 @@ const EmailSource: React.FC = () => {
             {visibleTableFields.map((col) => {
               let cellData = (item as any)[col.key];
               if (col.key === "vendor") cellData = vendorMap[String(item.vendor)] || String(item.vendor || "-");
+              if (col.key === "mappingSetup") cellData = mappingMap[String(item.mappingSetup)] || String(item.mappingSetup || "-");
+
               if (col.render) return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{col.render(item)}</td>;
               if (col.options) { const match = col.options.find((opt) => opt.value === String(cellData)); cellData = match ? match.label : cellData; }
               return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{cellData || "-"}</td>;

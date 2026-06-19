@@ -7,6 +7,7 @@ export interface EmailSourceData {
   subjectPattern?: string;
   active?: boolean;
   vendor?: number;
+  mappingSetup?: number; // Added field
   createdAt?: string;
   updatedAt?: string;
 }

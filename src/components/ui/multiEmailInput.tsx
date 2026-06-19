@@ -1,4 +1,5 @@
 import React, { useState, type KeyboardEvent } from "react";
+
 interface MultiEmailInputProps {
   label: string;
   name: string;
@@ -57,25 +58,25 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
 
   return (
     <div className="flex flex-col">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
         {label}
       </label>
       <div
-        className={`flex flex-wrap gap-2 items-center p-2 border border-gray-300 rounded-md focus-within:ring-1 focus-within:ring-primary focus-within:border-primary bg-white min-h-[42px] ${
-          disabled ? "bg-gray-100 cursor-not-allowed opacity-70" : ""
+        className={`flex flex-wrap gap-2 items-center p-2 border border-gray-300 dark:border-gray-700 rounded-md focus-within:ring-1 focus-within:ring-primary focus-within:border-primary bg-white dark:bg-gray-800 min-h-[42px] ${
+          disabled ? "bg-gray-100 dark:bg-gray-900 cursor-not-allowed opacity-70" : ""
         }`}
       >
         {emails.map((email, index) => (
           <span
             key={index}
-            className="flex items-center gap-1 bg-gray-100 border border-gray-200 text-gray-800 px-2 py-0.5 rounded text-sm"
+            className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded text-sm"
           >
             {email}
             {!disabled && (
               <button
                 type="button"
                 onClick={() => removeEmail(index)}
-                className="text-gray-400 hover:text-red-500 focus:outline-none ml-1"
+                className="text-gray-400 dark:text-gray-400 hover:text-red-500 focus:outline-none ml-1"
               >
                 &times;
               </button>
@@ -84,7 +85,7 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
         ))}
         <input
           type="text"
-          className="flex-grow min-w-[120px] outline-none border-none focus:ring-0 p-0 text-sm bg-transparent disabled:cursor-not-allowed"
+          className="flex-grow min-w-[120px] outline-none border-none focus:ring-0 p-0 text-sm bg-transparent dark:text-white disabled:cursor-not-allowed"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
