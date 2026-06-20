@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: XenonSms-frontend:latest
+    image: xenonsms-frontend:latest
     container_name: XenonSms-frontend
     restart: unless-stopped
     ports:
