@@ -3,17 +3,17 @@ name: CI/CD Deploy React Frontend
 on:
   push:
     branches:
-      - stagging
+      - main
 
 jobs:
   deploy-frontend:
     runs-on: ubuntu-latest
 
     env:
-      REMOTE_DIR: ${{ secrets.REMOTE_APP_DIR }}
-      SSH_USER: ${{ secrets.SSH_USER }}
-      SSH_HOST: ${{ secrets.SSH_HOST }}
-      SSH_PORT: ${{ secrets.SSH_PORT }}
+      REMOTE_DIR: ${{ secrets.XENON_REMOTE_APP_DIR }}
+      SSH_USER: ${{ secrets.SSH_XENON_USER }}
+      SSH_HOST: ${{ secrets.SSH_XENON_HOST }}
+      SSH_PORT: ${{ secrets.SSH_XENON_PORT }}
 
     steps:
       - name: Checkout
@@ -33,7 +33,7 @@ jobs:
       - name: Prepare SSH Key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa 
+          echo "${{ secrets.SSH_XENON_PRIVATE_KEY }}" > ~/.ssh/id_rsa 
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ env.SSH_PORT }} ${{ env.SSH_HOST }} >> ~/.ssh/known_hosts
 
