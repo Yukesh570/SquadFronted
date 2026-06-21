@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   Home, RefreshCw, Server, Database, Cpu, HardDrive, 
   Activity, AlertTriangle, CheckCircle, Zap, Layers,
-  Clock, Wifi
+  Clock, Wifi, ListMinus
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -147,9 +147,10 @@ const ServerInfo: React.FC = () => {
   const infrastructure = serverData?.infrastructure || { 
     database: "UNKNOWN", 
     redis: "UNKNOWN", 
-    rabbitmq: "UNKNOWN", 
+    rabbitmqPortStatus: "UNKNOWN", // ⚡️ FIX: Adjusted key
     celery_workers: "UNKNOWN", 
-    active_celery_nodes: 0 
+    active_celery_nodes: 0,
+    pending_tasks: 0
   };
 
   const isWarning = system_status === "WARNING" || system_status === "DOWN" || system_status === "CRITICAL";
@@ -216,16 +217,24 @@ const ServerInfo: React.FC = () => {
 
       {/* SECTION: Infrastructure Services */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <h2 className="text-sm font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider">Infrastructure Services</h2>
-          <div className="text-xs font-medium px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-md text-text-secondary shadow-sm transition-all duration-300">
-            Active Celery Nodes: <span className="text-primary ml-1 font-bold text-sm">{infrastructure.active_celery_nodes}</span>
+          <div className="flex items-center gap-3">
+            <div className="text-xs font-medium px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-md text-text-secondary shadow-sm transition-all duration-300">
+              Active Celery Nodes: <span className="text-primary ml-1 font-bold text-sm">{infrastructure.active_celery_nodes}</span>
+            </div>
+            {/* ⚡️ FIX: Added pending_tasks display */}
+            <div className="text-xs font-medium px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-md text-text-secondary shadow-sm transition-all duration-300 flex items-center gap-1.5">
+              <ListMinus size={14} className="text-orange-500" />
+              Pending Tasks: <span className="text-orange-600 dark:text-orange-400 ml-1 font-bold text-sm">{infrastructure.pending_tasks || 0}</span>
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <ServiceCard name="Database" status={infrastructure.database} icon={Database} />
           <ServiceCard name="Redis" status={infrastructure.redis} icon={Layers} />
-          <ServiceCard name="RabbitMQ" status={infrastructure.rabbitmq} icon={Zap} />
+          {/* ⚡️ FIX: Adjusted key to rabbitmqPortStatus */}
+          <ServiceCard name="RabbitMQ" status={infrastructure.rabbitmqPortStatus} icon={Zap} />
           <ServiceCard name="Celery Workers" status={infrastructure.celery_workers} icon={Server} />
         </div>
       </div>

@@ -3,9 +3,10 @@ import api from "../../api/axiosInstance";
 export interface InfrastructureData {
   database: string;
   redis: string;
-  rabbitmq: string;
+  rabbitmqPortStatus: string; // ⚡️ FIX: Updated to match backend change
   celery_workers: string;
   active_celery_nodes: number;
+  pending_tasks?: number; // ⚡️ Added pending_tasks as per backend schema
 }
 
 export interface HardwareData {

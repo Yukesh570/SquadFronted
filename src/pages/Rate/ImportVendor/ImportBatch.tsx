@@ -131,7 +131,18 @@ const ImportBatch: React.FC = () => {
       type: "text", 
       options: batchStatusOptions, 
       filterKey: "batchStatus",
-      render: (c) => <StatusBadge status={c.batchStatus || "PARSING"} />
+      render: (c) => {
+         const val = c.batchStatus || "PARSING";
+         const label = batchStatusOptions.find(o => o.value === val)?.label || val;
+         
+         // ⚡️ FIX: Map to PM's existing colors
+         let colorKey = "PENDING"; // Default Parsing -> Yellow
+         if (["PARSED", "AUTO_APPROVED", "MANUAL_APPROVED", "PUBLISHED"].includes(val)) colorKey = "ACTIVE"; // Green
+         if (val === "READY_FOR_REVIEW") colorKey = "SUBMITTING"; // Purple
+         if (["ROLLED_BACK"].includes(val)) colorKey = "EXPIRED"; // Orange
+
+         return <StatusBadge status={colorKey} customText={label} />;
+      }
     },
     { 
       key: "approvalStatus", 
@@ -139,7 +150,17 @@ const ImportBatch: React.FC = () => {
       type: "text", 
       options: approvalStatusOptions, 
       filterKey: "approvalStatus",
-      render: (c) => <StatusBadge status={c.approvalStatus || "PENDING"} />
+      render: (c) => {
+         const val = c.approvalStatus || "PENDING";
+         const label = approvalStatusOptions.find(o => o.value === val)?.label || val;
+
+         // ⚡️ FIX: Map to PM's existing colors
+         let colorKey = "PENDING"; // Yellow
+         if (["AUTO_APPROVED", "MANUAL_APPROVED"].includes(val)) colorKey = "ACTIVE"; // Green
+         if (val === "REJECTED") colorKey = "REJECTED"; // Red
+
+         return <StatusBadge status={colorKey} customText={label} />;
+      }
     },
     { key: "sourceType", label: "Source Type", type: "text", filterKey: "sourceType__icontains" },
     { key: "currency", label: "Currency", type: "text", filterKey: "currency__icontains" },

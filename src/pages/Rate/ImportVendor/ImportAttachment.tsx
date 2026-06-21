@@ -6,7 +6,6 @@ import { toast } from "react-toastify";
 import { getImportAttachmentsApi, type ImportAttachmentData } from "../../../api/rateApi/ImportVendor/importAttachmentApi";
 import { ImportAttachmentModal } from "../../../components/modals/Rate/ImportVendor/ImportAttachmentModal";
 
-// ⚡️ FIX: Removed unused Button import
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import DatePicker from "../../../components/ui/DatePicker";
@@ -104,7 +103,18 @@ const ImportAttachment: React.FC = () => {
       type: "text", 
       options: parseStatusOptions, 
       filterKey: "parseStatus",
-      render: (c) => <StatusBadge status={c.parseStatus || "PENDING"} /> 
+      render: (c) => {
+        const val = c.parseStatus || "PENDING";
+        const label = parseStatusOptions.find(o => o.value === val)?.label || val;
+
+        // ⚡️ FIX: Map to PM's existing colors
+        let colorKey = "PENDING"; // Default Yellow
+        if (val === "PARSED") colorKey = "ACTIVE"; // Green
+        if (val === "FAILED") colorKey = "FAILED"; // Red
+        if (val === "MANUAL_REVIEW") colorKey = "UNDELIVERED"; // Orange
+
+        return <StatusBadge status={colorKey} customText={label} />;
+      }
     },
     { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
     { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },

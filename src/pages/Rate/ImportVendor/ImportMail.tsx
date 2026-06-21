@@ -125,7 +125,19 @@ const ImportMail: React.FC = () => {
       type: "text", 
       options: statusOptions, 
       filterKey: "status",
-      render: (c) => <StatusBadge status={c.status || "RECEIVED"} />
+      render: (c) => {
+        const val = c.status || "RECEIVED";
+        const label = statusOptions.find(o => o.value === val)?.label || val;
+        
+        // ⚡️ FIX: Map to PM's existing colors
+        let colorKey = "SUBMITTED"; // Received -> Blue
+        if (val === "IDENTIFIED") colorKey = "SUBMITTING"; // Identified -> Purple
+        if (val === "DUPLICATE") colorKey = "PENDING"; // Duplicate -> Yellow
+        if (val === "MANUAL_REVIEW") colorKey = "UNDELIVERED"; // Manual -> Orange
+        if (val === "FAILED") colorKey = "FAILED"; // Failed -> Red
+
+        return <StatusBadge status={colorKey} customText={label} />;
+      }
     },
     { key: "messageId", label: "Message ID", type: "text", filterKey: "messageId__icontains" },
     { key: "rawMailPath", label: "Raw Mail Path", type: "text", filterKey: "rawMailPath__icontains" },
