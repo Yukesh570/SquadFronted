@@ -58,6 +58,8 @@ import ImportAudit from "../pages/Rate/ImportVendor/ImportAudit";
 import ImportBatch from "../pages/Rate/ImportVendor/ImportBatch";
 import ImportMail from "../pages/Rate/ImportVendor/ImportMail";
 import ImportRow from "../pages/Rate/ImportVendor/ImportRow";
+import MccMncPrefixRange from "../pages/MccMncPrefix/MccMncPrefixRange";
+import MccMncPrefixImportBatch from "../pages/MccMncPrefix/MccMncPrefixImportBatch";
 
 const componentMap: Record<string, JSX.Element> = {
   dashboard: <Dashboard />,
@@ -112,6 +114,8 @@ const componentMap: Record<string, JSX.Element> = {
   importBatch: <ImportBatch />,
   importMail: <ImportMail />,
   importRow: <ImportRow />,
+  mccMncPrefixRange: <MccMncPrefixRange />,
+  mccMncPrefixImportBatch: <MccMncPrefixImportBatch />
 };
 
 const AppRoutes = () => {
