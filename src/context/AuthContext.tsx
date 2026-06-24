@@ -62,9 +62,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Create the LOGIN function
   const login = async (loginData: loginData) => {
     const response = await loginApi(loginData); // Throws error on failure
-    const token = response.token;
-    if (token) {
-      localStorage.setItem("token", token);
+    const accessToken = response.access;
+    const refreshToken = response.refresh;
+    if (accessToken && refreshToken) {
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("user", JSON.stringify(response.user));
       const { payload } = decodeJwtPayload();
       setIsAuthenticated(true);
       setPayload(payload as AuthPayload);
@@ -77,7 +80,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Create the LOGOUT function
   const logout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     localStorage.removeItem("sidebar_collapsed");
     setIsAuthenticated(false);

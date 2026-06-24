@@ -1,5 +1,7 @@
+
 export function decodeJwtPayload() {
-  const token = localStorage.getItem("token");
+
+  const token = localStorage.getItem("accessToken");
   if (!token) return { token: null, payload: null };
 
   const parts = token.split('.');
