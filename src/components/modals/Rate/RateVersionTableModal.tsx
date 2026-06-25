@@ -4,6 +4,7 @@ import { Edit, Trash, Info, Eye } from "lucide-react";
 import { StatusBadge } from "../../ui/StatusBadge";
 import { DeleteModal } from "../DeleteModal";
 import { toast } from "react-toastify";
+import ContextMenu, { type ContextMenuItem } from "../../ui/ContextMenu";
 
 interface RateVersionTableModalProps {
   isOpen: boolean;
@@ -41,6 +42,8 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
   const [versions, setVersions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<any>(null);
 
   useEffect(() => {
     if (isOpen && ratePlan) {
@@ -53,7 +56,8 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
   const fetchVersions = async () => {
     setIsLoading(true);
     try {
-      const res = await fetchApi(moduleName, 1, 1000, { ratePlan });
+      const filterParams = isVendorMode ? { ratePlan } : { rateGroup__name: ratePlan };
+      const res = await fetchApi(moduleName, 1, 1000, filterParams);
       let list = res.results || (Array.isArray(res) ? res : []);
       // Sort by version descending (highest version first)
       list.sort((a: any, b: any) => (b.version || 0) - (a.version || 0));
@@ -78,8 +82,21 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
     setDeleteId(null);
   };
 
+  const handleContextMenu = (e: React.MouseEvent, version: any, isLatest: boolean) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedVersion({ ...version, __isLatest: isLatest });
+  };
+
+  const menuItems: ContextMenuItem[] = selectedVersion ? [
+    { label: "View Details", icon: <Eye size={16} />, onClick: () => onView(selectedVersion) },
+    ...(canUpdate && selectedVersion.__isLatest ? [{ label: "Edit Latest", icon: <Edit size={16} />, onClick: () => onEdit(selectedVersion) }] : []),
+    ...(canDelete ? [{ label: "Delete", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedVersion.id) }] : []),
+  ] : [];
+
   const headers = [
     "Version",
+    "Rate Plan",
     "Currency",
     ...(isVendorMode ? ["Network"] : []),
     "Country",
@@ -91,7 +108,6 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
     "Status",
     "Effective From",
     "Effective To",
-    "Actions",
   ];
 
   const renderCountry = (rate: any) => { 
@@ -113,12 +129,15 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
         className="max-w-[95vw] w-full" 
       >
         <div className="p-1 flex flex-col space-y-4">
-          <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-              <Info size={16} className="text-blue-500 shrink-0" />
+          <div className="flex items-start gap-2 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300">
+            <Info size={16} className="text-blue-500 shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-1">
               <span>
                 The highlighted row represents the latest active version. Only the
                 latest version can be edited to trigger an upgrade.
+              </span>
+              <span className="font-medium text-gray-700 dark:text-gray-200">
+                Right-click a row for view, edit, or delete options.
               </span>
             </div>
           </div>
@@ -128,7 +147,7 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
               <thead>
                 <tr className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
                   {headers.map((h, i) => (
-                    <th key={i} className={`py-3 px-4 font-medium whitespace-nowrap ${h === 'Actions' ? 'text-right' : ''}`}>
+                    <th key={i} className="py-3 px-4 font-medium whitespace-nowrap">
                       {h}
                     </th>
                   ))}
@@ -153,7 +172,8 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
                     return (
                       <tr
                         key={v.id}
-                        className={`border-b border-gray-100 dark:border-gray-700 ${
+                        onContextMenu={(e) => handleContextMenu(e, v, isLatest)}
+                        className={`group border-b border-gray-100 dark:border-gray-700 cursor-context-menu transition-colors ${
                           isLatest
                             ? "bg-blue-50/50 dark:bg-blue-900/10"
                             : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
@@ -166,6 +186,9 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
                             </span>
                           )}
                           v{v.version || 0}
+                        </td>
+                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">
+                          {v.ratePlan || "-"}
                         </td>
                         <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">
                           {v.currencyCode || "-"}
@@ -206,35 +229,6 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
                             ? new Date(v.effectiveTo).toLocaleString()
                             : "-"}
                         </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center justify-end gap-3">
-                            <button
-                              onClick={() => onView(v)}
-                              className="text-gray-500 hover:text-gray-700 p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                              title="View Details"
-                            >
-                              <Eye size={18} />
-                            </button>
-                            {canUpdate && isLatest && (
-                              <button
-                                onClick={() => onEdit(v)}
-                                className="text-blue-500 hover:text-blue-700 p-1.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-                                title="Edit Latest"
-                              >
-                                <Edit size={18} />
-                              </button>
-                            )}
-                            {canDelete && (
-                              <button
-                                onClick={() => setDeleteId(v.id)}
-                                className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                                title="Delete"
-                              >
-                                <Trash size={18} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
                       </tr>
                     );
                   })
@@ -243,6 +237,12 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
             </table>
           </div>
         </div>
+
+        <ContextMenu
+          position={contextMenuPos}
+          items={menuItems}
+          onClose={() => { setContextMenuPos(null); setSelectedVersion(null); }}
+        />
       </Modal>
 
       <DeleteModal
