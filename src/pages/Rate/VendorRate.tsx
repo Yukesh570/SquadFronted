@@ -28,6 +28,7 @@ import { usePagePermissions } from "../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 import { formatDateTime } from "../../helper/dateFormatter";
+import { StatusBadge } from "../../components/ui/StatusBadge";
 import Modal from "../../components/ui/Modal";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 
@@ -184,11 +185,7 @@ const VendorRate: React.FC = () => {
       type: "text",
       options: statusOptions,
       filterKey: "status",
-      render: (c: any) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${c.status === "ACTIVE" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"}`}>
-          {c.status}
-        </span>
-      ),
+      render: (c: any) => <StatusBadge status={c.status} />,
     },
     { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
     { key: "createdAt__range", label: "Created At (From/To)", type: "date_range", isSearchOnly: true },

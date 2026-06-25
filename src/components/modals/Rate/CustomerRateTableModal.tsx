@@ -1,12 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Modal from "../../ui/Modal";
 import { DeleteModal } from "../DeleteModal";
 import { 
   deleteCustomerRateApi, 
   getCustomerRatesApi 
 } from "../../../api/rateApi/customerRateApi";
 import { CustomerRateModal } from "./CustomerRateModal"; 
-import { toast } from "react-toastify";
 import { RateVersionTableModal } from "./RateVersionTableModal";
+import { toast } from "react-toastify";
+import Button from "../../ui/Button"; 
+import { Plus, Edit, Trash, Layers } from "lucide-react"; 
+import { StatusBadge } from "../../ui/StatusBadge";
+import ContextMenu, { type ContextMenuItem } from "../../ui/ContextMenu";
 
 interface CustomerRateTableModalProps {
   isOpen: boolean;
@@ -27,21 +32,62 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
   canUpdate,
   canDelete,
   countryMap,
-  timezoneMap
+  timezoneMap,
 }) => {
+  const [latestRates, setLatestRates] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  // ⚡️ FIX: Used refreshTrigger as key to force remount/refresh of the inner table
-  const [refreshTrigger, setRefreshTrigger] = useState(0); 
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); 
+
+  // Modals state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
+
   const [editingRate, setEditingRate] = useState<any>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+  const [selectedRatePlan, setSelectedRatePlan] = useState<string | null>(null);
+
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRate, setSelectedRate] = useState<any>(null);
+
+  useEffect(() => {
+    if (isOpen && rateGroup) {
+      fetchLatestRates();
+    } else {
+      setLatestRates([]);
+    }
+  }, [isOpen, rateGroup]);
+
+  const fetchLatestRates = async () => {
+    setIsLoading(true);
+    try {
+      const res = await getCustomerRatesApi(moduleName, 1, 1000, { rateGroup__name: rateGroup });
+      const list = res.results || (Array.isArray(res) ? res : []);
+
+      // Group by ratePlan name, keep only the highest version per plan
+      const groupedMap = new Map<string, any>();
+      list.forEach((item: any) => {
+        const key = item.ratePlan;
+        const existing = groupedMap.get(key);
+        if (!existing || (item.version || 0) > (existing.version || 0)) {
+          groupedMap.set(key, item);
+        }
+      });
+
+      setLatestRates(Array.from(groupedMap.values()));
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load rates.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (deleteId && canDelete) {
       try {
         await deleteCustomerRateApi(deleteId, moduleName);
         toast.success("Rate deleted successfully.");
-        setRefreshTrigger((prev) => prev + 1);
+        fetchLatestRates();
       } catch (error) {
         toast.error("Failed to delete rate.");
       }
@@ -49,33 +95,120 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
     }
   };
 
+  const handleContextMenu = (e: React.MouseEvent, rate: any) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRate(rate);
+  };
+
+  const menuItems: ContextMenuItem[] = selectedRate ? [
+    {
+      label: "Manage Versions",
+      icon: <Layers size={16} />,
+      onClick: () => {
+        setSelectedRatePlan(selectedRate.ratePlan);
+        setIsVersionsModalOpen(true);
+      },
+    },
+    ...(canUpdate ? [{ label: "Edit Rate", icon: <Edit size={16} />, onClick: () => { setEditingRate(selectedRate); setIsViewMode(false); setIsCreateModalOpen(true); } }] : []),
+    ...(canDelete ? [{ label: "Delete", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRate.id) }] : []),
+  ] : [];
+
+  const headers = [
+    "Rate Plan", "Currency", "Country", "Time Zone",
+    "MCC", "MNC", "Country Code", "Rate", "Version", "Status",
+    "Effective From", "Effective To",
+  ];
+
+  const renderCountry = (rate: any) => {
+    if (rate.countryName) return rate.countryName;
+    return countryMap[String(rate.country)] || String(rate.country || "-");
+  };
+  const renderTimezone = (rate: any) => {
+    if (rate.timeZoneName) return rate.timeZoneName;
+    return timezoneMap[String(rate.timeZone)] || String(rate.timeZone || "-");
+  };
+
   return (
-    <div key={refreshTrigger}>
-      {rateGroup && (
-        <RateVersionTableModal
-          isOpen={isOpen}
-          onClose={onClose}
-          ratePlan={rateGroup}
-          moduleName={moduleName}
-          fetchApi={getCustomerRatesApi}
-          deleteApi={deleteCustomerRateApi}
-          countryMap={countryMap}
-          timezoneMap={timezoneMap}
-          onEdit={(rateData) => {
-             setEditingRate(rateData);
-             setIsViewMode(false);
-             setIsCreateModalOpen(true);
-          }}
-          onView={(rateData) => {
-             setEditingRate(rateData);
-             setIsViewMode(true);
-             setIsCreateModalOpen(true);
-          }}
-          onRefresh={() => setRefreshTrigger(prev => prev + 1)}
-          canUpdate={canUpdate}
-          canDelete={canDelete}
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={`Customer Rates: ${rateGroup || ""}`}
+        className="max-w-[95vw] w-full"
+      >
+        <div className="p-4 w-full flex flex-col" onClick={() => setContextMenuPos(null)}>
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4 bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 w-full shrink-0">
+            <div className="flex items-start gap-3 flex-1">
+              <div className="flex flex-col space-y-1.5 text-[13px] text-gray-600 dark:text-gray-300 leading-tight">
+                <p>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">Displaying Latest Rates:</span>{" "}
+                  Shows the latest version of each rate plan in this group.
+                </p>
+                <p>Right-click a row and select <strong>Manage Versions</strong> to view all versions.</p>
+              </div>
+            </div>
+            {canUpdate && (
+              <div className="shrink-0 w-full sm:w-auto">
+                <Button
+                  variant="primary"
+                  onClick={() => { setEditingRate(null); setIsViewMode(false); setIsCreateModalOpen(true); }}
+                  leftIcon={<Plus size={16} />}
+                  className="w-full sm:w-auto text-sm py-1.5 px-4"
+                >
+                  Add Rate
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg custom-scrollbar">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
+                  {headers.map((h, i) => (
+                    <th key={i} className="py-3 px-4 font-medium whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr><td colSpan={headers.length} className="text-center py-8 text-gray-500">Loading rates...</td></tr>
+                ) : latestRates.length === 0 ? (
+                  <tr><td colSpan={headers.length} className="text-center py-8 text-gray-500">No rates found in this group.</td></tr>
+                ) : (
+                  latestRates.map((v) => (
+                    <tr
+                      key={v.id}
+                      onContextMenu={(e) => handleContextMenu(e, v)}
+                      className="group border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-context-menu transition-colors"
+                    >
+                      <td className="py-3 px-4 font-medium text-text-primary dark:text-white whitespace-nowrap">{v.ratePlan || "-"}</td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.currencyCode || "-"}</td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{renderCountry(v)}</td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{renderTimezone(v)}</td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MCC || "-"}</td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MNC || "-"}</td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.countryCode || "-"}</td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 font-medium whitespace-nowrap">{v.rate || "-"}</td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">v{v.version || 0}</td>
+                      <td className="py-3 px-4"><StatusBadge status={v.status} /></td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.effectiveFrom ? new Date(v.effectiveFrom).toLocaleString() : "-"}</td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.effectiveTo ? new Date(v.effectiveTo).toLocaleString() : "-"}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <ContextMenu
+          position={contextMenuPos}
+          items={menuItems}
+          onClose={() => { setContextMenuPos(null); setSelectedRate(null); }}
         />
-      )}
+      </Modal>
 
       <DeleteModal
         isOpen={!!deleteId}
@@ -88,13 +221,30 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
       <CustomerRateModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={() => {
-           setRefreshTrigger((prev) => prev + 1);
-        }}
+        onSuccess={fetchLatestRates}
         moduleName={moduleName}
         editingRate={editingRate}
         isViewMode={isViewMode}
       />
-    </div>
+
+      {/* Level 2: all versions of the selected rate plan */}
+      <RateVersionTableModal
+        isOpen={isVersionsModalOpen}
+        onClose={() => { setIsVersionsModalOpen(false); setSelectedRatePlan(null); }}
+        ratePlan={rateGroup}
+        ratePlanFilter={selectedRatePlan}
+        moduleName={moduleName}
+        fetchApi={getCustomerRatesApi}
+        deleteApi={deleteCustomerRateApi}
+        countryMap={countryMap}
+        timezoneMap={timezoneMap}
+        isVendorMode={false}
+        onEdit={(rateData) => { setEditingRate(rateData); setIsViewMode(false); setIsCreateModalOpen(true); }}
+        onView={(rateData) => { setEditingRate(rateData); setIsViewMode(true); setIsCreateModalOpen(true); }}
+        onRefresh={fetchLatestRates}
+        canUpdate={canUpdate}
+        canDelete={canDelete}
+      />
+    </>
   );
 };

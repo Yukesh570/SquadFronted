@@ -10,6 +10,7 @@ interface RateVersionTableModalProps {
   isOpen: boolean;
   onClose: () => void;
   ratePlan: string | null;
+  ratePlanFilter?: string | null;
   moduleName: string;
   fetchApi: any;
   deleteApi: any;
@@ -27,6 +28,7 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
   isOpen,
   onClose,
   ratePlan,
+  ratePlanFilter,
   moduleName,
   fetchApi,
   deleteApi,
@@ -51,14 +53,17 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
     } else {
       setVersions([]);
     }
-  }, [isOpen, ratePlan]);
+  }, [isOpen, ratePlan, ratePlanFilter]);
 
   const fetchVersions = async () => {
     setIsLoading(true);
     try {
-      const res = await fetchApi(moduleName, 1, 1000, { rateGroup__name: ratePlan });
+      const searchParams: any = { rateGroup__name: ratePlan };
+      // If a specific rate plan name is provided, filter down to just that plan's versions
+      if (ratePlanFilter) searchParams.ratePlan = ratePlanFilter;
+
+      const res = await fetchApi(moduleName, 1, 1000, searchParams);
       let list = res.results || (Array.isArray(res) ? res : []);
-      // Sort by version descending (highest version first)
       list.sort((a: any, b: any) => (b.version || 0) - (a.version || 0));
       setVersions(list);
     } catch (err) {
@@ -73,8 +78,8 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
     try {
       await deleteApi(deleteId, moduleName);
       toast.success("Rate version deleted successfully.");
-      fetchVersions(); // Refresh the inner versions table
-      onRefresh(); // Refresh the parent main table
+      fetchVersions();
+      onRefresh();
     } catch (error) {
       toast.error("Failed to delete rate version.");
     }
@@ -119,15 +124,19 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
     return timezoneMap[String(rate.timeZone)] || String(rate.timeZone || "-"); 
   };
 
+  const title = ratePlanFilter
+    ? `All Versions: ${ratePlanFilter}`
+    : `Rate Plan Versions: ${ratePlan || ""}`;
+
   return (
     <>
       <Modal
         isOpen={isOpen}
         onClose={onClose}
-        title={`Rate Plan Versions: ${ratePlan || ""}`}
+        title={title}
         className="max-w-[95vw] w-full" 
       >
-        <div className="p-1 flex flex-col space-y-4">
+        <div className="p-1 flex flex-col space-y-4" onClick={() => setContextMenuPos(null)}>
           <div className="flex items-start gap-2 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300">
             <Info size={16} className="text-blue-500 shrink-0 mt-0.5" />
             <div className="flex flex-col gap-1">
@@ -146,24 +155,18 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
               <thead>
                 <tr className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
                   {headers.map((h, i) => (
-                    <th key={i} className="py-3 px-4 font-medium whitespace-nowrap">
-                      {h}
-                    </th>
+                    <th key={i} className="py-3 px-4 font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={headers.length} className="text-center py-8 text-gray-500">
-                      Loading versions...
-                    </td>
+                    <td colSpan={headers.length} className="text-center py-8 text-gray-500">Loading versions...</td>
                   </tr>
                 ) : versions.length === 0 ? (
                   <tr>
-                    <td colSpan={headers.length} className="text-center py-8 text-gray-500">
-                      No versions found.
-                    </td>
+                    <td colSpan={headers.length} className="text-center py-8 text-gray-500">No versions found.</td>
                   </tr>
                 ) : (
                   versions.map((v, i) => {
@@ -186,47 +189,23 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
                           )}
                           v{v.version || 0}
                         </td>
-                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">
-                          {v.ratePlan || "-"}
-                        </td>
-                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">
-                          {v.currencyCode || "-"}
-                        </td>
+                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.ratePlan || "-"}</td>
+                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.currencyCode || "-"}</td>
                         {isVendorMode && (
-                          <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">
-                            {v.network || "-"}
-                          </td>
+                          <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.network || "-"}</td>
                         )}
+                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{renderCountry(v)}</td>
+                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{renderTimezone(v)}</td>
+                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MCC || "-"}</td>
+                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MNC || "-"}</td>
+                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.countryCode || "-"}</td>
+                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 font-medium whitespace-nowrap">{v.rate || "-"}</td>
+                        <td className="py-3 px-4"><StatusBadge status={v.status} /></td>
                         <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">
-                          {renderCountry(v)}
-                        </td>
-                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">
-                          {renderTimezone(v)}
-                        </td>
-                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">
-                          {v.MCC || "-"}
-                        </td>
-                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">
-                          {v.MNC || "-"}
+                          {v.effectiveFrom ? new Date(v.effectiveFrom).toLocaleString() : "-"}
                         </td>
                         <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">
-                          {v.countryCode || "-"}
-                        </td>
-                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 font-medium whitespace-nowrap">
-                          {v.rate || "-"}
-                        </td>
-                        <td className="py-3 px-4">
-                          <StatusBadge status={v.status} />
-                        </td>
-                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">
-                          {v.effectiveFrom
-                            ? new Date(v.effectiveFrom).toLocaleString()
-                            : "-"}
-                        </td>
-                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">
-                          {v.effectiveTo
-                            ? new Date(v.effectiveTo).toLocaleString()
-                            : "-"}
+                          {v.effectiveTo ? new Date(v.effectiveTo).toLocaleString() : "-"}
                         </td>
                       </tr>
                     );
