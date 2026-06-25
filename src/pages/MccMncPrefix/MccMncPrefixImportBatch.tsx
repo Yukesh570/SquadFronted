@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Eye, Edit, Upload } from "lucide-react";
+import { Home, Eye, Upload } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -54,7 +54,7 @@ const DEFAULT_SEARCH_COLUMNS = ["fileName__icontains", "status"];
 const DEFAULT_TABLE_COLUMNS = ["fileName", "status", "totalRows", "successRows", "failedRows", "uploadedAt"];
 
 const MccMncPrefixImportBatch: React.FC = () => {
-  const { canCreate, canUpdate } = usePagePermissions();
+  const { canCreate } = usePagePermissions();
   const [data, setData] = useState<MccMncPrefixImportBatchData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +63,6 @@ const MccMncPrefixImportBatch: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingData, setEditingData] = useState<MccMncPrefixImportBatchData | null>(null);
-  const [isViewMode, setIsViewMode] = useState(false);
 
   // Context Menu
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
@@ -116,13 +115,11 @@ const MccMncPrefixImportBatch: React.FC = () => {
       render: (c) => {
          const val = c.status || "PENDING";
          const label = batchStatusOptions.find(o => o.value === val)?.label || val;
-         
-         let colorKey = "PENDING"; // Yellow
-         if (val === "PROCESSING") colorKey = "SUBMITTING"; // Purple
-         if (val === "COMPLETED") colorKey = "ACTIVE"; // Green
-         if (val === "FAILED") colorKey = "FAILED"; // Red
-         if (val === "PARTIAL_SUCCESS") colorKey = "UNDELIVERED"; // Orange
-
+         let colorKey = "PENDING";
+         if (val === "PROCESSING") colorKey = "SUBMITTING";
+         if (val === "COMPLETED") colorKey = "ACTIVE";
+         if (val === "FAILED") colorKey = "FAILED";
+         if (val === "PARTIAL_SUCCESS") colorKey = "UNDELIVERED";
          return <StatusBadge status={colorKey} customText={label} />;
       }
     },
@@ -131,16 +128,12 @@ const MccMncPrefixImportBatch: React.FC = () => {
     { key: "failedRows", label: "Failed Rows", type: "number", filterKey: "failedRows" },
     { key: "duplicateRows", label: "Duplicate Rows", type: "number", filterKey: "duplicateRows" },
     { key: "overlapRows", label: "Overlap Rows", type: "number", filterKey: "overlapRows" },
-    
     { key: "uploadedBy__username__icontains", label: "Uploaded By", type: "text", isSearchOnly: true },
-
     { key: "uploadedAt", label: "Uploaded At (Exact)", tableLabel: "Uploaded At", type: "date", filterKey: "uploadedAt__date", render: (c) => (c.uploadedAt ? formatDateTime(c.uploadedAt) : "-") },
     { key: "uploadedAt__range", label: "Uploaded At (Range)", type: "date_range", filterKey: "uploadedAt", isSearchOnly: true },
     { key: "uploadedAt__gt_lt", label: "Uploaded At (After / Before)", type: "date_gt_lt", filterKey: "uploadedAt", isSearchOnly: true },
-
     { key: "completedAt", label: "Completed At (Exact)", tableLabel: "Completed At", type: "date", filterKey: "completedAt__date", render: (c) => (c.completedAt ? formatDateTime(c.completedAt) : "-") },
     { key: "completedAt__range", label: "Completed At (Range)", type: "date_range", filterKey: "completedAt", isSearchOnly: true },
-    
     { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
     { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
   ];
@@ -223,8 +216,10 @@ const MccMncPrefixImportBatch: React.FC = () => {
   const handleSearch = () => { setCurrentPage(1); fetchData(); };
   const handleClearFilters = () => { setFilterValues({}); setCurrentPage(1); fetchData({}); };
 
-  const handleEdit = (item: MccMncPrefixImportBatchData) => { if (!canUpdate) return; setEditingData(item); setIsViewMode(false); setIsModalOpen(true); };
-  const handleView = (item: MccMncPrefixImportBatchData) => { setEditingData(item); setIsViewMode(true); setIsModalOpen(true); };
+  const handleView = (item: MccMncPrefixImportBatchData) => {
+    setEditingData(item);
+    setIsModalOpen(true);
+  };
 
   const handleContextMenu = (e: React.MouseEvent, item: MccMncPrefixImportBatchData) => {
     e.preventDefault();
@@ -234,7 +229,6 @@ const MccMncPrefixImportBatch: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowData ? [
     { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowData) },
-    ...(canUpdate ? [{ label: "Edit Batch", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowData) }] : []),
   ] : [];
 
   const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
@@ -324,7 +318,7 @@ const MccMncPrefixImportBatch: React.FC = () => {
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
       
-      <MccMncPrefixImportBatchModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchData} moduleName={routeName} editingData={editingData} isViewMode={isViewMode} />
+      <MccMncPrefixImportBatchModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchData} moduleName={routeName} editingData={editingData} isViewMode={true} />
 
       <ImportModal
         isOpen={isImportModalOpen}

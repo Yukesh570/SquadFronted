@@ -20,6 +20,15 @@ export interface CustomerRateData {
   status?: string;
 }
 
+// ⚡️ Added Customer Rate Group Interface
+export interface CustomerRateGroupData {
+  id?: number;
+  name: string;
+  status: "ACTIVE" | "INACTIVE";
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface PaginatedResponse<T> {
   count: number;
   next: string | null;
@@ -27,7 +36,54 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// GET
+// ==========================================
+// CUSTOMER RATE GROUP API (Outer Table)
+// ==========================================
+
+export const getCustomerRateGroupsApi = async (
+  module: string,
+  page: number = 1,
+  pageSize: number = 10,
+  searchParams?: Record<string, any>,
+): Promise<PaginatedResponse<CustomerRateGroupData>> => {
+  const params: any = {
+    page: page,
+    page_size: pageSize,
+    ...searchParams,
+  };
+  const response = await api.get(`/customerRateGroup/${module}/`, { params });
+  return response.data;
+};
+
+export const createCustomerRateGroupApi = async (
+  data: any,
+  module: string,
+): Promise<CustomerRateGroupData> => {
+  const response = await api.post(`/customerRateGroup/${module}/`, data);
+  return response.data;
+};
+
+export const updateCustomerRateGroupApi = async (
+  id: number,
+  data: any,
+  module: string,
+): Promise<CustomerRateGroupData> => {
+  const response = await api.patch(`/customerRateGroup/${module}/${id}/`, data);
+  return response.data;
+};
+
+export const deleteCustomerRateGroupApi = async (
+  id: number,
+  module: string,
+): Promise<void> => {
+  await api.delete(`/customerRateGroup/${module}/${id}/`);
+};
+
+
+// ==========================================
+// CUSTOMER RATE API (Inner Table)
+// ==========================================
+
 export const getCustomerRatesApi = async (
   module: string,
   page: number = 1,
@@ -43,7 +99,6 @@ export const getCustomerRatesApi = async (
   return response.data;
 };
 
-// POST
 export const createCustomerRateApi = async (
   data: any,
   module: string,
@@ -62,7 +117,6 @@ export const updateCustomerRateApi = async (
   return response.data;
 };
 
-// DELETE
 export const deleteCustomerRateApi = async (
   id: number,
   module: string,
