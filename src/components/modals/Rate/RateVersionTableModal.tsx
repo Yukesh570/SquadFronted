@@ -56,8 +56,7 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
   const fetchVersions = async () => {
     setIsLoading(true);
     try {
-      const filterParams = isVendorMode ? { ratePlan } : { rateGroup__name: ratePlan };
-      const res = await fetchApi(moduleName, 1, 1000, filterParams);
+      const res = await fetchApi(moduleName, 1, 1000, { rateGroup__name: ratePlan });
       let list = res.results || (Array.isArray(res) ? res : []);
       // Sort by version descending (highest version first)
       list.sort((a: any, b: any) => (b.version || 0) - (a.version || 0));
