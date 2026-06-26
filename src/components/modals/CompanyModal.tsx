@@ -9,7 +9,6 @@ import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 import { getStateApi } from "../../api/settingApi/stateApi/stateApi";
 import { getCompanyCategoryApi } from "../../api/settingApi/companyCategoryApi/companyCategoryApi";
 import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
-// import { getEntityApi } from "../../api/settingApi/entityApi/entityApi";
 import { getCompanyStatusApi } from "../../api/settingApi/companyStatusApi/companyStatusApi";
 import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
 import Input from "../ui/Input";
@@ -61,8 +60,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     vendorCreditLimit: "",
     balanceAlertAmount: "",
     referenceNumber: "",
-    // businessEntity: "",
-    // vatNumber: "",
     address: "",
     validityPeriod: "LTD",
     defaultEmail: "CMP",
@@ -83,7 +80,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   const [statuses, setStatuses] = useState<Option[]>([]);
   const [currencies, setCurrencies] = useState<Option[]>([]);
   const [timeZones, setTimeZones] = useState<Option[]>([]);
-  // const [entities, setEntities] = useState<Option[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -93,7 +89,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           const list = res.results || (Array.isArray(res) ? res : []);
           setter(
             list.map((item: any) => ({
-              // FIXED: Added fallback to legalEntityName or companyName so it works universally
               label: item.name || item.legalEntityName || item.companyName,
               value: String(item.id),
             })),
@@ -107,7 +102,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       loadOptions(getStateApi, "state", setStates);
       loadOptions(getCompanyCategoryApi, "companyCategory", setCategories);
       loadOptions(getCurrenciesApi, "currency", setCurrencies);
-      // loadOptions(getEntityApi, "entity", setEntities);
       if (typeof getCompanyStatusApi === "function")
         loadOptions(getCompanyStatusApi, "companyStatus", setStatuses);
       if (typeof getTimezoneApi === "function")
@@ -126,26 +120,19 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         billingEmail: editingCompany.billingEmail,
         ratesEmail: editingCompany.ratesEmail,
         lowBalanceAlertEmail: editingCompany.lowBalanceAlertEmail,
-
         country: String(editingCompany.country || ""),
         state: String(editingCompany.state || ""),
         category: String(editingCompany.category || ""),
         status: String(editingCompany.status || ""),
         currency: String(editingCompany.currency || ""),
         timeZone: String(editingCompany.timeZone || ""),
-        // businessEntity: String(editingCompany.businessEntity || ""),
-
         customerCreditLimit: String(editingCompany.customerCreditLimit || ""),
         vendorCreditLimit: String(editingCompany.vendorCreditLimit || ""),
         balanceAlertAmount: String(editingCompany.balanceAlertAmount || ""),
         referenceNumber: editingCompany.referencNumber || "",
-
-        // vatNumber: editingCompany.vatNumber,
         address: editingCompany.address,
-
         validityPeriod: editingCompany.validityPeriod || "LTD",
         defaultEmail: editingCompany.defaultEmail || "CMP",
-
         onlinePayment: editingCompany.onlinePayment,
         companyBlocked: editingCompany.companyBlocked,
         allowWhiteListedCards: editingCompany.allowWhiteListedCards,
@@ -174,8 +161,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         vendorCreditLimit: "",
         balanceAlertAmount: "",
         referenceNumber: "",
-        // businessEntity: "",
-        // vatNumber: "",
         address: "",
         validityPeriod: "LTD",
         defaultEmail: "CMP",
@@ -207,9 +192,47 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewMode) return;
+
+    // ⚡️ FIX: Custom toast.error validations
+    if (!formData.name) {
+      toast.error("Company Name is required.");
+      return;
+    }
+    if (!formData.shortName) {
+      toast.error("Short Name is required.");
+      return;
+    }
+    if (!formData.country) {
+      toast.error("Country Name is required.");
+      return;
+    }
+    if (!formData.status) {
+      toast.error("Company Status is required.");
+      return;
+    }
+    if (!formData.currency) {
+      toast.error("Currency is required.");
+      return;
+    }
+    if (!formData.timeZone) {
+      toast.error("Time Zone is required.");
+      return;
+    }
+    if (!formData.customerCreditLimit) {
+      toast.error("Customer Credit Limit is required.");
+      return;
+    }
+    if (!formData.balanceAlertAmount) {
+      toast.error("Balance Alert Amount is required.");
+      return;
+    }
+    if (!formData.address) {
+      toast.error("Full Address is required.");
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // Destructure out vendorCreditLimit so it is NOT submitted
     const { vendorCreditLimit, ...restFormData } = formData;
 
     const payload = {
@@ -220,8 +243,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       status: Number(formData.status) || null,
       currency: Number(formData.currency) || null,
       timeZone: Number(formData.timeZone) || null,
-      // businessEntity: Number(formData.businessEntity) || null,
-
       referencNumber: formData.referenceNumber,
     };
 
@@ -268,6 +289,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       <form
         onSubmit={handleSubmit}
         className="space-y-6 max-h-[80vh] overflow-y-auto px-1"
+        noValidate // ⚡️ FIX: Disables browser default tooltips
       >
         {/* Identity & Contacts */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -281,7 +303,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               value={formData.name}
               onChange={handleChange}
               placeholder="ACME TECHNOLOGIES"
-              required
+              required // ⚡️ FIX: Added visual required indicator
               disabled={isViewMode}
             />
             <Input
@@ -290,7 +312,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               value={formData.shortName}
               onChange={handleChange}
               placeholder="ACME"
-              required
+              required // ⚡️ FIX: Added visual required indicator
               disabled={isViewMode}
             />
             <Input
@@ -305,7 +327,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               label="Company Email"
               name="companyEmail"
               value={formData.companyEmail}
-              onChange={handleSelect} /* ⚡️ CHANGED THIS LINE */
+              onChange={handleSelect}
               placeholder="contact@acme.com"
               disabled={isViewMode}
             />
@@ -313,7 +335,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               label="Support Email"
               name="supportEmail"
               value={formData.supportEmail}
-              onChange={handleSelect} /* ⚡️ CHANGED THIS LINE */
+              onChange={handleSelect}
               placeholder="support@acme.com"
               disabled={isViewMode}
             />
@@ -357,6 +379,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               options={countries}
               placeholder="Select Country"
               disabled={isViewMode}
+              required // ⚡️ FIX: Added visual required indicator
             />
             <Select
               label="State Name"
@@ -381,6 +404,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               options={statuses}
               placeholder="Select Status"
               disabled={isViewMode}
+              required // ⚡️ FIX: Added visual required indicator
             />
           </div>
         </fieldset>
@@ -398,6 +422,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               options={currencies}
               placeholder="Select Currency"
               disabled={isViewMode}
+              required // ⚡️ FIX: Added visual required indicator
             />
             <Select
               label="Time Zone"
@@ -406,6 +431,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               options={timeZones}
               placeholder="Select Time Zone"
               disabled={isViewMode}
+              required // ⚡️ FIX: Added visual required indicator
             />
             <Input
               label="Customer Credit Limit"
@@ -415,9 +441,9 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={handleChange}
               placeholder="5000.00"
               disabled={isViewMode}
+              required // ⚡️ FIX: Added visual required indicator
             />
 
-            {/* Vendor Credit Limit - visible ONLY in view mode */}
             {isViewMode && (
               <Input
                 label="Vendor Credit Limit"
@@ -438,6 +464,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={handleChange}
               placeholder="500.00"
               disabled={isViewMode}
+              required // ⚡️ FIX: Added visual required indicator
             />
             <Input
               label="Reference Number"
@@ -449,31 +476,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             />
           </div>
         </fieldset>
-
-        {/* Legal & Address */}
-        {/* <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <legend className="text-sm font-semibold text-primary px-2">
-            Legal & Address
-          </legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <Select
-              label="Business Entity"
-              value={formData.businessEntity}
-              onChange={(v) => handleSelect("businessEntity", v)}
-              options={entities}
-              placeholder="Select Entity Type"
-              disabled={isViewMode}
-            />
-            <Input
-              label="Vat Number"
-              name="vatNumber"
-              value={formData.vatNumber}
-              onChange={handleChange}
-              placeholder="VAT12345678"
-              disabled={isViewMode}
-            />
-          </div>
-        </fieldset> */}
 
         {/* Address */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -489,6 +491,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             }
             placeholder="Koteshwor, Kathmandu, Nepal"
             disabled={isViewMode}
+            required // ⚡️ FIX: Added visual required indicator (TextArea supports this if configured, assuming standard HTML semantics apply)
           />
         </fieldset>
 

@@ -283,14 +283,35 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     e.preventDefault();
     if (isViewMode) return;
 
-    if (!formData.company || !formData.profileName) {
-      toast.error("Company and Profile Name are required.");
+    // ⚡️ FIX: Custom toast warnings instead of browser defaults
+    if (!formData.company) {
+      toast.error("Company Name is required.");
+      return;
+    }
+    if (!formData.profileName) {
+      toast.error("Profile Name is required.");
+      return;
+    }
+    if (!formData.invoicePolicy) {
+      toast.error("Invoice Policy is required.");
       return;
     }
 
     if (formData.connectionType === "SMPP") {
-      if (!formData.smppHost || !formData.systemID || !formData.smppPort) {
-        toast.error("Host, Port, and System ID are required for SMPP.");
+      if (!formData.smppHost) {
+        toast.error("SMPP Host is required.");
+        return;
+      }
+      if (!formData.smppPort) {
+        toast.error("SMPP Port is required.");
+        return;
+      }
+      if (!formData.systemID) {
+        toast.error("System ID is required.");
+        return;
+      }
+      if (!formData.password) {
+        toast.error("Password is required.");
         return;
       }
     }
@@ -332,17 +353,17 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           : null;
 
       const vendorPayload: any = {
-  company: Number(formData.company),
-  profileName: formData.profileName,
-  vendorRateGroup: formData.vendorRateGroup ? Number(formData.vendorRateGroup) : null,
-  connectionType: formData.connectionType,
-  smpp: finalSmppValue,
-};
+        company: Number(formData.company),
+        profileName: formData.profileName,
+        vendorRateGroup: formData.vendorRateGroup ? Number(formData.vendorRateGroup) : null,
+        connectionType: formData.connectionType,
+        smpp: finalSmppValue,
+      };
 
-const validInvoicePolicies = ["ON_ATTEMPT", "ON_SUBMIT", "ON_DELIVERED"];
-if (formData.invoicePolicy && validInvoicePolicies.includes(formData.invoicePolicy)) {
-  vendorPayload.invoicePolicy = formData.invoicePolicy;
-}
+      const validInvoicePolicies = ["ON_ATTEMPT", "ON_SUBMIT", "ON_DELIVERED"];
+      if (formData.invoicePolicy && validInvoicePolicies.includes(formData.invoicePolicy)) {
+        vendorPayload.invoicePolicy = formData.invoicePolicy;
+      }
 
       let vendorId = editingVendor?.id;
 
@@ -421,6 +442,7 @@ if (formData.invoicePolicy && validInvoicePolicies.includes(formData.invoicePoli
       <form
         onSubmit={handleSubmit}
         className="space-y-5 max-h-[80vh] overflow-y-auto px-1"
+        noValidate // ⚡️ FIX: Disables browser default tooltips
       >
         {isLoadingDetails && (
           <div className="p-3 mb-2 text-sm text-blue-800 bg-blue-50 rounded border border-blue-200 flex items-center">
@@ -441,6 +463,7 @@ if (formData.invoicePolicy && validInvoicePolicies.includes(formData.invoicePoli
               options={companyOptions}
               placeholder="Select Company"
               disabled={isViewMode}
+              required 
             />
             <Input
               label="Profile Name"
@@ -448,7 +471,7 @@ if (formData.invoicePolicy && validInvoicePolicies.includes(formData.invoicePoli
               value={formData.profileName}
               onChange={handleChange}
               placeholder="Vendor A"
-              required
+              required 
               disabled={isViewMode}
             />
           </div>
@@ -468,6 +491,7 @@ if (formData.invoicePolicy && validInvoicePolicies.includes(formData.invoicePoli
               options={invoicePolicyOptions}
               placeholder="Select Invoice Policy"
               disabled={isViewMode}
+              required 
             />
             <Select
               label="Log Level"
@@ -511,7 +535,7 @@ if (formData.invoicePolicy && validInvoicePolicies.includes(formData.invoicePoli
                 value={formData.smppHost}
                 onChange={handleChange}
                 placeholder="smpp.host.com"
-                required
+                required 
                 disabled={isViewMode || isLoadingDetails}
               />
               <Input
@@ -521,7 +545,7 @@ if (formData.invoicePolicy && validInvoicePolicies.includes(formData.invoicePoli
                 value={formData.smppPort}
                 onChange={handleChange}
                 placeholder="2775"
-                required
+                required 
                 disabled={isViewMode || isLoadingDetails}
               />
             </div>
@@ -533,7 +557,7 @@ if (formData.invoicePolicy && validInvoicePolicies.includes(formData.invoicePoli
                 value={formData.systemID}
                 onChange={handleChange}
                 placeholder="User ID"
-                required
+                required 
                 disabled={isViewMode || isLoadingDetails}
               />
               <Input
@@ -543,6 +567,7 @@ if (formData.invoicePolicy && validInvoicePolicies.includes(formData.invoicePoli
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Secret"
+                required 
                 disabled={isViewMode || isLoadingDetails}
                 rightIcon={
                   <button

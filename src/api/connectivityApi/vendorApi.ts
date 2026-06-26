@@ -1,6 +1,5 @@
 import api from "../axiosInstance";
 
-// ⚡️ FIX: Added VendorPolicy sub-interface to match backend response exactly
 export interface VendorPolicyData {
   id?: number;
   vendor_name?: string;
@@ -31,7 +30,7 @@ export interface VendorData {
   vendorRateGroup?: number;
   vendorRateGroupName?: string;
   connectionType: "SMPP" | "HTTP";
-  invoicePolicy?: string;
+  invoicePolicy: string; // ⚡️ FIX: Made mandatory
   smpp?: number;
   smppName?: string;
   bindStatus?: string;

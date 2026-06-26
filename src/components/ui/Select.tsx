@@ -7,7 +7,6 @@ interface SelectOption {
   value: string;
   label: string;
   disabled?: boolean;
-
 }
 
 interface SelectProps {
@@ -19,6 +18,7 @@ interface SelectProps {
   error?: string;
   clearable?: boolean;
   disabled?: boolean;
+  required?: boolean; // ⚡️ FIX: Added required prop
   placement?: "top" | "bottom";
   className?: string;
 }
@@ -32,6 +32,7 @@ const Select: React.FC<SelectProps> = ({
   error,
   clearable = true,
   disabled = false,
+  required = false, // ⚡️ FIX: Default to false
   placement = "bottom",
   className = "",
 }) => {
@@ -40,23 +41,23 @@ const Select: React.FC<SelectProps> = ({
   const hasLabel = !!label;
 
   const triggerRef = useRef<HTMLDivElement>(null);
-const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
-const updateDropdownPosition = () => {
-  if (!triggerRef.current) return;
-  const rect = triggerRef.current.getBoundingClientRect();
-  const spaceBelow = window.innerHeight - rect.bottom;
-  const dropUp = placement === "top" || spaceBelow < 220;
-  setDropdownStyle({
-    position: "fixed",
-    left: rect.left,
-    width: rect.width,
-    zIndex: 99999,
-    ...(dropUp
-      ? { bottom: window.innerHeight - rect.top }
-      : { top: rect.bottom + 2 }),
-  });
-};
+  const updateDropdownPosition = () => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const dropUp = placement === "top" || spaceBelow < 220;
+    setDropdownStyle({
+      position: "fixed",
+      left: rect.left,
+      width: rect.width,
+      zIndex: 99999,
+      ...(dropUp
+        ? { bottom: window.innerHeight - rect.top }
+        : { top: rect.bottom + 2 }),
+    });
+  };
 
   const filteredOptions =
     query === ""
@@ -69,7 +70,6 @@ const updateDropdownPosition = () => {
     setVisibleCount(50);
   }, [query, options]);
 
-  // ⚡️ FIX: Changed HTMLUListElement to HTMLElement to resolve the strict TypeScript error
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     const target = e.currentTarget;
     if (target.scrollHeight - target.scrollTop <= target.clientHeight + 100) {
@@ -98,6 +98,7 @@ const updateDropdownPosition = () => {
         {hasLabel && (
           <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400">
             {label}
+            {required && <span className="text-red-500 ml-1">*</span>} {/* ⚡️ FIX: Visual indicator for required */}
           </label>
         )}
         <div className="relative" ref={triggerRef}>
@@ -127,11 +128,11 @@ const updateDropdownPosition = () => {
                 options.find((option) => option.value === val)?.label || ""
               }
               onChange={(event) => setQuery(event.target.value)}
-onClick={updateDropdownPosition}
+              onClick={updateDropdownPosition}
               placeholder={placeholder}
             />
 
-<Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2" onClick={updateDropdownPosition}>
+            <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2" onClick={updateDropdownPosition}>
               <ChevronDown
                 size={18}
                 className={`${
@@ -157,61 +158,61 @@ onClick={updateDropdownPosition}
             )}
           </div>
 
- {!disabled && createPortal(
-  <Transition
-    as={Fragment}
-    leave="transition ease-in duration-100"
-    leaveFrom="opacity-100"
-    leaveTo="opacity-0"
-    afterLeave={() => setQuery("")}
-  >
-    <Combobox.Options
-      onScroll={handleScroll}
-      style={dropdownStyle}
-      className="overflow-auto rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700 custom-grid-scroll max-h-60"
-    >
-      {filteredOptions.length === 0 && query !== "" ? (
-        <div className="relative cursor-default select-none py-2 px-4 text-text-secondary dark:text-gray-400">
-          Nothing found.
-        </div>
-      ) : (
-        visibleOptions.map((option) => (
-          <Combobox.Option
-            key={option.value}
-            disabled={option.disabled}
-            className={({ active }) =>
-              `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                option.disabled
-                  ? "opacity-40 cursor-not-allowed"
-                  : active
-                  ? "bg-primary/10 text-primary dark:text-primary dark:bg-primary/20"
-                  : "text-text-secondary dark:text-gray-300"
-              }`
-            }
-            value={option.value}
+        {!disabled && createPortal(
+          <Transition
+            as={Fragment}
+            leave="transition ease-in duration-100"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+            afterLeave={() => setQuery("")}
           >
-            {({ selected }) => (
-              <>
-                <span className={`block truncate ${selected ? "font-medium text-primary dark:text-primary" : "font-normal"}`}>
-                  {option.label}
-                </span>
-                {selected && (
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary dark:text-primary">
-                    <Check size={16} aria-hidden="true" />
-                  </span>
-                )}
-              </>
-            )}
-          </Combobox.Option>
-        ))
-      )}
-      {visibleCount < filteredOptions.length && (
-        <div className="text-center py-2 text-xs text-gray-400">Scroll for more...</div>
-      )}
-    </Combobox.Options>
-  </Transition>,
-  document.body
-)}
+            <Combobox.Options
+              onScroll={handleScroll}
+              style={dropdownStyle}
+              className="overflow-auto rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700 custom-grid-scroll max-h-60"
+            >
+              {filteredOptions.length === 0 && query !== "" ? (
+                <div className="relative cursor-default select-none py-2 px-4 text-text-secondary dark:text-gray-400">
+                  Nothing found.
+                </div>
+              ) : (
+                visibleOptions.map((option) => (
+                  <Combobox.Option
+                    key={option.value}
+                    disabled={option.disabled}
+                    className={({ active }) =>
+                      `relative cursor-default select-none py-2 pl-10 pr-4 ${
+                        option.disabled
+                          ? "opacity-40 cursor-not-allowed"
+                          : active
+                          ? "bg-primary/10 text-primary dark:text-primary dark:bg-primary/20"
+                          : "text-text-secondary dark:text-gray-300"
+                      }`
+                    }
+                    value={option.value}
+                  >
+                    {({ selected }) => (
+                      <>
+                        <span className={`block truncate ${selected ? "font-medium text-primary dark:text-primary" : "font-normal"}`}>
+                          {option.label}
+                        </span>
+                        {selected && (
+                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary dark:text-primary">
+                            <Check size={16} aria-hidden="true" />
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </Combobox.Option>
+                ))
+              )}
+              {visibleCount < filteredOptions.length && (
+                <div className="text-center py-2 text-xs text-gray-400">Scroll for more...</div>
+              )}
+            </Combobox.Options>
+          </Transition>,
+          document.body
+        )}
         </div>
         {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
       </div>

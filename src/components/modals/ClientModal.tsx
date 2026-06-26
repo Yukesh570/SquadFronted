@@ -261,8 +261,29 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     e.preventDefault();
     if (isViewMode) return;
 
-    if (!formData.company || !formData.name) {
-      toast.error("Company and Client Name are required.");
+    // ⚡️ FIX: Custom toast warnings instead of browser defaults
+    if (!formData.company) {
+      toast.error("Company is required.");
+      return;
+    }
+    if (!formData.name) {
+      toast.error("Client Name is required.");
+      return;
+    }
+    if (!formData.invoicePolicy) {
+      toast.error("Invoice Policy is required.");
+      return;
+    }
+    if (!formData.balanceAlertAmount) {
+      toast.error("Balance Alert Amount is required.");
+      return;
+    }
+    if (!formData.smppUsername) {
+      toast.error("SMPP Username is required.");
+      return;
+    }
+    if (!formData.smppPassword) {
+      toast.error("SMPP Password is required.");
       return;
     }
 
@@ -402,6 +423,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       <form
         onSubmit={handleSubmit}
         className="space-y-6 max-h-[80vh] overflow-y-auto px-1"
+        noValidate // ⚡️ FIX: Disables browser default tooltips
       >
         {/* Identity */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -416,6 +438,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               options={companyOptions}
               placeholder="Select Company"
               disabled={isViewMode}
+              required // ⚡️ FIX: Make required visually
             />
             <Input
               label="Client Name"
@@ -423,7 +446,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.name}
               onChange={handleChange}
               placeholder="Unique Client Name"
-              required
+              required // ⚡️ FIX: Make required visually
               disabled={isViewMode}
             />
             <Select
@@ -463,6 +486,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               options={invoicePolicyOptions}
               placeholder="Select Invoice Policy"
               disabled={isViewMode}
+              required // ⚡️ FIX: Make required visually
             />
             <Input
               label="Balance Alert Amount"
@@ -473,6 +497,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               onChange={handleChange}
               placeholder="0.0000"
               disabled={isViewMode}
+              required // ⚡️ FIX: Make required visually
             />
           </div>
         </fieldset>
@@ -489,6 +514,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.smppUsername}
               onChange={handleChange}
               disabled={isViewMode}
+              required // ⚡️ FIX: Make required visually
             />
             <Input
               label="SMPP Password"
@@ -497,6 +523,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.smppPassword}
               onChange={handleChange}
               disabled={isViewMode}
+              required // ⚡️ FIX: Make required visually
               rightIcon={
                 <button
                   type="button"

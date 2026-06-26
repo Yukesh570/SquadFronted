@@ -13,6 +13,7 @@ const Input: React.FC<InputProps> = ({
   id, 
   rightIcon, 
   disabled, 
+  required, // ⚡️ FIX: Extract required to use in label
   isClearable = true, 
   value, 
   ...props 
@@ -42,6 +43,7 @@ const Input: React.FC<InputProps> = ({
         className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400"
       >
         {label}
+        {required && <span className="text-red-500 ml-1">*</span>} {/* ⚡️ FIX: Added visual required asterisk */}
       </label>
       <div className="relative">
         <input
@@ -49,6 +51,7 @@ const Input: React.FC<InputProps> = ({
           id={inputId}
           value={value}
           disabled={disabled}
+          required={required} // ⚡️ FIX: Pass down to standard HTML input
           className={`w-full rounded-lg border px-3 py-2.5 text-sm shadow-input transition duration-150 ease-in-out focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary 
           ${
             disabled

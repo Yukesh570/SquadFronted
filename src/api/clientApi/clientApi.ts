@@ -20,7 +20,6 @@ export interface ClientData {
   companyName?: string;
   routeGroup?: number;
   routeGroupName?: string;
-  // ⚡️ FIX: Removed ratePlanName, added customerRateGroup
   customerRateGroup?: number;
   customerRateGroupName?: string;
   name: string;
@@ -28,7 +27,7 @@ export interface ClientData {
   bindStatus: "ONLINE" | "OFFLINE";
   route: "DIRECT" | "HIGH QUALITY" | "SIM" | "WHOLESALE" | "FULL" | "SPAM";
   paymentTerms: "PREPAID" | "POSTPAID" | "NET7" | "NET15" | "NET30";
-  invoicePolicy?: "ON_ATTEMPT" | "ON_SUBMIT" | "ON_DELIVERED" | string;
+  invoicePolicy: "ON_ATTEMPT" | "ON_SUBMIT" | "ON_DELIVERED" | string; // ⚡️ FIX: Made mandatory
   balanceAlertAmount: string;
   allowNetting: boolean;
   enableDlr: boolean;
@@ -113,7 +112,6 @@ export const sendClientDetailsEmailApi = async (data: {
 export const getClientRateOverViewApi = async (params: {
   client: number;
   routeGroup: string;
-  // ⚡️ FIX: Updated to match what backend overview might expect, assuming it aligns.
   customerRateGroup: string; 
 }) => {
   const response = await api.get(`/clientRateOverView/`, { params });
