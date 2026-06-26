@@ -35,7 +35,6 @@ import ContextMenu, {
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 import { actionHelper } from "../../helper/action";
 import { formatDateTime } from "../../helper/dateFormatter";
-import { AssignRouteModal } from "../../components/modals/assignRouteModal";
 import { getGroupedCustomRoutesApi } from "../../api/routeManagerApi/customRouteApi";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
@@ -83,8 +82,6 @@ const Client: React.FC = () => {
   const [customerRateGroupOptions, setCustomerRateGroupOptions] = useState<Option[]>([]);
 
   // --- Modal States ---
-  const [isAssignRouteModalOpen, setIsAssignRouteModalOpen] = useState(false);
-  const [assignRouteClientId, setAssignRouteClientId] = useState<number | null>(null);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isRoutingModalOpen, setIsRoutingModalOpen] = useState(false); 
   const [editingClient, setEditingClient] = useState<ClientData | null>(null);
@@ -164,8 +161,6 @@ const Client: React.FC = () => {
          console.error("Route Group Dropdown load error:", err);
       }
 
-      // ⚡️ FIX: Wrapped in separate try/catch. If 403 Forbidden occurs, it won't crash the entire page.
-      // Also using "customerRate" as the module since standard rate endpoints use that context.
       try {
         const crgRes: any = await getCustomerRateGroupsApi("customerRate", 1, 1000);
         const crgList = crgRes.results || (Array.isArray(crgRes) ? crgRes : []);
@@ -257,7 +252,6 @@ const Client: React.FC = () => {
     { key: "smppUsername", label: "SMPP Username", type: "text", filterKey: "smppUsername__icontains" },
     { key: "bindStatus", label: "Bind Status", type: "text", options: bindStatusOptions, render: (c) => <StatusBadge status={c.bindStatus} /> },
     { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", render: (c) => renderSessionBadge(c) },
-    // --- INTEGRATED POLICY COLUMNS ---
     { key: "maxTps", label: "Max TPS", type: "number", render: (c) => c.clientPolicy?.maxTps ?? "-" },
     { key: "maxSessions", label: "Max Sessions", type: "number", render: (c) => c.clientPolicy?.maxSessions ?? "-" },
     { key: "maxQueueDepth", label: "Max Queue Depth", type: "number", render: (c) => c.clientPolicy?.maxQueueDepth ?? "-" },
@@ -266,7 +260,6 @@ const Client: React.FC = () => {
     { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number", render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-" },
     { key: "submitTimeoutSec", label: "Submit Timeout (s)", type: "number", render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-" },
     { key: "senderIdPolicy", label: "Sender ID Policy", type: "text", render: (c) => c.clientPolicy?.senderIdPolicy ?? "-" },
-    // --- End Integrated Policy Columns ---
     { key: "balanceAlertAmount", label: "Balance Alert (Exact)", tableLabel: "Balance Alert", type: "number" },
     { key: "balanceAlertAmount__range", label: "Balance Alert (Range)", type: "number_range", isSearchOnly: true },
     { key: "balanceAlertAmount__gt_lt", label: "Balance Alert (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
@@ -523,18 +516,6 @@ const Client: React.FC = () => {
               },
             ]
           : []),
-        ...(canUpdate && selectedRowClient.routeGroup == null
-          ? [
-              {
-                label: "Add Route",
-                icon: <Plus size={16} />,
-                onClick: () => {
-                  setAssignRouteClientId(selectedRowClient.id!);
-                  setIsAssignRouteModalOpen(true);
-                },
-              },
-            ]
-          : []),
         {
           label: "View Details",
           icon: <Eye size={16} />,
@@ -553,6 +534,7 @@ const Client: React.FC = () => {
                 onClick: () => handleEdit(selectedRowClient),
               },
               {
+                // ⚡️ FIX: Updated exact string as requested
                 label: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? "Add Route & Rate Plan" : "Edit Route & Rate Plan",
                 icon: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? <Plus size={16} /> : <Edit size={16} />,
                 onClick: () => handleEditRouting(selectedRowClient),
@@ -911,18 +893,7 @@ const Client: React.FC = () => {
         editingData={null}
         fixedClient={ipModalClient}
       />
-      <AssignRouteModal
-        isOpen={isAssignRouteModalOpen}
-        onClose={() => {
-          setIsAssignRouteModalOpen(false);
-          setAssignRouteClientId(null);
-        }}
-        onSuccess={() => {
-          fetchClients(); 
-        }}
-        clientId={assignRouteClientId}
-        moduleName={routeName}
-      />
+      
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
