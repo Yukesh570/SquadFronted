@@ -53,7 +53,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     profileName: "",
     vendorRateGroup: "",
     connectionType: "SMPP",
-    invoicePolicy: "ON ATTEMPT",
+    invoicePolicy: "",
     smppId: 0,
     smppHost: "",
     smppPort: "",
@@ -234,7 +234,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           profileName: "",
           vendorRateGroup: "",
           connectionType: "SMPP",
-          invoicePolicy: "ON ATTEMPT",
+          invoicePolicy: "",
           smppId: 0,
           smppHost: "",
           smppPort: "",
@@ -339,7 +339,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   smpp: finalSmppValue,
 };
 
-if (formData.invoicePolicy) {
+const validInvoicePolicies = ["ON_ATTEMPT", "ON_SUBMIT", "ON_DELIVERED"];
+if (formData.invoicePolicy && validInvoicePolicies.includes(formData.invoicePolicy)) {
   vendorPayload.invoicePolicy = formData.invoicePolicy;
 }
 
