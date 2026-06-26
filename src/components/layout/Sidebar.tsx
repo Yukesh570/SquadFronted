@@ -49,17 +49,21 @@ const Sidebar = ({ isCollapsed, isMobileOpen, closeMobileSidebar }: SidebarProps
 
   useEffect(() => {
     const fetchLogo = async () => {
-      try {
-        const res = await getDashboardImageApi();
-        if (res && res.image && res.image !== logoUrl) {
-          setLogoUrl(res.image);
-          localStorage.setItem("app_sidebar_logo", res.image); 
-          updateFavicon(res.image);
-        }
-      } catch (e) {
-        console.error("Failed to load sidebar logo");
+  try {
+    const res = await getDashboardImageApi();
+    if (res && res.image) {
+      const imageBase = import.meta.env.VITE_IMAGE_URL || "";
+      const fullImageUrl = `${imageBase}${res.image}`;
+      if (fullImageUrl !== logoUrl) {
+        setLogoUrl(fullImageUrl);
+        localStorage.setItem("app_sidebar_logo", fullImageUrl);
+        updateFavicon(fullImageUrl);
       }
-    };
+    }
+  } catch (e) {
+    console.error("Failed to load sidebar logo");
+  }
+};
     
     fetchLogo();
 

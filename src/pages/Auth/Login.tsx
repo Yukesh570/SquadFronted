@@ -63,14 +63,18 @@ const Login = () => {
       });
 
     getPublicDashboardImageApi()
-      .then((res) => {
-        if (res && res.image && res.image !== logoUrl) {
-          setLogoUrl(res.image);
-          localStorage.setItem("app_login_logo", res.image);
-          updateFavicon(res.image);
-        }
-      })
-      .catch(() => {});
+  .then((res) => {
+    if (res && res.image) {
+      const imageBase = import.meta.env.VITE_IMAGE_URL || "";
+      const fullImageUrl = `${imageBase}${res.image}`;
+      if (fullImageUrl !== logoUrl) {
+        setLogoUrl(fullImageUrl);
+        localStorage.setItem("app_login_logo", fullImageUrl);
+        updateFavicon(fullImageUrl);
+      }
+    }
+  })
+  .catch(() => {});
       
     return () => window.removeEventListener("BrandingUpdated", handleBrandingUpdate);
   }, [companyName, logoUrl]); 

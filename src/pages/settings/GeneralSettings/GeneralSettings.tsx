@@ -104,7 +104,10 @@ const GeneralSettings: React.FC = () => {
       }
 
       const imgRes = await getDashboardImageApi();
-      if (imgRes && imgRes.image) setImagePreview(imgRes.image);
+if (imgRes && imgRes.image) {
+  const imageBase = import.meta.env.VITE_IMAGE_URL || "";
+  setImagePreview(`${imageBase}${imgRes.image}`);
+}
     } catch (error: any) {
       if (error.name !== "AbortError") toast.error("Failed to fetch settings.");
     } finally {
@@ -208,11 +211,16 @@ const GeneralSettings: React.FC = () => {
       const uploadData = new FormData();
       uploadData.append("image", imageFile);
       const res = await putDashboardImageApi(uploadData);
+      console.log("Full res:", res);  // Add this
+
       
       if (res && res.image) {
-         localStorage.setItem("app_login_logo", res.image);
-         localStorage.setItem("app_sidebar_logo", res.image);
-      }
+  const imageBase = import.meta.env.VITE_IMAGE_URL || "";
+  console.log("Image Base URL:", imageBase);
+  const fullImageUrl = `${imageBase}${res.image}`;
+  localStorage.setItem("app_login_logo", fullImageUrl);
+  localStorage.setItem("app_sidebar_logo", fullImageUrl);
+}
 
       window.dispatchEvent(new Event("BrandingUpdated")); 
       toast.success("Dashboard Logo updated successfully!");
