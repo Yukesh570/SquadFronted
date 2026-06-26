@@ -65,6 +65,9 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                   <span className="font-medium text-gray-900 dark:text-gray-100">To edit:</span> Click cells under <strong>{isPercentageRoute ? "Traffic %" : "Priority"}</strong> or <strong>Status</strong>. Press <kbd className="px-1 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs mx-0.5 shadow-sm">Enter</kbd> to save.
                 </p>
                 <p>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">Search:</span> Use the input fields in the header row and press <kbd className="px-1 py-0.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs mx-0.5 shadow-sm">Enter</kbd> to apply the filter.
+                </p>
+                <p>
                   <span className="font-medium text-red-500">Note:</span> {isPercentageRoute ? "Weights must sum to 100% per destination." : "Priority numbers must be unique among active routes."}
                 </p>
               </div>

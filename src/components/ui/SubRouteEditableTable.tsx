@@ -41,12 +41,14 @@ const FilterInput = ({
   placeholder,
   value,
   onChange,
+  onEnter,
   minWidth = "120px",
 }: {
   fieldKey: string;
   placeholder: string;
   value: string;
   onChange: (key: string, val: string) => void;
+  onEnter: () => void;
   minWidth?: string;
 }) => (
   <div className="w-full filter-control-wrapper" style={{ minWidth }}>
@@ -57,6 +59,12 @@ const FilterInput = ({
       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
         onChange(fieldKey, e.target.value)
       }
+      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          onEnter();
+        }
+      }}
       placeholder={placeholder}
     />
   </div>
@@ -85,6 +93,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
   const [activeCellId, setActiveCellId] = useState<string | null>(null);
 
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [apiFilters, setApiFilters] = useState<Record<string, string>>({});
 
   // ── Pagination state ──────────────────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState(1);
@@ -95,10 +104,26 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
 
   const fetchSubRoutes = () => {
     setLoading(true);
-    getCustomRoutesApi(moduleName, currentPage, rowsPerPage, {
-      routeGroup__name: routeGroup,
-    })
-      .then((res) => {
+
+    const searchParams: Record<string, any> = { routeGroup__name: routeGroup };
+
+    Object.keys(apiFilters).forEach(key => {
+      const val = apiFilters[key];
+      if (val) {
+        if (key === "name") searchParams["name__icontains"] = val;
+        else if (key === "countryName") searchParams["country__name__icontains"] = val;
+        else if (key === "MCC") searchParams["MCC__icontains"] = val;
+        else if (key === "MNC") searchParams["MNC__icontains"] = val;
+        else if (key === "terminatingVendorProfileName") searchParams["terminatingVendor__profileName__icontains"] = val;
+        else if (key === "priority") searchParams["priority"] = val;
+        else if (key === "trafficPercentage") searchParams["trafficPercentage"] = val;
+        else if (key === "status") searchParams["status"] = val;
+        else if (key === "createdAt") searchParams["createdAt"] = val;
+      }
+    });
+
+    getCustomRoutesApi(moduleName, currentPage, rowsPerPage, searchParams)
+      .then((res: any) => {
         const results = res.results || [];
         const count = res.count ?? results.length;
         setData(results);
@@ -112,14 +137,13 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
       });
   };
 
-  // Reset to page 1 when group/module/refresh changes
   useEffect(() => {
     setCurrentPage(1);
   }, [routeGroup, moduleName, refreshTrigger]);
 
   useEffect(() => {
     if (routeGroup) fetchSubRoutes();
-  }, [routeGroup, moduleName, refreshTrigger, currentPage, rowsPerPage]);
+  }, [routeGroup, moduleName, refreshTrigger, currentPage, rowsPerPage, apiFilters]);
 
   const handleTableClick = (e: React.MouseEvent) => {
     if (
@@ -140,7 +164,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
     const originalRow = data.find((r) => r.id === id);
     if (!originalRow || String((originalRow as any)[field]) === newValue) return;
 
-    let updatePayload: any = { [field]: newValue };
+    const updatePayload: any = { [field]: newValue };
 
     setData((prev) =>
       prev.map((r) => (r.id === id ? { ...r, [field]: newValue } : r)),
@@ -159,9 +183,32 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
     }
   };
 
+  // ⚡️ FIX: Clearing a field instantly removes it from API filters too
   const handleFilterChange = (key: string, value: string) => {
     setColumnFilters((prev) => ({ ...prev, [key]: value }));
+    if (value === "") {
+      setApiFilters((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      setCurrentPage(1);
+    }
   };
+
+  const handleFilterApply = () => {
+    setApiFilters(columnFilters);
+    setCurrentPage(1);
+  };
+
+  // ⚡️ FIX: Reset all filters at once
+  const handleResetFilters = () => {
+    setColumnFilters({});
+    setApiFilters({});
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = Object.values(columnFilters).some((v) => v !== "" && v !== undefined);
 
   const formatLocalDate = (date: Date) => {
     const year = date.getFullYear();
@@ -170,25 +217,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
     return `${year}-${month}-${day}`;
   };
 
-  // Column filters run client-side on the current page slice
-  const filteredData = data.filter((row: any) => {
-    return Object.keys(columnFilters).every((key) => {
-      const filterValue = columnFilters[key]?.toLowerCase();
-      if (!filterValue) return true;
-
-      let rowValue = "";
-      if (key === "createdAt") {
-        rowValue = row[key] ? row[key].split("T")[0] : "";
-        return rowValue === filterValue;
-      } else {
-        rowValue = String(row[key] || "").toLowerCase();
-      }
-
-      return rowValue.includes(filterValue);
-    });
-  });
-
-  // ── Pagination helpers (mirrors DataTable exactly) ────────────────────────
+  // ── Pagination helpers ───────────────────────────────────────────────────
   const totalPages = Math.ceil(totalItems / rowsPerPage);
 
   const handleNext = () => {
@@ -216,7 +245,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
   return (
     <div className="rounded-xl bg-white shadow-card dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0">
 
-      {/* ── Pagination bar — exact same markup as DataTable ── */}
+      {/* ── Pagination bar ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 relative z-[100]">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
@@ -226,7 +255,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
             <div className="w-24 shrink-0">
               <Select
                 value={String(rowsPerPage)}
-                onChange={(val) => handleRowsChange(Number(val))}
+                onChange={(val: string) => handleRowsChange(Number(val))}
                 options={rowsOptions}
                 clearable={false}
                 placement="bottom"
@@ -252,6 +281,16 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
               <ChevronRight size={20} />
             </button>
           </div>
+
+          {/* ⚡️ FIX: Reset button — only shown when filters are active */}
+          {hasActiveFilters && (
+            <button
+              onClick={handleResetFilters}
+              className="text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800 rounded px-2 py-1 transition-colors whitespace-nowrap"
+            >
+              Reset Filters
+            </button>
+          )}
         </div>
       </div>
 
@@ -285,26 +324,60 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
 
             <tr className="bg-gray-50 dark:bg-gray-800/80">
               <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="name" placeholder="Search..." value={columnFilters["name"]} onChange={handleFilterChange} minWidth="120px"/></th>
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="countryName" placeholder="Search..." value={columnFilters["countryName"]} onChange={handleFilterChange} minWidth="100px"/></th>
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MCC" placeholder="Search..." value={columnFilters["MCC"]} onChange={handleFilterChange} minWidth="70px"/></th>
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MNC" placeholder="Search..." value={columnFilters["MNC"]} onChange={handleFilterChange} minWidth="70px"/></th>
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="terminatingVendorProfileName" placeholder="Search..." value={columnFilters["terminatingVendorProfileName"]} onChange={handleFilterChange} minWidth="120px"/></th>
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+                <FilterInput fieldKey="name" placeholder="Search..." value={columnFilters["name"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="120px"/>
+              </th>
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+                <FilterInput fieldKey="countryName" placeholder="Search..." value={columnFilters["countryName"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="100px"/>
+              </th>
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+                <FilterInput fieldKey="MCC" placeholder="Search..." value={columnFilters["MCC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px"/>
+              </th>
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+                <FilterInput fieldKey="MNC" placeholder="Search..." value={columnFilters["MNC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px"/>
+              </th>
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+                <FilterInput fieldKey="terminatingVendorProfileName" placeholder="Search..." value={columnFilters["terminatingVendorProfileName"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="120px"/>
+              </th>
 
               {!isPercentageRoute ? (
-                <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="priority" placeholder="Search..." value={columnFilters["priority"]} onChange={handleFilterChange} minWidth="90px"/></th>
+                <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+                  <FilterInput fieldKey="priority" placeholder="Search..." value={columnFilters["priority"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="90px"/>
+                </th>
               ) : (
-                <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="trafficPercentage" placeholder="Search..." value={columnFilters["trafficPercentage"]} onChange={handleFilterChange} minWidth="90px"/></th>
+                <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+                  <FilterInput fieldKey="trafficPercentage" placeholder="Search..." value={columnFilters["trafficPercentage"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="90px"/>
+                </th>
               )}
 
               <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
                 <div className="w-full filter-control-wrapper" style={{ minWidth: "100px" }}>
-                  <Select label="" value={columnFilters["status"] || ""} onChange={(val) => handleFilterChange("status", val)} options={[{ label: "All", value: "" }, ...statusOptions]} placeholder="All" placement="bottom"/>
+                  <Select
+                    label=""
+                    value={columnFilters["status"] || ""}
+                    onChange={(val: string) => {
+                      handleFilterChange("status", val);
+                      setApiFilters(prev => ({ ...prev, status: val }));
+                      setCurrentPage(1);
+                    }}
+                    options={[{ label: "All", value: "" }, ...statusOptions]}
+                    placeholder="All"
+                    placement="bottom"
+                  />
                 </div>
               </th>
               <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
                 <div className="w-full filter-control-wrapper" style={{ minWidth: "130px" }}>
-                  <DatePicker label="" selected={columnFilters["createdAt"] ? new Date(columnFilters["createdAt"]) : null} onChange={(date: Date | null) => handleFilterChange("createdAt", date ? formatLocalDate(date) : "")}/>
+                  <DatePicker
+                    label=""
+                    selected={columnFilters["createdAt"] ? new Date(columnFilters["createdAt"]) : null}
+                    onChange={(date: Date | null) => {
+                      const dateStr = date ? formatLocalDate(date) : "";
+                      handleFilterChange("createdAt", dateStr);
+                      setApiFilters(prev => ({ ...prev, createdAt: dateStr }));
+                      setCurrentPage(1);
+                    }}
+                  />
                 </div>
               </th>
               {canDelete && <th className="p-1 border-b dark:border-gray-600 sticky right-0 bg-gray-50 dark:bg-gray-800/80 shadow-l z-30"></th>}
@@ -319,7 +392,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
               </tr>
             ) : (
               <>
-                {filteredData.map((route: ExtendedCustomRouteData, index: number) => (
+                {data.map((route: ExtendedCustomRouteData, index: number) => (
                   <tr key={route.id} className="hover:bg-blue-50/40 dark:hover:bg-primary/5 transition-colors relative z-0 hover:z-10 focus-within:z-50 group">
                     <ReadOnlyCell>{startIndex + index + 1}</ReadOnlyCell>
                     <ReadOnlyCell>{route.name || "-"}</ReadOnlyCell>
@@ -330,14 +403,14 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
 
                     {!isPercentageRoute ? (
                       <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
-                        <EditableCell value={String(route.priority || "")} type="number" onSave={(val) => handleInlineSave(route.id!, "priority", val)} disabled={!canUpdate} isEditing={activeCellId === `${route.id}-priority`} onEditStart={() => setActiveCellId(`${route.id}-priority`)} onEditEnd={() => setActiveCellId(null)}/>
+                        <EditableCell value={String(route.priority || "")} type="number" onSave={(val: string) => handleInlineSave(route.id!, "priority", val)} disabled={!canUpdate} isEditing={activeCellId === `${route.id}-priority`} onEditStart={() => setActiveCellId(`${route.id}-priority`)} onEditEnd={() => setActiveCellId(null)}/>
                       </td>
                     ) : (
                       <ReadOnlyCell>{route.trafficPercentage || "0"}</ReadOnlyCell>
                     )}
 
                     <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
-                      <EditableCell value={route.status} type="select" options={statusOptions} onSave={(val) => handleInlineSave(route.id!, "status", val)} disabled={!canUpdate} isEditing={activeCellId === `${route.id}-status`} onEditStart={() => setActiveCellId(`${route.id}-status`)} onEditEnd={() => setActiveCellId(null)}/>
+                      <EditableCell value={route.status} type="select" options={statusOptions} onSave={(val: string) => handleInlineSave(route.id!, "status", val)} disabled={!canUpdate} isEditing={activeCellId === `${route.id}-status`} onEditStart={() => setActiveCellId(`${route.id}-status`)} onEditEnd={() => setActiveCellId(null)}/>
                     </td>
                     <ReadOnlyCell>{route.createdAt ? formatDateTime(route.createdAt) : "-"}</ReadOnlyCell>
                     {canDelete && (
@@ -347,10 +420,10 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
                     )}
                   </tr>
                 ))}
-                {filteredData.length === 0 && (
+                {data.length === 0 && (
                   <tr>
                     <td colSpan={canDelete ? 10 : 9} className="px-4 py-8 text-center text-gray-500 bg-white dark:bg-gray-900 border-b dark:border-gray-700">
-                      {data.length > 0 ? "No routes match your search filters." : "No sub-routes configured for this group."}
+                      {Object.keys(apiFilters).length > 0 ? "No routes match your search filters." : "No sub-routes configured for this group."}
                     </td>
                   </tr>
                 )}
