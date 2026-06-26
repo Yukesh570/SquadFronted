@@ -216,7 +216,6 @@ if (imgRes && imgRes.image) {
       
       if (res && res.image) {
   const imageBase = import.meta.env.VITE_IMAGE_URL || "";
-  console.log("Image Base URL:", imageBase);
   const fullImageUrl = `${imageBase}${res.image}`;
   localStorage.setItem("app_login_logo", fullImageUrl);
   localStorage.setItem("app_sidebar_logo", fullImageUrl);
