@@ -20,7 +20,9 @@ export interface ClientData {
   companyName?: string;
   routeGroup?: number;
   routeGroupName?: string;
-  ratePlanName?: string;
+  // ⚡️ FIX: Removed ratePlanName, added customerRateGroup
+  customerRateGroup?: number;
+  customerRateGroupName?: string;
   name: string;
   status: "ACTIVE" | "TRIAL" | "SUSPENDED";
   bindStatus: "ONLINE" | "OFFLINE";
@@ -111,7 +113,8 @@ export const sendClientDetailsEmailApi = async (data: {
 export const getClientRateOverViewApi = async (params: {
   client: number;
   routeGroup: string;
-  ratePlan: string;
+  // ⚡️ FIX: Updated to match what backend overview might expect, assuming it aligns.
+  customerRateGroup: string; 
 }) => {
   const response = await api.get(`/clientRateOverView/`, { params });
   return response.data;

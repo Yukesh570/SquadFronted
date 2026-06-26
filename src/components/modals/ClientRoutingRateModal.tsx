@@ -4,8 +4,6 @@ import { updateClientApi, getClientRateOverViewApi, type ClientData } from "../.
 import Button from "../ui/Button";
 import Select from "../ui/Select";
 import Modal from "../ui/Modal";
-// @ts-ignore
-import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi";
 
 interface Option { label: string; value: string; }
 
@@ -16,6 +14,8 @@ interface ClientRoutingRateModalProps {
   moduleName: string;
   editingClient: ClientData | null;
   routeGroupOptions: Option[];
+  // ⚡️ FIX: Added customerRateGroupOptions
+  customerRateGroupOptions: Option[];
 }
 
 export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
@@ -25,49 +25,20 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
   moduleName,
   editingClient,
   routeGroupOptions,
+  customerRateGroupOptions,
 }) => {
   const [formData, setFormData] = useState({
     routeGroup: "",
-    ratePlanName: "",
+    customerRateGroup: "", // ⚡️ FIX: Swapped ratePlanName for customerRateGroup
   });
-  const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      getCustomerRatesApi("customerRate", 1, 1000)
-        .then((res: any) => {
-          let list = res.results || (Array.isArray(res) ? res : []);
-          
-          const uniqueOptions: Option[] = [];
-          const seenNames = new Set<string>();
-
-          list.forEach((r: any) => {
-            const planName = r.ratePlan || r.ratePlanName || r.name;
-            if (planName && !seenNames.has(planName)) {
-              seenNames.add(planName);
-              uniqueOptions.push({
-                label: planName,
-                value: planName,
-              });
-            }
-          });
-
-          setRatePlanOptions(uniqueOptions);
-        })
-        .catch((err: any) => console.error("Failed to load rate plans", err));
-    } else {
-      setWarningMessage(null); 
-    }
-  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && editingClient) {
       setFormData({
         routeGroup: editingClient.routeGroup != null ? String(editingClient.routeGroup) : "",
-        ratePlanName: editingClient.ratePlanName || "",
+        customerRateGroup: editingClient.customerRateGroup != null ? String(editingClient.customerRateGroup) : "",
       });
       setWarningMessage(null); 
     }
@@ -86,11 +57,13 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
       setIsSubmitting(true);
       try {
         const routeGroupName = routeGroupOptions.find(o => o.value === formData.routeGroup)?.label || formData.routeGroup;
+        const customerRateGroupName = customerRateGroupOptions.find(o => o.value === formData.customerRateGroup)?.label || formData.customerRateGroup;
 
+        // ⚡️ FIX: Passed the group name/ID appropriately for the Overview check
         const overviewRes = await getClientRateOverViewApi({
           client: editingClient.id,
           routeGroup: routeGroupName || "", 
-          ratePlan: formData.ratePlanName
+          customerRateGroup: customerRateGroupName || "",
         });
 
         if (overviewRes && overviewRes.warning) {
@@ -114,7 +87,8 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
     try {
       const payload = {
         routeGroup: formData.routeGroup ? Number(formData.routeGroup) : null,
-        ratePlanName: formData.ratePlanName || "",
+        // ⚡️ FIX: Used customerRateGroup
+        customerRateGroup: formData.customerRateGroup ? Number(formData.customerRateGroup) : null,
       };
 
       await updateClientApi(editingClient.id, payload, moduleName);
@@ -131,7 +105,7 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
   if (!isOpen) return null;
 
   // ⚡️ FIX: Dynamic title checking if routing info already exists
-  const modalTitle = (!editingClient?.routeGroup && !editingClient?.ratePlanName) 
+  const modalTitle = (!editingClient?.routeGroup && !editingClient?.customerRateGroup) 
     ? "Add Route & Rate Plan" 
     : "Edit Route & Rate Plan";
 
@@ -146,12 +120,13 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
             options={routeGroupOptions}
             placeholder="Select Route Group"
           />
+          {/* ⚡️ FIX: Updated to Customer Rate Group */}
           <Select
-            label="Rate Plan Name"
-            value={formData.ratePlanName}
-            onChange={(v) => handleSelect("ratePlanName", v)}
-            options={ratePlanOptions}
-            placeholder="Select Rate Plan"
+            label="Customer Rate Group"
+            value={formData.customerRateGroup}
+            onChange={(v) => handleSelect("customerRateGroup", v)}
+            options={customerRateGroupOptions}
+            placeholder="Select Rate Group"
           />
         </div>
 
@@ -170,7 +145,7 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
           <Button 
             type="submit" 
             variant="primary" 
-            disabled={isSubmitting || !formData.routeGroup || !formData.ratePlanName}
+            disabled={isSubmitting || !formData.routeGroup || !formData.customerRateGroup}
             className={warningMessage ? "bg-yellow-600 hover:bg-yellow-700 text-white border-none" : ""}
           >
             {isSubmitting ? "Saving..." : warningMessage ? "Update Anyway" : "Update"}

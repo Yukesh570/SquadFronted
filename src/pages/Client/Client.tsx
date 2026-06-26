@@ -12,8 +12,8 @@ import {
 } from "../../api/clientApi/clientApi";
 import { getCompaniesApi } from "../../api/companyApi/companyApi";
 
-// @ts-ignore
-import { getCustomerRatesApi } from "../../api/rateApi/customerRateApi";
+// ⚡️ Fetching the Customer Rate Groups
+import { getCustomerRateGroupsApi } from "../../api/rateApi/customerRateApi";
 
 // --- Components ---
 import { ClientModal } from "../../components/modals/ClientModal";
@@ -58,7 +58,7 @@ const DEFAULT_SEARCH_COLUMNS = ["name", "status"];
 const DEFAULT_TABLE_COLUMNS = [
   "name",
   "companyName",
-  "ratePlanName",
+  "customerRateGroup", 
   "invoicePolicy", 
   "status",
   "route",
@@ -80,14 +80,11 @@ const Client: React.FC = () => {
   // --- Dropdown States ---
   const [companies, setCompanies] = useState<Option[]>([]);
   const [routeGroup, setrouteGroup] = useState<Option[]>([]);
-
-  const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
+  const [customerRateGroupOptions, setCustomerRateGroupOptions] = useState<Option[]>([]);
 
   // --- Modal States ---
   const [isAssignRouteModalOpen, setIsAssignRouteModalOpen] = useState(false);
-  const [assignRouteClientId, setAssignRouteClientId] = useState<number | null>(
-    null,
-  );
+  const [assignRouteClientId, setAssignRouteClientId] = useState<number | null>(null);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isRoutingModalOpen, setIsRoutingModalOpen] = useState(false); 
   const [editingClient, setEditingClient] = useState<ClientData | null>(null);
@@ -95,29 +92,27 @@ const Client: React.FC = () => {
   const [isViewMode, setIsViewMode] = useState(false);
 
   const [isIpModalOpen, setIsIpModalOpen] = useState(false);
-  const [ipModalClient, setIpModalClient] = useState<{
-    id: number;
-    name: string;
-  } | null>(null);
+  const [ipModalClient, setIpModalClient] = useState<{ id: number; name: string; } | null>(null);
 
   // --- Context Menu State ---
-  const [contextMenuPos, setContextMenuPos] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const [selectedRowClient, setSelectedRowClient] = useState<ClientData | null>(
-    null,
-  );
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number; } | null>(null);
+  const [selectedRowClient, setSelectedRowClient] = useState<ClientData | null>(null);
 
   // --- Dynamic Filters & Columns State ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(
-    DEFAULT_SEARCH_COLUMNS,
-  );
+  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
-    const saved = localStorage.getItem("client_table_columns");
-    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+    try {
+      const saved = localStorage.getItem("client_table_columns");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_TABLE_COLUMNS;
+      }
+    } catch (e) {
+      console.error("Error reading localStorage", e);
+    }
+    return DEFAULT_TABLE_COLUMNS;
   });
 
   useEffect(() => {
@@ -128,7 +123,7 @@ const Client: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const routeName = location.pathname.split("/").pop() || "client";
+  const routeName = (location.pathname.split("/").pop() || "client") as string;
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // --- Tracking ---
@@ -136,16 +131,11 @@ const Client: React.FC = () => {
   useEffect(() => {
     if (!hasLoggedOpening.current) {
       setTimeout(() => {
-        const activeLinks = document.querySelectorAll(
-          "aside a.active, nav a.active",
-        );
+        const activeLinks = document.querySelectorAll("aside a.active, nav a.active");
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel =
-          activeItem?.innerText?.split("\n")[0].trim() || "Module";
-
+        let moduleLabel = (activeItem?.innerText || "Module").split("\n")[0].trim();
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100);
-
       hasLoggedOpening.current = true;
     }
   }, []);
@@ -155,37 +145,38 @@ const Client: React.FC = () => {
     const loadDropdowns = async () => {
       try {
         const compRes: any = await getCompaniesApi("company", 1, 1000);
-        const compList =
-          compRes.results || (Array.isArray(compRes) ? compRes : []);
-        setCompanies(
-          compList.map((c: any) => ({ label: c.name, value: String(c.id) })),
-        );
+        const compList = compRes.results || (Array.isArray(compRes) ? compRes : []);
+        setCompanies(compList.map((c: any) => ({ label: c.name, value: String(c.id) })));
+      } catch (err) {
+        console.error("Company Dropdown load error:", err);
+      }
 
-        const rgRes: any = await getGroupedCustomRoutesApi(
-          "customRoute",
-          1,
-          1000,
-        );
+      try {
+        const rgRes: any = await getGroupedCustomRoutesApi("customRoute", 1, 1000);
         const rgList = rgRes.results || (Array.isArray(rgRes) ? rgRes : []);
-
         setrouteGroup(
           rgList.map((rg: any) => ({
             label: rg.routeGroup__name,
             value: String(rg.id),
-          })),
+          }))
         );
+      } catch (err) {
+         console.error("Route Group Dropdown load error:", err);
+      }
 
-        const rateRes: any = await getCustomerRatesApi("customerRate", 1, 1000);
-        const rateList =
-          rateRes.results || (Array.isArray(rateRes) ? rateRes : []);
-        setRatePlanOptions(
-          rateList.map((r: any) => ({
-            label: r.ratePlan || r.ratePlanName || r.name,
-            value: r.ratePlan || r.ratePlanName || r.name,
-          })),
+      // ⚡️ FIX: Wrapped in separate try/catch. If 403 Forbidden occurs, it won't crash the entire page.
+      // Also using "customerRate" as the module since standard rate endpoints use that context.
+      try {
+        const crgRes: any = await getCustomerRateGroupsApi("customerRate", 1, 1000);
+        const crgList = crgRes.results || (Array.isArray(crgRes) ? crgRes : []);
+        setCustomerRateGroupOptions(
+          crgList.map((rg: any) => ({
+            label: rg.name,
+            value: String(rg.id),
+          }))
         );
       } catch (err: any) {
-        console.error("Dropdown load error:", err);
+        console.warn("Customer Rate Group Dropdown load skipped (likely permissions):", err);
       }
     };
 
@@ -248,188 +239,44 @@ const Client: React.FC = () => {
   };
 
   const allColumns: ColumnConfig[] = [
-    {
-      key: "name",
-      label: "Client Name",
-      type: "text",
-      filterKey: "name__icontains",
-    },
-    {
-      key: "companyName",
-      label: "Company",
-      type: "text",
-      options: companies,
-      filterKey: "company",
-    },
-    {
-      key: "routeGroup",
-      label: "RouteGroup",
-      type: "text",
-      options: routeGroup,
-      filterKey: "routeGroup",
-    },
-    {
-      key: "ratePlanName",
-      label: "Rate Plan",
-      type: "text",
-      options: ratePlanOptions,
-      filterKey: "ratePlanName",
-    },
-    {
-      key: "status",
-      label: "Status",
-      type: "text",
-      options: statusOptions,
-      render: (c) => <StatusBadge status={c.status} />,
-    },
+    { key: "name", label: "Client Name", type: "text", filterKey: "name__icontains" },
+    { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
+    { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroup, filterKey: "routeGroup" },
+    { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, filterKey: "customerRateGroup" },
+    { key: "status", label: "Status", type: "text", options: statusOptions, render: (c) => <StatusBadge status={c.status} /> },
     { key: "route", label: "Route Type", type: "text", options: routeOptions },
-    {
-      key: "paymentTerms",
-      label: "Payment Terms",
-      type: "text",
-      options: paymentTermOptions,
-    },
-    {
-      key: "invoicePolicy",
-      label: "Invoice Policy",
-      type: "text",
-      options: invoicePolicyOptions,
-      render: (c) => {
+    { key: "paymentTerms", label: "Payment Terms", type: "text", options: paymentTermOptions },
+    { key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions, render: (c) => {
         if (!c.invoicePolicy) return "-";
         const match = invoicePolicyOptions.find(opt => opt.value === c.invoicePolicy);
         return match ? match.label : c.invoicePolicy;
       }
     },
-    {
-      key: "allowNetting",
-      label: "Allow Netting",
-      type: "boolean",
-      options: booleanOptions,
-      render: (c) => renderBooleanBadge(c.allowNetting),
-    },
-    {
-      key: "enableDlr",
-      label: "Enable Dlr",
-      type: "boolean",
-      options: booleanOptions,
-      render: (c) => renderBooleanBadge(c.enableDlr),
-    },
-    {
-      key: "smppUsername",
-      label: "SMPP Username",
-      type: "text",
-      filterKey: "smppUsername__icontains",
-    },
-    {
-      key: "bindStatus",
-      label: "Bind Status",
-      type: "text",
-      options: bindStatusOptions,
-      render: (c) => <StatusBadge status={c.bindStatus} />,
-    },
-    {
-      key: "session",
-      label: "Sessions (Current/Max)",
-      tableLabel: "Sessions",
-      type: "text",
-      render: (c) => renderSessionBadge(c),
-    },
+    { key: "allowNetting", label: "Allow Netting", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.allowNetting) },
+    { key: "enableDlr", label: "Enable Dlr", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.enableDlr) },
+    { key: "smppUsername", label: "SMPP Username", type: "text", filterKey: "smppUsername__icontains" },
+    { key: "bindStatus", label: "Bind Status", type: "text", options: bindStatusOptions, render: (c) => <StatusBadge status={c.bindStatus} /> },
+    { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", render: (c) => renderSessionBadge(c) },
     // --- INTEGRATED POLICY COLUMNS ---
-    {
-      key: "maxTps",
-      label: "Max TPS",
-      type: "number",
-      render: (c) => c.clientPolicy?.maxTps ?? "-",
-    },
-    {
-      key: "maxSessions",
-      label: "Max Sessions",
-      type: "number",
-      render: (c) => c.clientPolicy?.maxSessions ?? "-",
-    },
-    {
-      key: "maxQueueDepth",
-      label: "Max Queue Depth",
-      type: "number",
-      render: (c) => c.clientPolicy?.maxQueueDepth ?? "-",
-    },
-    {
-      key: "maxWindowGlobal",
-      label: "Max Window (Global)",
-      type: "number",
-      render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-",
-    },
-    {
-      key: "maxWindowPerSession",
-      label: "Max Window (Per Session)",
-      type: "number",
-      render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-",
-    },
-    {
-      key: "idleTimeoutSec",
-      label: "Idle Timeout (s)",
-      type: "number",
-      render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-",
-    },
-    {
-      key: "submitTimeoutSec",
-      label: "Submit Timeout (s)",
-      type: "number",
-      render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-",
-    },
-    {
-      key: "senderIdPolicy",
-      label: "Sender ID Policy",
-      type: "text",
-      render: (c) => c.clientPolicy?.senderIdPolicy ?? "-",
-    },
+    { key: "maxTps", label: "Max TPS", type: "number", render: (c) => c.clientPolicy?.maxTps ?? "-" },
+    { key: "maxSessions", label: "Max Sessions", type: "number", render: (c) => c.clientPolicy?.maxSessions ?? "-" },
+    { key: "maxQueueDepth", label: "Max Queue Depth", type: "number", render: (c) => c.clientPolicy?.maxQueueDepth ?? "-" },
+    { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number", render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-" },
+    { key: "maxWindowPerSession", label: "Max Window (Per Session)", type: "number", render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-" },
+    { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number", render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-" },
+    { key: "submitTimeoutSec", label: "Submit Timeout (s)", type: "number", render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-" },
+    { key: "senderIdPolicy", label: "Sender ID Policy", type: "text", render: (c) => c.clientPolicy?.senderIdPolicy ?? "-" },
     // --- End Integrated Policy Columns ---
-    {
-      key: "balanceAlertAmount",
-      label: "Balance Alert (Exact)",
-      tableLabel: "Balance Alert",
-      type: "number",
-    },
-    {
-      key: "balanceAlertAmount__range",
-      label: "Balance Alert (Range)",
-      type: "number_range",
-      isSearchOnly: true,
-    },
-    {
-      key: "balanceAlertAmount__gt_lt",
-      label: "Balance Alert (GT / LT)",
-      type: "number_gt_lt",
-      isSearchOnly: true,
-    },
-    {
-      key: "createdAt",
-      label: "Created At (Exact)",
-      tableLabel: "Created At",
-      type: "date",
-      filterKey: "createdAt__date",
-      render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-"),
-    },
-    {
-      key: "createdAt__range",
-      label: "Created At (Range)",
-      type: "date_range",
-      isSearchOnly: true,
-    },
-    {
-      key: "createdAt__gt_lt",
-      label: "Created At (After / Before)",
-      type: "date_gt_lt",
-      isSearchOnly: true,
-    },
+    { key: "balanceAlertAmount", label: "Balance Alert (Exact)", tableLabel: "Balance Alert", type: "number" },
+    { key: "balanceAlertAmount__range", label: "Balance Alert (Range)", type: "number_range", isSearchOnly: true },
+    { key: "balanceAlertAmount__gt_lt", label: "Balance Alert (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
+    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
+    { key: "createdAt__range", label: "Created At (Range)", type: "date_range", isSearchOnly: true },
+    { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) =>
-    searchColumns.includes(col.key),
-  );
-  const visibleTableFields = allColumns.filter((col) =>
-    tableColumns.includes(col.key),
-  );
+  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
+  const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
 
   const tableFilterColumns = allColumns
     .filter((c) => !c.isSearchOnly)
@@ -439,9 +286,7 @@ const Client: React.FC = () => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const fetchClients = async (
-    filters: Record<string, string> | null = null,
-  ) => {
+  const fetchClients = async (filters: Record<string, string> | null = null) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
@@ -457,25 +302,18 @@ const Client: React.FC = () => {
           const columnDef = allColumns.find((c) => c.key === key);
 
           if (columnDef?.options) {
-            const selectedOption = columnDef.options.find(
-              (opt) => opt.value === value,
-            );
-            currentSearchParams[columnDef.filterKey || key] = selectedOption
-              ? selectedOption.value
-              : value;
+            const selectedOption = columnDef.options.find((opt) => opt.value === value);
+            currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
-            currentSearchParams[`${key}__range`] =
-              `${value}T00:00:00,${value}T23:59:59`;
+            currentSearchParams[`${key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_range") {
             const baseKey = key.split("__")[0];
             const [start, end] = value.split(",");
             if (start && end) {
               currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
             } else {
-              if (start)
-                currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end)
-                currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
+              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
+              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
             }
           } else if (columnDef?.type === "date_gt_lt") {
             const baseKey = key.replace("__gt_lt", "");
@@ -505,12 +343,7 @@ const Client: React.FC = () => {
         }
       });
 
-      const response: any = await getClientsApi(
-        routeName,
-        currentPage,
-        rowsPerPage,
-        currentSearchParams,
-      );
+      const response: any = await getClientsApi(routeName, currentPage, rowsPerPage, currentSearchParams);
 
       if (newController.signal.aborted) return;
 
@@ -679,7 +512,6 @@ const Client: React.FC = () => {
     setSelectedRowClient(client);
   };
 
-  // ⚡️ FIX: Context menu dynamically switches text
   const menuItems: ContextMenuItem[] = selectedRowClient
     ? [
         ...(canUpdate
@@ -691,7 +523,7 @@ const Client: React.FC = () => {
               },
             ]
           : []),
-        ...(canUpdate && selectedRowClient.routeGroup === null
+        ...(canUpdate && selectedRowClient.routeGroup == null
           ? [
               {
                 label: "Add Route",
@@ -721,8 +553,8 @@ const Client: React.FC = () => {
                 onClick: () => handleEdit(selectedRowClient),
               },
               {
-                label: (!selectedRowClient.routeGroup && !selectedRowClient.ratePlanName) ? "Add Route & Rate Plan" : "Edit Route & Rate Plan",
-                icon: (!selectedRowClient.routeGroup && !selectedRowClient.ratePlanName) ? <Plus size={16} /> : <Edit size={16} />,
+                label: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? "Add Route & Rate Plan" : "Edit Route & Rate Plan",
+                icon: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? <Plus size={16} /> : <Edit size={16} />,
                 onClick: () => handleEditRouting(selectedRowClient),
               },
             ]
@@ -745,7 +577,10 @@ const Client: React.FC = () => {
     ...visibleTableFields.map((col) => col.tableLabel || col.label),
   ];
 
-  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+  const getBaseLabel = (label: string) => {
+    if (!label) return "";
+    return label.split(" (")[0].trim();
+  };
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -798,7 +633,7 @@ const Client: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label);
+          const baseLabel = getBaseLabel(col.label || "");
 
           if (col.options) {
             return (
@@ -1006,6 +841,10 @@ const Client: React.FC = () => {
                 cellData = client.companyName || client.company;
               }
 
+              if (col.key === "customerRateGroup") {
+                 cellData = client.customerRateGroupName || client.customerRateGroup;
+              }
+
               if (col.render) {
                 return (
                   <td
@@ -1061,6 +900,7 @@ const Client: React.FC = () => {
         moduleName={routeName}
         editingClient={editingClient}
         routeGroupOptions={routeGroup}
+        customerRateGroupOptions={customerRateGroupOptions}
       />
 
       <IpWhitelistModal
@@ -1078,7 +918,7 @@ const Client: React.FC = () => {
           setAssignRouteClientId(null);
         }}
         onSuccess={() => {
-          fetchClients(); // Refresh the table so the new route shows up
+          fetchClients(); 
         }}
         clientId={assignRouteClientId}
         moduleName={routeName}
