@@ -11,7 +11,7 @@ export interface VendorPolicyData {
   responseTimeout?: number;
   enquireLinkInterval?: number;
   connectionTimeout?: number;
-  maxMessageRetries?: number; // ⚡️ FIX: Added maxMessageRetries
+  maxMessageRetries?: number;
   connectionRetryDelay?: number;
   connectionRetryCount?: number;
   bindRetryDelay?: number;
@@ -28,16 +28,25 @@ export interface VendorData {
   company?: number;
   companyName?: string;
   profileName: string;
-  ratePlanName?: string;
+  vendorRateGroup?: number;
+  vendorRateGroupName?: string;
   connectionType: "SMPP" | "HTTP";
   invoicePolicy?: string;
   smpp?: number;
   smppName?: string;
   bindStatus?: string;
   active_session_count?: number;
-  max_allowed_sessions?: number; 
+  max_allowed_sessions?: number;
   maxSession?: number;
-  vendorPolicy?: VendorPolicyData; // ⚡️ FIX: Added nested policy object
+  vendorPolicy?: VendorPolicyData;
+}
+
+export interface VendorRateGroupData {
+  id?: number;
+  name: string;
+  status: "ACTIVE" | "INACTIVE";
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -47,7 +56,7 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// GET
+// GET - Vendors
 export const getVendorsApi = async (
   module: string,
   page: number = 1,
@@ -63,7 +72,7 @@ export const getVendorsApi = async (
   return response.data;
 };
 
-// POST
+// POST - Vendors
 export const createVendorApi = async (
   data: any,
   module: string,
@@ -72,7 +81,7 @@ export const createVendorApi = async (
   return response.data;
 };
 
-// PATCH
+// PATCH - Vendors
 export const updateVendorApi = async (
   id: number,
   data: any,
@@ -82,10 +91,26 @@ export const updateVendorApi = async (
   return response.data;
 };
 
-// DELETE
+// DELETE - Vendors
 export const deleteVendorApi = async (
   id: number,
   module: string,
 ): Promise<void> => {
   await api.delete(`/vendor/${module}/${id}/`);
+};
+
+// GET - Vendor Rate Groups
+export const getVendorRateGroupsApi = async (
+  module: string,
+  page: number = 1,
+  pageSize: number = 10,
+  searchParams?: Record<string, any>,
+): Promise<PaginatedResponse<VendorRateGroupData>> => {
+  const params: any = {
+    page: page,
+    page_size: pageSize,
+    ...searchParams,
+  };
+  const response = await api.get(`/vendorRateGroup/${module}/`, { params });
+  return response.data;
 };

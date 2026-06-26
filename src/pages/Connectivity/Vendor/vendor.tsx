@@ -5,13 +5,11 @@ import { toast } from "react-toastify";
 import {
   getVendorsApi,
   deleteVendorApi,
+  getVendorRateGroupsApi,
   type VendorData,
   updateVendorApi,
 } from "../../../api/connectivityApi/vendorApi";
 import { getCompaniesApi } from "../../../api/companyApi/companyApi";
-
-// @ts-ignore
-import { getVendorRatesApi } from "../../../api/rateApi/vendorRateApi";
 
 import { VendorModal } from "../../../components/modals/Connectivity/VendorModal";
 import Button from "../../../components/ui/Button";
@@ -49,7 +47,7 @@ const DEFAULT_SEARCH_COLUMNS = ["profileName", "companyName", "connectionType"];
 const DEFAULT_TABLE_COLUMNS = [
   "profileName",
   "companyName",
-  "ratePlanName",
+  "vendorRateGroup",
   "connectionType",
   "invoicePolicy",
   "bindStatus",
@@ -71,7 +69,7 @@ const Vendor: React.FC = () => {
 
   // --- Dropdown States ---
   const [companies, setCompanies] = useState<Option[]>([]);
-  const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
+  const [vendorRateGroupOptions, setVendorRateGroupOptions] = useState<Option[]>([]);
 
   // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -124,17 +122,17 @@ const Vendor: React.FC = () => {
       }
 
       try {
-        const rateRes: any = await getVendorRatesApi("vendorRate", 1, 1000);
+        const rateRes: any = await getVendorRateGroupsApi("vendorRateGroup", 1, 1000);
         const rateList =
           rateRes.results || (Array.isArray(rateRes) ? rateRes : []);
-        setRatePlanOptions(
+        setVendorRateGroupOptions(
           rateList.map((r: any) => ({
-            label: r.ratePlan || r.ratePlanName || r.name,
-            value: r.ratePlan || r.ratePlanName || r.name,
+            label: r.name,
+            value: String(r.id),
           })),
         );
       } catch (err: any) {
-        console.error("Failed to load vendor rates for filter", err);
+        console.error("Failed to load vendor rate groups for filter", err);
       }
     };
     loadDropdowns();
@@ -240,11 +238,12 @@ const Vendor: React.FC = () => {
       filterKey: "company",
     },
     {
-      key: "ratePlanName",
-      label: "Rate Plan",
+      key: "vendorRateGroup",
+      label: "Vendor Rate Group",
       type: "text",
-      options: ratePlanOptions,
-      filterKey: "ratePlanName",
+      options: vendorRateGroupOptions,
+      filterKey: "vendorRateGroup",
+      render: (c: any) => c.vendorRateGroupName || c.vendorRateGroup || "-",
     },
     {
       key: "connectionType",

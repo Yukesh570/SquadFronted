@@ -6,6 +6,7 @@ import { Eye, EyeOff } from "lucide-react";
 import {
   createVendorApi,
   updateVendorApi,
+  getVendorRateGroupsApi,
   type VendorData,
 } from "../../../api/connectivityApi/vendorApi";
 import {
@@ -18,9 +19,6 @@ import {
   updateVendorPolicyApi,
 } from "../../../api/policyApi/vendorPolicyApi";
 import { getCompaniesApi } from "../../../api/companyApi/companyApi";
-
-// @ts-ignore
-import { getVendorRatesApi } from "../../../api/rateApi/vendorRateApi";
 
 // UI Components
 import Input from "../../ui/Input";
@@ -53,7 +51,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   const [formData, setFormData] = useState({
     company: "",
     profileName: "",
-    ratePlanName: "",
+    vendorRateGroup: "",
     connectionType: "SMPP",
     invoicePolicy: "ON ATTEMPT",
     smppId: 0,
@@ -73,7 +71,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     responseTimeout: "",
     enquireLinkInterval: "",
     connectionTimeout: "",
-    maxMessageRetries: "", // ⚡️ FIX: Added maxMessageRetries field
+    maxMessageRetries: "",
     connectionRetryDelay: "",
     connectionRetryCount: "",
     bindRetryDelay: "",
@@ -97,7 +95,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
 
   // Dropdown Options
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
-  const [ratePlanOptions, setRatePlanOptions] = useState<Option[]>([]);
+  const [vendorRateGroupOptions, setVendorRateGroupOptions] = useState<Option[]>([]);
 
   const connectionTypeOptions = [
     { label: "SMPP", value: "SMPP" },
@@ -139,17 +137,17 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         })
         .catch((err: any) => console.error("Failed to load companies", err));
 
-      getVendorRatesApi("vendorRate", 1, 1000)
+      getVendorRateGroupsApi("vendorRateGroup", 1, 1000)
         .then((res: any) => {
           let list = res.results || (Array.isArray(res) ? res : []);
-          setRatePlanOptions(
-            list.map((r: any) => ({
-              label: r.ratePlan || r.ratePlanName || r.name,
-              value: r.ratePlan || r.ratePlanName || r.name,
+          setVendorRateGroupOptions(
+            list.map((rg: any) => ({
+              label: rg.name,
+              value: String(rg.id),
             })),
           );
         })
-        .catch((err: any) => console.error("Failed to load rate plans", err));
+        .catch((err: any) => console.error("Failed to load vendor rate groups", err));
     }
   }, [isOpen]);
 
@@ -166,7 +164,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         setFormData({
           company: editingVendor.company ? String(editingVendor.company) : "",
           profileName: editingVendor.profileName,
-          ratePlanName: editingVendor.ratePlanName || "",
+          vendorRateGroup: editingVendor.vendorRateGroup != null ? String(editingVendor.vendorRateGroup) : "",
           connectionType: editingVendor.connectionType || "",
           invoicePolicy: editingVendor.invoicePolicy || "ON_ATTEMPT",
           smppId: anyVendor.smpp || 0,
@@ -188,7 +186,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           responseTimeout: anyVendor.vendorPolicy?.responseTimeout != null ? String(anyVendor.vendorPolicy.responseTimeout) : "",
           enquireLinkInterval: anyVendor.vendorPolicy?.enquireLinkInterval != null ? String(anyVendor.vendorPolicy.enquireLinkInterval) : "",
           connectionTimeout: anyVendor.vendorPolicy?.connectionTimeout != null ? String(anyVendor.vendorPolicy.connectionTimeout) : "",
-          maxMessageRetries: anyVendor.vendorPolicy?.maxMessageRetries != null ? String(anyVendor.vendorPolicy.maxMessageRetries) : "", // ⚡️ FIX: Handle maxMessageRetries
+          maxMessageRetries: anyVendor.vendorPolicy?.maxMessageRetries != null ? String(anyVendor.vendorPolicy.maxMessageRetries) : "",
           connectionRetryDelay: anyVendor.vendorPolicy?.connectionRetryDelay != null ? String(anyVendor.vendorPolicy.connectionRetryDelay) : "",
           connectionRetryCount: anyVendor.vendorPolicy?.connectionRetryCount != null ? String(anyVendor.vendorPolicy.connectionRetryCount) : "",
           bindRetryDelay: anyVendor.vendorPolicy?.bindRetryDelay != null ? String(anyVendor.vendorPolicy.bindRetryDelay) : "",
@@ -234,7 +232,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         setFormData({
           company: "",
           profileName: "",
-          ratePlanName: "",
+          vendorRateGroup: "",
           connectionType: "SMPP",
           invoicePolicy: "ON ATTEMPT",
           smppId: 0,
@@ -254,7 +252,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           responseTimeout: "",
           enquireLinkInterval: "",
           connectionTimeout: "",
-          maxMessageRetries: "", // ⚡️ FIX: Reset maxMessageRetries
+          maxMessageRetries: "",
           connectionRetryDelay: "",
           connectionRetryCount: "",
           bindRetryDelay: "",
@@ -333,15 +331,17 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           ? createdSmppId
           : null;
 
-      // --- 2. HANDLE VENDOR ---
-      const vendorPayload = {
-        company: Number(formData.company),
-        profileName: formData.profileName,
-        ratePlanName: formData.ratePlanName,
-        connectionType: formData.connectionType,
-        invoicePolicy: formData.invoicePolicy,
-        smpp: finalSmppValue,
-      };
+      const vendorPayload: any = {
+  company: Number(formData.company),
+  profileName: formData.profileName,
+  vendorRateGroup: formData.vendorRateGroup ? Number(formData.vendorRateGroup) : null,
+  connectionType: formData.connectionType,
+  smpp: finalSmppValue,
+};
+
+if (formData.invoicePolicy) {
+  vendorPayload.invoicePolicy = formData.invoicePolicy;
+}
 
       let vendorId = editingVendor?.id;
 
@@ -365,7 +365,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         if (formData.responseTimeout !== "") policyPayload.responseTimeout = Number(formData.responseTimeout);
         if (formData.enquireLinkInterval !== "") policyPayload.enquireLinkInterval = Number(formData.enquireLinkInterval);
         if (formData.connectionTimeout !== "") policyPayload.connectionTimeout = Number(formData.connectionTimeout);
-        if (formData.maxMessageRetries !== "") policyPayload.maxMessageRetries = Number(formData.maxMessageRetries); // ⚡️ FIX: Process maxMessageRetries
+        if (formData.maxMessageRetries !== "") policyPayload.maxMessageRetries = Number(formData.maxMessageRetries);
         if (formData.connectionRetryDelay !== "") policyPayload.connectionRetryDelay = Number(formData.connectionRetryDelay);
         if (formData.connectionRetryCount !== "") policyPayload.connectionRetryCount = Number(formData.connectionRetryCount);
         if (formData.bindRetryDelay !== "") policyPayload.bindRetryDelay = Number(formData.bindRetryDelay);
@@ -453,11 +453,11 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <Select
-              label="Rate Plan Name"
-              value={formData.ratePlanName}
-              onChange={(v) => handleSelect("ratePlanName", v)}
-              options={ratePlanOptions}
-              placeholder="Select Rate Plan"
+              label="Vendor Rate Group"
+              value={formData.vendorRateGroup}
+              onChange={(v) => handleSelect("vendorRateGroup", v)}
+              options={vendorRateGroupOptions}
+              placeholder="Select Rate Group"
               disabled={isViewMode}
             />
             <Select
@@ -695,7 +695,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             Retries & Recovery
           </legend>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* ⚡️ FIX: Added Max Msg Retries input */}
             <Input
               label="Max Msg Retries"
               name="maxMessageRetries"
