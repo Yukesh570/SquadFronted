@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { Trash } from "lucide-react";
+import { Trash, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   getCustomRoutesApi,
   updateCustomRouteApi,
@@ -27,7 +27,7 @@ interface SubRouteEditableTableProps {
   onDelete: (id: number) => void;
   refreshTrigger?: number;
   onDataLoaded?: (count: number) => void;
-  routingType?: string; 
+  routingType?: string;
 }
 
 const ReadOnlyCell = ({ children }: { children: React.ReactNode }) => (
@@ -62,6 +62,13 @@ const FilterInput = ({
   </div>
 );
 
+const rowsOptions = [
+  { value: "10", label: "10" },
+  { value: "25", label: "25" },
+  { value: "50", label: "50" },
+  { value: "100", label: "100" },
+];
+
 export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
   routeGroup,
   moduleName,
@@ -70,22 +77,33 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
   onDelete,
   refreshTrigger,
   onDataLoaded,
-  routingType = "PRIORITY", 
+  routingType = "PRIORITY",
 }) => {
   const [data, setData] = useState<ExtendedCustomRouteData[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeCellId, setActiveCellId] = useState<string | null>(null);
 
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
-  
+
+  // ── Pagination state ──────────────────────────────────────────────────────
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  // ─────────────────────────────────────────────────────────────────────────
+
   const isPercentageRoute = String(routingType).toUpperCase() === "PERCENTAGE";
 
   const fetchSubRoutes = () => {
     setLoading(true);
-    getCustomRoutesApi(moduleName, 1, 100, { routeGroup__name: routeGroup })
+    getCustomRoutesApi(moduleName, currentPage, rowsPerPage, {
+      routeGroup__name: routeGroup,
+    })
       .then((res) => {
-        setData(res.results || []);
-        if (onDataLoaded) onDataLoaded((res.results || []).length);
+        const results = res.results || [];
+        const count = res.count ?? results.length;
+        setData(results);
+        setTotalItems(count);
+        if (onDataLoaded) onDataLoaded(count);
         setLoading(false);
       })
       .catch(() => {
@@ -94,9 +112,14 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
       });
   };
 
+  // Reset to page 1 when group/module/refresh changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [routeGroup, moduleName, refreshTrigger]);
+
   useEffect(() => {
     if (routeGroup) fetchSubRoutes();
-  }, [routeGroup, moduleName, refreshTrigger]);
+  }, [routeGroup, moduleName, refreshTrigger, currentPage, rowsPerPage]);
 
   const handleTableClick = (e: React.MouseEvent) => {
     if (
@@ -147,6 +170,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
     return `${year}-${month}-${day}`;
   };
 
+  // Column filters run client-side on the current page slice
   const filteredData = data.filter((row: any) => {
     return Object.keys(columnFilters).every((key) => {
       const filterValue = columnFilters[key]?.toLowerCase();
@@ -164,12 +188,25 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
     });
   });
 
-  if (loading)
-    return (
-      <div className="p-20 text-center text-gray-500 animate-pulse font-medium">
-        Fetching details...
-      </div>
-    );
+  // ── Pagination helpers (mirrors DataTable exactly) ────────────────────────
+  const totalPages = Math.ceil(totalItems / rowsPerPage);
+
+  const handleNext = () => {
+    setCurrentPage((p) => Math.min(p + 1, totalPages));
+  };
+  const handlePrev = () => {
+    setCurrentPage((p) => Math.max(p - 1, 1));
+  };
+  const handleRowsChange = (val: number) => {
+    setRowsPerPage(val);
+    setCurrentPage(1);
+  };
+
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const paginationLabel = `${
+    totalItems === 0 ? 0 : startIndex + 1
+  }-${Math.min(startIndex + data.length, totalItems)} of ${totalItems}`;
+  // ─────────────────────────────────────────────────────────────────────────
 
   const statusOptions = [
     { label: "Active", value: "ACTIVE" },
@@ -177,96 +214,151 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
   ];
 
   return (
-    <div
-      className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm max-h-[70vh] w-full overflow-x-auto overflow-y-auto custom-grid-scroll"
-      onClick={handleTableClick}
-    >
-      <table className="min-w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
-        <thead className="bg-gray-100 dark:bg-gray-800 text-text-secondary dark:text-gray-300 sticky top-0 z-20 shadow-sm">
-          <tr>
-            <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Route Name</th>
-            <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Country</th>
-            <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">MCC</th>
-            <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">MNC</th>
-            <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Terminating Vendor</th>
-            
-            {!isPercentageRoute ? (
-              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Priority</th>
-            ) : (
-              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Traffic %</th>
-            )}
+    <div className="rounded-xl bg-white shadow-card dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0">
 
-            <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Status</th>
-            <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 min-w-[150px]">Created At</th>
-            {canDelete && (
-              <th className="px-4 py-2 font-bold border-b dark:border-gray-600 text-center sticky right-0 bg-gray-100 dark:bg-gray-800 shadow-l z-30">Action</th>
-            )}
-          </tr>
+      {/* ── Pagination bar — exact same markup as DataTable ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 relative z-[100]">
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
+              Rows per page:
+            </span>
+            <div className="w-24 shrink-0">
+              <Select
+                value={String(rowsPerPage)}
+                onChange={(val) => handleRowsChange(Number(val))}
+                options={rowsOptions}
+                clearable={false}
+                placement="bottom"
+              />
+            </div>
+          </div>
+          <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
+            {paginationLabel}
+          </span>
+          <div className="flex items-center space-x-2 shrink-0">
+            <button
+              className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              onClick={handlePrev}
+              disabled={currentPage === 1 || loading}
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              onClick={handleNext}
+              disabled={currentPage >= totalPages || totalItems === 0 || loading}
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+      </div>
 
-          <tr className="bg-gray-50 dark:bg-gray-800/80">
-            <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="name" placeholder="Search..." value={columnFilters["name"]} onChange={handleFilterChange} minWidth="120px"/></th>
-            <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="countryName" placeholder="Search..." value={columnFilters["countryName"]} onChange={handleFilterChange} minWidth="100px"/></th>
-            <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MCC" placeholder="Search..." value={columnFilters["MCC"]} onChange={handleFilterChange} minWidth="70px"/></th>
-            <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MNC" placeholder="Search..." value={columnFilters["MNC"]} onChange={handleFilterChange} minWidth="70px"/></th>
-            <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="terminatingVendorProfileName" placeholder="Search..." value={columnFilters["terminatingVendorProfileName"]} onChange={handleFilterChange} minWidth="120px"/></th>
-            
-            {!isPercentageRoute ? (
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="priority" placeholder="Search..." value={columnFilters["priority"]} onChange={handleFilterChange} minWidth="90px"/></th>
-            ) : (
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="trafficPercentage" placeholder="Search..." value={columnFilters["trafficPercentage"]} onChange={handleFilterChange} minWidth="90px"/></th>
-            )}
-
-            <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
-               <div className="w-full filter-control-wrapper" style={{ minWidth: "100px" }}>
-                <Select label="" value={columnFilters["status"] || ""} onChange={(val) => handleFilterChange("status", val)} options={[{ label: "All", value: "" }, ...statusOptions]} placeholder="All" placement="bottom"/>
-              </div>
-            </th>
-            <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
-               <div className="w-full filter-control-wrapper" style={{ minWidth: "130px" }}>
-                <DatePicker label="" selected={columnFilters["createdAt"] ? new Date(columnFilters["createdAt"]) : null} onChange={(date: Date | null) => handleFilterChange("createdAt", date ? formatLocalDate(date) : "")}/>
-              </div>
-            </th>
-            {canDelete && <th className="p-1 border-b dark:border-gray-600 sticky right-0 bg-gray-50 dark:bg-gray-800/80 shadow-l z-30"></th>}
-          </tr>
-        </thead>
-        <tbody>
-          {filteredData.map((route: ExtendedCustomRouteData) => (
-            <tr key={route.id} className="hover:bg-blue-50/40 dark:hover:bg-primary/5 transition-colors relative z-0 hover:z-10 focus-within:z-50 group">
-              <ReadOnlyCell>{route.name || "-"}</ReadOnlyCell>
-              <ReadOnlyCell>{route.countryName || "-"}</ReadOnlyCell>
-              <ReadOnlyCell>{route.MCC || "-"}</ReadOnlyCell>
-              <ReadOnlyCell>{route.MNC || "-"}</ReadOnlyCell>
-              <ReadOnlyCell>{route.terminatingVendorProfileName || "-"}</ReadOnlyCell>
-              
-              {!isPercentageRoute ? (
-                <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
-                  <EditableCell value={String(route.priority || "")} type="number" onSave={(val) => handleInlineSave(route.id!, "priority", val)} disabled={!canUpdate} isEditing={activeCellId === `${route.id}-priority`} onEditStart={() => setActiveCellId(`${route.id}-priority`)} onEditEnd={() => setActiveCellId(null)}/>
-                </td>
-              ) : (
-                /* ⚡️ FIX: View-only ReadOnlyCell for Percentage */
-                <ReadOnlyCell>{route.trafficPercentage || "0"}</ReadOnlyCell>
-              )}
-              
-              <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
-                <EditableCell value={route.status} type="select" options={statusOptions} onSave={(val) => handleInlineSave(route.id!, "status", val)} disabled={!canUpdate} isEditing={activeCellId === `${route.id}-status`} onEditStart={() => setActiveCellId(`${route.id}-status`)} onEditEnd={() => setActiveCellId(null)}/>
-              </td>
-              <ReadOnlyCell>{route.createdAt ? formatDateTime(route.createdAt) : "-"}</ReadOnlyCell>
-              {canDelete && (
-                <td className="px-4 py-2 text-center sticky right-0 bg-white dark:bg-gray-900 border-l border-b dark:border-gray-700 z-10">
-                  <button onClick={() => onDelete(route.id!)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all" title="Delete Route"><Trash size={16} /></button>
-                </td>
-              )}
-            </tr>
-          ))}
-          {filteredData.length === 0 && (
+      {/* ── Scrollable table ── */}
+      <div
+        className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm max-h-[60vh] w-full overflow-x-auto overflow-y-auto custom-grid-scroll"
+        onClick={handleTableClick}
+      >
+        <table className="min-w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
+          <thead className="bg-gray-100 dark:bg-gray-800 text-text-secondary dark:text-gray-300 sticky top-0 z-20 shadow-sm">
             <tr>
-              <td colSpan={isPercentageRoute ? 12 : 13} className="px-4 py-8 text-center text-gray-500 bg-white dark:bg-gray-900 border-b dark:border-gray-700">
-                {data.length > 0 ? "No routes match your search filters." : "No sub-routes configured for this group."}
-              </td>
+              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">S.N.</th>
+              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Route Name</th>
+              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Country</th>
+              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">MCC</th>
+              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">MNC</th>
+              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Terminating Vendor</th>
+
+              {!isPercentageRoute ? (
+                <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Priority</th>
+              ) : (
+                <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Traffic %</th>
+              )}
+
+              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Status</th>
+              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 min-w-[150px]">Created At</th>
+              {canDelete && (
+                <th className="px-4 py-2 font-bold border-b dark:border-gray-600 text-center sticky right-0 bg-gray-100 dark:bg-gray-800 shadow-l z-30">Action</th>
+              )}
             </tr>
-          )}
-        </tbody>
-      </table>
+
+            <tr className="bg-gray-50 dark:bg-gray-800/80">
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="name" placeholder="Search..." value={columnFilters["name"]} onChange={handleFilterChange} minWidth="120px"/></th>
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="countryName" placeholder="Search..." value={columnFilters["countryName"]} onChange={handleFilterChange} minWidth="100px"/></th>
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MCC" placeholder="Search..." value={columnFilters["MCC"]} onChange={handleFilterChange} minWidth="70px"/></th>
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MNC" placeholder="Search..." value={columnFilters["MNC"]} onChange={handleFilterChange} minWidth="70px"/></th>
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="terminatingVendorProfileName" placeholder="Search..." value={columnFilters["terminatingVendorProfileName"]} onChange={handleFilterChange} minWidth="120px"/></th>
+
+              {!isPercentageRoute ? (
+                <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="priority" placeholder="Search..." value={columnFilters["priority"]} onChange={handleFilterChange} minWidth="90px"/></th>
+              ) : (
+                <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="trafficPercentage" placeholder="Search..." value={columnFilters["trafficPercentage"]} onChange={handleFilterChange} minWidth="90px"/></th>
+              )}
+
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
+                <div className="w-full filter-control-wrapper" style={{ minWidth: "100px" }}>
+                  <Select label="" value={columnFilters["status"] || ""} onChange={(val) => handleFilterChange("status", val)} options={[{ label: "All", value: "" }, ...statusOptions]} placeholder="All" placement="bottom"/>
+                </div>
+              </th>
+              <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
+                <div className="w-full filter-control-wrapper" style={{ minWidth: "130px" }}>
+                  <DatePicker label="" selected={columnFilters["createdAt"] ? new Date(columnFilters["createdAt"]) : null} onChange={(date: Date | null) => handleFilterChange("createdAt", date ? formatLocalDate(date) : "")}/>
+                </div>
+              </th>
+              {canDelete && <th className="p-1 border-b dark:border-gray-600 sticky right-0 bg-gray-50 dark:bg-gray-800/80 shadow-l z-30"></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={canDelete ? 10 : 9} className="px-4 py-12 text-center text-gray-500 animate-pulse font-medium bg-white dark:bg-gray-900">
+                  Fetching details...
+                </td>
+              </tr>
+            ) : (
+              <>
+                {filteredData.map((route: ExtendedCustomRouteData, index: number) => (
+                  <tr key={route.id} className="hover:bg-blue-50/40 dark:hover:bg-primary/5 transition-colors relative z-0 hover:z-10 focus-within:z-50 group">
+                    <ReadOnlyCell>{startIndex + index + 1}</ReadOnlyCell>
+                    <ReadOnlyCell>{route.name || "-"}</ReadOnlyCell>
+                    <ReadOnlyCell>{route.countryName || "-"}</ReadOnlyCell>
+                    <ReadOnlyCell>{route.MCC || "-"}</ReadOnlyCell>
+                    <ReadOnlyCell>{route.MNC || "-"}</ReadOnlyCell>
+                    <ReadOnlyCell>{route.terminatingVendorProfileName || "-"}</ReadOnlyCell>
+
+                    {!isPercentageRoute ? (
+                      <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
+                        <EditableCell value={String(route.priority || "")} type="number" onSave={(val) => handleInlineSave(route.id!, "priority", val)} disabled={!canUpdate} isEditing={activeCellId === `${route.id}-priority`} onEditStart={() => setActiveCellId(`${route.id}-priority`)} onEditEnd={() => setActiveCellId(null)}/>
+                      </td>
+                    ) : (
+                      <ReadOnlyCell>{route.trafficPercentage || "0"}</ReadOnlyCell>
+                    )}
+
+                    <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
+                      <EditableCell value={route.status} type="select" options={statusOptions} onSave={(val) => handleInlineSave(route.id!, "status", val)} disabled={!canUpdate} isEditing={activeCellId === `${route.id}-status`} onEditStart={() => setActiveCellId(`${route.id}-status`)} onEditEnd={() => setActiveCellId(null)}/>
+                    </td>
+                    <ReadOnlyCell>{route.createdAt ? formatDateTime(route.createdAt) : "-"}</ReadOnlyCell>
+                    {canDelete && (
+                      <td className="px-4 py-2 text-center sticky right-0 bg-white dark:bg-gray-900 border-l border-b dark:border-gray-700 z-10">
+                        <button onClick={() => onDelete(route.id!)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all" title="Delete Route"><Trash size={16} /></button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+                {filteredData.length === 0 && (
+                  <tr>
+                    <td colSpan={canDelete ? 10 : 9} className="px-4 py-8 text-center text-gray-500 bg-white dark:bg-gray-900 border-b dark:border-gray-700">
+                      {data.length > 0 ? "No routes match your search filters." : "No sub-routes configured for this group."}
+                    </td>
+                  </tr>
+                )}
+              </>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-grid-scroll::-webkit-scrollbar { height: 8px; width: 8px; }

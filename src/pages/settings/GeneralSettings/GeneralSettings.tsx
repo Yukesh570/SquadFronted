@@ -211,7 +211,6 @@ if (imgRes && imgRes.image) {
       const uploadData = new FormData();
       uploadData.append("image", imageFile);
       const res = await putDashboardImageApi(uploadData);
-      console.log("Full res:", res);  // Add this
 
       
       if (res && res.image) {
