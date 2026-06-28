@@ -1,76 +1,76 @@
-import api from "../axiosInstance";
+// import api from "../axiosInstance";
 
-export interface OperatorData {
-  id?: number;
-  name: string;
-  country: number;
-  operatorCode: string;
-  status: string;
-  notes: string;
-}
+// export interface OperatorData {
+//   id?: number;
+//   name: string;
+//   country: number;
+//   operatorCode: string;
+//   status: string;
+//   notes: string;
+// }
 
-export interface PaginatedResponse<T> {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
-}
+// export interface PaginatedResponse<T> {
+//   count: number;
+//   next: string | null;
+//   previous: string | null;
+//   results: T[];
+// }
 
-// GET
-export const getOperatorsApi = async (
-  module: string,
-  page: number = 1,
-  pageSize: number = 10,
-  searchParams?: Record<string, any>,
-): Promise<PaginatedResponse<OperatorData>> => {
-  const params: any = {
-    page: page,
-    page_size: pageSize,
-    ...searchParams,
-  };
-  const response = await api.get(`/operator/${module}/`, { params });
-  return response.data;
-};
+// // GET
+// export const getOperatorsApi = async (
+//   module: string,
+//   page: number = 1,
+//   pageSize: number = 10,
+//   searchParams?: Record<string, any>,
+// ): Promise<PaginatedResponse<OperatorData>> => {
+//   const params: any = {
+//     page: page,
+//     page_size: pageSize,
+//     ...searchParams,
+//   };
+//   const response = await api.get(`/operator/${module}/`, { params });
+//   return response.data;
+// };
 
-// POST
-export const createOperatorApi = async (
-  data: OperatorData,
-  module: string,
-): Promise<OperatorData> => {
-  const response = await api.post(`/operator/${module}/`, data);
-  return response.data;
-};
+// // POST
+// export const createOperatorApi = async (
+//   data: OperatorData,
+//   module: string,
+// ): Promise<OperatorData> => {
+//   const response = await api.post(`/operator/${module}/`, data);
+//   return response.data;
+// };
 
-// PATCH
-export const updateOperatorApi = async (
-  id: number,
-  data: OperatorData,
-  module: string,
-): Promise<OperatorData> => {
-  const response = await api.patch(`/operator/${module}/${id}/`, data);
-  return response.data;
-};
+// // PATCH
+// export const updateOperatorApi = async (
+//   id: number,
+//   data: OperatorData,
+//   module: string,
+// ): Promise<OperatorData> => {
+//   const response = await api.patch(`/operator/${module}/${id}/`, data);
+//   return response.data;
+// };
 
-// DELETE
-export const deleteOperatorApi = async (
-  id: number,
-  module: string,
-): Promise<void> => {
-  await api.delete(`/operator/${module}/${id}/`);
-};
+// // DELETE
+// export const deleteOperatorApi = async (
+//   id: number,
+//   module: string,
+// ): Promise<void> => {
+//   await api.delete(`/operator/${module}/${id}/`);
+// };
 
-// IMPORT
-export const importOperatorApi = async (formData: FormData): Promise<any> => {
-  const response = await api.post(`/operator/import`, formData, {
-    headers: {
-      "Content-Type": undefined,
-    },
-  });
-  return response.data;
-};
+// // IMPORT
+// export const importOperatorApi = async (formData: FormData): Promise<any> => {
+//   const response = await api.post(`/operator/import`, formData, {
+//     headers: {
+//       "Content-Type": undefined,
+//     },
+//   });
+//   return response.data;
+// };
 
-// STATUS CHECK (Polling)
-export const getImportStatusApi = async (taskId: string): Promise<any> => {
-  const response = await api.get(`/status/${taskId}/`);
-  return response.data;
-};
+// // STATUS CHECK (Polling)
+// export const getImportStatusApi = async (taskId: string): Promise<any> => {
+//   const response = await api.get(`/status/${taskId}/`);
+//   return response.data;
+// };

@@ -4,10 +4,6 @@ export interface CustomerRateData {
   id?: number;
   country: number;
   countryName?: string;
-  ratePlan: string;
-  currencyCode: string;
-  timeZone: number;
-  timeZoneName?: string;
   MCC: number;
   MNC?: number; 
   countryCode: number;

@@ -4,14 +4,10 @@ export interface VendorRateData {
   id?: number;
   country: number | string;
   countryName?: string;
-  ratePlan: string;
-  currencyCode: string;
-  countryCode: number;
-  timeZone: number | string;
-  timeZoneName?: string;
+  countryCode: number | string;
   network: string;
-  MCC: number;
-  MNC: number;
+  MCC: number | string;
+  MNC: number | string;
   rate: number | string;
   dateTime?: string;
   remark: string;
@@ -21,7 +17,6 @@ export interface VendorRateData {
   status?: string;
 }
 
-// ⚡️ Added Vendor Rate Group Interface
 export interface VendorRateGroupData {
   id?: number;
   name: string;
@@ -36,10 +31,6 @@ export interface PaginatedResponse<T> {
   previous: string | null;
   results: T[];
 }
-
-// ==========================================
-// VENDOR RATE GROUP API (Outer Table)
-// ==========================================
 
 export const getVendorRateGroupsApi = async (
   module: string,
@@ -80,11 +71,6 @@ export const deleteVendorRateGroupApi = async (
   await api.delete(`/vendorRateGroup/${module}/${id}/`);
 };
 
-
-// ==========================================
-// VENDOR RATE API (Inner Table)
-// ==========================================
-
 export const getVendorRatesApi = async (
   module: string,
   page: number = 1,
@@ -124,20 +110,18 @@ export const deleteVendorRateApi = async (
   await api.delete(`/vendorRate/${module}/${id}/`);
 };
 
-
-// ==========================================
-// IMPORT & STATUS (Legacy - Will connect when needed)
-// ==========================================
-
+// ⚡️ FIX: Send rateGroupId directly in the URL string
 export const importVendorRatesApi = async (
   file: File,
   mappingId: string,
+  rateGroupId: number, 
 ): Promise<{ task_id: string }> => {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("mapped", mappingId);
 
-  const response = await api.post(`/vendor-rate/import/`, formData, {
+  // ⚡️ URL changed to include rateGroupId at the end
+  const response = await api.post(`/vendor-rate/import/${rateGroupId}/`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;

@@ -119,6 +119,8 @@ const VendorRate: React.FC = () => {
   const [timezoneMap, setTimezoneMap] = useState<Record<string, string>>({});
 
   const [activeRateGroup, setActiveRateGroup] = useState<string | null>(null);
+  // ⚡️ FIX: Ensure state for group ID exists
+  const [activeRateGroupId, setActiveRateGroupId] = useState<number | null>(null);
   const [isSubTableModalOpen, setIsSubTableModalOpen] = useState(false);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -277,13 +279,16 @@ const VendorRate: React.FC = () => {
     setSelectedRowGroup(groupItem);
   };
 
-  const openSubTableModal = (groupName: string) => {
-    setActiveRateGroup(groupName);
+  const openSubTableModal = (groupItem: any) => {
+    // ⚡️ FIX: Pass both name and ID correctly from groupItem
+    setActiveRateGroup(groupItem.name);
+    setActiveRateGroupId(groupItem.id); 
     setIsSubTableModalOpen(true);
   };
 
   const menuItems: ContextMenuItem[] = selectedRowGroup ? [
-    { label: "Manage Rates", icon: <Layers size={16} />, onClick: () => openSubTableModal(selectedRowGroup.name) },
+    // ⚡️ FIX: Pass the entire object to openSubTableModal
+    { label: "Manage Rates", icon: <Layers size={16} />, onClick: () => openSubTableModal(selectedRowGroup) }, 
     ...(canUpdate ? [{ label: "Edit Group", icon: <Edit size={16} />, onClick: () => { setEditingGroup(selectedRowGroup); setIsCreateModalOpen(true); } }] : []),
     ...(canDelete ? [{ label: "Delete Group", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowGroup.id!) }] : []),
   ] : [];
@@ -358,8 +363,9 @@ const VendorRate: React.FC = () => {
 
       <VendorRateTableModal
         isOpen={isSubTableModalOpen}
-        onClose={() => { setIsSubTableModalOpen(false); setActiveRateGroup(null); fetchGroupedRates(); }}
+        onClose={() => { setIsSubTableModalOpen(false); setActiveRateGroup(null); setActiveRateGroupId(null); fetchGroupedRates(); }}
         rateGroup={activeRateGroup}
+        rateGroupId={activeRateGroupId} // ⚡️ FIX: Pass ID to Table Modal
         moduleName={routeName}
         canUpdate={canUpdate}
         canDelete={canDelete}

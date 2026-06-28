@@ -7,9 +7,10 @@ import {
 } from "../../../api/rateApi/vendorRateApi";
 import { VendorRateModal } from "./VendorRateModal"; 
 import { RateVersionTableModal } from "./RateVersionTableModal";
+import { ImportVendorRateModal } from "./ImportVendorRateModal"; 
 import { toast } from "react-toastify";
 import Button from "../../ui/Button"; 
-import { Plus, Edit, Trash, Layers } from "lucide-react"; 
+import { Plus, Edit, Trash, Layers, Upload } from "lucide-react"; 
 import { StatusBadge } from "../../ui/StatusBadge";
 import ContextMenu, { type ContextMenuItem } from "../../ui/ContextMenu";
 
@@ -17,34 +18,37 @@ interface VendorRateTableModalProps {
   isOpen: boolean;
   onClose: () => void;
   rateGroup: string | null;
+  rateGroupId: number | null; 
   moduleName: string;
   canUpdate: boolean;
   canDelete: boolean;
   countryMap: Record<string, string>;
-  timezoneMap: Record<string, string>;
+  timezoneMap?: Record<string, string>;
 }
 
 export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
   isOpen,
   onClose,
   rateGroup,
+  rateGroupId,
   moduleName,
   canUpdate,
   canDelete,
   countryMap,
-  timezoneMap
 }) => {
   const [latestRates, setLatestRates] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   
-  // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); 
   const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false); 
   
+  // ⚡️ FIX: Added state to hold the specific rate we want versions for
+  const [versionTargetRate, setVersionTargetRate] = useState<any>(null);
+
   const [editingRate, setEditingRate] = useState<any>(null);
   const [isViewMode, setIsViewMode] = useState(false);
-  const [selectedRatePlan, setSelectedRatePlan] = useState<string | null>(null);
 
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRate, setSelectedRate] = useState<any>(null);
@@ -63,10 +67,9 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
       const res = await getVendorRatesApi(moduleName, 1, 1000, { rateGroup__name: rateGroup });
       const list = res.results || (Array.isArray(res) ? res : []);
       
-      // Group by ratePlan name, keep only the highest version per plan
       const groupedMap = new Map<string, any>();
       list.forEach((item: any) => {
-        const key = item.ratePlan;
+        const key = `${item.country}-${item.network}-${item.MCC}-${item.MNC}`;
         const existing = groupedMap.get(key);
         if (!existing || (item.version || 0) > (existing.version || 0)) {
           groupedMap.set(key, item);
@@ -106,7 +109,8 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
       label: "Manage Versions", 
       icon: <Layers size={16} />, 
       onClick: () => {
-        setSelectedRatePlan(selectedRate.ratePlan);
+        // ⚡️ FIX: Save the entire rate object to pass to the version modal
+        setVersionTargetRate(selectedRate);
         setIsVersionsModalOpen(true);
       } 
     },
@@ -115,18 +119,13 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
   ] : [];
 
   const headers = [
-    "Rate Plan", "Currency", "Network", "Country", "Time Zone",
-    "MCC", "MNC", "Country Code", "Rate", "Version", "Status",
-    "Effective From", "Effective To"
+    "Network", "Country", "MCC", "MNC", "Country Code", 
+    "Rate", "Version", "Status", "Effective From", "Effective To"
   ];
 
   const renderCountry = (rate: any) => {
     if (rate.countryName) return rate.countryName;
     return countryMap[String(rate.country)] || String(rate.country || "-");
-  };
-  const renderTimezone = (rate: any) => {
-    if (rate.timeZoneName) return rate.timeZoneName;
-    return timezoneMap[String(rate.timeZone)] || String(rate.timeZone || "-");
   };
 
   return (
@@ -143,13 +142,21 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
               <div className="flex flex-col space-y-1.5 text-[13px] text-gray-600 dark:text-gray-300 leading-tight">
                 <p>
                   <span className="font-medium text-gray-900 dark:text-gray-100">Displaying Latest Rates:</span>{" "}
-                  Shows the latest version of each rate plan in this group.
+                  Shows the latest version of each country/network combination in this group.
                 </p>
                 <p>Right-click a row and select <strong>Manage Versions</strong> to view all versions.</p>
               </div>
             </div>
             {canUpdate && (
-              <div className="shrink-0 w-full sm:w-auto">
+              <div className="flex shrink-0 w-full sm:w-auto gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsImportModalOpen(true)}
+                  leftIcon={<Upload size={16} />}
+                  className="w-full sm:w-auto text-sm py-1.5 px-4"
+                >
+                  Import
+                </Button>
                 <Button
                   variant="primary"
                   onClick={() => { setEditingRate(null); setIsViewMode(false); setIsCreateModalOpen(true); }}
@@ -183,11 +190,8 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
                       onContextMenu={(e) => handleContextMenu(e, v)}
                       className="group border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-context-menu transition-colors"
                     >
-                      <td className="py-3 px-4 font-medium text-text-primary dark:text-white whitespace-nowrap">{v.ratePlan || "-"}</td>
-                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.currencyCode || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.network || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{renderCountry(v)}</td>
-                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{renderTimezone(v)}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MCC || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MNC || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.countryCode || "-"}</td>
@@ -226,25 +230,35 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
         moduleName={moduleName}
         editingRate={editingRate}
         isViewMode={isViewMode}
+        rateGroupId={rateGroupId} 
       />
 
-      {/* Level 2: all versions of the selected rate plan — view only via right-click */}
+      {/* ⚡️ FIX: Pass versionTargetRate into ratePlanFilter */}
       <RateVersionTableModal
         isOpen={isVersionsModalOpen}
-        onClose={() => { setIsVersionsModalOpen(false); setSelectedRatePlan(null); }}
+        onClose={() => { 
+          setIsVersionsModalOpen(false); 
+          setVersionTargetRate(null); // Clear target on close
+        }}
         ratePlan={rateGroup}
-        ratePlanFilter={selectedRatePlan}
+        ratePlanFilter={versionTargetRate} 
         moduleName={moduleName}
         fetchApi={getVendorRatesApi}
         deleteApi={deleteVendorRateApi}
         countryMap={countryMap}
-        timezoneMap={timezoneMap}
         isVendorMode={true}
         onEdit={(rateData) => { setEditingRate(rateData); setIsViewMode(false); setIsCreateModalOpen(true); }}
         onView={(rateData) => { setEditingRate(rateData); setIsViewMode(true); setIsCreateModalOpen(true); }}
         onRefresh={fetchLatestRates}
         canUpdate={canUpdate}
         canDelete={canDelete}
+      />
+
+      <ImportVendorRateModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={fetchLatestRates}
+        rateGroupId={rateGroupId} 
       />
     </>
   );

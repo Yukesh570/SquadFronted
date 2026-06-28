@@ -12,7 +12,8 @@ import {
 
 // --- API Imports (Dropdown Data) ---
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
-import { getOperatorsApi } from "../../api/operatorApi/operatorApi";
+// ⚡️ FIX: Commented out operator API import
+// import { getOperatorsApi } from "../../api/operatorApi/operatorApi";
 import { getClientsApi } from "../../api/clientApi/clientApi";
 import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
 import { getCustomRoutesApi } from "../../api/routeManagerApi/customRouteApi";
@@ -79,7 +80,8 @@ const LiveTraffic: React.FC = () => {
   const [clientOptions, setClientOptions] = useState<Option[]>([]);
   const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
-  const [operatorOptions, setOperatorOptions] = useState<Option[]>([]);
+  // ⚡️ FIX: Commented out operator state
+  // const [operatorOptions, setOperatorOptions] = useState<Option[]>([]);
   const [routeOptions, setRouteOptions] = useState<Option[]>([]);
 
   // --- Filter & Column Visibility (With LocalStorage Persistence) ---
@@ -129,18 +131,20 @@ const LiveTraffic: React.FC = () => {
   useEffect(() => {
     const fetchAllOptions = async () => {
       try {
-        const [clientsRes, countriesRes, operatorsRes, vendorsRes, routesRes] =
+        const [clientsRes, countriesRes, vendorsRes, routesRes] =
           await Promise.all([
             getClientsApi("client", 1, 1000),
             getCountriesApi("country", 1, 1000),
-            getOperatorsApi("operator", 1, 1000),
+            // ⚡️ FIX: Commented out operator API call
+            // getOperatorsApi("operator", 1, 1000),
             getVendorsApi("vendor", 1, 1000),
             getCustomRoutesApi("customRoute", 1, 1000),
           ]);
 
         setClientOptions(extractOptions(clientsRes, "name"));
         setCountryOptions(extractOptions(countriesRes, "name"));
-        setOperatorOptions(extractOptions(operatorsRes, "name"));
+        // ⚡️ FIX: Commented out operator options setting
+        // setOperatorOptions(extractOptions(operatorsRes, "name"));
         setVendorOptions(extractOptions(vendorsRes, "profileName"));
         setRouteOptions(extractOptions(routesRes, "name"));
       } catch (error) {
@@ -181,12 +185,13 @@ const hasLoggedOpening = useRef(false);
         type: "text",
         options: countryOptions,
       },
-      {
+      // ⚡️ FIX: Commented out operator from filter config
+      /* {
         key: "operator",
         label: "Operator",
         type: "text",
         options: operatorOptions,
-      },
+      }, */
       { key: "senderId", label: "Sender ID", type: "text" },
       { key: "messageType", label: "Message Type", type: "text" },
       {
@@ -200,7 +205,8 @@ const hasLoggedOpening = useRef(false);
       clientOptions,
       vendorOptions,
       countryOptions,
-      operatorOptions,
+      // ⚡️ FIX: Commented out operatorOptions dependency
+      // operatorOptions,
       routeOptions,
     ],
   );

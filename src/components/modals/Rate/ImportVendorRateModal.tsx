@@ -24,12 +24,14 @@ interface ImportVendorRateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  rateGroupId: number | null; 
 }
 
 export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  rateGroupId,
 }) => {
   const [allMappings, setAllMappings] = useState<MappingSetupData[]>([]);
   const [mappingOptions, setMappingOptions] = useState<
@@ -40,10 +42,8 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
   const [csvFile, setCsvFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState({
-    ratePlan: "",
     country: "",
     countryCode: "",
-    timeZone: "",
     network: "",
     MCC: "",
     MNC: "",
@@ -80,7 +80,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
         setAllMappings(list);
         setMappingOptions(
           list.map((m) => ({
-            label: m.ratePlan,
+            label: m.name || m.ratePlan || String(m.id),
             value: String(m.id),
           })),
         );
@@ -101,10 +101,8 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
       );
       if (selected) {
         setFormData({
-          ratePlan: selected.ratePlan,
           country: selected.country,
           countryCode: selected.countryCode,
-          timeZone: selected.timeZone,
           network: selected.network,
           MCC: selected.MCC,
           MNC: selected.MNC,
@@ -114,10 +112,8 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
       }
     } else {
       setFormData({
-        ratePlan: "",
         country: "",
         countryCode: "",
-        timeZone: "",
         network: "",
         MCC: "",
         MNC: "",
@@ -159,15 +155,9 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
     }
 
     if (statusRes) {
-      console.log(
-        `Polling Status (Attempt ${attempt}/${MAX_ATTEMPTS}):`,
-        statusRes,
-      );
-
       const state =
         statusRes?.state?.toUpperCase() || statusRes?.status?.toUpperCase();
 
-      // 1. Success
       if (
         state === "SUCCESS" ||
         state === "COMPLETED" ||
@@ -181,7 +171,6 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
         return;
       }
 
-      // 2. Completed with Errors
       if (state === "COMPLETED_WITH_ERRORS") {
         setIsSubmitting(false);
         setProgress(100);
@@ -197,7 +186,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
           const errorMsg =
             typeof firstError === "string"
               ? firstError
-              : `Row ${firstError.row}: ${firstError.error}`;
+              : `Row ${firstError.row}: ${firstError.error.effectiveFrom ? firstError.error.effectiveFrom[0] : firstError.error}`;
 
           toast.error(errorMsg);
         } else {
@@ -206,14 +195,12 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
         return;
       }
 
-      // 3. Hard Failure
       if (state === "FAILURE" || state === "FAILED") {
         setIsSubmitting(false);
         toast.error(statusRes?.error || "Import failed.");
         return;
       }
 
-      // 4. Timeout
       if (attempt >= MAX_ATTEMPTS) {
         setIsSubmitting(false);
         setProgress(null);
@@ -221,7 +208,6 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
         return;
       }
 
-      // 5. Still Processing
       setProgress((prev) => (prev && prev < 90 ? prev + 15 : 90));
       timeoutRef.current = window.setTimeout(
         () => checkStatus(taskId, attempt + 1),
@@ -237,6 +223,11 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
       return;
     }
 
+    if (!rateGroupId) {
+      toast.error("Critical Error: Missing Rate Group ID. Please reopen the table.");
+      return;
+    }
+
     setIsSubmitting(true);
     setProgress(0);
 
@@ -244,6 +235,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
       const response = (await importVendorRatesApi(
         csvFile,
         selectedMappingId,
+        rateGroupId // ⚡️ FIX: Now this is injected directly into the URL by the API function
       )) as any;
 
       const task_id = response.task_id;
@@ -254,7 +246,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
           response.result?.errors
         ) {
           const err = response.result.errors[0];
-          toast.error(`Row ${err.row}: ${err.error}`);
+          toast.error(`Row ${err.row}: ${err.error.effectiveFrom ? err.error.effectiveFrom[0] : err.error}`);
           setIsSubmitting(false);
           return;
         }
@@ -270,7 +262,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
       if (data) {
         if (data.status === "completed_with_errors" && data.result?.errors) {
           const err = data.result.errors[0];
-          toast.error(`Row ${err.row}: ${err.error}`);
+          toast.error(`Row ${err.row}: ${err.error.effectiveFrom ? err.error.effectiveFrom[0] : err.error}`);
         } else {
           const msg = data.error || data.message || "Failed to start import.";
           toast.error(msg);
@@ -362,13 +354,6 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 opacity-80">
             <Input
-              label="Rate Plan Header"
-              value={formData.ratePlan}
-              readOnly
-              disabled
-              placeholder="-"
-            />
-            <Input
               label="Country Header"
               value={formData.country}
               readOnly
@@ -378,13 +363,6 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
             <Input
               label="Country Code Header"
               value={formData.countryCode}
-              readOnly
-              disabled
-              placeholder="-"
-            />
-            <Input
-              label="Time Zone Header"
-              value={formData.timeZone}
               readOnly
               disabled
               placeholder="-"

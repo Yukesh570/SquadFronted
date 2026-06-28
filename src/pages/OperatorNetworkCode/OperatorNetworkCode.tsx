@@ -10,8 +10,8 @@ import {
   type OperatorNetworkCodeData,
 } from "../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
-// @ts-ignore
-import { getOperatorsApi } from "../../api/operatorApi/operatorApi";
+// ⚡️ FIX: Commented out operator API import
+// import { getOperatorsApi } from "../../api/operatorApi/operatorApi";
 import { OperatorNetworkCodeModal } from "../../components/modals/Operator/OperatorNetworkCodeModal";
 import { ImportModal } from "../../components/modals/ImportModal";
 import Button from "../../components/ui/Button";
@@ -30,7 +30,6 @@ import ContextMenu, {
 } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
-// ⚡️ FIX: Import the StatusBadge component
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
 interface Option {
@@ -72,7 +71,8 @@ const OperatorNetworkCode: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
-  const [operatorOptions, setOperatorOptions] = useState<Option[]>([]);
+  // ⚡️ FIX: Commented out operator state
+  // const [operatorOptions, setOperatorOptions] = useState<Option[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -126,6 +126,8 @@ const OperatorNetworkCode: React.FC = () => {
       })
       .catch(console.error);
 
+    // ⚡️ FIX: Commented out operator API call
+    /*
     getOperatorsApi("operator", 1, 1000)
       .then((res: any) => {
         const list = res.results || (Array.isArray(res) ? res : []);
@@ -138,6 +140,7 @@ const OperatorNetworkCode: React.FC = () => {
         );
       })
       .catch(console.error);
+    */
   }, []);
 
   const hasLoggedOpening = useRef(false);
@@ -174,15 +177,12 @@ const OperatorNetworkCode: React.FC = () => {
     { label: "No", value: "false" },
   ];
 
-  // ⚡️ FIX: Replaced inline span styling with mapped StatusBadge rendering
   const renderBadge = (val: string | boolean) => {
-    // If it's the boolean "Is Primary" field
     if (typeof val === "boolean") {
-      const statusKey = val ? "DELIVERED" : "PENDING"; // Yes mapped to Delivered, No to Pending
+      const statusKey = val ? "DELIVERED" : "PENDING";
       return <StatusBadge status={statusKey} customText={val ? "Yes" : "No"} />;
     }
     
-    // If it's the string "Status" field
     const stringVal = String(val).toUpperCase();
     if (stringVal === "ACTIVE" || stringVal === "TRUE") {
       return <StatusBadge status="DELIVERED" customText={String(val)} />;
@@ -195,7 +195,8 @@ const OperatorNetworkCode: React.FC = () => {
       key: "operator_name",
       label: "Operator",
       type: "text",
-      options: operatorOptions,
+      // ⚡️ FIX: Commented out operator options so it renders as a regular text input filter
+      // options: operatorOptions, 
       filterKey: "operator__name__icontains",
     },
     {
@@ -701,7 +702,6 @@ const OperatorNetworkCode: React.FC = () => {
                   </td>
                 );
 
-              // FALLBACK RESOLUTION FIX: Look up the real Name using the ID from options array
               if (col.options) {
                 const match = col.options.find(
                   (opt) => opt.value === String(cellData),

@@ -24,7 +24,7 @@ import Client from "../pages/Client/Client";
 import VendorRate from "../pages/Rate/VendorRate";
 import CustomerRate from "../pages/Rate/CustomerRate";
 import MappingSetup from "../pages/MappingSetup/MappingSetup";
-import Operators from "../pages/Operator/Operator";
+// import Operators from "../pages/Operator/Operator";
 import UserLog from "../pages/UserLog/UserLog";
 import CustomRoute from "../pages/RouteManager/CustomRoute";
 import { NavItemsContext } from "../context/navItemsContext";
@@ -85,7 +85,7 @@ const componentMap: Record<string, JSX.Element> = {
   vendorRate: <VendorRate />,
   customerRate: <CustomerRate />,
   mappingSetup: <MappingSetup />,
-  operators: <Operators />,
+  // operators: <Operators />,
   userLog: <UserLog />,
   userAction: <UserAction />,
   customRoute: <CustomRoute />,

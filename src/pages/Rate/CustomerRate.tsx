@@ -12,8 +12,6 @@ import {
 } from "../../api/rateApi/customerRateApi";
 
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
-import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
-// ⚡️ FIX: Removed unused getCurrenciesApi import
 
 import { CustomerRateTableModal } from "../../components/modals/Rate/CustomerRateTableModal";
 
@@ -58,7 +56,6 @@ const formatLocalDate = (date: Date) => {
 const DEFAULT_SEARCH_COLUMNS = ["name", "status"];
 const DEFAULT_TABLE_COLUMNS = ["name", "status", "createdAt"];
 
-// Modal for Creating/Editing Groups
 const GroupModal = ({ isOpen, onClose, onSuccess, moduleName, editingGroup }: any) => {
   const [formData, setFormData] = useState({ name: "", status: "ACTIVE" });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,11 +111,11 @@ const CustomerRate: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Maps for the inner modal
   const [countryMap, setCountryMap] = useState<Record<string, string>>({});
-  const [timezoneMap, setTimezoneMap] = useState<Record<string, string>>({});
 
   const [activeRateGroup, setActiveRateGroup] = useState<string | null>(null);
+  // ⚡️ FIX: Added state to hold active group ID
+  const [activeRateGroupId, setActiveRateGroupId] = useState<number | null>(null);
   const [isSubTableModalOpen, setIsSubTableModalOpen] = useState(false);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -154,22 +151,12 @@ const CustomerRate: React.FC = () => {
       hasLoggedOpening.current = true;
     }
 
-    // Pre-fetch maps for inner modals
     getCountriesApi("country", 1, 1000).then((res: any) => {
       const list = res.results || (Array.isArray(res) ? res : []);
       const map: Record<string, string> = {};
       list.forEach((c: any) => { map[String(c.id)] = c.name; });
       setCountryMap(map);
     }).catch(console.error);
-
-    if (typeof getTimezoneApi === "function") {
-      getTimezoneApi("timezone", 1, 1000).then((res: any) => {
-        const list = res.results || (Array.isArray(res) ? res : []);
-        const map: Record<string, string> = {};
-        list.forEach((t: any) => { map[String(t.id)] = t.name; });
-        setTimezoneMap(map);
-      }).catch(console.error);
-    }
   }, []);
 
   const statusOptions: Option[] = [
@@ -277,13 +264,16 @@ const CustomerRate: React.FC = () => {
     setSelectedRowGroup(groupItem);
   };
 
-  const openSubTableModal = (groupName: string) => {
-    setActiveRateGroup(groupName);
+  const openSubTableModal = (groupItem: any) => {
+    // ⚡️ FIX: Pass both name and ID correctly from groupItem
+    setActiveRateGroup(groupItem.name);
+    setActiveRateGroupId(groupItem.id);
     setIsSubTableModalOpen(true);
   };
 
   const menuItems: ContextMenuItem[] = selectedRowGroup ? [
-    { label: "Manage Rates", icon: <Layers size={16} />, onClick: () => openSubTableModal(selectedRowGroup.name) },
+    // ⚡️ FIX: Pass the entire object to openSubTableModal
+    { label: "Manage Rates", icon: <Layers size={16} />, onClick: () => openSubTableModal(selectedRowGroup) },
     ...(canUpdate ? [{ label: "Edit Group", icon: <Edit size={16} />, onClick: () => { setEditingGroup(selectedRowGroup); setIsCreateModalOpen(true); } }] : []),
     ...(canDelete ? [{ label: "Delete Group", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowGroup.id!) }] : []),
   ] : [];
@@ -358,13 +348,13 @@ const CustomerRate: React.FC = () => {
 
       <CustomerRateTableModal
         isOpen={isSubTableModalOpen}
-        onClose={() => { setIsSubTableModalOpen(false); setActiveRateGroup(null); fetchGroupedRates(); }}
+        onClose={() => { setIsSubTableModalOpen(false); setActiveRateGroup(null); setActiveRateGroupId(null); fetchGroupedRates(); }}
         rateGroup={activeRateGroup}
+        rateGroupId={activeRateGroupId} // ⚡️ FIX: Pass ID down
         moduleName={routeName}
         canUpdate={canUpdate}
         canDelete={canDelete}
         countryMap={countryMap}
-        timezoneMap={timezoneMap}
       />
 
       <DeleteModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Rate Group" message="Are you sure you want to delete this Rate Group? All rates inside it will be affected." />

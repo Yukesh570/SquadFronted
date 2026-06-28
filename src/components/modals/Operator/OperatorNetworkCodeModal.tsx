@@ -6,8 +6,9 @@ import {
   type OperatorNetworkCodeData,
 } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
+// ⚡️ FIX: Commented out operator API import
 // @ts-ignore
-import { getOperatorsApi } from "../../../api/operatorApi/operatorApi";
+// import { getOperatorsApi } from "../../../api/operatorApi/operatorApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
@@ -151,7 +152,7 @@ export const OperatorNetworkCodeModal: React.FC<
       !formData.MNC
     ) {
       toast.error(
-        "Operator, Country, Network Name, MCC, and MNC are required.",
+        "Operator, Country, MCC, and MNC are required.",
       );
       return;
     }

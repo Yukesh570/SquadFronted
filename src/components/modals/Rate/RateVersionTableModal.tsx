@@ -10,7 +10,7 @@ interface RateVersionTableModalProps {
   isOpen: boolean;
   onClose: () => void;
   ratePlan: string | null;
-  ratePlanFilter?: string | null;
+  ratePlanFilter?: any; // ⚡️ FIX: This is now the actual row object we clicked on
   moduleName: string;
   fetchApi: any;
   deleteApi: any;
@@ -20,7 +20,6 @@ interface RateVersionTableModalProps {
   canUpdate: boolean;
   canDelete: boolean;
   countryMap?: Record<string, string>;
-  timezoneMap?: Record<string, string>;
   isVendorMode?: boolean;
 }
 
@@ -38,7 +37,6 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
   canUpdate,
   canDelete,
   countryMap = {},
-  timezoneMap = {},
   isVendorMode = false,
 }) => {
   const [versions, setVersions] = useState<any[]>([]);
@@ -58,10 +56,22 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
   const fetchVersions = async () => {
     setIsLoading(true);
     try {
-      const searchParams: any = { rateGroup__name: ratePlan };
-      // If a specific rate plan name is provided, filter down to just that plan's versions
-      if (ratePlanFilter) searchParams.ratePlan = ratePlanFilter;
+      // ⚡️ FIX: Build searchParams explicitly based on what backend requires
+      const searchParams: any = { 
+        rateGroup__name: ratePlan 
+      };
 
+      // Extract filter values from the passed object
+      if (ratePlanFilter) {
+        if (ratePlanFilter.country) searchParams.country = ratePlanFilter.country;
+        if (ratePlanFilter.MCC) searchParams.MCC = ratePlanFilter.MCC;
+        if (ratePlanFilter.MNC) searchParams.MNC = ratePlanFilter.MNC;
+        
+        if (isVendorMode && ratePlanFilter.network) {
+          searchParams.network = ratePlanFilter.network;
+        }
+      }
+      
       const res = await fetchApi(moduleName, 1, 1000, searchParams);
       let list = res.results || (Array.isArray(res) ? res : []);
       list.sort((a: any, b: any) => (b.version || 0) - (a.version || 0));
@@ -100,11 +110,8 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
 
   const headers = [
     "Version",
-    "Rate Plan",
-    "Currency",
     ...(isVendorMode ? ["Network"] : []),
     "Country",
-    "Time Zone",
     "MCC",
     "MNC",
     "Country Code",
@@ -119,14 +126,7 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
     return countryMap[String(rate.country)] || String(rate.country || "-"); 
   };
   
-  const renderTimezone = (rate: any) => { 
-    if (rate.timeZoneName) return rate.timeZoneName; 
-    return timezoneMap[String(rate.timeZone)] || String(rate.timeZone || "-"); 
-  };
-
-  const title = ratePlanFilter
-    ? `All Versions: ${ratePlanFilter}`
-    : `Rate Plan Versions: ${ratePlan || ""}`;
+  const title = `Rate Plan Versions: ${ratePlan || ""}`;
 
   return (
     <>
@@ -189,13 +189,10 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
                           )}
                           v{v.version || 0}
                         </td>
-                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.ratePlan || "-"}</td>
-                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.currencyCode || "-"}</td>
                         {isVendorMode && (
                           <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.network || "-"}</td>
                         )}
                         <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{renderCountry(v)}</td>
-                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{renderTimezone(v)}</td>
                         <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MCC || "-"}</td>
                         <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MNC || "-"}</td>
                         <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.countryCode || "-"}</td>
