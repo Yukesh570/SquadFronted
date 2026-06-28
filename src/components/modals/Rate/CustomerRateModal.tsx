@@ -58,7 +58,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
     version: "0",
   });
 
-  const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(null);
+const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(new Date());
   const [effectiveToDate, setEffectiveToDate] = useState<Date | null>(null);
 
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
@@ -134,9 +134,9 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       if (editingRate.effectiveFrom) {
         const d = new Date(editingRate.effectiveFrom);
         if (!isNaN(d.getTime())) setEffectiveFromDate(d);
-        else setEffectiveFromDate(null);
+else setEffectiveFromDate(new Date());
       } else {
-        setEffectiveFromDate(null);
+        setEffectiveFromDate(new Date());
       }
 
       if (editingRate.effectiveTo) {
@@ -157,7 +157,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         status: "ACTIVE",
         version: "0",
       });
-      setEffectiveFromDate(null);
+      setEffectiveFromDate(new Date());
       setEffectiveToDate(null);
     }
   }, [isOpen, editingRate]);
@@ -211,8 +211,24 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         return;
       }
     } else {
-      if (!formData.country || !formData.rate || !formData.MCC) {
-        toast.error("Country, MCC, and Rate are required.");
+      if (!formData.country) {
+        toast.error("Country is required.");
+        return;
+      }
+      if (!formData.countryCode) {
+        toast.error("Country Code is required.");
+        return;
+      }
+      if (!formData.MCC) {
+        toast.error("MCC is required.");
+        return;
+      }
+      if (!formData.MNC) {
+        toast.error("MNC is required.");
+        return;
+      }
+      if (!formData.rate) {
+        toast.error("Rate is required.");
         return;
       }
     }
@@ -303,7 +319,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {!isEditMode && (
             <>
@@ -333,6 +349,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
                 onChange={handleChange}
                 placeholder="977"
                 disabled={isViewMode}
+                required
               />
               <Select
                 label="MCC"
@@ -354,6 +371,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
                   formData.country ? "Select MNC" : "Select Country First"
                 }
                 disabled={!formData.country || isViewMode}
+                required
               />
             </>
           )}

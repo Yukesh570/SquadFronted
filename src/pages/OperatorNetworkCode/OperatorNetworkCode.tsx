@@ -197,7 +197,7 @@ const OperatorNetworkCode: React.FC = () => {
       type: "text",
       // ⚡️ FIX: Commented out operator options so it renders as a regular text input filter
       // options: operatorOptions, 
-      filterKey: "operator__name__icontains",
+      filterKey: "operator__icontains",
     },
     {
       key: "country_name",
@@ -207,8 +207,8 @@ const OperatorNetworkCode: React.FC = () => {
       filterKey: "country__name__icontains",
     },
 
-    { key: "MCC", label: "MCC", type: "text", filterKey: "MCC__icontains" },
-    { key: "MNC", label: "MNC", type: "text", filterKey: "MNC__icontains" },
+    { key: "MCC", label: "MCC", type: "text", filterKey: "MCC" },
+    { key: "MNC", label: "MNC", type: "text", filterKey: "MNC" },
 
     {
       key: "networkType",

@@ -119,7 +119,7 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
   ] : [];
 
   const headers = [
-    "Network", "Country", "MCC", "MNC", "Country Code", 
+    "Country", "MCC", "MNC", "Country Code", "Network",  
     "Rate", "Version", "Status", "Effective From", "Effective To"
   ];
 
