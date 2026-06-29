@@ -22,15 +22,16 @@ import { getOperatorNetworkCodelookupApi } from "../../../api/operatorNetworkCod
 interface CustomRouteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (createdGroup?: any) => void;
   moduleName: string;
   editingRoute: CustomRouteData | null;
   isViewMode?: boolean;
   lockedName?: string;
   isEditingGroupStatus?: boolean;
   groupData?: any;
-  isCreatingGroup?: boolean; 
-  isFirstRoute?: boolean; 
+  isCreatingGroup?: boolean;
+  isFirstRoute?: boolean;
+  allowedCountryIds?: string[];
 }
 
 interface CountryData {
@@ -54,6 +55,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   groupData = null,
   isCreatingGroup = false,
   isFirstRoute = false,
+  allowedCountryIds,
 }) => {
   const [formData, setFormData] = useState<any>({
     name: "",
@@ -121,15 +123,26 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
             getVendorsApi("vendor", 1, 1000),
           ]);
 
-          setFullCountriesList(
+          const fullList =
             countries.results ||
-              (Array.isArray(countries)
-                ? countries
-                : (countries as any).data) ||
-              [],
-          );
+            (Array.isArray(countries) ? countries : (countries as any).data) ||
+            [];
+          setFullCountriesList(fullList);
 
-          setCountryOptions(extractOptions(countries, "name"));
+          const allCountryOptions = extractOptions(countries, "name");
+          const filteredCountryOptions =
+            allowedCountryIds && allowedCountryIds.length > 0
+              ? allCountryOptions.filter((o) => allowedCountryIds.includes(o.value))
+              : allCountryOptions;
+          setCountryOptions(filteredCountryOptions);
+
+          if (filteredCountryOptions.length === 1) {
+            setFormData((prev: any) => ({
+              ...prev,
+              country: Number(filteredCountryOptions[0].value),
+            }));
+          }
+
           setVendorOptions(extractOptions(vendors, "profileName"));
         } catch (error) {
           console.error("Failed to load dropdown options", error);
@@ -284,7 +297,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       if (isCreatingGroup) {
          setFormData({
             name: "",
-            routingType: "PRIORITY",
             status: "ACTIVE"
          });
       } else if (isEditingGroupStatus && groupData) {
@@ -358,7 +370,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    const isNumericField = !["priority", "status", "MCC", "MNC", "routingType"].includes(name);
+    const isNumericField = !["priority", "status", "MCC", "MNC"].includes(name);
 
     setFormData((prev: any) => {
       const nextData = {
@@ -540,12 +552,12 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       }
       setIsSubmitting(true);
       try {
-        await createRouteGroupApi(
-          { name: formData.name, routingType: formData.routingType, status: formData.status },
+        const created = await createRouteGroupApi(
+          { name: formData.name, status: formData.status },
           moduleName
         );
-        toast.success("Route Group created successfully!");
-        onSuccess();
+        toast.success("Route Group created! Now configure countries and routes.");
+        onSuccess(created);
         onClose();
       } catch (err: any) {
         console.error(err);
@@ -675,23 +687,14 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
              <legend className="text-sm font-semibold text-primary px-2">
                Route Group Info
              </legend>
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                <Input
                  label="Group Name"
                  name="name"
                  value={formData.name}
                  onChange={handleChange}
-                 placeholder="Enter Route Name"
+                 placeholder="Enter Route Group Name"
                  required
-               />
-               <Select
-                 label="Routing Type"
-                 value={formData.routingType}
-                 onChange={(v) => handleSelectChange("routingType", v)}
-                 options={[
-                   { label: "Priority", value: "PRIORITY" },
-                   { label: "Percentage", value: "PERCENTAGE" },
-                 ]}
                />
                <Select
                  label="Status"
@@ -756,12 +759,12 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                 </legend>
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                   <Input
-                    label="Countries"
+                    label="Countries (Routing Type)"
                     name="countries"
                     value={
-                      Array.isArray(groupData?.countries)
-                        ? groupData.countries.join(", ")
-                        : groupData?.countries || "-"
+                      Array.isArray(groupData?.countryConfigs) && groupData.countryConfigs.length > 0
+                        ? groupData.countryConfigs.map((c: any) => `${c.countryName} (${c.routingType})`).join(", ")
+                        : "-"
                     }
                     onChange={() => {}}
                     disabled={true}

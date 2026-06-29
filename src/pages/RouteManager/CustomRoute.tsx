@@ -53,12 +53,11 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["routeGroup__name", "routingType", "status", "countries"];
+const DEFAULT_SEARCH_COLUMNS = ["routeGroup__name", "countryConfigs", "status"];
 const DEFAULT_TABLE_COLUMNS = [
   "routeGroup__name",
-  "routingType", 
-  "countries",
-  "status", 
+  "countryConfigs",
+  "status",
   "createdAt",
 ];
 
@@ -69,6 +68,7 @@ const CustomRoute: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const [activeRouteGroup, setActiveRouteGroup] = useState<string | null>(null);
+  const [activeRouteGroupId, setActiveRouteGroupId] = useState<number | null>(null);
   const [isSubTableModalOpen, setIsSubTableModalOpen] = useState(false);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -127,26 +127,17 @@ const CustomRoute: React.FC = () => {
       filterKey: "name__icontains",
     },
     {
-      key: "routingType",
-      label: "Routing Type",
-      type: "text",
-      options: [
-        { label: "Priority", value: "PRIORITY" },
-        { label: "Percentage", value: "PERCENTAGE" },
-      ],
-      filterKey: "routingType",
-      render: (row: any) => row.routingType || "PRIORITY",
-    },
-    {
-      key: "countries",
-      label: "Country",
+      key: "countryConfigs",
+      label: "Countries",
       type: "text",
       filterKey: "routeGroup__country__name__icontains",
       render: (row: any) => {
-        if (Array.isArray(row.countries)) {
-          return row.countries.join(", ");
+        if (Array.isArray(row.countryConfigs) && row.countryConfigs.length > 0) {
+          return row.countryConfigs
+            .map((c: any) => `${c.countryName} (${c.routingType})`)
+            .join(", ");
         }
-        return row.countries || "-";
+        return "-";
       },
     },
     {
@@ -299,17 +290,18 @@ const CustomRoute: React.FC = () => {
     setSelectedRowGroup(groupItem);
   };
 
-  const openSubTableModal = (groupName: string) => {
+  const openSubTableModal = (groupName: string, groupId?: number) => {
     setActiveRouteGroup(groupName);
+    setActiveRouteGroupId(groupId ?? null);
     setIsSubTableModalOpen(true);
   };
 
   const menuItems: ContextMenuItem[] = selectedRowGroup
     ? [
         {
-          label: "Manage Sub-Routes",
+          label: "Manage Routes",
           icon: <Layers size={16} />,
-          onClick: () => openSubTableModal(selectedRowGroup.routeGroup__name),
+          onClick: () => openSubTableModal(selectedRowGroup.routeGroup__name, selectedRowGroup.id),
         },
         ...(canUpdate
           ? [
@@ -566,10 +558,11 @@ const CustomRoute: React.FC = () => {
         onClose={() => {
           setIsSubTableModalOpen(false);
           setActiveRouteGroup(null);
-          fetchGroupedRoutes(); 
+          setActiveRouteGroupId(null);
+          fetchGroupedRoutes();
         }}
         routeGroup={activeRouteGroup}
-        routingType={groupedRoutes.find(r => r.routeGroup__name === activeRouteGroup)?.routingType || "PRIORITY"}
+        routeGroupId={activeRouteGroupId}
         moduleName={routeName}
         canUpdate={canUpdate}
         canDelete={canDelete}
@@ -577,18 +570,17 @@ const CustomRoute: React.FC = () => {
 
       <CustomRouteModal
         isOpen={isCreateModalOpen}
-        onClose={() => {
-          setIsCreateModalOpen(false);
-        }}
-        onSuccess={() => {
-          if (!isSubTableModalOpen) {
-            fetchGroupedRoutes();
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={(created) => {
+          fetchGroupedRoutes();
+          if (created?.id) {
+            openSubTableModal(created.name, created.id);
           }
         }}
         moduleName={routeName}
         editingRoute={null}
         isViewMode={false}
-        isCreatingGroup={true} 
+        isCreatingGroup={true}
       />
 
       <CustomRouteModal
@@ -597,8 +589,8 @@ const CustomRoute: React.FC = () => {
         onSuccess={() => fetchGroupedRoutes()}
         moduleName={routeName}
         editingRoute={null}
-        isEditingGroupStatus={true} 
-        groupData={selectedRowGroup} 
+        isEditingGroupStatus={true}
+        groupData={selectedRowGroup}
       />
     </div>
   );
