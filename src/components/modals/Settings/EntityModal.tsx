@@ -39,16 +39,17 @@ export const EntityModal: React.FC<EntityModalProps> = ({
     businessAddress: "",
     bankAccountDetail: "",
   });
-  
+
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const imageBase = import.meta.env.VITE_IMAGE_URL || "";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       if (editingEntity) {
-        setFormData({ 
+        setFormData({
           companyName: editingEntity.companyName || "",
           legalEntityName: editingEntity.legalEntityName || "",
           weekCommencing: editingEntity.weekCommencing || "SUNDAY",
@@ -58,10 +59,15 @@ export const EntityModal: React.FC<EntityModalProps> = ({
           businessAddress: editingEntity.businessAddress || "",
           bankAccountDetail: editingEntity.bankAccountDetail || "",
         });
+        if (editingEntity.companyLogoPath) {
+          setLogoPreview(`${imageBase}${editingEntity.companyLogoPath}`);
+        } else {
+          setLogoPreview(null);
+        }
         setLogoPreview(editingEntity.companyLogo || null);
         setLogoFile(null);
       } else {
-        setFormData({ 
+        setFormData({
           companyName: "",
           legalEntityName: "",
           weekCommencing: "SUNDAY",
@@ -163,13 +169,13 @@ export const EntityModal: React.FC<EntityModalProps> = ({
         isViewMode
           ? "View Entity"
           : editingEntity
-          ? "Edit Entity"
-          : "Add Entity"
+            ? "Edit Entity"
+            : "Add Entity"
       }
       className="max-w-2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        
+
         {/* FIXED: Neatly centered logo upload using the new reusable component */}
         <div className="flex justify-center pt-2 pb-4">
           <ImageUpload
@@ -181,7 +187,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({
             id="entityLogoUpload"
           />
         </div>
-        
+
         {/* FIXED: Perfect 2-column grid for all inputs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Input
@@ -263,8 +269,8 @@ export const EntityModal: React.FC<EntityModalProps> = ({
               {isSubmitting
                 ? "Saving..."
                 : editingEntity
-                ? "Save Changes"
-                : "Add Entity"}
+                  ? "Save Changes"
+                  : "Add Entity"}
             </Button>
           )}
         </div>

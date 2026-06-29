@@ -4,13 +4,14 @@ export interface EntityData {
   id?: number;
   companyName: string;
   legalEntityName?: string;
-  weekCommencing: string; 
+  weekCommencing: string;
   vatRegistrationNumber?: string;
   phone?: string;
   emailAddress?: string;
   businessAddress?: string;
   bankAccountDetail?: string;
   companyLogo?: string;
+  companyLogoPath?: string;
   isDeleted?: boolean;
 }
 
