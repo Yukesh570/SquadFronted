@@ -17,7 +17,7 @@ import { getCustomerRateGroupsApi } from "../../api/rateApi/customerRateApi";
 
 // --- Components ---
 import { ClientModal } from "../../components/modals/ClientModal";
-import { ClientRoutingRateModal } from "../../components/modals/ClientRoutingRateModal"; 
+import { ClientRoutingRateModal } from "../../components/modals/ClientRoutingRateModal";
 import IpWhitelistModal from "../../components/modals/WhiteListIPModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -57,8 +57,8 @@ const DEFAULT_SEARCH_COLUMNS = ["name", "status"];
 const DEFAULT_TABLE_COLUMNS = [
   "name",
   "companyName",
-  "customerRateGroup", 
-  "invoicePolicy", 
+  "customerRateGroup",
+  "invoicePolicy",
   "status",
   "route",
 ];
@@ -83,7 +83,7 @@ const Client: React.FC = () => {
 
   // --- Modal States ---
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-  const [isRoutingModalOpen, setIsRoutingModalOpen] = useState(false); 
+  const [isRoutingModalOpen, setIsRoutingModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClientData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -153,12 +153,12 @@ const Client: React.FC = () => {
         const rgList = rgRes.results || (Array.isArray(rgRes) ? rgRes : []);
         setrouteGroup(
           rgList.map((rg: any) => ({
-            label: rg.routeGroup__name,
+            label: rg.name,
             value: String(rg.id),
           }))
         );
       } catch (err) {
-         console.error("Route Group Dropdown load error:", err);
+        console.error("Route Group Dropdown load error:", err);
       }
 
       try {
@@ -241,7 +241,8 @@ const Client: React.FC = () => {
     { key: "status", label: "Status", type: "text", options: statusOptions, render: (c) => <StatusBadge status={c.status} /> },
     { key: "route", label: "Route Type", type: "text", options: routeOptions },
     { key: "paymentTerms", label: "Payment Terms", type: "text", options: paymentTermOptions },
-    { key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions, render: (c) => {
+    {
+      key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions, render: (c) => {
         if (!c.invoicePolicy) return "-";
         const match = invoicePolicyOptions.find(opt => opt.value === c.invoicePolicy);
         return match ? match.label : c.invoicePolicy;
@@ -448,7 +449,7 @@ const Client: React.FC = () => {
     setIsViewMode(false);
     setIsClientModalOpen(true);
   };
-  
+
   const handleEditRouting = (client: ClientData) => {
     if (!canUpdate) return;
     setEditingClient(client);
@@ -468,7 +469,7 @@ const Client: React.FC = () => {
     setIsViewMode(true);
     setIsClientModalOpen(true);
   };
-  
+
   const handleAddIp = (client: ClientData) => {
     if (!client.id) return;
     setIpModalClient({ id: client.id, name: client.name });
@@ -507,51 +508,51 @@ const Client: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowClient
     ? [
-        ...(canUpdate
-          ? [
-              {
-                label: "Add IP Whitelist",
-                icon: <ShieldPlus size={16} />,
-                onClick: () => handleAddIp(selectedRowClient),
-              },
-            ]
-          : []),
-        {
-          label: "View Details",
-          icon: <Eye size={16} />,
-          onClick: () => handleView(selectedRowClient),
-        },
-        {
-          label: "Send Details",
-          icon: <Mail size={16} />,
-          onClick: () => handleSendDetails(selectedRowClient),
-        },
-        ...(canUpdate
-          ? [
-              {
-                label: "Edit Client",
-                icon: <Edit size={16} />,
-                onClick: () => handleEdit(selectedRowClient),
-              },
-              {
-                // ⚡️ FIX: Updated exact string as requested
-                label: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? "Add Route & Rate Plan" : "Edit Route & Rate Plan",
-                icon: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? <Plus size={16} /> : <Edit size={16} />,
-                onClick: () => handleEditRouting(selectedRowClient),
-              },
-            ]
-          : []),
-        ...(canDelete
-          ? [
-              {
-                label: "Delete Client",
-                icon: <Trash size={16} />,
-                variant: "danger" as const,
-                onClick: () => setDeleteId(selectedRowClient.id!),
-              },
-            ]
-          : []),
-      ]
+      ...(canUpdate
+        ? [
+          {
+            label: "Add IP Whitelist",
+            icon: <ShieldPlus size={16} />,
+            onClick: () => handleAddIp(selectedRowClient),
+          },
+        ]
+        : []),
+      {
+        label: "View Details",
+        icon: <Eye size={16} />,
+        onClick: () => handleView(selectedRowClient),
+      },
+      {
+        label: "Send Details",
+        icon: <Mail size={16} />,
+        onClick: () => handleSendDetails(selectedRowClient),
+      },
+      ...(canUpdate
+        ? [
+          {
+            label: "Edit Client",
+            icon: <Edit size={16} />,
+            onClick: () => handleEdit(selectedRowClient),
+          },
+          {
+            // ⚡️ FIX: Updated exact string as requested
+            label: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? "Add Route & Rate Plan" : "Edit Route & Rate Plan",
+            icon: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? <Plus size={16} /> : <Edit size={16} />,
+            onClick: () => handleEditRouting(selectedRowClient),
+          },
+        ]
+        : []),
+      ...(canDelete
+        ? [
+          {
+            label: "Delete Client",
+            icon: <Trash size={16} />,
+            variant: "danger" as const,
+            onClick: () => setDeleteId(selectedRowClient.id!),
+          },
+        ]
+        : []),
+    ]
     : [];
 
   const tableHeaders = [
@@ -824,7 +825,7 @@ const Client: React.FC = () => {
               }
 
               if (col.key === "customerRateGroup") {
-                 cellData = client.customerRateGroupName || client.customerRateGroup;
+                cellData = client.customerRateGroupName || client.customerRateGroup;
               }
 
               if (col.render) {
@@ -846,11 +847,10 @@ const Client: React.FC = () => {
               return (
                 <td
                   key={col.key}
-                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${
-                    col.key === "name"
-                      ? "font-medium text-text-primary dark:text-white"
-                      : ""
-                  }`}
+                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "name"
+                    ? "font-medium text-text-primary dark:text-white"
+                    : ""
+                    }`}
                 >
                   {cellData || "-"}
                 </td>
@@ -888,12 +888,12 @@ const Client: React.FC = () => {
       <IpWhitelistModal
         isOpen={isIpModalOpen}
         onClose={() => setIsIpModalOpen(false)}
-        onSuccess={() => {}}
+        onSuccess={() => { }}
         moduleName="ipWhitelist"
         editingData={null}
         fixedClient={ipModalClient}
       />
-      
+
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
