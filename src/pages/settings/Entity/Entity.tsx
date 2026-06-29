@@ -53,6 +53,7 @@ const Entity: React.FC = () => {
 
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const imageBase = import.meta.env.VITE_IMAGE_URL || "";
 
   const location = useLocation();
   const pathParts = location.pathname.split("/").filter(Boolean);
@@ -60,12 +61,14 @@ const Entity: React.FC = () => {
 
   // FIXED: Define all available columns for the entity table
   const allColumns: ColumnConfig[] = [
-    { 
-      key: "companyLogo", 
-      label: "Logo", 
+
+    {
+      key: "companyLogo",
+      label: "Logo",
       type: "text",
-      render: (data: any) => data.companyLogo ? (
-        <img src={data.companyLogo} alt="logo" className="h-8 w-8 rounded-full object-cover bg-gray-100 border border-gray-200" />
+      render: (data: any) => data.companyLogoPath ? (
+
+        <img src={`${imageBase}${data.companyLogoPath}`} alt="logo" className="h-8 w-8 rounded-full object-cover bg-gray-100 border border-gray-200" />
       ) : (
         <div className="h-8 w-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-xs text-gray-400">N/A</div>
       )
@@ -88,16 +91,16 @@ const Entity: React.FC = () => {
     try {
       const activeFilters = filters || filterValues;
       const currentSearchParams: Record<string, string> = {};
-      
+
       searchColumns.forEach((key) => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
           if (columnDef?.options) {
             const selectedOption = columnDef.options.find((opt: Option) => opt.value === value);
-            currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value; 
-          } else { 
-            currentSearchParams[columnDef?.filterKey || key] = value; 
+            currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
+          } else {
+            currentSearchParams[columnDef?.filterKey || key] = value;
           }
         }
       });
@@ -162,7 +165,7 @@ const Entity: React.FC = () => {
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); 
+      }, 100);
       hasLoggedOpening.current = true;
     }
   }, []);
@@ -172,7 +175,7 @@ const Entity: React.FC = () => {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Entity Settings</h1>
-          
+
           {/* FIXED: Advanced Filters Integrated */}
           <div className="relative z-20">
             <AdvancedFilter columns={allColumns.filter(c => c.key !== 'companyLogo')} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
@@ -181,7 +184,7 @@ const Entity: React.FC = () => {
             <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
           <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">Home</NavLink>
@@ -193,13 +196,13 @@ const Entity: React.FC = () => {
         {visibleSearchFields.map((col) => {
           if (col.options) {
             return (
-              <Select 
-                key={col.key} 
-                label={`Search ${col.label}`} 
-                value={filterValues[col.key] || ""} 
-                onChange={(val) => setFilterValues(p => ({...p, [col.key]: val}))} 
-                options={col.options} 
-                placeholder={`Select ${col.label}`} 
+              <Select
+                key={col.key}
+                label={`Search ${col.label}`}
+                value={filterValues[col.key] || ""}
+                onChange={(val) => setFilterValues(p => ({ ...p, [col.key]: val }))}
+                options={col.options}
+                placeholder={`Select ${col.label}`}
               />
             );
           }
@@ -208,7 +211,7 @@ const Entity: React.FC = () => {
               key={col.key}
               label={`Search ${col.label}`}
               value={filterValues[col.key] || ""}
-              onChange={(e) => setFilterValues(p => ({...p, [col.key]: e.target.value}))}
+              onChange={(e) => setFilterValues(p => ({ ...p, [col.key]: e.target.value }))}
               placeholder={`Search ${col.label}`}
             />
           );
