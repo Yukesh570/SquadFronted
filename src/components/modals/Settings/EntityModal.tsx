@@ -60,11 +60,11 @@ export const EntityModal: React.FC<EntityModalProps> = ({
           bankAccountDetail: editingEntity.bankAccountDetail || "",
         });
         if (editingEntity.companyLogoPath) {
-          setLogoPreview(`${imageBase}${editingEntity.companyLogoPath}`);
+          const fullUrl = `${imageBase}${editingEntity.companyLogoPath}`;
+          setLogoPreview(fullUrl);
         } else {
           setLogoPreview(null);
         }
-        setLogoPreview(editingEntity.companyLogo || null);
         setLogoFile(null);
       } else {
         setFormData({
