@@ -23,6 +23,7 @@ interface CustomRoutePercentModalProps {
   moduleName: string;
   lockedName?: string;
   isFirstRoute?: boolean;
+  allowedCountryIds?: string[];
 }
 
 export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = ({
@@ -31,6 +32,7 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
   onSuccess,
   moduleName,
   lockedName,
+  allowedCountryIds,
 }) => {
   const [formData, setFormData] = useState<any>({
     name: lockedName || "",
@@ -91,15 +93,26 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
             getVendorsApi("vendor", 1, 1000),
           ]);
 
-          setFullCountriesList(
+          const fullList =
             countries.results ||
-              (Array.isArray(countries)
-                ? countries
-                : (countries as any).data) ||
-              [],
-          );
+            (Array.isArray(countries) ? countries : (countries as any).data) ||
+            [];
+          setFullCountriesList(fullList);
 
-          setCountryOptions(extractOptions(countries, "name"));
+          const allCountryOptions = extractOptions(countries, "name");
+          const filteredCountryOptions =
+            allowedCountryIds && allowedCountryIds.length > 0
+              ? allCountryOptions.filter((o) => allowedCountryIds.includes(o.value))
+              : allCountryOptions;
+          setCountryOptions(filteredCountryOptions);
+
+          if (filteredCountryOptions.length === 1) {
+            setFormData((prev: any) => ({
+              ...prev,
+              country: Number(filteredCountryOptions[0].value),
+            }));
+          }
+
           setVendorOptions(extractOptions(vendors, "profileName"));
         } catch (error) {
           console.error("Failed to load dropdown options", error);

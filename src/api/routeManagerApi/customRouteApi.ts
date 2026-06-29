@@ -16,9 +16,14 @@ export interface CustomRouteData {
   operator?: number;
   operatorName?: string;
 
-  // Vendor 
+  // Vendor
   terminatingVendor?: number;
   terminatingVendorProfileName?: string;
+  vendorRate?: string | null;
+
+  // Route fields
+  MCC?: string;
+  MNC?: string;
 
   createdAt?: string;
 }
@@ -125,4 +130,53 @@ export const bulkUpdateCustomRouteApi = async (
 ): Promise<CustomRouteData> => {
   const response = await api.put(`/customRoute/bulkUpdate/${module}/`, data);
   return response.data;
+};
+
+// ── RouteGroupCountry ────────────────────────────────────────────────────────
+
+export interface RouteGroupCountryData {
+  id?: number;
+  routeGroup: number;
+  routeGroupName?: string;
+  country: number;
+  countryName?: string;
+  routingType: "PRIORITY" | "PERCENTAGE";
+  status: "ACTIVE" | "INACTIVE";
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const getRouteGroupCountriesApi = async (
+  module: string,
+  page: number = 1,
+  pageSize: number = 10,
+  searchParams?: Record<string, any>,
+): Promise<PaginatedResponse<RouteGroupCountryData>> => {
+  const params = { page, page_size: pageSize, ...searchParams };
+  const response = await api.get(`/routeGroupCountry/${module}/`, { params });
+  return response.data;
+};
+
+export const createRouteGroupCountryApi = async (
+  data: Partial<RouteGroupCountryData>,
+  module: string,
+): Promise<RouteGroupCountryData> => {
+  const response = await api.post(`/routeGroupCountry/${module}/`, data);
+  return response.data;
+};
+
+export const updateRouteGroupCountryApi = async (
+  id: number,
+  data: Partial<RouteGroupCountryData>,
+  module: string,
+): Promise<RouteGroupCountryData> => {
+  const response = await api.patch(`/routeGroupCountry/${module}/${id}/`, data);
+  return response.data;
+};
+
+export const deleteRouteGroupCountryApi = async (
+  id: number,
+  module: string,
+): Promise<void> => {
+  await api.delete(`/routeGroupCountry/${module}/${id}/`);
 };

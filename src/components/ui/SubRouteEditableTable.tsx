@@ -12,13 +12,6 @@ import Select from "./Select";
 import DatePicker from "./DatePicker";
 import Input from "./Input";
 
-type ExtendedCustomRouteData = CustomRouteData & {
-  MCC?: string;
-  MNC?: string;
-  routingType?: string;
-  trafficPercentage?: string | number;
-};
-
 interface SubRouteEditableTableProps {
   routeGroup: string;
   moduleName: string;
@@ -27,7 +20,8 @@ interface SubRouteEditableTableProps {
   onDelete: (id: number) => void;
   refreshTrigger?: number;
   onDataLoaded?: (count: number) => void;
-  routingType?: string;
+  selectedCountryId?: string;
+  selectedRoutingType?: string;
 }
 
 const ReadOnlyCell = ({ children }: { children: React.ReactNode }) => (
@@ -85,9 +79,10 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
   onDelete,
   refreshTrigger,
   onDataLoaded,
-  routingType = "PRIORITY",
+  selectedCountryId,
+  selectedRoutingType,
 }) => {
-  const [data, setData] = useState<ExtendedCustomRouteData[]>([]);
+  const [data, setData] = useState<CustomRouteData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeCellId, setActiveCellId] = useState<string | null>(null);
@@ -95,23 +90,24 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [apiFilters, setApiFilters] = useState<Record<string, string>>({});
 
-  // ── Pagination state ──────────────────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  // ─────────────────────────────────────────────────────────────────────────
 
-  const isPercentageRoute = String(routingType).toUpperCase() === "PERCENTAGE";
+  const isDetailMode = !!selectedCountryId;
+  const isPercentage = selectedRoutingType === "PERCENTAGE";
 
   const fetchSubRoutes = () => {
     setLoading(true);
-
     const searchParams: Record<string, any> = { routeGroup__name: routeGroup };
 
-    Object.keys(apiFilters).forEach(key => {
+    if (selectedCountryId) {
+      searchParams.country = selectedCountryId;
+    }
+
+    Object.keys(apiFilters).forEach((key) => {
       const val = apiFilters[key];
       if (val) {
-        if (key === "name") searchParams["name__icontains"] = val;
-        else if (key === "countryName") searchParams["country__name__icontains"] = val;
+        if (key === "countryName") searchParams["country__name__icontains"] = val;
         else if (key === "MCC") searchParams["MCC__icontains"] = val;
         else if (key === "MNC") searchParams["MNC__icontains"] = val;
         else if (key === "terminatingVendorProfileName") searchParams["terminatingVendor__profileName__icontains"] = val;
@@ -139,11 +135,13 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [routeGroup, moduleName, refreshTrigger]);
+    setColumnFilters({});
+    setApiFilters({});
+  }, [routeGroup, moduleName, refreshTrigger, selectedCountryId]);
 
   useEffect(() => {
     if (routeGroup) fetchSubRoutes();
-  }, [routeGroup, moduleName, refreshTrigger, currentPage, rowsPerPage, apiFilters]);
+  }, [routeGroup, moduleName, refreshTrigger, currentPage, rowsPerPage, apiFilters, selectedCountryId]);
 
   const handleTableClick = (e: React.MouseEvent) => {
     if (
@@ -154,36 +152,27 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
     }
   };
 
-  const handleInlineSave = async (
-    id: number,
-    field: string,
-    newValue: string,
-  ) => {
+  const handleInlineSave = async (id: number, field: string, newValue: string) => {
     setActiveCellId(null);
-
     const originalRow = data.find((r) => r.id === id);
     if (!originalRow || String((originalRow as any)[field]) === newValue) return;
 
-    const updatePayload: any = { [field]: newValue };
-
     setData((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [field]: newValue } : r)),
+      prev.map((r) => (r.id === id ? { ...r, [field]: newValue } : r))
     );
-
     try {
-      await updateCustomRouteApi(id, updatePayload, moduleName);
+      await updateCustomRouteApi(id, { [field]: newValue }, moduleName);
       toast.success(`Updated ${field}`);
-    } catch (err) {
+    } catch {
       toast.error(`Failed to update ${field}`);
       setData((prev) =>
         prev.map((r) =>
-          r.id === id ? { ...r, [field]: (originalRow as any)[field] } : r,
-        ),
+          r.id === id ? { ...r, [field]: (originalRow as any)[field] } : r
+        )
       );
     }
   };
 
-  // ⚡️ FIX: Clearing a field instantly removes it from API filters too
   const handleFilterChange = (key: string, value: string) => {
     setColumnFilters((prev) => ({ ...prev, [key]: value }));
     if (value === "") {
@@ -201,7 +190,6 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
     setCurrentPage(1);
   };
 
-  // ⚡️ FIX: Reset all filters at once
   const handleResetFilters = () => {
     setColumnFilters({});
     setApiFilters({});
@@ -211,41 +199,35 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
   const hasActiveFilters = Object.values(columnFilters).some((v) => v !== "" && v !== undefined);
 
   const formatLocalDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
   };
 
-  // ── Pagination helpers ───────────────────────────────────────────────────
   const totalPages = Math.ceil(totalItems / rowsPerPage);
-
-  const handleNext = () => {
-    setCurrentPage((p) => Math.min(p + 1, totalPages));
-  };
-  const handlePrev = () => {
-    setCurrentPage((p) => Math.max(p - 1, 1));
-  };
-  const handleRowsChange = (val: number) => {
-    setRowsPerPage(val);
-    setCurrentPage(1);
-  };
+  const handleNext = () => setCurrentPage((p) => Math.min(p + 1, totalPages));
+  const handlePrev = () => setCurrentPage((p) => Math.max(p - 1, 1));
+  const handleRowsChange = (val: number) => { setRowsPerPage(val); setCurrentPage(1); };
 
   const startIndex = (currentPage - 1) * rowsPerPage;
-  const paginationLabel = `${
-    totalItems === 0 ? 0 : startIndex + 1
-  }-${Math.min(startIndex + data.length, totalItems)} of ${totalItems}`;
-  // ─────────────────────────────────────────────────────────────────────────
+  const paginationLabel = `${totalItems === 0 ? 0 : startIndex + 1}-${Math.min(startIndex + data.length, totalItems)} of ${totalItems}`;
 
   const statusOptions = [
     { label: "Active", value: "ACTIVE" },
     { label: "Inactive", value: "INACTIVE" },
   ];
 
+  // Column counts for colSpan
+  // Summary: S.N. + Country + Status + Created At = 4
+  // Detail: S.N. + MCC + MNC + Vendor + Priority/% + VendorRate + Status + CreatedAt [+ Action] = 8 or 9
+  const summaryColSpan = 4;
+  const detailColSpan = isDetailMode ? (canDelete ? 9 : 8) : summaryColSpan;
+
   return (
     <div className="rounded-xl bg-white shadow-card dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0">
 
-      {/* ── Pagination bar ── */}
+      {/* Pagination bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 relative z-[100]">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
@@ -281,8 +263,6 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
               <ChevronRight size={20} />
             </button>
           </div>
-
-          {/* ⚡️ FIX: Reset button — only shown when filters are active */}
           {hasActiveFilters && (
             <button
               onClick={handleResetFilters}
@@ -294,136 +274,239 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
         </div>
       </div>
 
-      {/* ── Scrollable table ── */}
+      {/* Scrollable table */}
       <div
         className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm max-h-[60vh] w-full overflow-x-auto overflow-y-auto custom-grid-scroll"
         onClick={handleTableClick}
       >
         <table className="min-w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
           <thead className="bg-gray-100 dark:bg-gray-800 text-text-secondary dark:text-gray-300 sticky top-0 z-20 shadow-sm">
-            <tr>
-              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">S.N.</th>
-              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Route Name</th>
-              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Country</th>
-              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">MCC</th>
-              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">MNC</th>
-              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Terminating Vendor</th>
-
-              {!isPercentageRoute ? (
-                <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Priority</th>
-              ) : (
-                <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Traffic %</th>
-              )}
-
-              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Status</th>
-              <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 min-w-[150px]">Created At</th>
-              {canDelete && (
-                <th className="px-4 py-2 font-bold border-b dark:border-gray-600 text-center sticky right-0 bg-gray-100 dark:bg-gray-800 shadow-l z-30">Action</th>
-              )}
-            </tr>
-
-            <tr className="bg-gray-50 dark:bg-gray-800/80">
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-                <FilterInput fieldKey="name" placeholder="Search..." value={columnFilters["name"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="120px"/>
-              </th>
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-                <FilterInput fieldKey="countryName" placeholder="Search..." value={columnFilters["countryName"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="100px"/>
-              </th>
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-                <FilterInput fieldKey="MCC" placeholder="Search..." value={columnFilters["MCC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px"/>
-              </th>
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-                <FilterInput fieldKey="MNC" placeholder="Search..." value={columnFilters["MNC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px"/>
-              </th>
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-                <FilterInput fieldKey="terminatingVendorProfileName" placeholder="Search..." value={columnFilters["terminatingVendorProfileName"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="120px"/>
-              </th>
-
-              {!isPercentageRoute ? (
-                <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-                  <FilterInput fieldKey="priority" placeholder="Search..." value={columnFilters["priority"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="90px"/>
-                </th>
-              ) : (
-                <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-                  <FilterInput fieldKey="trafficPercentage" placeholder="Search..." value={columnFilters["trafficPercentage"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="90px"/>
-                </th>
-              )}
-
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
-                <div className="w-full filter-control-wrapper" style={{ minWidth: "100px" }}>
-                  <Select
-                    label=""
-                    value={columnFilters["status"] || ""}
-                    onChange={(val: string) => {
-                      handleFilterChange("status", val);
-                      setApiFilters(prev => ({ ...prev, status: val }));
-                      setCurrentPage(1);
-                    }}
-                    options={[{ label: "All", value: "" }, ...statusOptions]}
-                    placeholder="All"
-                    placement="bottom"
-                  />
-                </div>
-              </th>
-              <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
-                <div className="w-full filter-control-wrapper" style={{ minWidth: "130px" }}>
-                  <DatePicker
-                    label=""
-                    selected={columnFilters["createdAt"] ? new Date(columnFilters["createdAt"]) : null}
-                    onChange={(date: Date | null) => {
-                      const dateStr = date ? formatLocalDate(date) : "";
-                      handleFilterChange("createdAt", dateStr);
-                      setApiFilters(prev => ({ ...prev, createdAt: dateStr }));
-                      setCurrentPage(1);
-                    }}
-                  />
-                </div>
-              </th>
-              {canDelete && <th className="p-1 border-b dark:border-gray-600 sticky right-0 bg-gray-50 dark:bg-gray-800/80 shadow-l z-30"></th>}
-            </tr>
+            {!isDetailMode ? (
+              /* ── Summary header ── */
+              <>
+                <tr>
+                  <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">S.N.</th>
+                  <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Country</th>
+                  <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[140px]">Status</th>
+                  <th className="px-4 py-2 font-bold border-b dark:border-gray-600 min-w-[150px]">Created At</th>
+                </tr>
+                <tr className="bg-gray-50 dark:bg-gray-800/80">
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+                    <FilterInput fieldKey="countryName" placeholder="Search..." value={columnFilters["countryName"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="100px" />
+                  </th>
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
+                    <div className="w-full filter-control-wrapper" style={{ minWidth: "100px" }}>
+                      <Select
+                        label=""
+                        value={columnFilters["status"] || ""}
+                        onChange={(val: string) => {
+                          handleFilterChange("status", val);
+                          setApiFilters((prev) => ({ ...prev, status: val }));
+                          setCurrentPage(1);
+                        }}
+                        options={[{ label: "All", value: "" }, ...statusOptions]}
+                        placeholder="All"
+                        placement="bottom"
+                      />
+                    </div>
+                  </th>
+                  <th className="p-1 border-b dark:border-gray-600 font-normal relative z-[60]">
+                    <div className="w-full filter-control-wrapper" style={{ minWidth: "130px" }}>
+                      <DatePicker
+                        label=""
+                        selected={columnFilters["createdAt"] ? new Date(columnFilters["createdAt"]) : null}
+                        onChange={(date: Date | null) => {
+                          const dateStr = date ? formatLocalDate(date) : "";
+                          handleFilterChange("createdAt", dateStr);
+                          setApiFilters((prev) => ({ ...prev, createdAt: dateStr }));
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </div>
+                  </th>
+                </tr>
+              </>
+            ) : (
+              /* ── Detail header ── */
+              <>
+                <tr>
+                  <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">S.N.</th>
+                  <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">MCC</th>
+                  <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">MNC</th>
+                  <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600">Terminating Vendor</th>
+                  <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[130px]">
+                    {isPercentage ? "Traffic %" : "Priority"}
+                  </th>
+                  <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[130px]">Vendor Rate</th>
+                  <th className="px-4 py-2 font-bold border-b border-r dark:border-gray-600 w-[130px]">Status</th>
+                  <th className="px-4 py-2 font-bold border-b dark:border-gray-600 min-w-[150px]">Created At</th>
+                  {canDelete && (
+                    <th className="px-4 py-2 font-bold border-b dark:border-gray-600 text-center sticky right-0 bg-gray-100 dark:bg-gray-800 shadow-l z-30">
+                      Action
+                    </th>
+                  )}
+                </tr>
+                <tr className="bg-gray-50 dark:bg-gray-800/80">
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+                    <FilterInput fieldKey="MCC" placeholder="Search..." value={columnFilters["MCC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px" />
+                  </th>
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+                    <FilterInput fieldKey="MNC" placeholder="Search..." value={columnFilters["MNC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px" />
+                  </th>
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+                    <FilterInput fieldKey="terminatingVendorProfileName" placeholder="Search..." value={columnFilters["terminatingVendorProfileName"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="120px" />
+                  </th>
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
+                    <FilterInput
+                      fieldKey={isPercentage ? "trafficPercentage" : "priority"}
+                      placeholder="Search..."
+                      value={columnFilters[isPercentage ? "trafficPercentage" : "priority"] || ""}
+                      onChange={handleFilterChange}
+                      onEnter={handleFilterApply}
+                      minWidth="90px"
+                    />
+                  </th>
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
+                    <div className="w-full filter-control-wrapper" style={{ minWidth: "100px" }}>
+                      <Select
+                        label=""
+                        value={columnFilters["status"] || ""}
+                        onChange={(val: string) => {
+                          handleFilterChange("status", val);
+                          setApiFilters((prev) => ({ ...prev, status: val }));
+                          setCurrentPage(1);
+                        }}
+                        options={[{ label: "All", value: "" }, ...statusOptions]}
+                        placeholder="All"
+                        placement="bottom"
+                      />
+                    </div>
+                  </th>
+                  <th className="p-1 border-b dark:border-gray-600 font-normal relative z-[60]">
+                    <div className="w-full filter-control-wrapper" style={{ minWidth: "130px" }}>
+                      <DatePicker
+                        label=""
+                        selected={columnFilters["createdAt"] ? new Date(columnFilters["createdAt"]) : null}
+                        onChange={(date: Date | null) => {
+                          const dateStr = date ? formatLocalDate(date) : "";
+                          handleFilterChange("createdAt", dateStr);
+                          setApiFilters((prev) => ({ ...prev, createdAt: dateStr }));
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </div>
+                  </th>
+                  {canDelete && (
+                    <th className="p-1 border-b dark:border-gray-600 sticky right-0 bg-gray-50 dark:bg-gray-800/80 shadow-l z-30"></th>
+                  )}
+                </tr>
+              </>
+            )}
           </thead>
+
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={canDelete ? 10 : 9} className="px-4 py-12 text-center text-gray-500 animate-pulse font-medium bg-white dark:bg-gray-900">
+                <td colSpan={detailColSpan} className="px-4 py-12 text-center text-gray-500 animate-pulse font-medium bg-white dark:bg-gray-900">
                   Fetching details...
                 </td>
               </tr>
             ) : (
               <>
-                {data.map((route: ExtendedCustomRouteData, index: number) => (
-                  <tr key={route.id} className="hover:bg-blue-50/40 dark:hover:bg-primary/5 transition-colors relative z-0 hover:z-10 focus-within:z-50 group">
-                    <ReadOnlyCell>{startIndex + index + 1}</ReadOnlyCell>
-                    <ReadOnlyCell>{route.name || "-"}</ReadOnlyCell>
-                    <ReadOnlyCell>{route.countryName || "-"}</ReadOnlyCell>
-                    <ReadOnlyCell>{route.MCC || "-"}</ReadOnlyCell>
-                    <ReadOnlyCell>{route.MNC || "-"}</ReadOnlyCell>
-                    <ReadOnlyCell>{route.terminatingVendorProfileName || "-"}</ReadOnlyCell>
-
-                    {!isPercentageRoute ? (
+                {data.map((route: CustomRouteData, index: number) =>
+                  !isDetailMode ? (
+                    /* ── Summary row ── */
+                    <tr key={route.id} className="hover:bg-blue-50/40 dark:hover:bg-primary/5 transition-colors">
+                      <ReadOnlyCell>{startIndex + index + 1}</ReadOnlyCell>
+                      <ReadOnlyCell>{route.countryName || "-"}</ReadOnlyCell>
                       <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
-                        <EditableCell value={String(route.priority || "")} type="number" onSave={(val: string) => handleInlineSave(route.id!, "priority", val)} disabled={!canUpdate} isEditing={activeCellId === `${route.id}-priority`} onEditStart={() => setActiveCellId(`${route.id}-priority`)} onEditEnd={() => setActiveCellId(null)}/>
+                        <EditableCell
+                          value={route.status}
+                          type="select"
+                          options={statusOptions}
+                          onSave={(val: string) => handleInlineSave(route.id!, "status", val)}
+                          disabled={!canUpdate}
+                          isEditing={activeCellId === `${route.id}-status`}
+                          onEditStart={() => setActiveCellId(`${route.id}-status`)}
+                          onEditEnd={() => setActiveCellId(null)}
+                        />
                       </td>
-                    ) : (
-                      <ReadOnlyCell>{route.trafficPercentage || "0"}</ReadOnlyCell>
-                    )}
+                      <ReadOnlyCell>{route.createdAt ? formatDateTime(route.createdAt) : "-"}</ReadOnlyCell>
+                    </tr>
+                  ) : (
+                    /* ── Detail row ── */
+                    <tr key={route.id} className="hover:bg-blue-50/40 dark:hover:bg-primary/5 transition-colors relative z-0 hover:z-10 focus-within:z-50 group">
+                      <ReadOnlyCell>{startIndex + index + 1}</ReadOnlyCell>
+                      <ReadOnlyCell>{route.MCC || "-"}</ReadOnlyCell>
+                      <ReadOnlyCell>{route.MNC || "-"}</ReadOnlyCell>
+                      <ReadOnlyCell>{route.terminatingVendorProfileName || "-"}</ReadOnlyCell>
 
-                    <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
-                      <EditableCell value={route.status} type="select" options={statusOptions} onSave={(val: string) => handleInlineSave(route.id!, "status", val)} disabled={!canUpdate} isEditing={activeCellId === `${route.id}-status`} onEditStart={() => setActiveCellId(`${route.id}-status`)} onEditEnd={() => setActiveCellId(null)}/>
-                    </td>
-                    <ReadOnlyCell>{route.createdAt ? formatDateTime(route.createdAt) : "-"}</ReadOnlyCell>
-                    {canDelete && (
-                      <td className="px-4 py-2 text-center sticky right-0 bg-white dark:bg-gray-900 border-l border-b dark:border-gray-700 z-10">
-                        <button onClick={() => onDelete(route.id!)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all" title="Delete Route"><Trash size={16} /></button>
+                      {isPercentage ? (
+                        <ReadOnlyCell>{route.trafficPercentage ?? "-"}</ReadOnlyCell>
+                      ) : (
+                        <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
+                          <EditableCell
+                            value={String(route.priority || "")}
+                            type="number"
+                            onSave={(val: string) => handleInlineSave(route.id!, "priority", val)}
+                            disabled={!canUpdate}
+                            isEditing={activeCellId === `${route.id}-priority`}
+                            onEditStart={() => setActiveCellId(`${route.id}-priority`)}
+                            onEditEnd={() => setActiveCellId(null)}
+                          />
+                        </td>
+                      )}
+
+                      <ReadOnlyCell>
+                        {route.vendorRate ? (
+                          <span className="font-mono text-xs text-green-700 dark:text-green-400">{route.vendorRate}</span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">—</span>
+                        )}
+                      </ReadOnlyCell>
+
+                      <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900">
+                        <EditableCell
+                          value={route.status}
+                          type="select"
+                          options={statusOptions}
+                          onSave={(val: string) => handleInlineSave(route.id!, "status", val)}
+                          disabled={!canUpdate}
+                          isEditing={activeCellId === `${route.id}-status`}
+                          onEditStart={() => setActiveCellId(`${route.id}-status`)}
+                          onEditEnd={() => setActiveCellId(null)}
+                        />
                       </td>
-                    )}
-                  </tr>
-                ))}
+                      <ReadOnlyCell>{route.createdAt ? formatDateTime(route.createdAt) : "-"}</ReadOnlyCell>
+
+                      {canDelete && (
+                        <td className="px-4 py-2 text-center sticky right-0 bg-white dark:bg-gray-900 border-l border-b dark:border-gray-700 z-10">
+                          <button
+                            onClick={() => onDelete(route.id!)}
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all"
+                            title="Delete Route"
+                          >
+                            <Trash size={16} />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  )
+                )}
                 {data.length === 0 && (
                   <tr>
-                    <td colSpan={canDelete ? 10 : 9} className="px-4 py-8 text-center text-gray-500 bg-white dark:bg-gray-900 border-b dark:border-gray-700">
-                      {Object.keys(apiFilters).length > 0 ? "No routes match your search filters." : "No sub-routes configured for this group."}
+                    <td
+                      colSpan={detailColSpan}
+                      className="px-4 py-8 text-center text-gray-500 bg-white dark:bg-gray-900 border-b dark:border-gray-700"
+                    >
+                      {!isDetailMode
+                        ? "Select a country above to view route details."
+                        : Object.keys(apiFilters).length > 0
+                          ? "No routes match your search filters."
+                          : "No sub-routes configured for this country."}
                     </td>
                   </tr>
                 )}
