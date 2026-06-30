@@ -14,7 +14,6 @@ import Button from "../../ui/Button";
 import Select from "../../ui/Select";
 import Modal from "../../ui/Modal";
 import TextArea from "../../ui/TextArea";
-import CustomDatePicker from "../../ui/DatePicker";
 import ToggleSwitch from "../../ui/ToggleSwitch";
 
 interface OperatorNetworkCodeModalProps {
@@ -52,9 +51,6 @@ export const OperatorNetworkCodeModal: React.FC<
     notes: "",
   });
 
-  const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(null);
-  const [effectiveToDate, setEffectiveToDate] = useState<Date | null>(null);
-
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -70,14 +66,6 @@ export const OperatorNetworkCodeModal: React.FC<
     { label: "Active", value: "ACTIVE" },
     { label: "Inactive", value: "INACTIVE" },
   ];
-
-  // Helper to format date to YYYY-MM-DD
-  const formatLocalDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
 
   useEffect(() => {
     if (isOpen) {
@@ -104,13 +92,6 @@ export const OperatorNetworkCodeModal: React.FC<
         status: editingData.status || "ACTIVE",
         notes: editingData.notes || "",
       });
-
-      setEffectiveFromDate(
-        editingData.effectiveFrom ? new Date(editingData.effectiveFrom) : null,
-      );
-      setEffectiveToDate(
-        editingData.effectiveTo ? new Date(editingData.effectiveTo) : null,
-      );
     } else if (isOpen) {
       setFormData({
         operator: "",
@@ -122,8 +103,6 @@ export const OperatorNetworkCodeModal: React.FC<
         status: "ACTIVE",
         notes: "",
       });
-      setEffectiveFromDate(null);
-      setEffectiveToDate(null);
     }
   }, [isOpen, editingData]);
 
@@ -145,19 +124,23 @@ export const OperatorNetworkCodeModal: React.FC<
     e.preventDefault();
     if (isViewMode) return;
 
-    if (
-      !formData.operator ||
-      !formData.country ||
-      !formData.MCC ||
-      !formData.MNC
-    ) {
-      toast.error(
-        "Operator, Country, MCC, and MNC are required.",
-      );
-      return;
-    }
-
-    setIsSubmitting(true);
+     if (!formData.operator.trim()) {
+        toast.error("Operator is required.");
+        return;
+      }
+     if (!formData.country.trim()) {
+        toast.error("Country is required.");
+        return;
+      }
+     if (!formData.MCC.trim()) {
+        toast.error("MCC is required.");
+        return;
+      }
+     if (!formData.MNC.trim()) {
+        toast.error("MNC is required.");
+        return;
+      }   
+        setIsSubmitting(true);
 
     const payload: any = {
       operator: formData.operator,
@@ -169,9 +152,6 @@ export const OperatorNetworkCodeModal: React.FC<
       status: formData.status,
     };
 
-    if (effectiveFromDate)
-      payload.effectiveFrom = formatLocalDate(effectiveFromDate);
-    if (effectiveToDate) payload.effectiveTo = formatLocalDate(effectiveToDate);
     if (formData.notes) payload.notes = formData.notes;
 
     try {
@@ -188,10 +168,16 @@ export const OperatorNetworkCodeModal: React.FC<
       }
       onSuccess();
       onClose();
-    } catch (error: any) {
-      console.error(error);
-      toast.error("Failed to save data.");
-    } finally {
+   } catch (error: any) {
+  console.error(error);
+  const raw = error?.response?.data?.error;
+  const message = Array.isArray(raw)
+    ? raw.join(" ")
+    : typeof raw === "string"
+      ? raw
+      : "Failed to save data.";
+  toast.error(message);
+} finally {
       setIsSubmitting(false);
     }
   };
@@ -213,7 +199,7 @@ export const OperatorNetworkCodeModal: React.FC<
     >
       <form
         onSubmit={handleSubmit}
-        className="space-y-6 max-h-[80vh] overflow-y-auto px-1"
+        className="space-y-6 max-h-[80vh] overflow-y-auto px-1" noValidate
       >
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
@@ -236,6 +222,7 @@ export const OperatorNetworkCodeModal: React.FC<
               onChange={(v) => handleSelect("country", v)}
               options={countryOptions}
               placeholder="Select Country"
+              required
               disabled={isViewMode}
             />
           </div>
@@ -285,23 +272,6 @@ export const OperatorNetworkCodeModal: React.FC<
               onChange={(v) => handleSelect("status", v)}
               options={statusOptions}
               disabled={isViewMode}
-            />
-
-            <CustomDatePicker
-              label="Effective From"
-              selected={effectiveFromDate}
-              onChange={(date) => setEffectiveFromDate(date)}
-              disabled={isViewMode}
-              placeholder="Select Date"
-              isClearable
-            />
-            <CustomDatePicker
-              label="Effective To"
-              selected={effectiveToDate}
-              onChange={(date) => setEffectiveToDate(date)}
-              disabled={isViewMode}
-              placeholder="Select Date"
-              isClearable
             />
           </div>
         </fieldset>

@@ -3,7 +3,6 @@ import api from "../axiosInstance";
 export interface MappingSetupData {
   id?: number;
   name: string;
-  ratePlan: string;
   country: string;
   countryCode: string;
   timeZone: string;

@@ -5,7 +5,7 @@ interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
 }
 
-const TextArea: React.FC<TextAreaProps> = ({ label, id, disabled, ...props }) => {
+const TextArea: React.FC<TextAreaProps> = ({ label, id, disabled, required, ...props }) => {
   const textAreaId = id || label.replace(/\s+/g, "-").toLowerCase();
 
   return (
@@ -15,11 +15,13 @@ const TextArea: React.FC<TextAreaProps> = ({ label, id, disabled, ...props }) =>
         className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400"
       >
         {label}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <textarea
         {...props}
         id={textAreaId}
         disabled={disabled}
+        required={required}
         className={`w-full rounded-lg border px-3 py-2.5 text-sm shadow-input transition duration-150 ease-in-out focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary 
         ${
           disabled

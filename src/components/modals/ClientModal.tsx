@@ -262,11 +262,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     if (isViewMode) return;
 
     // ⚡️ FIX: Custom toast warnings instead of browser defaults
-    if (!formData.company) {
+    if (!formData.company.trim()) {
       toast.error("Company is required.");
       return;
     }
-    if (!formData.name) {
+    if (!formData.name.trim()) {
       toast.error("Client Name is required.");
       return;
     }
@@ -278,11 +278,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       toast.error("Balance Alert Amount is required.");
       return;
     }
-    if (!formData.smppUsername) {
+    if (!formData.smppUsername.trim()) {
       toast.error("SMPP Username is required.");
       return;
     }
-    if (!formData.smppPassword) {
+    if (!formData.smppPassword.trim()) {
       toast.error("SMPP Password is required.");
       return;
     }
@@ -465,6 +465,28 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             />
           </div>
         </fieldset>
+
+         {isViewMode && (
+          <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <legend className="text-sm font-semibold text-primary px-2">
+              Route & Rate Plan
+            </legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Route Group"
+                name="routeGroupView"
+                value={editingClient?.routeGroupName || "-"}
+                disabled={true}
+              />
+              <Input
+                label="Customer Rate Group"
+                name="customerRateGroupView"
+                value={editingClient?.customerRateGroupName || "-"}
+                disabled={true}
+              />
+            </div>
+          </fieldset>
+        )}
 
         {/* Commercials */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">

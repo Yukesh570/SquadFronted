@@ -100,6 +100,14 @@ export const getVendorRatesPerMNCMCCApi = async (
   return response.data;
 };
 
+// Looks up the matching active vendor rate for a given terminating vendor + MCC + MNC.
+// Hits GET /findVendorRate/vendorRate/?terminatingVendor=&MCC=&MNC=
+export const findVendorRateApi = async (
+  searchParams: { terminatingVendor: number | string; MCC: string | number; MNC: string | number },
+): Promise<PaginatedResponse<VendorRateData>> => {
+  const response = await api.get(`/findVendorRate/vendorRate/`, { params: searchParams });
+  return response.data;
+};
 
 export const createVendorRateApi = async (
   data: any,

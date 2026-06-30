@@ -233,38 +233,38 @@ const Client: React.FC = () => {
     return <StatusBadge status={statusKey} customText={`${current}/${max}`} />;
   };
 
+  // ⚡️ FIX: Attached specific filterKey values mapped strictly to backend Django keys
   const allColumns: ColumnConfig[] = [
     { key: "name", label: "Client Name", type: "text", filterKey: "name__icontains" },
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
     { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroup, filterKey: "routeGroup" },
     { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, filterKey: "customerRateGroup" },
-    { key: "status", label: "Status", type: "text", options: statusOptions, render: (c) => <StatusBadge status={c.status} /> },
-    { key: "route", label: "Route Type", type: "text", options: routeOptions },
-    { key: "paymentTerms", label: "Payment Terms", type: "text", options: paymentTermOptions },
-    {
-      key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions, render: (c) => {
+    { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status", render: (c) => <StatusBadge status={c.status} /> },
+    { key: "route", label: "Route Type", type: "text", options: routeOptions, filterKey: "route" },
+    { key: "paymentTerms", label: "Payment Terms", type: "text", options: paymentTermOptions, filterKey: "paymentTerms" },
+    { key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions, filterKey: "invoicePolicy", render: (c) => {
         if (!c.invoicePolicy) return "-";
         const match = invoicePolicyOptions.find(opt => opt.value === c.invoicePolicy);
         return match ? match.label : c.invoicePolicy;
       }
     },
-    { key: "allowNetting", label: "Allow Netting", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.allowNetting) },
-    { key: "enableDlr", label: "Enable Dlr", type: "boolean", options: booleanOptions, render: (c) => renderBooleanBadge(c.enableDlr) },
+    { key: "allowNetting", label: "Allow Netting", type: "boolean", options: booleanOptions, filterKey: "allowNetting", render: (c) => renderBooleanBadge(c.allowNetting) },
+    { key: "enableDlr", label: "Enable Dlr", type: "boolean", options: booleanOptions, filterKey: "enableDlr", render: (c) => renderBooleanBadge(c.enableDlr) },
     { key: "smppUsername", label: "SMPP Username", type: "text", filterKey: "smppUsername__icontains" },
-    { key: "bindStatus", label: "Bind Status", type: "text", options: bindStatusOptions, render: (c) => <StatusBadge status={c.bindStatus} /> },
-    { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", render: (c) => renderSessionBadge(c) },
-    { key: "maxTps", label: "Max TPS", type: "number", render: (c) => c.clientPolicy?.maxTps ?? "-" },
-    { key: "maxSessions", label: "Max Sessions", type: "number", render: (c) => c.clientPolicy?.maxSessions ?? "-" },
-    { key: "maxQueueDepth", label: "Max Queue Depth", type: "number", render: (c) => c.clientPolicy?.maxQueueDepth ?? "-" },
-    { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number", render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-" },
-    { key: "maxWindowPerSession", label: "Max Window (Per Session)", type: "number", render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-" },
-    { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number", render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-" },
-    { key: "submitTimeoutSec", label: "Submit Timeout (s)", type: "number", render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-" },
-    { key: "senderIdPolicy", label: "Sender ID Policy", type: "text", render: (c) => c.clientPolicy?.senderIdPolicy ?? "-" },
-    { key: "balanceAlertAmount", label: "Balance Alert (Exact)", tableLabel: "Balance Alert", type: "number" },
+    { key: "bindStatus", label: "Bind Status", type: "text", options: bindStatusOptions, filterKey: "bindStatus", render: (c) => <StatusBadge status={c.bindStatus} /> },
+    { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", filterKey: "session", render: (c) => renderSessionBadge(c) },
+    { key: "maxTps", label: "Max TPS", type: "number", filterKey: "clientPolicy__maxTps", render: (c) => c.clientPolicy?.maxTps ?? "-" },
+    { key: "maxSessions", label: "Max Sessions", type: "number", filterKey: "clientPolicy__maxSessions", render: (c) => c.clientPolicy?.maxSessions ?? "-" },
+    { key: "maxQueueDepth", label: "Max Queue Depth", type: "number", filterKey: "clientPolicy__maxQueueDepth", render: (c) => c.clientPolicy?.maxQueueDepth ?? "-" },
+    { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number", filterKey: "clientPolicy__maxWindowGlobal", render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-" },
+    { key: "maxWindowPerSession", label: "Max Window (Per Session)", type: "number", filterKey: "clientPolicy__maxWindowPerSession", render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-" },
+    { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number", filterKey: "clientPolicy__idleTimeoutSec", render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-" },
+    { key: "submitTimeoutSec", label: "Submit Timeout (s)", type: "number", filterKey: "clientPolicy__submitTimeoutSec", render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-" },
+    { key: "senderIdPolicy", label: "Sender ID Policy", type: "text", filterKey: "clientPolicy__senderIdPolicy__icontains", render: (c) => c.clientPolicy?.senderIdPolicy ?? "-" },
+    { key: "balanceAlertAmount", label: "Balance Alert (Exact)", tableLabel: "Balance Alert", type: "number", filterKey: "balanceAlertAmount" },
     { key: "balanceAlertAmount__range", label: "Balance Alert (Range)", type: "number_range", isSearchOnly: true },
     { key: "balanceAlertAmount__gt_lt", label: "Balance Alert (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
-    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
+    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
     { key: "createdAt__range", label: "Created At (Range)", type: "date_range", isSearchOnly: true },
     { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
   ];
@@ -299,9 +299,10 @@ const Client: React.FC = () => {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
-            currentSearchParams[`${key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
+            currentSearchParams[`${columnDef.filterKey || key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_range") {
-            const baseKey = key.split("__")[0];
+            // ⚡️ FIX: Safely parse keys preventing crashes when the field itself contains underscores
+            const baseKey = key.replace("__range", "");
             const [start, end] = value.split(",");
             if (start && end) {
               currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
@@ -315,7 +316,7 @@ const Client: React.FC = () => {
             if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
             if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
           } else if (columnDef?.type === "number_range") {
-            const baseKey = key.split("__")[0];
+            const baseKey = key.replace("__range", "");
             const [start, end] = value.split(",");
             if (start && end) {
               currentSearchParams[key] = value;
@@ -327,7 +328,7 @@ const Client: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = lt; // ⚡️ FIX: Fixed assignment bug
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -508,51 +509,50 @@ const Client: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowClient
     ? [
-      ...(canUpdate
-        ? [
-          {
-            label: "Add IP Whitelist",
-            icon: <ShieldPlus size={16} />,
-            onClick: () => handleAddIp(selectedRowClient),
-          },
-        ]
-        : []),
-      {
-        label: "View Details",
-        icon: <Eye size={16} />,
-        onClick: () => handleView(selectedRowClient),
-      },
-      {
-        label: "Send Details",
-        icon: <Mail size={16} />,
-        onClick: () => handleSendDetails(selectedRowClient),
-      },
-      ...(canUpdate
-        ? [
-          {
-            label: "Edit Client",
-            icon: <Edit size={16} />,
-            onClick: () => handleEdit(selectedRowClient),
-          },
-          {
-            // ⚡️ FIX: Updated exact string as requested
-            label: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? "Add Route & Rate Plan" : "Edit Route & Rate Plan",
-            icon: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? <Plus size={16} /> : <Edit size={16} />,
-            onClick: () => handleEditRouting(selectedRowClient),
-          },
-        ]
-        : []),
-      ...(canDelete
-        ? [
-          {
-            label: "Delete Client",
-            icon: <Trash size={16} />,
-            variant: "danger" as const,
-            onClick: () => setDeleteId(selectedRowClient.id!),
-          },
-        ]
-        : []),
-    ]
+        ...(canUpdate
+          ? [
+              {
+                label: "Add IP Whitelist",
+                icon: <ShieldPlus size={16} />,
+                onClick: () => handleAddIp(selectedRowClient),
+              },
+            ]
+          : []),
+        {
+          label: "View Details",
+          icon: <Eye size={16} />,
+          onClick: () => handleView(selectedRowClient),
+        },
+        {
+          label: "Send Details",
+          icon: <Mail size={16} />,
+          onClick: () => handleSendDetails(selectedRowClient),
+        },
+        ...(canUpdate
+          ? [
+              {
+                label: "Edit Client",
+                icon: <Edit size={16} />,
+                onClick: () => handleEdit(selectedRowClient),
+              },
+              {
+                label: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? "Add Route & Rate Plan" : "Edit Route & Rate Group",
+                icon: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? <Plus size={16} /> : <Edit size={16} />,
+                onClick: () => handleEditRouting(selectedRowClient),
+              },
+            ]
+          : []),
+        ...(canDelete
+          ? [
+              {
+                label: "Delete Client",
+                icon: <Trash size={16} />,
+                variant: "danger" as const,
+                onClick: () => setDeleteId(selectedRowClient.id!),
+              },
+            ]
+          : []),
+      ]
     : [];
 
   const tableHeaders = [
@@ -822,6 +822,10 @@ const Client: React.FC = () => {
 
               if (col.key === "companyName") {
                 cellData = client.companyName || client.company;
+              }
+
+              if (col.key === "routeGroup") {
+                cellData = client.routeGroupName || client.routeGroup;
               }
 
               if (col.key === "customerRateGroup") {

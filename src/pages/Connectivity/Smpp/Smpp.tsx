@@ -121,37 +121,38 @@ const Smpp: React.FC = () => {
     { label: "Transceiver", value: "TRANSCEIVER" },
   ];
 
+  // ⚡️ FIX: Mapped filterKeys directly to Django `SMPPFilter` class fields
   const allColumns: ColumnConfig[] = [
     { key: "smppHost", label: "Host", type: "text", filterKey: "smppHost__icontains" },
     { key: "smppPort", label: "Port", type: "text", filterKey: "smppPort__icontains" },
     { key: "systemID", label: "System ID", type: "text", filterKey: "systemID__icontains" },
-    { key: "bindMode", label: "Bind Mode", type: "text", options: bindModeOptions },
+    { key: "bindMode", label: "Bind Mode", type: "text", options: bindModeOptions, filterKey: "bindMode__icontains" },
 
     // --- Source TON Variants ---
-    { key: "sourceTON", label: "Source TON (Exact)", tableLabel: "Source TON", type: "number" },
-    { key: "sourceTON__range", label: "Source TON (Range)", type: "number_range", isSearchOnly: true },
-    { key: "sourceTON__gt_lt", label: "Source TON (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
+    { key: "sourceTON", label: "Source TON (Exact)", tableLabel: "Source TON", type: "number", filterKey: "sourceTON" },
+    { key: "sourceTON__range", label: "Source TON (Range)", type: "number_range", isSearchOnly: true, filterKey: "sourceTON" },
+    { key: "sourceTON__gt_lt", label: "Source TON (GT / LT)", type: "number_gt_lt", isSearchOnly: true, filterKey: "sourceTON" },
 
     // --- Dest TON Variants ---
-    { key: "destTON", label: "Dest TON (Exact)", tableLabel: "Dest TON", type: "number" },
-    { key: "destTON__range", label: "Dest TON (Range)", type: "number_range", isSearchOnly: true },
-    { key: "destTON__gt_lt", label: "Dest TON (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
+    { key: "destTON", label: "Dest TON (Exact)", tableLabel: "Dest TON", type: "number", filterKey: "destTON" },
+    { key: "destTON__range", label: "Dest TON (Range)", type: "number_range", isSearchOnly: true, filterKey: "destTON" },
+    { key: "destTON__gt_lt", label: "Dest TON (GT / LT)", type: "number_gt_lt", isSearchOnly: true, filterKey: "destTON" },
 
     // --- Source NPI Variants ---
-    { key: "sourceNPI", label: "Source NPI (Exact)", tableLabel: "Source NPI", type: "number" },
-    { key: "sourceNPI__range", label: "Source NPI (Range)", type: "number_range", isSearchOnly: true },
-    { key: "sourceNPI__gt_lt", label: "Source NPI (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
+    { key: "sourceNPI", label: "Source NPI (Exact)", tableLabel: "Source NPI", type: "number", filterKey: "sourceNPI" },
+    { key: "sourceNPI__range", label: "Source NPI (Range)", type: "number_range", isSearchOnly: true, filterKey: "sourceNPI" },
+    { key: "sourceNPI__gt_lt", label: "Source NPI (GT / LT)", type: "number_gt_lt", isSearchOnly: true, filterKey: "sourceNPI" },
 
     // --- Dest NPI Variants ---
-    { key: "destNPI", label: "Dest NPI (Exact)", tableLabel: "Dest NPI", type: "number" },
-    { key: "destNPI__range", label: "Dest NPI (Range)", type: "number_range", isSearchOnly: true },
-    { key: "destNPI__gt_lt", label: "Dest NPI (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
+    { key: "destNPI", label: "Dest NPI (Exact)", tableLabel: "Dest NPI", type: "number", filterKey: "destNPI" },
+    { key: "destNPI__range", label: "Dest NPI (Range)", type: "number_range", isSearchOnly: true, filterKey: "destNPI" },
+    { key: "destNPI__gt_lt", label: "Dest NPI (GT / LT)", type: "number_gt_lt", isSearchOnly: true, filterKey: "destNPI" },
 
     // --- Created At Variants ---
     // FIXED: Implement new timezone cache formatter
-    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
-    { key: "createdAt__range", label: "Created At (From/To)", type: "date_range", isSearchOnly: true },
-    { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
+    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt", render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
+    { key: "createdAt__range", label: "Created At (From/To)", type: "date_range", isSearchOnly: true, filterKey: "createdAt" },
+    { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true, filterKey: "createdAt" },
   ];
 
   const visibleSearchFields = allColumns.filter((col) =>
@@ -190,10 +191,11 @@ const Smpp: React.FC = () => {
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } 
           else if (columnDef?.type === "date") {
-            currentSearchParams[`${key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
+            currentSearchParams[`${columnDef.filterKey || key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } 
           else if (columnDef?.type === "date_range") {
-            const baseKey = key.split("__")[0];
+            // ⚡️ FIX: Strip appended modifiers dynamically to avoid sending "createdAt__range__range"
+            const baseKey = key.replace("__range", "");
             const [start, end] = value.split(",");
             if (start && end) {
               currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
@@ -209,7 +211,7 @@ const Smpp: React.FC = () => {
             if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
           } 
           else if (columnDef?.type === "number_range") {
-            const baseKey = key.split("__")[0];
+            const baseKey = key.replace("__range", "");
             const [start, end] = value.split(",");
             if (start && end) {
               currentSearchParams[key] = value;
@@ -222,7 +224,7 @@ const Smpp: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = lt;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = lt; // ⚡️ FIX: Bug where lt mapped to gt
           } 
           else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;

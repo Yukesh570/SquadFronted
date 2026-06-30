@@ -94,8 +94,8 @@ export const StateModal: React.FC<StateModalProps> = ({
       toast.error("State Name is required");
       return;
     }
-    if (!formData.country) {
-      toast.error("Please select a Country");
+    if (!formData.country.trim()) {
+      toast.error("Country is required");
       return;
     }
 
@@ -146,7 +146,7 @@ export const StateModal: React.FC<StateModalProps> = ({
       }
       className="max-w-md"
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <Input
           label="State Name"
           name="name"
@@ -163,6 +163,7 @@ export const StateModal: React.FC<StateModalProps> = ({
           onChange={handleCountryChange}
           options={[...countryOptions]}
           placeholder="Select Country"
+          required
           disabled={isViewMode}
         />
 

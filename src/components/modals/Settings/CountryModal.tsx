@@ -64,6 +64,18 @@ export const CountryModal: React.FC<CountryModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewMode) return;
+    if (!formData.name.trim()) {
+    toast.error("Country Name is required.");
+    return;
+  }
+  if (!formData.countryCode.trim()) {
+    toast.error("Country Code is required.");
+    return;
+  }
+  if (!formData.iso2.trim()) {
+    toast.error("ISO2 is required.");
+    return;
+  }
     setIsSubmitting(true);
 
     try {
@@ -106,7 +118,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
       }
       className="max-w-md"
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <Input
           label="Country Name"
           name="name"
@@ -131,6 +143,7 @@ export const CountryModal: React.FC<CountryModalProps> = ({
           value={formData.iso2}
           onChange={handleChange}
           placeholder="e.g. NP"
+          required
           disabled={isViewMode}
         />
         <Input

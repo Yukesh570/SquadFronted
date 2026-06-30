@@ -28,7 +28,6 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: "",
-    ratePlan: "",
     country: "",
     countryCode: "",
     timeZone: "",
@@ -45,7 +44,6 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
       if (editingMapping) {
         setFormData({
           name: editingMapping.name || "",
-          ratePlan: editingMapping.ratePlan,
           country: editingMapping.country,
           countryCode: editingMapping.countryCode,
           timeZone: editingMapping.timeZone,
@@ -58,7 +56,6 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
       } else {
         setFormData({
           name: "",
-          ratePlan: "",
           country: "",
           countryCode: "",
           timeZone: "",
@@ -80,13 +77,40 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
     e.preventDefault();
     if (isViewMode) return;
 
-    if (!formData.name) {
+    if (!formData.name.trim()) {
       toast.error("Name is required");
       return;
     }
-
-    if (!formData.ratePlan) {
-      toast.error("RatePlan is required");
+    if (!formData.country.trim()) {
+      toast.error("Country is required");
+      return;
+    }
+    if (!formData.countryCode.trim()) {
+      toast.error("Country Code is required");
+      return;
+    }
+    if (!formData.timeZone.trim()) {
+      toast.error("TimeZone is required");
+      return;
+    }
+    if (!formData.network.trim()) {
+      toast.error("Network is required");
+      return;
+    }
+    if (!formData.MCC.trim()) {
+      toast.error("MCC is required");
+      return;
+    }
+    if (!formData.MNC.trim()) {
+      toast.error("MNC is required");
+      return;
+    }
+    if (!formData.rate.trim()) {
+      toast.error("Rate is required");
+      return;
+    }
+    if (!formData.effectiveFrom.trim()) {
+      toast.error("Effective From is required");
       return;
     }
 
@@ -132,7 +156,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
       }
       className="max-w-4xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         <div className="p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300">
           Enter the specific <strong>Column Header Name</strong> from your file
           that corresponds to each system field below.
@@ -148,18 +172,11 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             disabled={isViewMode}
           />
           <Input
-            label="RatePlan"
-            name="ratePlan"
-            value={formData.ratePlan}
-            onChange={handleChange}
-            required
-            disabled={isViewMode}
-          />
-          <Input
             label="Country"
             name="country"
             value={formData.country}
             onChange={handleChange}
+            required
             disabled={isViewMode}
           />
           <Input
@@ -167,6 +184,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             name="countryCode"
             value={formData.countryCode}
             onChange={handleChange}
+            required
             disabled={isViewMode}
           />
           <Input
@@ -174,6 +192,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             name="timeZone"
             value={formData.timeZone}
             onChange={handleChange}
+            required
             disabled={isViewMode}
           />
           <Input
@@ -181,6 +200,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             name="network"
             value={formData.network}
             onChange={handleChange}
+            required
             disabled={isViewMode}
           />
           <Input
@@ -188,6 +208,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             name="MCC"
             value={formData.MCC}
             onChange={handleChange}
+            required
             disabled={isViewMode}
           />
           <Input
@@ -195,6 +216,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             name="MNC"
             value={formData.MNC}
             onChange={handleChange}
+            required
             disabled={isViewMode}
           />
           <Input
@@ -202,6 +224,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             name="rate"
             value={formData.rate}
             onChange={handleChange}
+            required
             disabled={isViewMode}
           />
           <Input
@@ -209,6 +232,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             name="effectiveFrom"
             value={formData.effectiveFrom}
             onChange={handleChange}
+            required
             disabled={isViewMode}
           />
         </div>

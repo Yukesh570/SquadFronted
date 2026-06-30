@@ -129,9 +129,9 @@ const ClientSession: React.FC = () => {
       key: "clientUsername",
       label: "Client Username",
       type: "text",
-      filterKey: "client__name__icontains",
+      filterKey: "client__smppUsername__icontains", // ⚡️ FIX: Mapped strictly to backend filter `client__smppUsername`
     },
-    { key: "companyName", label: "Company Name", type: "text" },
+    { key: "companyName", label: "Company Name", type: "text", filterKey: "client__company__name__icontains" }, // Added backend mapping mapping
     {
       key: "systemId",
       label: "System ID",
@@ -154,7 +154,7 @@ const ClientSession: React.FC = () => {
       key: "remotePort",
       label: "Remote Port",
       type: "number",
-      filterKey: "remotePort",
+      filterKey: "remotePort__icontains", // ⚡️ FIX: Mapped to backend
     },
     {
       key: "status",
@@ -171,7 +171,7 @@ const ClientSession: React.FC = () => {
       label: "Connected At (Exact)",
       tableLabel: "Connected At",
       type: "date",
-      filterKey: "connectedAt",
+      filterKey: "connectedAt", // ⚡️ FIX: For exact date
       render: (c) => (c.connectedAt ? formatDateTime(c.connectedAt) : "-"),
     },
     {
@@ -194,7 +194,7 @@ const ClientSession: React.FC = () => {
       label: "Bound At (Exact)",
       tableLabel: "Bound At",
       type: "date",
-      filterKey: "boundAt",
+      filterKey: "boundAt", // ⚡️ FIX: Exact date
       render: (c) => (c.boundAt ? formatDateTime(c.boundAt) : "-"),
     },
     {
@@ -238,7 +238,7 @@ const ClientSession: React.FC = () => {
       label: "Last Activity (Exact)",
       tableLabel: "Last Activity",
       type: "date",
-      filterKey: "last_activityAt",
+      filterKey: "last_activityAt", // ⚡️ FIX: Exact date
       render: (c) =>
         c.last_activityAt ? formatDateTime(c.last_activityAt) : "-",
     },
@@ -286,25 +286,21 @@ const ClientSession: React.FC = () => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
-          const baseKey = columnDef?.filterKey
-            ? columnDef.filterKey.split("__")[0]
-            : key.split("__")[0];
-
+          
           if (columnDef?.type === "date") {
-            currentSearchParams[`${baseKey}__range`] =
-              `${value}T00:00:00,${value}T23:59:59`;
+            currentSearchParams[`${columnDef.filterKey || key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_range") {
+            // ⚡️ FIX: Safely parse keys preventing crashes when the field itself contains underscores
+            const baseKey = key.replace("__range", "");
             const [start, end] = value.split(",");
-            if (start && end)
-              currentSearchParams[`${baseKey}__range`] =
-                `${start}T00:00:00,${end}T23:59:59`;
-            else {
-              if (start)
-                currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end)
-                currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
+            if (start && end) {
+              currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
+            } else {
+              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
+              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
             }
           } else if (columnDef?.type === "date_gt_lt") {
+            const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
             if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;

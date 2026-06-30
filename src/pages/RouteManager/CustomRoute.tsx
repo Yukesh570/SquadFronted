@@ -53,10 +53,9 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["name", "countryConfigs", "status"];
+const DEFAULT_SEARCH_COLUMNS = ["name","status"];
 const DEFAULT_TABLE_COLUMNS = [
   "name",
-  "countryConfigs",
   "status",
   "createdAt",
 ];
@@ -125,20 +124,6 @@ const CustomRoute: React.FC = () => {
       label: "Route Group",
       type: "text",
       filterKey: "name__icontains",
-    },
-    {
-      key: "countryConfigs",
-      label: "Countries",
-      type: "text",
-      filterKey: "routeGroup__country__name__icontains",
-      render: (row: any) => {
-        if (Array.isArray(row.countryConfigs) && row.countryConfigs.length > 0) {
-          return row.countryConfigs
-            .map((c: any) => `${c.countryName} (${c.routingType})`)
-            .join(", ");
-        }
-        return "-";
-      },
     },
     {
       key: "status",

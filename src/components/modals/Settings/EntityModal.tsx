@@ -119,6 +119,11 @@ export const EntityModal: React.FC<EntityModalProps> = ({
       return;
     }
 
+    if (!formData.legalEntityName.trim()) {
+      toast.error("Legal Entity Name is required");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const payload = new FormData();
@@ -174,7 +179,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({
       }
       className="max-w-2xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
 
         {/* FIXED: Neatly centered logo upload using the new reusable component */}
         <div className="flex justify-center pt-2 pb-4">
@@ -205,6 +210,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({
             value={formData.legalEntityName}
             onChange={handleChange}
             placeholder="Gecko Works Pvt. Ltd."
+            required
             disabled={isViewMode}
           />
           <Select

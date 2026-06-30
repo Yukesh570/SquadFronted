@@ -235,50 +235,6 @@ const OperatorNetworkCode: React.FC = () => {
     },
 
     {
-      key: "effectiveFrom",
-      label: "Effective From (Exact)",
-      tableLabel: "Effective From",
-      type: "date",
-      filterKey: "effectiveFrom",
-    },
-    {
-      key: "effectiveFrom__range",
-      label: "Effective From (From/To)",
-      type: "date_range",
-      filterKey: "effectiveFrom",
-      isSearchOnly: true,
-    },
-    {
-      key: "effectiveFrom__gt_lt",
-      label: "Effective From (After/Before)",
-      type: "date_gt_lt",
-      filterKey: "effectiveFrom",
-      isSearchOnly: true,
-    },
-
-    {
-      key: "effectiveTo",
-      label: "Effective To (Exact)",
-      tableLabel: "Effective To",
-      type: "date",
-      filterKey: "effectiveTo",
-    },
-    {
-      key: "effectiveTo__range",
-      label: "Effective To (From/To)",
-      type: "date_range",
-      filterKey: "effectiveTo",
-      isSearchOnly: true,
-    },
-    {
-      key: "effectiveTo__gt_lt",
-      label: "Effective To (After/Before)",
-      type: "date_gt_lt",
-      filterKey: "effectiveTo",
-      isSearchOnly: true,
-    },
-
-    {
       key: "notes",
       label: "Notes",
       type: "text",

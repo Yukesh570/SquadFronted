@@ -223,6 +223,7 @@ const Vendor: React.FC = () => {
     return <StatusBadge status={statusKey} customText={`${current}/${max}`} />;
   };
 
+  // ⚡️ FIX: Mapped filterKeys strictly to VendorFilter fields
   const allColumns: ColumnConfig[] = [
     {
       key: "profileName",
@@ -235,14 +236,14 @@ const Vendor: React.FC = () => {
       label: "Company",
       type: "text",
       options: companies,
-      filterKey: "company",
+      filterKey: "company__name__icontains", // ⚡️ FIX: Adjusted to nested lookup
     },
     {
       key: "vendorRateGroup",
       label: "Vendor Rate Group",
       type: "text",
       options: vendorRateGroupOptions,
-      filterKey: "vendorRateGroup",
+      filterKey: "vendorRateGroup", 
       render: (c: any) => c.vendorRateGroupName || c.vendorRateGroup || "-",
     },
     {
@@ -250,7 +251,7 @@ const Vendor: React.FC = () => {
       label: "Connection Type",
       type: "text",
       options: connectionTypeOptions,
-      // ⚡️ FIX: Mapped SMPP to Green (DELIVERED) and HTTP to Blue (SUBMITTED)
+      filterKey: "connectionType__icontains", // ⚡️ FIX: Mapped to backend
       render: (c) => {
         const type = c.connectionType?.toUpperCase();
         const statusKey = type === "SMPP" ? "DELIVERED" : "SUBMITTED";
@@ -262,7 +263,7 @@ const Vendor: React.FC = () => {
       label: "Invoice Policy",
       type: "text",
       options: invoicePolicyOptions,
-      // ⚡️ FIX: Removed StatusBadge, now renders plain text (matching dropdown label)
+      filterKey: "invoicePolicy__icontains", // ⚡️ FIX: Mapped to backend
       render: (c) => {
         if (!c.invoicePolicy) return "-";
         const match = invoicePolicyOptions.find(opt => opt.value === c.invoicePolicy);
@@ -273,13 +274,14 @@ const Vendor: React.FC = () => {
       key: "smppName",
       label: "SMPP Name",
       type: "text",
-      filterKey: "smppName__icontains",
+      filterKey: "smpp__smppHost__icontains", // ⚡️ FIX: Re-mapped to host as per class
     },
     {
       key: "bindStatus",
       label: "Bind Status",
       type: "text",
       options: bindStatusOptions,
+      filterKey: "bindStatus__icontains", // ⚡️ FIX: Mapped to backend
       render: (c) => <StatusBadge status={c.bindStatus} />,
     },
     {
@@ -294,18 +296,21 @@ const Vendor: React.FC = () => {
       key: "maxSession", 
       label: "Max Sessions", 
       type: "number",
+      filterKey: "vendorPolicy__maxSession",
       render: (c) => c.vendorPolicy?.maxSession ?? "-"
     }, 
     { 
       key: "rateTps", 
       label: "Rate TPS", 
       type: "number",
+      filterKey: "vendorPolicy__rateTps",
       render: (c) => c.vendorPolicy?.rateTps ?? "-"
     },
     { 
       key: "sendQueueLimit", 
       label: "Queue Limit", 
       type: "number",
+      filterKey: "vendorPolicy__sendQueueLimit",
       render: (c) => c.vendorPolicy?.sendQueueLimit ?? "-"
     },
     {
@@ -313,42 +318,49 @@ const Vendor: React.FC = () => {
       label: "Log Level",
       type: "text",
       options: logLevelOptions,
+      filterKey: "vendorPolicy__logLevel__icontains",
       render: (c) => c.vendorPolicy?.logLevel ?? "-"
     },
     { 
       key: "responseTimeout", 
       label: "Response Timeout (s)", 
       type: "number",
+      filterKey: "vendorPolicy__responseTimeout",
       render: (c) => c.vendorPolicy?.responseTimeout ?? "-"
     },
     {
       key: "enquireLinkInterval",
       label: "Enquire Link Interval (s)",
       type: "number",
+      filterKey: "vendorPolicy__enquireLinkInterval",
       render: (c) => c.vendorPolicy?.enquireLinkInterval ?? "-"
     },
     { 
       key: "connectionTimeout", 
       label: "Conn. Timeout (s)", 
       type: "number",
+      filterKey: "vendorPolicy__connectionTimeout",
       render: (c) => c.vendorPolicy?.connectionTimeout ?? "-"
     },
     {
       key: "maxMessageRetries",
       label: "Max Msg Retries",
       type: "number",
+      filterKey: "vendorPolicy__maxMessageRetries",
       render: (c) => c.vendorPolicy?.maxMessageRetries ?? "-"
     },
     {
       key: "connectionRetryDelay",
       label: "Conn Retry Delay (s)",
       type: "number",
+      filterKey: "vendorPolicy__connectionRetryDelay",
       render: (c) => c.vendorPolicy?.connectionRetryDelay ?? "-"
     },
     { 
       key: "connectionRetryCount", 
       label: "Conn Retry Count", 
       type: "number",
+      filterKey: "vendorPolicy__connectionRetryCount",
       render: (c) => c.vendorPolicy?.connectionRetryCount ?? "-"
     },
     { 
@@ -367,13 +379,22 @@ const Vendor: React.FC = () => {
       key: "connectionRecoveryDelay",
       label: "Conn Recovery Delay (s)",
       type: "number",
+      filterKey: "vendorPolicy__connectionRecoveryDelay",
       render: (c) => c.vendorPolicy?.connectionRecoveryDelay ?? "-"
     },
     { 
       key: "tlvTag", 
       label: "TLV Tag", 
       type: "text",
+      filterKey: "vendorPolicy__tlvTag__icontains",
       render: (c) => c.vendorPolicy?.tlvTag ?? "-"
+    },
+    { 
+      key: "tlvValue", 
+      label: "TLV Value", 
+      type: "text",
+      filterKey: "vendorPolicy__tlvValue__icontains",
+      render: (c) => c.vendorPolicy?.tlvValue ?? "-"
     },
   ];
 
@@ -417,10 +438,11 @@ const Vendor: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            currentSearchParams[`${key}__range`] =
+            currentSearchParams[`${columnDef.filterKey || key}__range`] =
               `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_range") {
-            const baseKey = key.split("__")[0];
+            // ⚡️ FIX: Safe parsing 
+            const baseKey = key.replace("__range", "");
             const [start, end] = value.split(",");
             if (start && end) {
               currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
@@ -436,7 +458,7 @@ const Vendor: React.FC = () => {
             if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
             if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
           } else if (columnDef?.type === "number_range") {
-            const baseKey = key.split("__")[0];
+            const baseKey = key.replace("__range", "");
             const [start, end] = value.split(",");
             if (start && end) {
               currentSearchParams[key] = value;
@@ -448,7 +470,7 @@ const Vendor: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = lt; // ⚡️ FIX: Fixed bug assigning gt to lt
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;

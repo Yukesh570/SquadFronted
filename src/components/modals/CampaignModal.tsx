@@ -206,8 +206,12 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       toast.error("Campaign name is required.");
       return;
     }
-    if (!formData.client) {
+    if (!formData.client.trim()) {
       toast.error("Client is required.");
+      return;
+    }
+    if (!formData.contactNumber.trim()) {
+      toast.error("Contact number is required.");
       return;
     }
     if (isContentEmpty(quillContent)) {
@@ -312,7 +316,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       }
       className="max-w-3xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <Input
           label="Campaign Name"
           name="campaignName"
@@ -329,6 +333,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
             onChange={(v) => handleSelectChange("client", v)}
             options={clientOptions}
             placeholder="Select Client"
+            required
             disabled={isViewMode}
           />
           <Select
@@ -357,6 +362,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
                 name="contactNumber"
                 value={formData.contactNumber}
                 onChange={handleChange}
+                required
                 placeholder="e.g., 98xxxxxxxx, 98xxxxxxxx"
               />
             ) : (

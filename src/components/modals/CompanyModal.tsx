@@ -194,39 +194,39 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     if (isViewMode) return;
 
     // ⚡️ FIX: Custom toast.error validations
-    if (!formData.name) {
+    if (!formData.name.trim()) {
       toast.error("Company Name is required.");
       return;
     }
-    if (!formData.shortName) {
+    if (!formData.shortName.trim()) {
       toast.error("Short Name is required.");
       return;
     }
-    if (!formData.country) {
+    if (!formData.country.trim()) {
       toast.error("Country Name is required.");
       return;
     }
-    if (!formData.status) {
+    if (!formData.status.trim()) {
       toast.error("Company Status is required.");
       return;
     }
-    if (!formData.currency) {
+    if (!formData.currency.trim()) {
       toast.error("Currency is required.");
       return;
     }
-    if (!formData.timeZone) {
+    if (!formData.timeZone.trim()) {
       toast.error("Time Zone is required.");
       return;
     }
-    if (!formData.customerCreditLimit) {
+    if (!formData.customerCreditLimit.trim()) {
       toast.error("Customer Credit Limit is required.");
       return;
     }
-    if (!formData.balanceAlertAmount) {
+    if (!formData.balanceAlertAmount.trim()) {
       toast.error("Balance Alert Amount is required.");
       return;
     }
-    if (!formData.address) {
+    if (!formData.address.trim()) {
       toast.error("Full Address is required.");
       return;
     }
@@ -303,7 +303,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               value={formData.name}
               onChange={handleChange}
               placeholder="ACME TECHNOLOGIES"
-              required // ⚡️ FIX: Added visual required indicator
+              required
               disabled={isViewMode}
             />
             <Input
@@ -312,7 +312,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               value={formData.shortName}
               onChange={handleChange}
               placeholder="ACME"
-              required // ⚡️ FIX: Added visual required indicator
+              required
               disabled={isViewMode}
             />
             <Input

@@ -55,6 +55,26 @@ export const EditableCell: React.FC<EditableCellProps> = ({
     setCurrentVal(value || "");
   }, [value]);
 
+  // Close edit mode when clicking outside the cell. This does not change
+  // any of the existing Enter/Escape/onChange/onSave behavior below —
+  // it only ensures clicking away exits edit mode (without saving),
+  // matching how a normal inline-edit cell should behave.
+  useEffect(() => {
+    if (!isEditing) return;
+
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (cellRef.current && !cellRef.current.contains(e.target as Node)) {
+        endEdit();
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing]);
+
   useEffect(() => {
     if (isEditing) {
       if ((type === "text" || type === "number") && inputRef.current) {

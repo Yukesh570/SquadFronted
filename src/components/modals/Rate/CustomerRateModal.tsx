@@ -206,16 +206,16 @@ else setEffectiveFromDate(new Date());
     const isEditMode = !!editingRate;
 
     if (isEditMode) {
-      if (!formData.rate) {
+      if (!formData.rate.trim()) {
         toast.error("Rate is required.");
         return;
       }
     } else {
-      if (!formData.country) {
+      if (!formData.country.trim()) {
         toast.error("Country is required.");
         return;
       }
-      if (!formData.countryCode) {
+      if (!formData.countryCode.trim()) {
         toast.error("Country Code is required.");
         return;
       }

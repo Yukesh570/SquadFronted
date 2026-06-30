@@ -46,6 +46,7 @@ interface ColumnConfig extends FilterColumn {
   filterKey?: string;
 }
 
+// --- Default Configuration ---
 const DEFAULT_SEARCH_COLUMNS = ["name"];
 const DEFAULT_TABLE_COLUMNS = ["name", "shortName", "companyEmail", "phone"];
 
@@ -128,7 +129,7 @@ const CompanyList: React.FC = () => {
       loadOptions(getTimezoneApi, "timeZone", setTimeZones);
   }, []);
 
-  // ⚡️ FIX: No hex codes! We map the logic directly to the reusable component status keys
+  // --- badge renders ---
   const renderBooleanBadge = (value: boolean) => {
     const statusKey = value ? "DELIVERED" : "PENDING";
     const labelText = value ? "Yes" : "No";
@@ -141,15 +142,16 @@ const CompanyList: React.FC = () => {
     { label: "No", value: "false" },
   ];
 
+  // ⚡️ FIX: Configured filterKeys strictly aligning with Allowed Backend Lookups inside CompanyFilter
   const allColumns: ColumnConfig[] = [
-    { key: "name", label: "Company Name", type: "text" },
-    { key: "shortName", label: "Short Name", type: "text" },
-    { key: "phone", label: "Phone", type: "text" },
-    { key: "companyEmail", label: "Company Email", type: "text" },
-    { key: "supportEmail", label: "Support Email", type: "text" },
-    { key: "billingEmail", label: "Billing Email", type: "text" },
-    { key: "ratesEmail", label: "Rates Email", type: "text" },
-    { key: "lowBalanceAlertEmail", label: "Low Bal. Email", type: "text" },
+    { key: "name", label: "Company Name", type: "text", filterKey: "name__icontains" },
+    { key: "shortName", label: "Short Name", type: "text", filterKey: "shortName__icontains" },
+    { key: "phone", label: "Phone", type: "text", filterKey: "phone__icontains" },
+    { key: "companyEmail", label: "Company Email", type: "text", filterKey: "companyEmail__icontains" },
+    { key: "supportEmail", label: "Support Email", type: "text", filterKey: "supportEmail__icontains" },
+    { key: "billingEmail", label: "Billing Email", type: "text", filterKey: "billingEmail__icontains" },
+    { key: "ratesEmail", label: "Rates Email", type: "text", filterKey: "ratesEmail__icontains" },
+    { key: "lowBalanceAlertEmail", label: "Low Bal. Email", type: "text", filterKey: "lowBalanceAlertEmail__icontains" },
     {
       key: "country",
       label: "Country",
@@ -162,41 +164,41 @@ const CompanyList: React.FC = () => {
       label: "State",
       type: "text",
       options: states,
-      filterKey: "state__name",
+      filterKey: "state__name__icontains",
     },
     {
       key: "category",
       label: "Category",
       type: "text",
       options: categories,
-      filterKey: "category__name",
+      filterKey: "category__name__icontains",
     },
     {
       key: "status",
       label: "Status",
       type: "text",
       options: statuses,
-      filterKey: "status__name",
+      filterKey: "status__name__icontains",
     },
     {
       key: "currency",
       label: "Currency",
       type: "text",
       options: currencies,
-      filterKey: "currency__name",
+      filterKey: "currency__name__icontains",
     },
     {
       key: "timeZone",
       label: "Time Zone",
       type: "text",
       options: timeZones,
-      filterKey: "timeZone__name",
+      filterKey: "timeZone__name__icontains",
     },
-    { key: "customerCreditLimit", label: "Cust. Credit", type: "number" },
-    { key: "vendorCreditLimit", label: "Vend. Credit", type: "number" }, 
-    { key: "balanceAlertAmount", label: "Bal. Alert", type: "number" },
-    { key: "referencNumber", label: "Ref. Number", type: "text" },
-    { key: "address", label: "Address", type: "text" },
+    { key: "customerCreditLimit", label: "Cust. Credit", type: "number", filterKey: "customerCreditLimit" },
+    { key: "vendorCreditLimit", label: "Vend. Credit", type: "number", filterKey: "vendorCreditLimit" }, 
+    { key: "balanceAlertAmount", label: "Bal. Alert", type: "number", filterKey: "balanceAlertAmount" },
+    { key: "referencNumber", label: "Ref. Number", type: "text", filterKey: "referencNumber__icontains" },
+    { key: "address", label: "Address", type: "text", filterKey: "address__icontains" },
     {
       key: "validityPeriod",
       label: "Validity",
@@ -205,6 +207,7 @@ const CompanyList: React.FC = () => {
         { label: "Limited", value: "LTD" },
         { label: "Unlimited", value: "UNL" },
       ],
+      filterKey: "validityPeriod",
     },
     {
       key: "defaultEmail",
@@ -214,12 +217,14 @@ const CompanyList: React.FC = () => {
         { label: "Company", value: "CMP" },
         { label: "Support", value: "SUP" },
       ],
+      filterKey: "defaultEmail",
     },
     {
       key: "onlinePayment",
       label: "Online Payment",
       type: "boolean",
       options: booleanOptions,
+      filterKey: "onlinePayment",
       render: (c) => renderBooleanBadge(c.onlinePayment),
     },
     {
@@ -227,6 +232,7 @@ const CompanyList: React.FC = () => {
       label: "Blocked",
       type: "boolean",
       options: booleanOptions,
+      filterKey: "companyBlocked",
       render: (c) => renderBooleanBadge(c.companyBlocked),
     },
     {
@@ -234,6 +240,7 @@ const CompanyList: React.FC = () => {
       label: "Whitelist Cards",
       type: "boolean",
       options: booleanOptions,
+      filterKey: "allowWhiteListedCards",
       render: (c) => renderBooleanBadge(c.allowWhiteListedCards),
     },
     {
@@ -241,6 +248,7 @@ const CompanyList: React.FC = () => {
       label: "Daily Reports",
       type: "boolean",
       options: booleanOptions,
+      filterKey: "sendDailyReports",
       render: (c) => renderBooleanBadge(c.sendDailyReports),
     },
     {
@@ -248,6 +256,7 @@ const CompanyList: React.FC = () => {
       label: "Netting",
       type: "boolean",
       options: booleanOptions,
+      filterKey: "allowNetting",
       render: (c) => renderBooleanBadge(c.allowNetting),
     },
     {
@@ -255,6 +264,7 @@ const CompanyList: React.FC = () => {
       label: "HLR API",
       type: "boolean",
       options: booleanOptions,
+      filterKey: "showHlrApi",
       render: (c) => renderBooleanBadge(c.showHlrApi),
     },
     {
@@ -262,6 +272,7 @@ const CompanyList: React.FC = () => {
       label: "Vendor Panel",
       type: "boolean",
       options: booleanOptions,
+      filterKey: "enableVendorPanel",
       render: (c) => renderBooleanBadge(c.enableVendorPanel),
     },
   ];
@@ -298,16 +309,17 @@ const CompanyList: React.FC = () => {
               const selectedOption = columnDef.options.find(
                 (opt) => opt.value === value,
               );
+              // For choice relation items mapped by text icontains, resolve labels cleanly
               currentSearchParams[columnDef.filterKey] = selectedOption
-                ? selectedOption.label
+                ? (columnDef.type === "boolean" ? selectedOption.value : selectedOption.label)
                 : value;
             } else {
               currentSearchParams[key] = value;
             }
           } else if (columnDef?.type === "text") {
-            currentSearchParams[`${key}__icontains`] = value;
+            currentSearchParams[columnDef.filterKey || `${key}__icontains`] = value;
           } else {
-            currentSearchParams[key] = value;
+            currentSearchParams[columnDef?.filterKey || key] = value;
           }
         }
       });

@@ -14,12 +14,19 @@ import {
 } from "../../../api/routeManagerApi/customRouteApi";
 import { getVendorsApi } from "../../../api/connectivityApi/vendorApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
+import { getOperatorNetworkCodelookupApi } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
+import { findVendorRateApi } from "../../../api/rateApi/vendorRateApi";
 import { toast } from "react-toastify";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
+import Input from "../../ui/Input"; 
+import { StatusBadge } from "../../ui/StatusBadge"; 
+import { EditableCell } from "../../ui/EditableCell";
+import ContextMenu, { type ContextMenuItem } from "../../ui/ContextMenu";
 import {
   Plus,
   Trash2,
+  Trash,
   ChevronDown,
   ChevronUp,
   Save,
@@ -37,6 +44,7 @@ interface NewRow {
   priority: string;
   trafficPercentage: string;
   status: string;
+  vendorRate?: string;
 }
 
 interface Section {
@@ -69,6 +77,12 @@ const statusOptions = [
   { label: "Inactive", value: "INACTIVE" },
 ];
 
+const configFilterOptions = [
+  { label: "All Types", value: "ALL" },
+  { label: "Priority", value: "PRIORITY" },
+  { label: "Percentage", value: "PERCENTAGE" },
+];
+
 const emptyRow = (): NewRow => ({
   _id: String(Date.now() + Math.random()),
   MCC: "",
@@ -78,16 +92,6 @@ const emptyRow = (): NewRow => ({
   trafficPercentage: "",
   status: "ACTIVE",
 });
-
-const makeSections = (configs: RouteGroupCountryData[]): Section[] =>
-  configs.map((cfg) => ({
-    config: cfg,
-    routes: [],
-    loading: false,
-    newRows: [],
-    isOpen: false,
-    saving: false,
-  }));
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -104,8 +108,17 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   const [vendorOptions, setVendorOptions] = useState<{ label: string; value: string }[]>([]);
   const [countryOptions, setCountryOptions] = useState<{ label: string; value: string }[]>([]);
 
+  // ── MCC / MNC options per country (NEW) ─────────────────────────────────
+  const [networkCodesByCountry, setNetworkCodesByCountry] = useState<
+    Record<
+      string,
+      { mccOptions: { label: string; value: string }[]; mncOptions: { label: string; value: string }[] }
+    >
+  >({});
+
   // ── Country-config section ──────────────────────────────────────────────
   const [configSectionOpen, setConfigSectionOpen] = useState(false);
+  const [configFilter, setConfigFilter] = useState("ALL");
   const [newCountry, setNewCountry] = useState("");
   const [newRoutingType, setNewRoutingType] = useState("PRIORITY");
   const [newConfigStatus, setNewConfigStatus] = useState("ACTIVE");
@@ -116,6 +129,37 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   const [sections, setSections] = useState<Section[]>([]);
   const [deleteRouteId, setDeleteRouteId] = useState<number | null>(null);
   const [deleteRouteCountry, setDeleteRouteCountry] = useState<string>("");
+  const [activeCellId, setActiveCellId] = useState<string | null>(null);
+
+  // ── Route row context menu ──────────────────────────────────────────────
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<CustomRouteData | null>(null);
+  const [selectedRouteCountryId, setSelectedRouteCountryId] = useState<string>("");
+
+  const handleRouteContextMenu = (e: React.MouseEvent, route: CustomRouteData, countryId: string) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setSelectedRoute(route);
+    setSelectedRouteCountryId(countryId);
+  };
+
+  const routeMenuItems: ContextMenuItem[] = selectedRoute
+    ? [
+        ...(canDelete
+          ? [
+              {
+                label: "Delete Route",
+                icon: <Trash size={16} />,
+                variant: "danger" as const,
+                onClick: () => {
+                  setDeleteRouteId(selectedRoute.id!);
+                  setDeleteRouteCountry(selectedRouteCountryId);
+                },
+              },
+            ]
+          : []),
+      ]
+    : [];
 
   // ── Fetch configs ───────────────────────────────────────────────────────
   const fetchConfigs = useCallback(async () => {
@@ -126,7 +170,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       });
       const results: RouteGroupCountryData[] = res.results || [];
       setSections((prev) => {
-        // Merge: keep existing sections' routes/rows/isOpen, add new configs, remove stale
         const prevMap = new Map(prev.map((s) => [String(s.config.country), s]));
         return results.map((cfg) => {
           const existing = prevMap.get(String(cfg.country));
@@ -162,13 +205,15 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           routeGroup__name: routeGroup,
           country: countryId,
         });
+        const fetchedRoutes = res.results || [];
         setSections((prev) =>
           prev.map((s) =>
             String(s.config.country) === countryId
-              ? { ...s, routes: res.results || [], loading: false }
+              ? { ...s, routes: fetchedRoutes, loading: false }
               : s,
           ),
         );
+        // vendorRate is already included in the routes API response, no extra fetch needed
       } catch {
         toast.error("Failed to load routes.");
         setSections((prev) =>
@@ -181,10 +226,43 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     [routeGroup, moduleName],
   );
 
+  // ── Fetch MCC / MNC options for one country (NEW) ───────────────────────
+  const fetchNetworkCodesForCountry = useCallback(
+    async (countryId: string, countryName: string) => {
+      if (!countryId || !countryName) return;
+      setNetworkCodesByCountry((prev) => {
+        if (prev[countryId]) return prev; // already loaded, skip refetch
+        return prev;
+      });
+
+      try {
+        const res = await getOperatorNetworkCodelookupApi(1, 1000, {
+          country__name: countryName,
+        });
+        const list = res.results || (Array.isArray(res) ? res : []);
+
+        const uniqueMccs = Array.from(new Set(list.map((item: any) => item.MCC))).filter(Boolean);
+        const uniqueMncs = Array.from(new Set(list.map((item: any) => item.MNC))).filter(Boolean);
+
+        setNetworkCodesByCountry((prev) => ({
+          ...prev,
+          [countryId]: {
+            mccOptions: uniqueMccs.map((mcc) => ({ label: String(mcc), value: String(mcc) })),
+            mncOptions: uniqueMncs.map((mnc) => ({ label: String(mnc), value: String(mnc) })),
+          },
+        }));
+      } catch (err) {
+        console.error("Failed to fetch MCC/MNC options:", err);
+      }
+    },
+    [],
+  );
+
   // ── Init ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) {
       setSections([]);
+      setNetworkCodesByCountry({});
       return;
     }
     fetchConfigs();
@@ -208,12 +286,16 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       prev.map((s) => {
         if (String(s.config.country) !== countryId) return s;
         if (!s.isOpen && s.routes.length === 0 && !s.loading) {
-          // First open: fetch routes
           fetchSectionRoutes(countryId);
         }
         return { ...s, isOpen: !s.isOpen };
       }),
     );
+    // NEW: lazily load MCC/MNC options for this country when its section is opened
+    const section = sections.find((s) => String(s.config.country) === countryId);
+    if (section && section.config.countryName) {
+      fetchNetworkCodesForCountry(countryId, section.config.countryName);
+    }
   };
 
   // ── Config management ───────────────────────────────────────────────────
@@ -278,24 +360,153 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }
   };
 
-  // ── Status inline edit ──────────────────────────────────────────────────
-  const handleStatusChange = async (countryId: string, routeId: number, newStatus: string) => {
+  // ── Generic inline cell edit (mirrors SubRouteEditableTable's handleInlineSave) ──
+  const handleInlineSave = async (
+    countryId: string,
+    routeId: number,
+    field: keyof CustomRouteData,
+    newValue: string,
+  ) => {
+    setActiveCellId(null);
+    const section = sections.find((s) => String(s.config.country) === countryId);
+    const originalRoute = section?.routes.find((r) => r.id === routeId);
+    if (!originalRoute || String((originalRoute as any)[field]) === newValue) return;
+
+    setSections((prev) =>
+      prev.map((s) =>
+        String(s.config.country) === countryId
+          ? {
+              ...s,
+              routes: s.routes.map((r) =>
+                r.id === routeId ? { ...r, [field]: newValue } : r,
+              ),
+            }
+          : s,
+      ),
+    );
+
     try {
-      await updateCustomRouteApi(routeId, { status: newStatus }, moduleName);
+      await updateCustomRouteApi(routeId, { [field]: newValue }, moduleName);
+      toast.success(`Updated ${field}`);
+      if (field === "MCC" || field === "MNC" || field === "terminatingVendor") {
+        const updatedRoute = { ...originalRoute, [field]: newValue } as any;
+        fetchExistingRouteVendorRate(countryId, routeId, {
+          MCC: updatedRoute.MCC,
+          MNC: updatedRoute.MNC,
+          terminatingVendor: updatedRoute.terminatingVendor,
+        });
+      }
+    } catch {
+      toast.error(`Failed to update ${field}`);
       setSections((prev) =>
         prev.map((s) =>
           String(s.config.country) === countryId
             ? {
                 ...s,
                 routes: s.routes.map((r) =>
-                  r.id === routeId ? { ...r, status: newStatus as "ACTIVE" | "INACTIVE" } : r,
+                  r.id === routeId ? { ...r, [field]: (originalRoute as any)[field] } : r,
                 ),
               }
             : s,
         ),
       );
-    } catch {
-      toast.error("Failed to update status.");
+    }
+  };
+
+  // ── Fetch Vendor Rate Inline ────────────────────────────────────────────
+  const fetchInlineVendorRate = async (countryId: string, rowId: string, rowData: NewRow) => {
+    if (!rowData.MCC || !rowData.MNC || !rowData.terminatingVendor) {
+      setSections((prev) =>
+        prev.map((s) =>
+          String(s.config.country) === countryId
+            ? {
+                ...s,
+                newRows: s.newRows.map((r) =>
+                  r._id === rowId ? { ...r, vendorRate: undefined } : r,
+                ),
+              }
+            : s,
+        ),
+      );
+      return;
+    }
+
+    try {
+      const res = await findVendorRateApi({
+        terminatingVendor: rowData.terminatingVendor,
+        MCC: rowData.MCC,
+        MNC: rowData.MNC,
+      });
+      const results = res.results || (Array.isArray(res) ? res : []);
+      const matchedRate = results.length > 0 ? String(results[0].rate) : "N/A";
+
+      setSections((prev) =>
+        prev.map((s) =>
+          String(s.config.country) === countryId
+            ? {
+                ...s,
+                newRows: s.newRows.map((r) =>
+                  r._id === rowId ? { ...r, vendorRate: matchedRate } : r,
+                ),
+              }
+            : s,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to fetch inline rate:", err);
+      setSections((prev) =>
+        prev.map((s) =>
+          String(s.config.country) === countryId
+            ? {
+                ...s,
+                newRows: s.newRows.map((r) =>
+                  r._id === rowId ? { ...r, vendorRate: "Error" } : r,
+                ),
+              }
+            : s,
+        ),
+      );
+    }
+  };
+
+  // ── Fetch Vendor Rate for an existing (saved) route after inline edit ──────
+  const fetchExistingRouteVendorRate = async (countryId: string, routeId: number, routeData: { MCC?: string; MNC?: string; terminatingVendor?: any }) => {
+    if (!routeData.MCC || !routeData.MNC || !routeData.terminatingVendor) {
+      setSections((prev) =>
+        prev.map((s) =>
+          String(s.config.country) === countryId
+            ? { ...s, routes: s.routes.map((r) => (r.id === routeId ? { ...r, vendorRate: undefined } as any : r)) }
+            : s,
+        ),
+      );
+      return;
+    }
+
+    try {
+      const res = await findVendorRateApi({
+        terminatingVendor: routeData.terminatingVendor,
+        MCC: routeData.MCC,
+        MNC: routeData.MNC,
+      });
+      const results = res.results || (Array.isArray(res) ? res : []);
+      const matchedRate = results.length > 0 ? String(results[0].rate) : "N/A";
+
+      setSections((prev) =>
+        prev.map((s) =>
+          String(s.config.country) === countryId
+            ? { ...s, routes: s.routes.map((r) => (r.id === routeId ? { ...r, vendorRate: matchedRate } as any : r)) }
+            : s,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to fetch vendor rate:", err);
+      setSections((prev) =>
+        prev.map((s) =>
+          String(s.config.country) === countryId
+            ? { ...s, routes: s.routes.map((r) => (r.id === routeId ? { ...r, vendorRate: "Error" } as any : r)) }
+            : s,
+        ),
+      );
     }
   };
 
@@ -309,17 +520,26 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       ),
     );
 
-  const updateRow = (countryId: string, rowId: string, field: keyof NewRow, value: string) =>
+  const updateRow = (countryId: string, rowId: string, field: keyof NewRow, value: string) => {
     setSections((prev) =>
-      prev.map((s) =>
-        String(s.config.country) === countryId
-          ? {
-              ...s,
-              newRows: s.newRows.map((r) => (r._id === rowId ? { ...r, [field]: value } : r)),
+      prev.map((s) => {
+        if (String(s.config.country) !== countryId) return s;
+        
+        const updatedRows = s.newRows.map((r) => {
+          if (r._id === rowId) {
+            const updatedRow = { ...r, [field]: value };
+            if (field === "MCC" || field === "MNC" || field === "terminatingVendor") {
+              fetchInlineVendorRate(countryId, rowId, updatedRow);
             }
-          : s,
-      ),
+            return updatedRow;
+          }
+          return r;
+        });
+
+        return { ...s, newRows: updatedRows };
+      }),
     );
+  };
 
   const removeRow = (countryId: string, rowId: string) =>
     setSections((prev) =>
@@ -401,7 +621,10 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const filteredSections = sections.filter(
+    (s) => configFilter === "ALL" || s.config.routingType === configFilter
+  );
+
   return (
     <>
       <Modal
@@ -410,13 +633,13 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         title={`Manage Route Group: ${routeGroup || ""}`}
         className="max-w-[95vw] w-full"
       >
-        <div className="p-4 flex flex-col gap-4">
+        <div className="p-4 flex flex-col gap-5">
 
           {/* ── Country Config (collapsible) ─────────────────────────────── */}
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="border-2 border-primary/20 dark:border-primary/30 rounded-xl overflow-hidden bg-primary/[0.03] dark:bg-primary/[0.06] shadow-sm">
             <button
               type="button"
-              className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3 bg-primary/[0.07] dark:bg-primary/[0.12] text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-primary/[0.11] dark:hover:bg-primary/[0.16] transition-colors"
               onClick={() => setConfigSectionOpen((o) => !o)}
             >
               <span className="flex items-center gap-2">
@@ -436,61 +659,101 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
             </button>
 
             {configSectionOpen && (
-              <div className="p-4 space-y-3 bg-white dark:bg-gray-900">
-                {sections.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {sections.map((s) => (
-                      <div
-                        key={s.config.id}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium ${
-                          s.config.routingType === "PERCENTAGE"
-                            ? "bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/20 dark:border-purple-700 dark:text-purple-300"
-                            : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300"
-                        }`}
-                      >
-                        <span>{s.config.countryName}</span>
-                        <span className="text-xs opacity-60">({s.config.routingType})</span>
-                        {canUpdate && (
-                          <button
-                            type="button"
-                            onClick={() => setDeleteConfigId(s.config.id!)}
-                            className="ml-1 opacity-50 hover:opacity-100 transition-opacity"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        )}
+              <div className="p-4 space-y-5 bg-white dark:bg-gray-900 border-t border-primary/10 dark:border-primary/20">
+                
+                {/* --- ADD NEW CONFIG AREA --- */}
+                {canUpdate && availableCountries.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <h4 className="text-sm font-semibold text-primary">Add Country Config</h4>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div className="w-56">
+                        <Select label="Country" value={newCountry} onChange={setNewCountry} options={availableCountries} placeholder="Select Country" />
                       </div>
-                    ))}
+                      <div className="w-40">
+                        <Select label="Routing Type" value={newRoutingType} onChange={setNewRoutingType} options={routingTypeOptions} />
+                      </div>
+                      <div className="w-32">
+                        <Select label="Status" value={newConfigStatus} onChange={setNewConfigStatus} options={statusOptions} />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        onClick={handleAddConfig}
+                        disabled={isAddingConfig || !newCountry}
+                        leftIcon={<Plus size={14} />}
+                        className="mb-[2px] h-[38px] text-sm px-4"
+                      >
+                        {isAddingConfig ? "Adding…" : "Add Config"}
+                      </Button>
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-400 text-center py-1">No countries configured yet.</p>
                 )}
 
+                {/* --- SEPARATOR --- */}
                 {canUpdate && availableCountries.length > 0 && (
-                  <div className="flex flex-wrap items-end gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
-                    <div className="w-44">
-                      <Select label="Country" value={newCountry} onChange={setNewCountry} options={availableCountries} placeholder="Select Country" />
-                    </div>
-                    <div className="w-36">
-                      <Select label="Routing Type" value={newRoutingType} onChange={setNewRoutingType} options={routingTypeOptions} />
-                    </div>
-                    <div className="w-32">
-                      <Select label="Status" value={newConfigStatus} onChange={setNewConfigStatus} options={statusOptions} />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="primary"
-                      onClick={handleAddConfig}
-                      disabled={isAddingConfig || !newCountry}
-                      leftIcon={<Plus size={14} />}
-                      className="text-sm py-[9px] px-4 mb-[2px]"
-                    >
-                      {isAddingConfig ? "Adding…" : "Add"}
-                    </Button>
-                  </div>
+                  <hr className="border-gray-200 dark:border-gray-700" />
                 )}
+
+                {/* --- CONFIGURED COUNTRIES CHIPS --- */}
+                <div className="flex flex-col gap-3">
+                  {sections.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {filteredSections.map((s) => (
+                        <div
+                          key={s.config.id}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium ${
+                            s.config.routingType === "PERCENTAGE"
+                              ? "bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/20 dark:border-purple-700 dark:text-purple-300"
+                              : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300"
+                          }`}
+                        >
+                          <span>{s.config.countryName}</span>
+                          <span className="text-xs opacity-60">({s.config.routingType})</span>
+                          {canUpdate && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfigId(s.config.id!)}
+                              className="ml-1 opacity-50 hover:opacity-100 transition-opacity"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {filteredSections.length === 0 && (
+                        <p className="text-sm text-gray-400 py-1">No countries match the selected filter.</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+                       <p className="text-sm text-gray-400">No countries configured yet.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
+          </div>
+
+          {/* ── Type filter (outside config panel) ──────────────────────────── */}
+          <div className="flex justify-end -mt-2">
+            <div className="w-40 config-filter-wrapper">
+              <Select
+                label=""
+                value={configFilter}
+                onChange={(val) => setConfigFilter(val || "ALL")}
+                options={configFilterOptions}
+                placement="bottom"
+              />
+            </div>
+          </div>
+
+          {/* ── Divider between config panel and country sections ──────────── */}
+          <div className="flex items-center gap-3 mt-1">
+            <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              Routes by Country
+            </span>
+            <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           </div>
 
           {/* ── Per-country sections ───────────────────────────────────────── */}
@@ -501,9 +764,13 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
               </div>
             )}
 
-            {sections.map((section) => {
+            {filteredSections.map((section) => {
               const countryId = String(section.config.country);
               const isPercentage = section.config.routingType === "PERCENTAGE";
+
+              // NEW: MCC/MNC options for this section's country
+              const mccOptions = networkCodesByCountry[countryId]?.mccOptions || [];
+              const mncOptions = networkCodesByCountry[countryId]?.mncOptions || [];
 
               const existingActiveTotal = section.routes
                 .filter((r) => r.status === "ACTIVE")
@@ -518,7 +785,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
               return (
                 <div
                   key={countryId}
-                  className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg"
                 >
                   {/* Section header */}
                   <div
@@ -562,14 +829,15 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                     </div>
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       {canUpdate && section.isOpen && (
-                        <button
+                        <Button
                           type="button"
+                          variant="secondary"
                           onClick={() => addRow(countryId)}
-                          className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 border border-primary/30 hover:border-primary/60 rounded px-2 py-1 transition-colors"
+                          leftIcon={<Plus size={12} />}
+                          className="text-xs py-1 px-2 h-auto min-h-0 bg-transparent border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/60 hover:text-primary transition-colors"
                         >
-                          <Plus size={12} />
                           Add Route
-                        </button>
+                        </Button>
                       )}
                       <button
                         type="button"
@@ -584,28 +852,28 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                   {/* Section body */}
                   {section.isOpen && (
                     <div className="bg-white dark:bg-gray-900">
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm border-separate border-spacing-0">
-                          <thead className="bg-gray-50 dark:bg-gray-800/80 text-xs text-gray-500 dark:text-gray-400">
+                      <div className="overflow-x-auto custom-grid-scroll">
+                        <table className="min-w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
+                          <thead className="bg-gray-100 dark:bg-gray-800 text-text-secondary dark:text-gray-300 shadow-sm">
                             <tr>
-                              <th className="px-3 py-2 text-left font-semibold border-b border-r dark:border-gray-700 w-10">#</th>
-                              <th className="px-3 py-2 text-left font-semibold border-b border-r dark:border-gray-700">MCC</th>
-                              <th className="px-3 py-2 text-left font-semibold border-b border-r dark:border-gray-700">MNC</th>
-                              <th className="px-3 py-2 text-left font-semibold border-b border-r dark:border-gray-700 min-w-[180px]">Terminating Vendor</th>
-                              <th className="px-3 py-2 text-left font-semibold border-b border-r dark:border-gray-700 w-28">
+                              <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-10">#</th>
+                              <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-24">MCC</th>
+                              <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-24">MNC</th>
+                              <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-48">Terminating Vendor</th>
+                              <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-28">
                                 {isPercentage ? "Traffic %" : "Priority"}
                               </th>
-                              <th className="px-3 py-2 text-left font-semibold border-b border-r dark:border-gray-700 w-28">Vendor Rate</th>
-                              <th className="px-3 py-2 text-left font-semibold border-b dark:border-gray-700 w-28">Status</th>
+                              <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-28">Vendor Rate</th>
+                              <th className="px-3 py-2 font-bold text-left border-b dark:border-gray-600 w-32">Status</th>
                               {(canUpdate || canDelete) && (
-                                <th className="px-3 py-2 text-center font-semibold border-b border-l dark:border-gray-700 w-16">Action</th>
+                                <th className="px-3 py-2 font-bold text-center border-b border-l dark:border-gray-600 w-16">Action</th>
                               )}
                             </tr>
                           </thead>
                           <tbody>
                             {section.loading && (
                               <tr>
-                                <td colSpan={8} className="px-4 py-6 text-center text-gray-400 animate-pulse">
+                                <td colSpan={(canUpdate || canDelete) ? 8 : 7} className="px-4 py-6 text-center text-gray-400 animate-pulse bg-white dark:bg-gray-900">
                                   Loading…
                                 </td>
                               </tr>
@@ -616,45 +884,89 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                               section.routes.map((route, i) => (
                                 <tr
                                   key={route.id}
-                                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                                  onContextMenu={canDelete ? (e) => handleRouteContextMenu(e, route, countryId) : undefined}
+                                  className={`hover:bg-blue-50/40 dark:hover:bg-primary/5 transition-colors ${canDelete ? "cursor-context-menu" : ""}`}
                                 >
-                                  <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 text-gray-400 text-xs">{i + 1}</td>
-                                  <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 font-mono text-xs text-gray-700 dark:text-gray-300">{route.MCC || "—"}</td>
-                                  <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 font-mono text-xs text-gray-700 dark:text-gray-300">{route.MNC || "—"}</td>
-                                  <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 text-gray-800 dark:text-gray-200">{route.terminatingVendorProfileName || "—"}</td>
-                                  <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 text-center font-medium text-gray-700 dark:text-gray-300">
-                                    {isPercentage ? (route.trafficPercentage != null ? `${route.trafficPercentage}%` : "—") : (route.priority ?? "—")}
+                                  <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 text-gray-400 text-xs bg-gray-50/50 dark:bg-gray-800/20">{i + 1}</td>
+                                  <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w-24 max-w-[6rem]">
+                                    <EditableCell
+                                      value={route.MCC || ""}
+                                      type="select"
+                                      options={mccOptions}
+                                      onSave={(val) => handleInlineSave(countryId, route.id!, "MCC", val)}
+                                      disabled={!canUpdate}
+                                      isEditing={activeCellId === `${route.id}-MCC`}
+                                      onEditStart={() => setActiveCellId(`${route.id}-MCC`)}
+                                      onEditEnd={() => setActiveCellId(null)}
+                                    />
                                   </td>
-                                  <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 text-xs text-green-700 dark:text-green-400 font-mono">
+                                  <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w-24 max-w-[6rem]">
+                                    <EditableCell
+                                      value={route.MNC || ""}
+                                      type="select"
+                                      options={mncOptions}
+                                      onSave={(val) => handleInlineSave(countryId, route.id!, "MNC", val)}
+                                      disabled={!canUpdate}
+                                      isEditing={activeCellId === `${route.id}-MNC`}
+                                      onEditStart={() => setActiveCellId(`${route.id}-MNC`)}
+                                      onEditEnd={() => setActiveCellId(null)}
+                                    />
+                                  </td>
+                                  <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w-48 max-w-[12rem]">
+                                    <EditableCell
+                                      value={String(route.terminatingVendor ?? "")}
+                                      type="select"
+                                      options={vendorOptions}
+                                      onSave={(val) => handleInlineSave(countryId, route.id!, "terminatingVendor", val)}
+                                      disabled={!canUpdate}
+                                      isEditing={activeCellId === `${route.id}-vendor`}
+                                      onEditStart={() => setActiveCellId(`${route.id}-vendor`)}
+                                      onEditEnd={() => setActiveCellId(null)}
+                                    />
+                                  </td>
+                                  <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w-28 max-w-[7rem]">
+                                    <EditableCell
+                                      value={String(isPercentage ? (route.trafficPercentage ?? "") : (route.priority ?? ""))}
+                                      type="number"
+                                      onSave={(val) =>
+                                        handleInlineSave(countryId, route.id!, isPercentage ? "trafficPercentage" : "priority", val)
+                                      }
+                                      disabled={!canUpdate}
+                                      isEditing={activeCellId === `${route.id}-priorityField`}
+                                      onEditStart={() => setActiveCellId(`${route.id}-priorityField`)}
+                                      onEditEnd={() => setActiveCellId(null)}
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 font-mono">
                                     {(route as any).vendorRate ?? <span className="text-gray-400">—</span>}
                                   </td>
-                                  <td className="px-3 py-2.5 border-b dark:border-gray-700">
+                                  <td className="p-1.5 border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w-32 max-w-[8rem]">
                                     {canUpdate ? (
-                                      <select
+                                      <EditableCell
                                         value={route.status}
-                                        onChange={(e) =>
-                                          handleStatusChange(countryId, route.id!, e.target.value)
-                                        }
-                                        className="text-xs border border-gray-200 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
-                                      >
-                                        <option value="ACTIVE">Active</option>
-                                        <option value="INACTIVE">Inactive</option>
-                                      </select>
+                                        type="select"
+                                        options={statusOptions}
+                                        onSave={(val) => handleInlineSave(countryId, route.id!, "status", val)}
+                                        disabled={!canUpdate}
+                                        isEditing={activeCellId === `${route.id}-status`}
+                                        onEditStart={() => setActiveCellId(`${route.id}-status`)}
+                                        onEditEnd={() => setActiveCellId(null)}
+                                      />
                                     ) : (
-                                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${route.status === "ACTIVE" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"}`}>
-                                        {route.status}
-                                      </span>
+                                      <StatusBadge status={route.status} />
                                     )}
                                   </td>
                                   {(canUpdate || canDelete) && (
                                     <td className="px-3 py-2.5 border-b border-l dark:border-gray-700 text-center">
                                       {canDelete && (
                                         <button
+                                          type="button"
                                           onClick={() => {
                                             setDeleteRouteId(route.id!);
                                             setDeleteRouteCountry(countryId);
                                           }}
                                           className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"
+                                          title="Delete Route"
                                         >
                                           <Trash2 size={14} />
                                         </button>
@@ -670,61 +982,70 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                 <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-blue-400 text-xs">
                                   {section.routes.length + i + 1}
                                 </td>
-                                <td className="px-2 py-1.5 border-b border-r dark:border-gray-700">
-                                  <input
-                                    type="text"
-                                    value={row.MCC}
-                                    onChange={(e) => updateRow(countryId, row._id, "MCC", e.target.value)}
-                                    placeholder="e.g. 520"
-                                    className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-gray-300"
-                                  />
+                                <td className="px-2 py-1.5 border-b border-r dark:border-gray-700 min-w-[110px]">
+                                  <div className="inline-table-field">
+                                    <Select
+                                      label=""
+                                      value={row.MCC}
+                                      onChange={(val) => updateRow(countryId, row._id, "MCC", val)}
+                                      options={mccOptions}
+                                      placeholder="MCC"
+                                      placement="bottom"
+                                    />
+                                  </div>
                                 </td>
-                                <td className="px-2 py-1.5 border-b border-r dark:border-gray-700">
-                                  <input
-                                    type="text"
-                                    value={row.MNC}
-                                    onChange={(e) => updateRow(countryId, row._id, "MNC", e.target.value)}
-                                    placeholder="e.g. 66"
-                                    className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-gray-300"
-                                  />
+                                <td className="px-2 py-1.5 border-b border-r dark:border-gray-700 min-w-[110px]">
+                                  <div className="inline-table-field">
+                                    <Select
+                                      label=""
+                                      value={row.MNC}
+                                      onChange={(val) => updateRow(countryId, row._id, "MNC", val)}
+                                      options={mncOptions}
+                                      placeholder="MNC"
+                                      placement="bottom"
+                                    />
+                                  </div>
                                 </td>
                                 <td className="px-2 py-1.5 border-b border-r dark:border-gray-700 min-w-[160px]">
-                                  <select
-                                    value={row.terminatingVendor}
-                                    onChange={(e) => updateRow(countryId, row._id, "terminatingVendor", e.target.value)}
-                                    className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary"
-                                  >
-                                    <option value="">Select vendor…</option>
-                                    {vendorOptions.map((v) => (
-                                      <option key={v.value} value={v.value}>{v.label}</option>
-                                    ))}
-                                  </select>
+                                  <div className="inline-table-field">
+                                    <Select
+                                      label=""
+                                      value={row.terminatingVendor}
+                                      onChange={(val) => updateRow(countryId, row._id, "terminatingVendor", val)}
+                                      options={vendorOptions}
+                                      placeholder="Select vendor…"
+                                      placement="bottom"
+                                    />
+                                  </div>
                                 </td>
                                 <td className="px-2 py-1.5 border-b border-r dark:border-gray-700">
-                                  <input
-                                    type="number"
-                                    value={isPercentage ? row.trafficPercentage : row.priority}
-                                    onChange={(e) =>
-                                      updateRow(countryId, row._id, isPercentage ? "trafficPercentage" : "priority", e.target.value)
-                                    }
-                                    placeholder={isPercentage ? "0–100" : "1–5"}
-                                    min={isPercentage ? 0 : 1}
-                                    max={isPercentage ? 100 : 5}
-                                    className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-gray-300"
-                                  />
+                                  <div className="inline-table-field">
+                                    <Input
+                                      label=""
+                                      type="number"
+                                      value={isPercentage ? row.trafficPercentage : row.priority}
+                                      onChange={(e) =>
+                                        updateRow(countryId, row._id, isPercentage ? "trafficPercentage" : "priority", e.target.value)
+                                      }
+                                      placeholder={isPercentage ? "0–100" : "1–5"}
+                                    />
+                                  </div>
                                 </td>
-                                <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-400">—</td>
+                                <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-500 font-mono">
+                                  {row.vendorRate ? (row.vendorRate === "N/A" || row.vendorRate === "Error" ? <span className="text-red-400">{row.vendorRate}</span> : <span>{row.vendorRate}</span>) : "—"}
+                                </td>
                                 <td className="px-2 py-1.5 border-b dark:border-gray-700">
-                                  <select
-                                    value={row.status}
-                                    onChange={(e) => updateRow(countryId, row._id, "status", e.target.value)}
-                                    className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary"
-                                  >
-                                    <option value="ACTIVE">Active</option>
-                                    <option value="INACTIVE">Inactive</option>
-                                  </select>
+                                  <div className="inline-table-field min-w-[110px]">
+                                    <Select
+                                      label=""
+                                      value={row.status}
+                                      onChange={(val) => updateRow(countryId, row._id, "status", val)}
+                                      options={statusOptions}
+                                      placement="bottom"
+                                    />
+                                  </div>
                                 </td>
-                                {(canUpdate || canDelete) && (
+                                {canUpdate && (
                                   <td className="px-3 py-1.5 border-b border-l dark:border-gray-700 text-center">
                                     <button
                                       onClick={() => removeRow(countryId, row._id)}
@@ -740,7 +1061,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                             {/* Empty state */}
                             {!section.loading && section.routes.length === 0 && section.newRows.length === 0 && (
                               <tr>
-                                <td colSpan={8} className="px-4 py-5 text-center text-gray-400 dark:text-gray-500 text-xs">
+                                <td colSpan={canUpdate ? 8 : 7} className="px-4 py-5 text-center text-gray-400 dark:text-gray-500 text-xs">
                                   No routes yet.{canUpdate && " Click \"Add Route\" to create one."}
                                 </td>
                               </tr>
@@ -773,6 +1094,12 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
             })}
           </div>
         </div>
+
+        <ContextMenu
+          position={contextMenuPos}
+          items={routeMenuItems}
+          onClose={() => { setContextMenuPos(null); setSelectedRoute(null); }}
+        />
       </Modal>
 
       <DeleteModal
@@ -790,6 +1117,24 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         title="Remove Country"
         message="Remove this country's routing configuration? Its routes will no longer be active."
       />
+
+      {/* Scoped CSS for inline table form components */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .inline-table-field label { display: none !important; }
+        .inline-table-field > div { margin-bottom: 0 !important; }
+        .inline-table-field input, .inline-table-field select, .inline-table-field button {
+          min-height: 32px !important; height: 32px !important; padding-top: 2px !important;
+          padding-bottom: 2px !important; padding-left: 8px !important; padding-right: 8px !important;
+          font-size: 13px !important; border-radius: 4px !important;
+        }
+        .config-filter-wrapper label { display: none !important; }
+        .config-filter-wrapper > div { margin-bottom: 0 !important; }
+        .custom-grid-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-grid-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .dark .custom-grid-scroll::-webkit-scrollbar-track { background: #1f2937; }
+        .custom-grid-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-grid-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+      `}} />
     </>
   );
 };
