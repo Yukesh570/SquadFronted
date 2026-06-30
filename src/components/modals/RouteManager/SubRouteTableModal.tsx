@@ -396,8 +396,17 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           terminatingVendor: updatedRoute.terminatingVendor,
         });
       }
-    } catch {
-      toast.error(`Failed to update ${field}`);
+    } catch (err: any) {
+      const data = err.response?.data;
+      if (data?.error) {
+        toast.error(data.error);
+      } else if (data && typeof data === "object" && !Array.isArray(data)) {
+        Object.entries(data).forEach(([k, msgs]) =>
+          toast.error(`${k}: ${Array.isArray(msgs) ? msgs[0] : String(msgs)}`),
+        );
+      } else {
+        toast.error(`Failed to update ${field}`);
+      }
       setSections((prev) =>
         prev.map((s) =>
           String(s.config.country) === countryId
