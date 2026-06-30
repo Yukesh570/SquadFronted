@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from "react";
 import Modal from "../../ui/Modal";
 import { DeleteModal } from "../DeleteModal";
-import { 
-  deleteCustomerRateApi, 
-  getCustomerRatesApi 
+import {
+  deleteCustomerRateApi,
+  getCustomerRatesApi,
+  getCustomerRatesPerMNCMCCApi
 } from "../../../api/rateApi/customerRateApi";
-import { CustomerRateModal } from "./CustomerRateModal"; 
+import { CustomerRateModal } from "./CustomerRateModal";
 import { RateVersionTableModal } from "./RateVersionTableModal";
 import { toast } from "react-toastify";
-import Button from "../../ui/Button"; 
-import { Plus, Edit, Trash, Layers } from "lucide-react"; 
+import Button from "../../ui/Button";
+import { Plus, Edit, Trash, Layers } from "lucide-react";
 import { StatusBadge } from "../../ui/StatusBadge";
 import ContextMenu, { type ContextMenuItem } from "../../ui/ContextMenu";
 
@@ -17,7 +18,7 @@ interface CustomerRateTableModalProps {
   isOpen: boolean;
   onClose: () => void;
   rateGroup: string | null;
-  rateGroupId?: number | null; 
+  rateGroupId?: number | null;
   moduleName: string;
   canUpdate: boolean;
   canDelete: boolean;
@@ -28,7 +29,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
   isOpen,
   onClose,
   rateGroup,
-  rateGroupId, 
+  rateGroupId,
   moduleName,
   canUpdate,
   canDelete,
@@ -40,7 +41,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
-  
+
   // ⚡️ FIX: Added state to hold the specific rate we want versions for
   const [versionTargetRate, setVersionTargetRate] = useState<any>(null);
 
@@ -64,17 +65,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
       const res = await getCustomerRatesApi(moduleName, 1, 1000, { rateGroup__name: rateGroup });
       const list = res.results || (Array.isArray(res) ? res : []);
 
-      // Group by country/MCC/MNC combinations to get the highest version
-      const groupedMap = new Map<string, any>();
-      list.forEach((item: any) => {
-        const key = `${item.country}-${item.MCC}-${item.MNC}`;
-        const existing = groupedMap.get(key);
-        if (!existing || (item.version || 0) > (existing.version || 0)) {
-          groupedMap.set(key, item);
-        }
-      });
-
-      setLatestRates(Array.from(groupedMap.values()));
+      setLatestRates(list);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load rates.");
@@ -219,20 +210,20 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
         moduleName={moduleName}
         editingRate={editingRate}
         isViewMode={isViewMode}
-        rateGroupId={rateGroupId} 
+        rateGroupId={rateGroupId}
       />
 
       {/* Level 2: all versions */}
       <RateVersionTableModal
         isOpen={isVersionsModalOpen}
-        onClose={() => { 
-          setIsVersionsModalOpen(false); 
+        onClose={() => {
+          setIsVersionsModalOpen(false);
           setVersionTargetRate(null); // Clear target on close
         }}
         ratePlan={rateGroup}
         ratePlanFilter={versionTargetRate} // ⚡️ FIX: Pass the targeted rate object down
         moduleName={moduleName}
-        fetchApi={getCustomerRatesApi}
+        fetchApi={getCustomerRatesPerMNCMCCApi}
         deleteApi={deleteCustomerRateApi}
         countryMap={countryMap}
         isVendorMode={false}

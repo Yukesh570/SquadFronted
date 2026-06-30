@@ -31,14 +31,14 @@ interface ColumnConfig {
   key: string;
   label: string;
   type?:
-    | "text"
-    | "number"
-    | "boolean"
-    | "date"
-    | "date_range"
-    | "date_gt_lt"
-    | "number_range"
-    | "number_gt_lt";
+  | "text"
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_range"
+  | "date_gt_lt"
+  | "number_range"
+  | "number_gt_lt";
   render?: (data: any) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
@@ -53,9 +53,9 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["routeGroup__name", "countryConfigs", "status"];
+const DEFAULT_SEARCH_COLUMNS = ["name", "countryConfigs", "status"];
 const DEFAULT_TABLE_COLUMNS = [
-  "routeGroup__name",
+  "name",
   "countryConfigs",
   "status",
   "createdAt",
@@ -121,7 +121,7 @@ const CustomRoute: React.FC = () => {
 
   const allColumns: ColumnConfig[] = [
     {
-      key: "routeGroup__name",
+      key: "name",
       label: "Route Group",
       type: "text",
       filterKey: "name__icontains",
@@ -298,23 +298,23 @@ const CustomRoute: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowGroup
     ? [
-        {
-          label: "Manage Routes",
-          icon: <Layers size={16} />,
-          onClick: () => openSubTableModal(selectedRowGroup.routeGroup__name, selectedRowGroup.id),
-        },
-        ...(canUpdate
-          ? [
-              {
-                label: "Edit Route Group",
-                icon: <Edit size={16} />,
-                onClick: () => {
-                  setIsEditGroupModalOpen(true);
-                },
-              },
-            ]
-          : []),
-      ]
+      {
+        label: "Manage Routes",
+        icon: <Layers size={16} />,
+        onClick: () => openSubTableModal(selectedRowGroup.name, selectedRowGroup.id),
+      },
+      ...(canUpdate
+        ? [
+          {
+            label: "Edit Route Group",
+            icon: <Edit size={16} />,
+            onClick: () => {
+              setIsEditGroupModalOpen(true);
+            },
+          },
+        ]
+        : []),
+    ]
     : [];
 
   const tableHeaders = [
@@ -524,7 +524,7 @@ const CustomRoute: React.FC = () => {
                 );
                 cellData = match ? match.label : cellData;
               }
-              if (col.key === "routeGroup__name") {
+              if (col.key === "name") {
                 return (
                   <td
                     key={col.key}

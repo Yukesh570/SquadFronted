@@ -5,7 +5,7 @@ export interface CustomerRateData {
   country: number;
   countryName?: string;
   MCC: number;
-  MNC?: number; 
+  MNC?: number;
   countryCode: number;
   rate: number;
   remark: string;
@@ -92,6 +92,21 @@ export const getCustomerRatesApi = async (
     ...searchParams,
   };
   const response = await api.get(`/customerRate/${module}/`, { params });
+  return response.data;
+};
+
+export const getCustomerRatesPerMNCMCCApi = async (
+  module: string,
+  page: number = 1,
+  pageSize: number = 10,
+  searchParams?: Record<string, any>,
+): Promise<PaginatedResponse<CustomerRateData>> => {
+  const params: any = {
+    page: page,
+    page_size: pageSize,
+    ...searchParams,
+  };
+  const response = await api.get(`/customerRatePerQuery/${module}/`, { params });
   return response.data;
 };
 

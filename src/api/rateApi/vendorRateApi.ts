@@ -85,6 +85,21 @@ export const getVendorRatesApi = async (
   const response = await api.get(`/vendorRate/${module}/`, { params });
   return response.data;
 };
+export const getVendorRatesPerMNCMCCApi = async (
+  module: string,
+  page: number = 1,
+  pageSize: number = 10,
+  searchParams?: Record<string, any>,
+): Promise<PaginatedResponse<VendorRateData>> => {
+  const params: any = {
+    page: page,
+    page_size: pageSize,
+    ...searchParams,
+  };
+  const response = await api.get(`/vendorRatePerQuery/${module}/`, { params });
+  return response.data;
+};
+
 
 export const createVendorRateApi = async (
   data: any,
@@ -114,7 +129,7 @@ export const deleteVendorRateApi = async (
 export const importVendorRatesApi = async (
   file: File,
   mappingId: string,
-  rateGroupId: number, 
+  rateGroupId: number,
 ): Promise<{ task_id: string }> => {
   const formData = new FormData();
   formData.append("file", file);
