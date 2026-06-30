@@ -80,7 +80,7 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
         setAllMappings(list);
         setMappingOptions(
           list.map((m) => ({
-            label: m.name || m.ratePlan || String(m.id),
+            label: m.name || String(m.id), // ⚡️ FIX: Removed m.ratePlan dependency to fix TS Error 2339
             value: String(m.id),
           })),
         );
@@ -101,13 +101,13 @@ export const ImportVendorRateModal: React.FC<ImportVendorRateModalProps> = ({
       );
       if (selected) {
         setFormData({
-          country: selected.country,
-          countryCode: selected.countryCode,
-          network: selected.network,
-          MCC: selected.MCC,
-          MNC: selected.MNC,
-          rate: selected.rate,
-          effectiveFrom: selected.effectiveFrom,
+          country: selected.country || "",
+          countryCode: selected.countryCode || "",
+          network: selected.network || "",
+          MCC: selected.MCC || "",
+          MNC: selected.MNC || "",
+          rate: selected.rate || "",
+          effectiveFrom: selected.effectiveFrom || "",
         });
       }
     } else {
