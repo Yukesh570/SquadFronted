@@ -260,7 +260,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MNC" placeholder="Search..." value={columnFilters["MNC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px" /></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="countryCode" placeholder="Search..." value={columnFilters["countryCode"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="80px" /></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput type="number" fieldKey="rate" placeholder="Search..." value={columnFilters["rate"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px" /></th>
-                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput type="number" fieldKey="version" placeholder="Search..." value={columnFilters["version"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px" /></th>
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
                     <div className="filter-crt-wrapper" style={{ minWidth: "100px" }}>
                       <Select label="" value={columnFilters["status"] || ""} onChange={(val: string) => { handleFilterChange("status", val); setApiFilters((prev) => ({ ...prev, status: val })); setCurrentPage(1); }} options={[{ label: "All", value: "" }, ...statusOptions]} placeholder="All" placement="bottom" />
