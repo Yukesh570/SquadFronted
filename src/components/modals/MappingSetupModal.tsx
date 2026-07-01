@@ -89,10 +89,10 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
       toast.error("Country Code is required");
       return;
     }
-    if (!formData.timeZone.trim()) {
-      toast.error("TimeZone is required");
-      return;
-    }
+    // if (!formData.timeZone.trim()) {
+    //   toast.error("TimeZone is required");
+    //   return;
+    // }
     if (!formData.network.trim()) {
       toast.error("Network is required");
       return;
@@ -192,7 +192,6 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             name="timeZone"
             value={formData.timeZone}
             onChange={handleChange}
-            required
             disabled={isViewMode}
           />
           <Input

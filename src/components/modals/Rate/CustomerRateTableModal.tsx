@@ -8,9 +8,10 @@ import {
 } from "../../../api/rateApi/customerRateApi";
 import { CustomerRateModal } from "./CustomerRateModal";
 import { RateVersionTableModal } from "./RateVersionTableModal";
+import { ImportCustomerRateModal } from "./ImportCustomerratemodal";
 import { toast } from "react-toastify";
 import Button from "../../ui/Button"; 
-import { Plus, Edit, Trash, Layers, ChevronLeft, ChevronRight } from "lucide-react"; 
+import { Plus, Edit, Trash, Layers, Upload, ChevronLeft, ChevronRight } from "lucide-react"; 
 import Select from "../../ui/Select";
 import Input from "../../ui/Input";
 import DatePicker from "../../ui/DatePicker";
@@ -50,7 +51,6 @@ const rowsOptions = [
   { value: "50", label: "50" }, { value: "100", label: "100" },
 ];
 
-// ⚡️ FIX: Standardized status options
 const statusOptions = [
   { label: "Draft", value: "DRAFT" },
   { label: "Active", value: "ACTIVE" },
@@ -74,6 +74,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [versionTargetRate, setVersionTargetRate] = useState<any>(null);
   const [editingRate, setEditingRate] = useState<any>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -104,15 +105,14 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
         const val = apiFilters[key];
         if (!val) return;
         
-        // ⚡️ FIX: Mapped exactly to CustomerRateFilter class fields
         if      (key === "countryName")   searchParams["country__name__icontains"] = val;
         else if (key === "MCC")           searchParams["MCC__icontains"]           = val;
         else if (key === "MNC")           searchParams["MNC__icontains"]           = val;
         else if (key === "countryCode")   searchParams["countryCode__icontains"]   = val;
-        else if (key === "rate")          searchParams["rate"]              = val;
-        else if (key === "version")       searchParams["version"]                  = val; // Optional frontend fallback if backend adds it
-        else if (key === "status")        searchParams["status__icontains"]        = val;
-        else if (key === "effectiveFrom") searchParams["effectiveFrom"] = val; // Using icontains for loose matching
+        else if (key === "rate")          searchParams["rate"]                      = val;
+        else if (key === "version")       searchParams["version"]                   = val;
+        else if (key === "status")        searchParams["status__icontains"]         = val;
+        else if (key === "effectiveFrom") searchParams["effectiveFrom"]             = val;
       });
       
       const res = await getCustomerRatesApi(moduleName, currentPage, rowsPerPage, searchParams);
@@ -207,7 +207,15 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
               </div>
             </div>
             {canUpdate && (
-              <div className="shrink-0 w-full sm:w-auto">
+              <div className="flex shrink-0 w-full sm:w-auto gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsImportModalOpen(true)}
+                  leftIcon={<Upload size={16} />}
+                  className="w-full sm:w-auto text-sm py-1.5 px-4"
+                >
+                  Import
+                </Button>
                 <Button
                   variant="primary"
                   onClick={() => { setEditingRate(null); setIsViewMode(false); setIsCreateModalOpen(true); }}
@@ -329,15 +337,14 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
         rateGroupId={rateGroupId}
       />
 
-      {/* Level 2: all versions */}
       <RateVersionTableModal
         isOpen={isVersionsModalOpen}
         onClose={() => {
           setIsVersionsModalOpen(false);
-          setVersionTargetRate(null); // Clear target on close
+          setVersionTargetRate(null);
         }}
         ratePlan={rateGroup}
-        ratePlanFilter={versionTargetRate} // ⚡️ FIX: Pass the targeted rate object down
+        ratePlanFilter={versionTargetRate}
         moduleName={moduleName}
         fetchApi={getCustomerRatesPerMNCMCCApi}
         deleteApi={deleteCustomerRateApi}
@@ -349,6 +356,14 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
         canUpdate={canUpdate}
         canDelete={canDelete}
       />
+
+      <ImportCustomerRateModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={fetchLatestRates}
+        rateGroupId={rateGroupId ?? null}
+      />
+
       <style dangerouslySetInnerHTML={{ __html: `
         .filter-crt-wrapper label { display: none !important; }
         .filter-crt-wrapper > div { margin-bottom: 0 !important; }

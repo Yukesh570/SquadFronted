@@ -559,9 +559,19 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
         toast.success("Route Group created! Now configure countries and routes.");
         onSuccess(created);
         onClose();
-      } catch (err: any) {
+     } catch (err: any) {
         console.error(err);
-        toast.error("Failed to create route group.");
+        const serverError = err.response?.data;
+        if (serverError?.error) {
+          toast.error(serverError.error);
+        } else if (serverError && typeof serverError === "object") {
+          Object.entries(serverError).forEach(([key, msgs]) => {
+            const msg = Array.isArray(msgs) ? msgs[0] : msgs;
+            toast.error(`${key}: ${msg}`);
+          });
+        } else {
+          toast.error("Failed to create route group.");
+        }
       } finally {
         setIsSubmitting(false);
       }
