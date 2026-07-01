@@ -222,6 +222,10 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       toast.error("Customer Credit Limit is required.");
       return;
     }
+    if (!formData.vendorCreditLimit.trim()) {
+      toast.error("Vendor Credit Limit is required.");
+      return;
+    }
     if (!formData.balanceAlertAmount.trim()) {
       toast.error("Balance Alert Amount is required.");
       return;
@@ -444,7 +448,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               required // ⚡️ FIX: Added visual required indicator
             />
 
-            {isViewMode && (
               <Input
                 label="Vendor Credit Limit"
                 name="vendorCreditLimit"
@@ -453,8 +456,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 onChange={handleChange}
                 placeholder="10000.00"
                 disabled={isViewMode}
+                required
               />
-            )}
 
             <Input
               label="Balance Alert Amount"
