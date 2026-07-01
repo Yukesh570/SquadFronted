@@ -59,7 +59,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
     version: "0",
   });
 
-const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(new Date());
+  const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(new Date());
   const [effectiveToDate, setEffectiveToDate] = useState<Date | null>(null);
 
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
@@ -261,7 +261,11 @@ const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(new Date
 
       if (formData.countryCode) payload.countryCode = Number(formData.countryCode);
       if (formData.network) payload.network = formData.network;
-      if (formData.MNC) payload.MNC = Number(formData.MNC);
+      
+      if (formData.MNC) {
+        payload.MNC = isNaN(Number(formData.MNC)) ? formData.MNC : Number(formData.MNC);
+      }
+
       if (formData.remark) payload.remark = formData.remark;
       if (formData.status) payload.status = formData.status;
       if (effectiveFromDate) payload.effectiveFrom = effectiveFromDate.toISOString();

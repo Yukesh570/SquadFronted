@@ -58,7 +58,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
     version: "0",
   });
 
-const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(new Date());
+  const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(new Date());
   const [effectiveToDate, setEffectiveToDate] = useState<Date | null>(null);
 
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
@@ -134,7 +134,7 @@ const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(new Date
       if (editingRate.effectiveFrom) {
         const d = new Date(editingRate.effectiveFrom);
         if (!isNaN(d.getTime())) setEffectiveFromDate(d);
-else setEffectiveFromDate(new Date());
+        else setEffectiveFromDate(new Date());
       } else {
         setEffectiveFromDate(new Date());
       }
@@ -256,7 +256,10 @@ else setEffectiveFromDate(new Date());
         payload.rateGroup = Number((editingRate as any).rateGroup);
       }
 
-      if (formData.MNC) payload.MNC = Number(formData.MNC);
+      if (formData.MNC) {
+        payload.MNC = isNaN(Number(formData.MNC)) ? formData.MNC : Number(formData.MNC);
+      }
+      
       if (formData.countryCode) payload.countryCode = Number(formData.countryCode);
       if (formData.status) payload.status = formData.status;
       if (formData.remark) payload.remark = formData.remark;
