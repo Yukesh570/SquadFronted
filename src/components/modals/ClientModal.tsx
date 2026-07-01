@@ -28,6 +28,7 @@ import Select from "../ui/Select";
 import Modal from "../ui/Modal";
 import ToggleSwitch from "../ui/ToggleSwitch";
 import TextArea from "../ui/TextArea";
+import MultiEmailInput from "../ui/multiEmailInput";
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -61,7 +62,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     invoicePolicy: "ON_ATTEMPT", 
     balanceAlertAmount: "",
     allowNetting: false,
-    enableDlr: false,
+    enableDlr: true,
     ipWhitelist: "",
     smppUsername: "",
     smppPassword: "",
@@ -153,7 +154,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           invoicePolicy: "ON_ATTEMPT", 
           balanceAlertAmount: "",
           allowNetting: false,
-          enableDlr: false,
+          enableDlr: true,
           ipWhitelist: "",
           smppUsername: "",
           smppPassword: "",
@@ -209,7 +210,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               const myIps = (res.results || []).filter(
                 (r: any) => r.client === editingClient.id,
               );
-              const ipString = myIps.map((item) => item.ip).join(", ");
+              const ipString = myIps.map((item) => item.ip).join(",");
               setFormData((prev) => ({ ...prev, ipWhitelist: ipString }));
             })
             .catch((err: any) => console.error("Failed to fetch IPs", err));
@@ -261,7 +262,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     e.preventDefault();
     if (isViewMode) return;
 
-    // ⚡️ FIX: Custom toast warnings instead of browser defaults
     if (!formData.company.trim()) {
       toast.error("Company is required.");
       return;
@@ -423,7 +423,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       <form
         onSubmit={handleSubmit}
         className="space-y-6 max-h-[80vh] overflow-y-auto px-1"
-        noValidate // ⚡️ FIX: Disables browser default tooltips
+        noValidate 
       >
         {/* Identity */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -438,7 +438,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               options={companyOptions}
               placeholder="Select Company"
               disabled={isViewMode}
-              required // ⚡️ FIX: Make required visually
+              required 
             />
             <Input
               label="Client Name"
@@ -446,7 +446,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.name}
               onChange={handleChange}
               placeholder="Unique Client Name"
-              required // ⚡️ FIX: Make required visually
+              required 
               disabled={isViewMode}
             />
             <Select
@@ -508,7 +508,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               options={invoicePolicyOptions}
               placeholder="Select Invoice Policy"
               disabled={isViewMode}
-              required // ⚡️ FIX: Make required visually
+              required 
             />
             <Input
               label="Balance Alert Amount"
@@ -519,7 +519,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               onChange={handleChange}
               placeholder="0.0000"
               disabled={isViewMode}
-              required // ⚡️ FIX: Make required visually
+              required 
             />
           </div>
         </fieldset>
@@ -536,7 +536,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.smppUsername}
               onChange={handleChange}
               disabled={isViewMode}
-              required // ⚡️ FIX: Make required visually
+              required 
             />
             <Input
               label="SMPP Password"
@@ -545,7 +545,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.smppPassword}
               onChange={handleChange}
               disabled={isViewMode}
-              required // ⚡️ FIX: Make required visually
+              required 
               rightIcon={
                 <button
                   type="button"
@@ -579,19 +579,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               </>
             )}
 
-            {isViewMode && (
-              <div className="md:col-span-2">
-                <TextArea
-                  label="IP Whitelist"
-                  name="ipWhitelist"
-                  value={formData.ipWhitelist}
-                  onChange={handleChange}
-                  placeholder="Enter IPs separated by commas or new lines"
-                  disabled={isViewMode}
-                  rows={3}
-                />
-              </div>
-            )}
+            <div className="md:col-span-2">
+              <MultiEmailInput
+                label="IP Whitelist"
+                name="ipWhitelist"
+                value={formData.ipWhitelist}
+                onChange={handleSelect}
+                placeholder="Enter IPs and press Enter or comma"
+                disabled={isViewMode}
+              />
+            </div>
           </div>
         </fieldset>
 

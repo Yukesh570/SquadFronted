@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
-import Input from "../ui/Input";
 import Select from "../ui/Select";
+import MultiEmailInput from "../ui/multiEmailInput";
 import {
   createIpWhitelistApi,
   updateIpWhitelistApi,
@@ -88,9 +88,7 @@ const IpWhitelistModal: React.FC<IpWhitelistModalProps> = ({
     }
   }, [isOpen, editingData, fixedClient]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  // Removed unused handleChange function
 
   const handleSelect = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
@@ -112,18 +110,14 @@ const IpWhitelistModal: React.FC<IpWhitelistModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // 1. UPDATE MODE (Single Record)
       if (editingData?.id) {
         const payload = {
-          ip: formData.ip.trim(), // Updates typically handle one IP at a time
+          ip: formData.ip.trim(),
           client: Number(formData.client),
         };
         await updateIpWhitelistApi(editingData.id, payload, moduleName);
         toast.success("IP Whitelist updated successfully!");
-      }
-      // 2. CREATE MODE (Supports Multiple IPs via commas)
-      else {
-        // Split string by comma or newline
+      } else {
         const ipList = formData.ip
           .split(/[\n,]+/)
           .map((ip) => ip.trim())
@@ -135,7 +129,6 @@ const IpWhitelistModal: React.FC<IpWhitelistModalProps> = ({
           return;
         }
 
-        // Send a Create Request for EACH IP found
         const promises = ipList.map((singleIp) =>
           createIpWhitelistApi(
             {
@@ -154,7 +147,6 @@ const IpWhitelistModal: React.FC<IpWhitelistModalProps> = ({
       onClose();
     } catch (error: any) {
       console.error(error);
-      // Backend error format: { ip: ["Enter a valid IPv4..."] }
       const msg =
         error.response?.data?.ip?.[0] || "Failed to save IP Whitelist.";
       toast.error(msg);
@@ -188,23 +180,19 @@ const IpWhitelistModal: React.FC<IpWhitelistModalProps> = ({
             placeholder="Select Client"
             disabled={isViewMode || !!fixedClient}
           />
-          <Input
+          <MultiEmailInput
             label="IP Address"
             name="ip"
             value={formData.ip}
-            onChange={handleChange}
-            placeholder="IPv4 or IPv6 (e.g. 192.168.1.1, 10.0.0.1)"
-            required
+            onChange={handleSelect}
+            placeholder="IPv4 or IPv6 (press Enter or comma)"
             disabled={isViewMode}
           />
-          {/* Helper text to let users know they can add multiple */}
           {!editingData && !isViewMode && (
             <p className="-mt-3 text-xs text-gray-500">
-              You can add multiple IPs separated by commas (e.g. 1.1.1.1,
-              2.2.2.2)
+              You can add multiple IPs by pressing Enter after each one.
             </p>
           )}
-
         </div>
 
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
