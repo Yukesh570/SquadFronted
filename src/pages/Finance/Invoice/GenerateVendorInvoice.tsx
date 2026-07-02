@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { Home } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { NavItemsContext } from "../../../context/navItemsContext";
+
 
 // --- APIs ---
 import { generateVendorInvoiceApi, getVendorsApi } from "../../../api/financeApi/vendorInvoiceApi";
@@ -28,6 +30,25 @@ const formatLocalDate = (date: Date) => {
 
 const GenerateVendorInvoice: React.FC = () => {
   const navigate = useNavigate();
+
+  const { navItems } = useContext(NavItemsContext);
+
+  const findVendorInvoiceUrl = (): string => {
+    const walk = (items: any[]): string | null => {
+      for (const item of items) {
+        if (item.url && item.url.endsWith("vendorInvoice") && !item.url.includes("generateVendorInvoice")) {
+          return item.url;
+        }
+        if (item.children && item.children.length > 0) {
+          const found = walk(item.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+const found = navItems?.results ? walk(navItems.results) : null;
+const url = found || "/finance/vendorInvoice";
+return url.startsWith("/") ? url : `/${url}`;  };
 
   const [formData, setFormData] = useState({
     accountManager: "",
@@ -166,12 +187,21 @@ const GenerateVendorInvoice: React.FC = () => {
       return;
     }
 
-    setIsSubmitting(true);
+   setIsSubmitting(true);
     try {
       await generateVendorInvoiceApi(payload, "GENERATE");
+      handleCloseModal();
+
+      const loadingToastId = toast("Generating invoice, please wait...", {
+        isLoading: true,
+        type: "info",
+        theme: "colored",
+      });
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+      toast.dismiss(loadingToastId);
+
       toast.success("Vendor Invoice generated successfully!");
-      handleCloseModal(); 
-      navigate("/finance/invoice/vendorBilling/vendorInvoice");
+      navigate(findVendorInvoiceUrl());
     } catch (error: any) {
       const errorData = error.response?.data;
       const errorMsg = errorData?.detail || errorData?.error || (errorData ? JSON.stringify(errorData) : "Failed to generate invoice.");

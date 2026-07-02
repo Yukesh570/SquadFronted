@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { Home } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { NavItemsContext } from "../../../context/navItemsContext";
 
 // --- APIs ---
 import { generateClientInvoiceApi } from "../../../api/financeApi/clientInvoiceApi";
@@ -30,6 +31,25 @@ const formatLocalDate = (date: Date) => {
 
 const GenerateClientInvoice: React.FC = () => {
   const navigate = useNavigate();
+  const { navItems } = useContext(NavItemsContext);
+
+  const findClientInvoiceUrl = (): string => {
+    const walk = (items: any[]): string | null => {
+      for (const item of items) {
+        if (item.url && item.url.endsWith("clientInvoice") && !item.url.includes("generateClientInvoice")) {
+          return item.url;
+        }
+        if (item.children && item.children.length > 0) {
+          const found = walk(item.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    const found = navItems?.results ? walk(navItems.results) : null;
+    const url = found || "/finance/clientInvoice";
+    return url.startsWith("/") ? url : `/${url}`;
+  };
 
   const [formData, setFormData] = useState({
     accountManager: "",
@@ -174,9 +194,18 @@ const GenerateClientInvoice: React.FC = () => {
     setIsSubmitting(true);
     try {
       await generateClientInvoiceApi(payload, "GENERATE");
+      handleCloseModal();
+
+const loadingToastId = toast("Generating invoice, please wait...", {
+        isLoading: true,
+        type: "info",
+        theme: "colored",
+      });
+            await new Promise((resolve) => setTimeout(resolve, 4000));
+      toast.dismiss(loadingToastId);
+
       toast.success("Client Invoice generated successfully!");
-      handleCloseModal(); 
-      navigate("/finance/invoice/clientBilling/clientInvoice");
+      navigate(findClientInvoiceUrl());
     } catch (error: any) {
       const errorData = error.response?.data;
       const errorMsg = errorData?.detail || errorData?.error || (errorData ? JSON.stringify(errorData) : "Failed to generate invoice.");

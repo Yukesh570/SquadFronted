@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Home, Trash, Eye, Download } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
+import api from "../../../api/axiosInstance";
 
 // --- APIs ---
 import { getVendorInvoicesApi, deleteVendorInvoiceApi, getVendorsApi, type VendorInvoiceData } from "../../../api/financeApi/vendorInvoiceApi";
@@ -170,10 +171,24 @@ const VendorInvoice: React.FC = () => {
     window.open(cleanUrl, "_blank");
   };
 
-  const handleDownloadPdf = (url?: string) => {
+  const handleDownloadPdf = async (url?: string) => {
     if (!url) { toast.error("Download link not available."); return; }
     const cleanUrl = url.replace(/^None\/?/, "/").replace(/(?<!:)\/\//g, "/");
-    window.open(cleanUrl, "_blank");
+
+    try {
+      const response = await api.get(cleanUrl, { responseType: "blob" });
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.setAttribute("download", cleanUrl.split("/").pop() || "invoice.pdf");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success("PDF downloaded successfully!");
+    } catch (error) {
+      toast.error("Failed to download PDF.");
+    }
   };
 
   const menuItems: ContextMenuItem[] = selectedRow ? [
