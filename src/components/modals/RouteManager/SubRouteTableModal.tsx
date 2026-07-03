@@ -645,10 +645,10 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         <div className="p-4 flex flex-col gap-5">
 
           {/* ── Country Config (collapsible) ─────────────────────────────── */}
-          <div className="border-2 border-primary/20 dark:border-primary/30 rounded-xl overflow-hidden bg-primary/[0.03] dark:bg-primary/[0.06] shadow-sm">
+          <div className="border-2 border-primary/20 dark:border-primary/30 rounded-xl bg-primary/[0.03] dark:bg-primary/[0.06] shadow-sm relative">
             <button
               type="button"
-              className="w-full flex items-center justify-between px-4 py-3 bg-primary/[0.07] dark:bg-primary/[0.12] text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-primary/[0.11] dark:hover:bg-primary/[0.16] transition-colors"
+              className={`w-full flex items-center justify-between px-4 py-3 bg-primary/[0.07] dark:bg-primary/[0.12] text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-primary/[0.11] dark:hover:bg-primary/[0.16] transition-colors ${configSectionOpen ? 'rounded-t-xl' : 'rounded-xl'}`}
               onClick={() => setConfigSectionOpen((o) => !o)}
             >
               <span className="flex items-center gap-2">
@@ -668,7 +668,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
             </button>
 
             {configSectionOpen && (
-              <div className="p-4 space-y-5 bg-white dark:bg-gray-900 border-t border-primary/10 dark:border-primary/20">
+              <div className="p-4 space-y-5 bg-white dark:bg-gray-900 border-t border-primary/10 dark:border-primary/20 rounded-b-xl">
                 
                 {/* --- ADD NEW CONFIG AREA --- */}
                 {canUpdate && availableCountries.length > 0 && (
@@ -766,6 +766,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           </div>
 
           {/* ── Per-country sections ───────────────────────────────────────── */}
+          {/* Reverted the pb-24 spacing hack */}
           <div className="flex flex-col gap-3 overflow-y-auto max-h-[65vh]">
             {sections.length === 0 && (
               <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm border border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
@@ -794,14 +795,14 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
               return (
                 <div
                   key={countryId}
-                  className="border border-gray-200 dark:border-gray-700 rounded-lg"
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900"
                 >
                   {/* Section header */}
                   <div
                     className={`flex items-center justify-between px-4 py-2.5 cursor-pointer select-none transition-colors ${
                       section.isOpen
-                        ? "bg-gray-100 dark:bg-gray-700/60"
-                        : "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        ? "bg-gray-100 dark:bg-gray-700/60 rounded-t-lg"
+                        : "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                     }`}
                     onClick={() => toggleSection(countryId)}
                   >
@@ -860,8 +861,9 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
                   {/* Section body */}
                   {section.isOpen && (
-                    <div className="bg-white dark:bg-gray-900">
-                      <div className="overflow-x-auto custom-grid-scroll">
+                    <div className="rounded-b-lg">
+                      {/* FIXED: Removed the min-h/pb spacing hack entirely. Replaced overflow-x-auto with w-full overflow-visible to prevent clipping without stretching the layout. */}
+                      <div className="w-full overflow-visible">
                         <table className="min-w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
                           <thead className="bg-gray-100 dark:bg-gray-800 text-text-secondary dark:text-gray-300 shadow-sm">
                             <tr>
@@ -991,7 +993,8 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                 <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-blue-400 text-xs">
                                   {section.routes.length + i + 1}
                                 </td>
-                                <td className="px-2 py-1.5 border-b border-r dark:border-gray-700 min-w-[110px]">
+                                {/* FIXED: Removed relative positioning from all TDs. This prevents the dropdown's z-index from being trapped underneath sibling rows. */}
+                                <td className="px-2 py-1.5 border-b border-r dark:border-gray-700 min-w-[110px] overflow-visible">
                                   <div className="inline-table-field">
                                     <Select
                                       label=""
@@ -1003,7 +1006,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                     />
                                   </div>
                                 </td>
-                                <td className="px-2 py-1.5 border-b border-r dark:border-gray-700 min-w-[110px]">
+                                <td className="px-2 py-1.5 border-b border-r dark:border-gray-700 min-w-[110px] overflow-visible">
                                   <div className="inline-table-field">
                                     <Select
                                       label=""
@@ -1015,7 +1018,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                     />
                                   </div>
                                 </td>
-                                <td className="px-2 py-1.5 border-b border-r dark:border-gray-700 min-w-[160px]">
+                                <td className="px-2 py-1.5 border-b border-r dark:border-gray-700 min-w-[160px] overflow-visible">
                                   <div className="inline-table-field">
                                     <Select
                                       label=""
@@ -1043,7 +1046,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                 <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-500 font-mono">
                                   {row.vendorRate ? (row.vendorRate === "N/A" || row.vendorRate === "Error" ? <span className="text-red-400">{row.vendorRate}</span> : <span>{row.vendorRate}</span>) : "—"}
                                 </td>
-                                <td className="px-2 py-1.5 border-b dark:border-gray-700">
+                                <td className="px-2 py-1.5 border-b dark:border-gray-700 overflow-visible">
                                   <div className="inline-table-field min-w-[110px]">
                                     <Select
                                       label=""

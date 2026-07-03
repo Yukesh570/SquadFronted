@@ -60,6 +60,7 @@ const DEFAULT_TABLE_COLUMNS = [
   "customerRateGroup",
   "invoicePolicy",
   "status",
+  "bindStatus",
   "route",
 ];
 

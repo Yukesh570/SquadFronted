@@ -6,6 +6,7 @@ import { Eye, EyeOff } from "lucide-react";
 import {
   createClientApi,
   updateClientApi,
+  generateCredentialsApi,
   type ClientData,
 } from "../../api/clientApi/clientApi";
 import { getCompaniesApi } from "../../api/companyApi/companyApi";
@@ -83,6 +84,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingAuth, setIsGeneratingAuth] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [existingPolicyId, setExistingPolicyId] = useState<number | null>(null);
 
@@ -234,6 +236,24 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
   const handleToggle = (name: string, value: boolean) => {
     setFormData({ ...formData, [name]: value });
+  };
+
+  const handleGenerateCredentials = async () => {
+    setIsGeneratingAuth(true);
+    try {
+      const credentials = await generateCredentialsApi();
+      setFormData((prev) => ({
+        ...prev,
+        smppUsername: credentials.username,
+        smppPassword: credentials.password,
+      }));
+      toast.success("Credentials generated successfully!");
+    } catch (error) {
+      console.error("Failed to generate credentials", error);
+      toast.error("Failed to generate credentials.");
+    } finally {
+      setIsGeneratingAuth(false);
+    }
   };
 
   const handleIpSync = async (clientId: number, ipList: string[]) => {
@@ -525,10 +545,25 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         </fieldset>
 
         {/* Connectivity */}
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        {/* FIXED: Tweaked padding and margins to eliminate massive gap */}
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg px-4 pb-4 pt-2">
           <legend className="text-sm font-semibold text-primary px-2">
             Connectivity & Security
           </legend>
+          
+          {!isViewMode && (
+            <div className="flex justify-end -mt-2 -mb-2">
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleGenerateCredentials}
+                disabled={isGeneratingAuth}
+              >
+                {isGeneratingAuth ? "Generating..." : "Generate Credentials"}
+              </Button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="SMPP Username (System ID)"
@@ -550,7 +585,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-500 hover:text-gray-700 focus:outline-none"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>

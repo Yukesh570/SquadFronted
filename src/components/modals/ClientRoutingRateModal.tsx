@@ -7,6 +7,19 @@ import Modal from "../ui/Modal";
 
 interface Option { label: string; value: string; }
 
+// --- Types for Warning Response ---
+interface ExpensiveVendor {
+  vendor_name: string;
+  vendor_rate: number;
+  customer_rate: number;
+  margin: number;
+}
+
+interface WarningData {
+  warning: string;
+  expensive_vendors: ExpensiveVendor[];
+}
+
 interface ClientRoutingRateModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -14,7 +27,6 @@ interface ClientRoutingRateModalProps {
   moduleName: string;
   editingClient: ClientData | null;
   routeGroupOptions: Option[];
-  // ⚡️ FIX: Added customerRateGroupOptions
   customerRateGroupOptions: Option[];
 }
 
@@ -29,10 +41,10 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     routeGroup: "",
-    customerRateGroup: "", // ⚡️ FIX: Swapped ratePlanName for customerRateGroup
+    customerRateGroup: "", 
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [warningMessage, setWarningMessage] = useState<string | null>(null);
+  const [warningData, setWarningData] = useState<WarningData | null>(null);
 
   useEffect(() => {
     if (isOpen && editingClient) {
@@ -40,26 +52,25 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
         routeGroup: editingClient.routeGroup != null ? String(editingClient.routeGroup) : "",
         customerRateGroup: editingClient.customerRateGroup != null ? String(editingClient.customerRateGroup) : "",
       });
-      setWarningMessage(null); 
+      setWarningData(null); 
     }
   }, [isOpen, editingClient]);
 
   const handleSelect = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
-    setWarningMessage(null); 
+    setWarningData(null); 
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingClient || !editingClient.id) return;
 
-    if (!warningMessage) {
+    if (!warningData) {
       setIsSubmitting(true);
       try {
         const routeGroupName = routeGroupOptions.find(o => o.value === formData.routeGroup)?.label || formData.routeGroup;
         const customerRateGroupName = customerRateGroupOptions.find(o => o.value === formData.customerRateGroup)?.label || formData.customerRateGroup;
 
-        // ⚡️ FIX: Passed the group name/ID appropriately for the Overview check
         const overviewRes = await getClientRateOverViewApi({
           client: editingClient.id,
           routeGroup: routeGroupName || "", 
@@ -67,7 +78,10 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
         });
 
         if (overviewRes && overviewRes.warning) {
-          setWarningMessage(overviewRes.warning); 
+          setWarningData({
+            warning: overviewRes.warning,
+            expensive_vendors: overviewRes.expensive_vendors || [],
+          }); 
           setIsSubmitting(false);
           return; 
         }
@@ -87,7 +101,6 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
     try {
       const payload = {
         routeGroup: formData.routeGroup ? Number(formData.routeGroup) : null,
-        // ⚡️ FIX: Used customerRateGroup
         customerRateGroup: formData.customerRateGroup ? Number(formData.customerRateGroup) : null,
       };
 
@@ -104,7 +117,6 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
 
   if (!isOpen) return null;
 
-  // ⚡️ FIX: Dynamic title checking if routing info already exists
   const modalTitle = (!editingClient?.routeGroup && !editingClient?.customerRateGroup) 
     ? "Add Route & Rate Plan" 
     : "Edit Route & Rate Plan";
@@ -120,7 +132,6 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
             options={routeGroupOptions}
             placeholder="Select Route Group"
           />
-          {/* ⚡️ FIX: Updated to Customer Rate Group */}
           <Select
             label="Customer Rate Group"
             value={formData.customerRateGroup}
@@ -130,11 +141,37 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
           />
         </div>
 
-        {warningMessage && (
-          <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg animate-in fade-in zoom-in duration-300">
+        {warningData && (
+          <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg animate-in fade-in zoom-in duration-300 space-y-3">
             <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-400">
-              {warningMessage}
+              {warningData.warning}
             </p>
+            
+            {/* Vendor Details Table */}
+            {warningData.expensive_vendors.length > 0 && (
+              <div className="bg-white/60 dark:bg-black/20 rounded border border-yellow-200 dark:border-yellow-700/50 overflow-hidden">
+                <table className="w-full text-left text-xs text-yellow-900 dark:text-yellow-200">
+                  <thead className="bg-yellow-100/50 dark:bg-yellow-900/50 font-semibold border-b border-yellow-200 dark:border-yellow-700/50">
+                    <tr>
+                      <th className="px-3 py-2">Vendor</th>
+                      <th className="px-3 py-2 text-right">Vendor Rate</th>
+                      <th className="px-3 py-2 text-right">Margin</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-yellow-200/50 dark:divide-yellow-800/50">
+                    {warningData.expensive_vendors.map((vendor, idx) => (
+                      <tr key={idx} className="hover:bg-yellow-100/30 dark:hover:bg-yellow-900/40 transition-colors">
+                        <td className="px-3 py-2 font-medium">{vendor.vendor_name}</td>
+                        <td className="px-3 py-2 text-right font-mono">{vendor.vendor_rate}</td>
+                        <td className="px-3 py-2 text-right font-mono text-red-600 dark:text-red-400">
+                          {vendor.margin}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -146,9 +183,9 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
             type="submit" 
             variant="primary" 
             disabled={isSubmitting || !formData.routeGroup || !formData.customerRateGroup}
-            className={warningMessage ? "bg-yellow-600 hover:bg-yellow-700 text-white border-none" : ""}
+            className={warningData ? "bg-yellow-600 hover:bg-yellow-700 text-white border-none" : ""}
           >
-            {isSubmitting ? "Saving..." : warningMessage ? "Update Anyway" : "Update"}
+            {isSubmitting ? "Saving..." : warningData ? "Update Anyway" : "Update"}
           </Button>
         </div>
       </form>

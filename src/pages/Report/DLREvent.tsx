@@ -37,7 +37,7 @@ const formatLocalDate = (date: Date) => {
 };
 
 const DEFAULT_SEARCH_COLUMNS = ["event_type", "status_code", "provider_message_id"];
-const DEFAULT_TABLE_COLUMNS = ["id", "provider_message_id", "event_type", "segment_number", "status_code", "received_at"];
+const DEFAULT_TABLE_COLUMNS = ["id", "provider_message_id", "event_type", "segment_number", "status_code", "status_description" ,"received_at"];
 
 const DLREvent: React.FC = () => {
   const [events, setEvents] = useState<DLREventData[]>([]);
