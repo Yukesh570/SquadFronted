@@ -28,7 +28,6 @@ export interface ClientData {
   route: "DIRECT" | "HIGH QUALITY" | "SIM" | "WHOLESALE" | "FULL" | "SPAM";
   paymentTerms: "PREPAID" | "POSTPAID" | "NET7" | "NET15" | "NET30";
   invoicePolicy: "ON_ATTEMPT" | "ON_SUBMIT" | "ON_DELIVERED" | string;
-  balanceAlertAmount: string;
   allowNetting: boolean;
   enableDlr: boolean;
   session: string;

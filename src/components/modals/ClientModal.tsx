@@ -61,7 +61,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     route: "DIRECT",
     paymentTerms: "PREPAID",
     invoicePolicy: "ON_ATTEMPT", 
-    balanceAlertAmount: "",
     allowNetting: false,
     enableDlr: true,
     ipWhitelist: "",
@@ -154,7 +153,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           route: "DIRECT",
           paymentTerms: "PREPAID",
           invoicePolicy: "ON_ATTEMPT", 
-          balanceAlertAmount: "",
           allowNetting: false,
           enableDlr: true,
           ipWhitelist: "",
@@ -185,7 +183,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           route: editingClient.route,
           paymentTerms: editingClient.paymentTerms,
           invoicePolicy: editingClient.invoicePolicy || "ON_ATTEMPT", 
-          balanceAlertAmount: editingClient.balanceAlertAmount || "",
           allowNetting: editingClient.allowNetting,
           enableDlr: editingClient.enableDlr,
           smppUsername: editingClient.smppUsername || "",
@@ -292,10 +289,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     }
     if (!formData.invoicePolicy) {
       toast.error("Invoice Policy is required.");
-      return;
-    }
-    if (!formData.balanceAlertAmount) {
-      toast.error("Balance Alert Amount is required.");
       return;
     }
     if (!formData.smppUsername.trim()) {
@@ -513,7 +506,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Commercials & Alerts
           </legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* ⚡️ FIX: Adjusted grid layout strictly to 2 columns since balance alert was removed */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select
               label="Payment Terms"
               value={formData.paymentTerms}
@@ -530,22 +524,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               disabled={isViewMode}
               required 
             />
-            <Input
-              label="Balance Alert Amount"
-              name="balanceAlertAmount"
-              type="number"
-              step="0.0001"
-              value={formData.balanceAlertAmount}
-              onChange={handleChange}
-              placeholder="0.0000"
-              disabled={isViewMode}
-              required 
-            />
           </div>
         </fieldset>
 
         {/* Connectivity */}
-        {/* FIXED: Tweaked padding and margins to eliminate massive gap */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg px-4 pb-4 pt-2">
           <legend className="text-sm font-semibold text-primary px-2">
             Connectivity & Security

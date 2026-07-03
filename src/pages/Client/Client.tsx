@@ -234,7 +234,7 @@ const Client: React.FC = () => {
     return <StatusBadge status={statusKey} customText={`${current}/${max}`} />;
   };
 
-  // ⚡️ FIX: Attached specific filterKey values mapped strictly to backend Django keys
+  // ⚡️ FIX: Removed balanceAlertAmount from columns
   const allColumns: ColumnConfig[] = [
     { key: "name", label: "Client Name", type: "text", filterKey: "name__icontains" },
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
@@ -262,9 +262,6 @@ const Client: React.FC = () => {
     { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number", filterKey: "clientPolicy__idleTimeoutSec", render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-" },
     { key: "submitTimeoutSec", label: "Submit Timeout (s)", type: "number", filterKey: "clientPolicy__submitTimeoutSec", render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-" },
     { key: "senderIdPolicy", label: "Sender ID Policy", type: "text", filterKey: "clientPolicy__senderIdPolicy__icontains", render: (c) => c.clientPolicy?.senderIdPolicy ?? "-" },
-    { key: "balanceAlertAmount", label: "Balance Alert (Exact)", tableLabel: "Balance Alert", type: "number", filterKey: "balanceAlertAmount" },
-    { key: "balanceAlertAmount__range", label: "Balance Alert (Range)", type: "number_range", isSearchOnly: true },
-    { key: "balanceAlertAmount__gt_lt", label: "Balance Alert (GT / LT)", type: "number_gt_lt", isSearchOnly: true },
     { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
     { key: "createdAt__range", label: "Created At (Range)", type: "date_range", isSearchOnly: true },
     { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
@@ -302,7 +299,6 @@ const Client: React.FC = () => {
           } else if (columnDef?.type === "date") {
             currentSearchParams[`${columnDef.filterKey || key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_range") {
-            // ⚡️ FIX: Safely parse keys preventing crashes when the field itself contains underscores
             const baseKey = key.replace("__range", "");
             const [start, end] = value.split(",");
             if (start && end) {
@@ -329,7 +325,7 @@ const Client: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = lt; // ⚡️ FIX: Fixed assignment bug
+            if (lt) currentSearchParams[`${baseKey}__lt`] = lt; 
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
