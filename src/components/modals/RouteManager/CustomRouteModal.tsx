@@ -301,7 +301,8 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
          });
       } else if (isEditingGroupStatus && groupData) {
         setFormData({
-          name: groupData.routeGroup__name || "",
+          // ⚡️ FIX: Use groupData.name to correctly populate the route group name from the payload
+          name: groupData.name || groupData.routeGroup__name || "",
           priority: "",
           status: groupData.status || "ACTIVE",
           country: 0,
