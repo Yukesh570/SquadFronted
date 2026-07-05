@@ -39,8 +39,8 @@ export const DLREventModal: React.FC<DLREventModalProps> = ({
             <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.segment || "-"}</div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Provider Message ID</label>
-            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.provider_message_id || "-"}</div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Vendor Message ID</label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.vendorMessageId || "-"}</div>
           </div>
 
           {/* Row 2 */}

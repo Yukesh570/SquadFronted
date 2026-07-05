@@ -6,7 +6,7 @@ export interface MessageAttemptData {
   segment?: number | null;
   attempt_number: number;
   provider?: string | null;
-  provider_message_id?: string | null;
+  vendorMessageId?: string | null;
   status: string;
   request_payload?: any;
   response_payload?: any;

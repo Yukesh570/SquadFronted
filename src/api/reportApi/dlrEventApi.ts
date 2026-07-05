@@ -4,7 +4,7 @@ export interface DLREventData {
   id?: number;
   message?: number | null;
   segment?: number | null;
-  provider_message_id?: string | null;
+  vendorMessageId?: string | null;
   event_type: string;
   segment_number?: number | null;
   status_code?: string | null;

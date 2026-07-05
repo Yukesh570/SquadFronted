@@ -36,8 +36,8 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["event_type", "status_code", "provider_message_id"];
-const DEFAULT_TABLE_COLUMNS = ["id", "provider_message_id", "event_type", "segment_number", "status_code", "status_description" ,"received_at"];
+const DEFAULT_SEARCH_COLUMNS = ["event_type", "status_code", "vendorMessageId"];
+const DEFAULT_TABLE_COLUMNS = ["id", "vendorMessageId", "event_type", "segment_number", "status_code", "received_at"];
 
 const DLREvent: React.FC = () => {
   const [events, setEvents] = useState<DLREventData[]>([]);
@@ -70,13 +70,13 @@ const DLREvent: React.FC = () => {
     { key: "id", label: "DLR ID", type: "text" },
     { key: "message", label: "Message ID", type: "text" },
     { key: "segment", label: "Segment ID", type: "text" },
-    { key: "provider_message_id", label: "Provider Message ID", type: "text", filterKey: "provider_message_id__icontains" },
-    { 
-      key: "event_type", 
-      label: "Event Type", 
-      type: "text", 
-      options: statusOptions, 
-      filterKey: "event_type", 
+    { key: "vendorMessageId", label: "Vendor Message ID", type: "text", filterKey: "vendorMessageId__icontains" },
+    {
+      key: "event_type",
+      label: "Event Type",
+      type: "text",
+      options: statusOptions,
+      filterKey: "event_type",
       // ⚡️ FIX: Implemented generic StatusBadge
       render: (log) => <StatusBadge status={log.event_type} />
     },
@@ -133,7 +133,7 @@ const DLREvent: React.FC = () => {
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      setTimeout(() => { actionHelper("DLR Events", `Opened DLR Events Report`, false); }, 100); 
+      setTimeout(() => { actionHelper("DLR Events", `Opened DLR Events Report`, false); }, 100);
       hasLoggedOpening.current = true;
     }
   }, []);
@@ -150,7 +150,7 @@ const DLREvent: React.FC = () => {
             <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
           <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">Home</NavLink>
@@ -161,16 +161,16 @@ const DLREvent: React.FC = () => {
       <FilterCard onSearch={() => { setCurrentPage(1); fetchEvents(); }} onClear={() => { setFilterValues({}); setCurrentPage(1); fetchEvents({}); }}>
         {visibleSearchFields.map((col) => {
           if (col.options) {
-             return (
+            return (
               <Select
                 key={col.key}
                 label={`Search ${col.label}`}
                 value={filterValues[col.key] || ""}
-                onChange={(val) => setFilterValues(p => ({...p, [col.key]: val}))}
+                onChange={(val) => setFilterValues(p => ({ ...p, [col.key]: val }))}
                 options={col.options}
                 placeholder={`Select ${col.label}`}
               />
-             );
+            );
           }
           if (col.type === "date") {
             return (
@@ -178,7 +178,7 @@ const DLREvent: React.FC = () => {
                 key={col.key}
                 label={`Search ${col.label}`}
                 selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
-                onChange={(val: Date | null) => setFilterValues(p => ({...p, [col.key]: val ? formatLocalDate(val) : ""}))}
+                onChange={(val: Date | null) => setFilterValues(p => ({ ...p, [col.key]: val ? formatLocalDate(val) : "" }))}
               />
             );
           }
@@ -187,7 +187,7 @@ const DLREvent: React.FC = () => {
               key={col.key}
               label={`Search ${col.label}`}
               value={filterValues[col.key] || ""}
-              onChange={(e) => setFilterValues(p => ({...p, [col.key]: e.target.value}))}
+              onChange={(e) => setFilterValues(p => ({ ...p, [col.key]: e.target.value }))}
               placeholder={`Search ${col.label}`}
             />
           );
@@ -218,7 +218,7 @@ const DLREvent: React.FC = () => {
               const cellContent = col.render ? col.render(event) : (rawValue || "-");
               return (
                 <td key={col.key} className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap`}>
-                   {cellContent}
+                  {cellContent}
                 </td>
               );
             })}
@@ -228,10 +228,10 @@ const DLREvent: React.FC = () => {
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
 
-      <DLREventModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        viewLog={viewLog} 
+      <DLREventModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        viewLog={viewLog}
       />
     </div>
   );

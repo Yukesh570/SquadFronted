@@ -36,8 +36,8 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["provider", "status", "provider_message_id"];
-const DEFAULT_TABLE_COLUMNS = ["id", "attempt_number", "provider", "provider_message_id", "status", "started_at"];
+const DEFAULT_SEARCH_COLUMNS = ["provider", "status", "vendorMessageId"];
+const DEFAULT_TABLE_COLUMNS = ["id", "attempt_number", "provider", "vendorMessageId", "status", "started_at"];
 
 const MessageAttempt: React.FC = () => {
   const [attempts, setAttempts] = useState<MessageAttemptData[]>([]);
@@ -73,13 +73,13 @@ const MessageAttempt: React.FC = () => {
     { key: "segment", label: "Segment ID", type: "text" },
     { key: "attempt_number", label: "Attempt Number", type: "text" },
     { key: "provider", label: "Provider", type: "text", filterKey: "provider__icontains" },
-    { key: "provider_message_id", label: "Provider Message ID", type: "text", filterKey: "provider_message_id__icontains" },
-    { 
-      key: "status", 
-      label: "Status", 
-      type: "text", 
-      options: statusOptions, 
-      filterKey: "status", 
+    { key: "vendorMessageId", label: "Vendor Message ID", type: "text", filterKey: "vendorMessageId__icontains" },
+    {
+      key: "status",
+      label: "Status",
+      type: "text",
+      options: statusOptions,
+      filterKey: "status",
       // ⚡️ FIX: Implemented generic StatusBadge
       render: (log) => <StatusBadge status={log.status} />
     },
@@ -98,7 +98,7 @@ const MessageAttempt: React.FC = () => {
     try {
       const activeFilters = filters || filterValues;
       const cleanParams: Record<string, string> = {};
-      
+
       Object.entries(activeFilters).forEach(([key, value]) => {
         if (value) {
           const colDef = allColumns.find(c => c.key === key);
@@ -136,7 +136,7 @@ const MessageAttempt: React.FC = () => {
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      setTimeout(() => { actionHelper("Message Attempts", `Opened Message Attempts Report`, false); }, 100); 
+      setTimeout(() => { actionHelper("Message Attempts", `Opened Message Attempts Report`, false); }, 100);
       hasLoggedOpening.current = true;
     }
   }, []);
@@ -153,7 +153,7 @@ const MessageAttempt: React.FC = () => {
             <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
           <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">Home</NavLink>
@@ -164,16 +164,16 @@ const MessageAttempt: React.FC = () => {
       <FilterCard onSearch={() => { setCurrentPage(1); fetchAttempts(); }} onClear={() => { setFilterValues({}); setCurrentPage(1); fetchAttempts({}); }}>
         {visibleSearchFields.map((col) => {
           if (col.options) {
-             return (
+            return (
               <Select
                 key={col.key}
                 label={`Search ${col.label}`}
                 value={filterValues[col.key] || ""}
-                onChange={(val) => setFilterValues(p => ({...p, [col.key]: val}))}
+                onChange={(val) => setFilterValues(p => ({ ...p, [col.key]: val }))}
                 options={col.options}
                 placeholder={`Select ${col.label}`}
               />
-             );
+            );
           }
           if (col.type === "date") {
             return (
@@ -181,7 +181,7 @@ const MessageAttempt: React.FC = () => {
                 key={col.key}
                 label={`Search ${col.label}`}
                 selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
-                onChange={(val: Date | null) => setFilterValues(p => ({...p, [col.key]: val ? formatLocalDate(val) : ""}))}
+                onChange={(val: Date | null) => setFilterValues(p => ({ ...p, [col.key]: val ? formatLocalDate(val) : "" }))}
               />
             );
           }
@@ -190,7 +190,7 @@ const MessageAttempt: React.FC = () => {
               key={col.key}
               label={`Search ${col.label}`}
               value={filterValues[col.key] || ""}
-              onChange={(e) => setFilterValues(p => ({...p, [col.key]: e.target.value}))}
+              onChange={(e) => setFilterValues(p => ({ ...p, [col.key]: e.target.value }))}
               placeholder={`Search ${col.label}`}
             />
           );
@@ -231,10 +231,10 @@ const MessageAttempt: React.FC = () => {
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
 
-      <MessageAttemptModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        viewLog={viewLog} 
+      <MessageAttemptModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        viewLog={viewLog}
       />
     </div>
   );
