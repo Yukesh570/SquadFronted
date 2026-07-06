@@ -763,26 +763,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               </div>
             </fieldset>
 
-            {isEditingGroupStatus ? (
-              <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <legend className="text-sm font-semibold text-primary px-2">
-                  Route Group Details
-                </legend>
-                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                  <Input
-                    label="Countries (Routing Type)"
-                    name="countries"
-                    value={
-                      Array.isArray(groupData?.countryConfigs) && groupData.countryConfigs.length > 0
-                        ? groupData.countryConfigs.map((c: any) => `${c.countryName} (${c.routingType})`).join(", ")
-                        : "-"
-                    }
-                    onChange={() => {}}
-                    disabled={true}
-                  />
-                </div>
-              </fieldset>
-            ) : (
+            {!isEditingGroupStatus && (
               <>
                 <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 overflow-visible">
                   <legend className="text-sm font-semibold text-primary px-2">

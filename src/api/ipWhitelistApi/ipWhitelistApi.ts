@@ -2,7 +2,9 @@ import api from "../../api/axiosInstance";
 
 export interface IpWhitelistData {
   id?: number;
-  ip: string;
+  ip?: string;
+  hostname?: string;
+  access_type: string;
   client: number;
   clientName?: string;
   createdAt?: string;
@@ -27,7 +29,7 @@ export const getIpWhitelistApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/IPWhiteList/${module}/`, { params });
+  const response = await api.get(`/accessControl/${module}/`, { params });
   return response.data;
 };
 
@@ -36,7 +38,7 @@ export const createIpWhitelistApi = async (
   data: any,
   module: string
 ): Promise<IpWhitelistData> => {
-  const response = await api.post(`/IPWhiteList/${module}/`, data);
+  const response = await api.post(`/accessControl/${module}/`, data);
   return response.data;
 };
 
@@ -46,7 +48,7 @@ export const updateIpWhitelistApi = async (
   data: any,
   module: string
 ): Promise<IpWhitelistData> => {
-  const response = await api.put(`/IPWhiteList/${module}/${id}/`, data);
+  const response = await api.put(`/accessControl/${module}/${id}/`, data);
   return response.data;
 };
 
@@ -55,5 +57,5 @@ export const deleteIpWhitelistApi = async (
   id: number,
   module: string
 ): Promise<void> => {
-  await api.delete(`/IPWhiteList/${module}/${id}/`);
+  await api.delete(`/accessControl/${module}/${id}/`);
 };

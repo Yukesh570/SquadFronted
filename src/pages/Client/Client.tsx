@@ -234,7 +234,6 @@ const Client: React.FC = () => {
     return <StatusBadge status={statusKey} customText={`${current}/${max}`} />;
   };
 
-  // ⚡️ FIX: Removed balanceAlertAmount from columns
   const allColumns: ColumnConfig[] = [
     { key: "name", label: "Client Name", type: "text", filterKey: "name__icontains" },
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
@@ -509,7 +508,7 @@ const Client: React.FC = () => {
         ...(canUpdate
           ? [
               {
-                label: "Add IP Whitelist",
+                label: "Add Access Control", // ⚡️ FIX: Updated label
                 icon: <ShieldPlus size={16} />,
                 onClick: () => handleAddIp(selectedRowClient),
               },

@@ -22,6 +22,10 @@ import {
   updateClientPolicyApi,
 } from "../../api/policyApi/clientPolicyApi";
 
+// --- Linked Provisioning APIs (Route Group / Customer Rate Group) ---
+import { createRouteGroupApi } from "../../api/routeManagerApi/customRouteApi";
+import { createCustomerRateGroupApi } from "../../api/rateApi/customerRateApi";
+
 // --- Components ---
 import Input from "../ui/Input";
 import Button from "../ui/Button";
@@ -64,6 +68,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     allowNetting: false,
     enableDlr: true,
     ipWhitelist: "",
+    hostnameWhitelist: "",
     smppUsername: "",
     smppPassword: "",
     internalNotes: "",
@@ -141,7 +146,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     }
   }, [isOpen]);
 
-  // --- Fetch Client Details & IPs ---
+  // --- Fetch Client Details & Access Controls ---
   useEffect(() => {
     const loadData = async () => {
       if (isOpen) {
@@ -156,6 +161,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           allowNetting: false,
           enableDlr: true,
           ipWhitelist: "",
+          hostnameWhitelist: "",
           smppUsername: "",
           smppPassword: "",
           internalNotes: "",
@@ -191,6 +197,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           bindStatus: editingClient.bindStatus || "OFFLINE",
           session: editingClient.session || "0/2",
           
+          ipWhitelist: "",
+          hostnameWhitelist: "",
+
           maxTps: editingClient.clientPolicy?.maxTps != null ? String(editingClient.clientPolicy.maxTps) : "",
           maxQueueDepth: editingClient.clientPolicy?.maxQueueDepth != null ? String(editingClient.clientPolicy.maxQueueDepth) : "",
           maxWindowPerSession: editingClient.clientPolicy?.maxWindowPerSession != null ? String(editingClient.clientPolicy.maxWindowPerSession) : "",
@@ -206,13 +215,19 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             client: editingClient.id,
           })
             .then((res) => {
-              const myIps = (res.results || []).filter(
-                (r: any) => r.client === editingClient.id,
+              const myRecords = (res.results || []).filter(
+                (r: any) => r.client === editingClient.id
               );
-              const ipString = myIps.map((item) => item.ip).join(",");
-              setFormData((prev) => ({ ...prev, ipWhitelist: ipString }));
+              const ips = myRecords.filter((r: any) => r.access_type === "IP").map((r: any) => r.ip).join(",");
+              const hosts = myRecords.filter((r: any) => r.access_type === "HOST" || r.access_type === "HOSTNAME").map((r: any) => r.hostname).join(",");
+              
+              setFormData((prev) => ({ 
+                ...prev, 
+                ipWhitelist: ips,
+                hostnameWhitelist: hosts
+              }));
             })
-            .catch((err: any) => console.error("Failed to fetch IPs", err));
+            .catch((err: any) => console.error("Failed to fetch Access Controls", err));
         }
       }
     };
@@ -253,26 +268,63 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     }
   };
 
-  const handleIpSync = async (clientId: number, ipList: string[]) => {
+  const handleAccessControlSync = async (clientId: number, ipList: string[], hostList: string[]) => {
     const existingRes = await getIpWhitelistApi("ipWhitelist", 1, 1000, {
       client: clientId,
     });
     const allFetched = existingRes.results || [];
-
     const existingRecords = allFetched.filter((r) => r.client === clientId);
-    const existingIpSet = new Set(existingRecords.map((r) => r.ip));
 
-    const toAdd = ipList.filter((ip) => !existingIpSet.has(ip));
-    const toDelete = existingRecords.filter((r) => !ipList.includes(r.ip));
+    const existingIps = existingRecords.filter(r => r.access_type === "IP");
+    const existingHosts = existingRecords.filter(r => r.access_type === "HOST" || r.access_type === "HOSTNAME");
+
+    const existingIpSet = new Set(existingIps.map((r) => r.ip));
+    const existingHostSet = new Set(existingHosts.map((r) => r.hostname));
+
+    const ipsToAdd = ipList.filter((ip) => !existingIpSet.has(ip));
+    const ipsToDelete = existingIps.filter((r) => !ipList.includes(r.ip!));
+
+    const hostsToAdd = hostList.filter((h) => !existingHostSet.has(h));
+    const hostsToDelete = existingHosts.filter((r) => !hostList.includes(r.hostname!));
 
     const promises = [
-      ...toAdd.map((ip) =>
-        createIpWhitelistApi({ ip, client: clientId }, "ipWhitelist"),
+      ...ipsToAdd.map((ip) =>
+        createIpWhitelistApi({ ip, client: clientId, access_type: "IP" }, "ipWhitelist"),
       ),
-      ...toDelete.map((r) => deleteIpWhitelistApi(r.id!, "ipWhitelist")),
+      ...hostsToAdd.map((hostname) =>
+        // ⚡️ FIXED: Ensure we send HOST instead of HOSTNAME when syncing multiple records
+        createIpWhitelistApi({ hostname, client: clientId, access_type: "HOST" }, "ipWhitelist"),
+      ),
+      ...ipsToDelete.map((r) => deleteIpWhitelistApi(r.id!, "ipWhitelist")),
+      ...hostsToDelete.map((r) => deleteIpWhitelistApi(r.id!, "ipWhitelist")),
     ];
 
     await Promise.all(promises);
+  };
+
+  // --- Auto-provision a Route Group + Customer Rate Group with the same
+  // name as the client, and link both back onto the newly created client.
+  // Only runs for brand new clients (not on edit).
+  const handleAutoProvisionLinkedGroups = async (
+    clientId: number,
+    clientName: string,
+    clientStatus: string,
+  ) => {
+    const groupStatus = clientStatus === "ACTIVE" ? "ACTIVE" : "INACTIVE";
+
+    const [routeGroup, rateGroup] = await Promise.all([
+      createRouteGroupApi({ name: clientName, status: groupStatus }, moduleName),
+      createCustomerRateGroupApi({ name: clientName, status: groupStatus }, moduleName),
+    ]);
+
+    await updateClientApi(
+      clientId,
+      {
+        routeGroup: routeGroup.id,
+        customerRateGroup: rateGroup.id,
+      },
+      moduleName,
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -300,23 +352,35 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       return;
     }
 
-    const ipList = formData.ipWhitelist
+  const ipList = editingClient
+  ? formData.ipWhitelist
       .split(/[\n,]+/)
       .map((ip) => ip.trim())
-      .filter((ip) => ip !== "");
+      .filter((ip) => ip !== "")
+  : [];
 
-    for (const ip of ipList) {
-      if (!isValidIp(ip)) {
-        toast.error(`Invalid IP address format: "${ip}"`);
-        return;
-      }
+if (editingClient) {
+  for (const ip of ipList) {
+    if (!isValidIp(ip)) {
+      toast.error(`Invalid IP address format: "${ip}"`);
+      return;
     }
+  }
+}
+
+const hostList = editingClient
+  ? formData.hostnameWhitelist
+      .split(/[\n,]+/)
+      .map((h) => h.trim())
+      .filter((h) => h !== "")
+  : [];
 
     setIsSubmitting(true);
 
     try {
       const {
         ipWhitelist,
+        hostnameWhitelist,
         maxTps,
         maxQueueDepth,
         maxWindowPerSession,
@@ -331,12 +395,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       const payload: any = {
         ...clientPayload,
         company: Number(formData.company),
-        ipWhitelist: [],
       };
 
       let savedClientId: number;
+      const isNewClient = !editingClient;
 
-      // 2. Save Client
       if (editingClient) {
         await updateClientApi(editingClient.id!, payload, moduleName);
         savedClientId = editingClient.id!;
@@ -345,10 +408,27 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         savedClientId = newClient.id!;
       }
 
-      // 3. Sync IPs
-      await handleIpSync(savedClientId, ipList);
+if (editingClient) {
+  await handleAccessControlSync(savedClientId, ipList, hostList);
+}
 
-      // 4. Handle Policy Configuration
+      // On creation only, auto-create linked Route Group / Customer Rate
+      // Group with the same name and attach them to the client.
+      if (isNewClient && savedClientId) {
+        try {
+          await handleAutoProvisionLinkedGroups(
+            savedClientId,
+            formData.name,
+            formData.status,
+          );
+        } catch (linkErr) {
+          console.error("Failed to auto-provision Route/Rate groups:", linkErr);
+          toast.warning(
+            "Client saved, but auto-creating the linked Route Group / Customer Rate Group failed.",
+          );
+        }
+      }
+
       if (savedClientId) {
         const policyPayload: any = {};
 
@@ -371,7 +451,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         if (formData.submitTimeoutSec !== "")
           policyPayload.submitTimeoutSec = Number(formData.submitTimeoutSec);
 
-        // Only save if there is actually policy data to push
         if (Object.keys(policyPayload).length > 0 || existingPolicyId) {
           try {
             if (existingPolicyId) {
@@ -506,7 +585,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Commercials & Alerts
           </legend>
-          {/* ⚡️ FIX: Adjusted grid layout strictly to 2 columns since balance alert was removed */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select
               label="Payment Terms"
@@ -596,16 +674,32 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               </>
             )}
 
-            <div className="md:col-span-2">
-              <MultiEmailInput
-                label="IP Whitelist"
-                name="ipWhitelist"
-                value={formData.ipWhitelist}
-                onChange={handleSelect}
-                placeholder="Enter IPs and press Enter or comma"
-                disabled={isViewMode}
-              />
-            </div>
+            {/* Conditionally rendering Access Control fields based on view mode and existence */}
+{editingClient && (!isViewMode || formData.ipWhitelist) && (
+              <div className="md:col-span-2">
+                <MultiEmailInput
+                  label="IP Whitelist"
+                  name="ipWhitelist"
+                  value={formData.ipWhitelist}
+                  onChange={handleSelect}
+                  placeholder="Enter IPs and press Enter or comma"
+                  disabled={isViewMode}
+                />
+              </div>
+            )}
+            
+{editingClient && (!isViewMode || formData.hostnameWhitelist) && (
+              <div className="md:col-span-2">
+                <MultiEmailInput
+                  label="Hostname Whitelist"
+                  name="hostnameWhitelist"
+                  value={formData.hostnameWhitelist}
+                  onChange={handleSelect}
+                  placeholder="Enter Hostnames and press Enter or comma"
+                  disabled={isViewMode}
+                />
+              </div>
+            )}
           </div>
         </fieldset>
 

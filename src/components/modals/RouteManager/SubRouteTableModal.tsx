@@ -896,7 +896,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                 <tr
                                   key={route.id}
                                   onContextMenu={canDelete ? (e) => handleRouteContextMenu(e, route, countryId) : undefined}
-                                  className={`hover:bg-blue-50/40 dark:hover:bg-primary/5 transition-colors ${canDelete ? "cursor-context-menu" : ""}`}
+  className={`relative focus-within:z-20 hover:bg-blue-50/40 dark:hover:bg-primary/5 transition-colors ${canDelete ? "cursor-context-menu" : ""}`}
                                 >
                                   <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 text-gray-400 text-xs bg-gray-50/50 dark:bg-gray-800/20">{i + 1}</td>
                                   <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w-24 max-w-[6rem]">
@@ -989,7 +989,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
                             {/* New (unsaved) rows */}
                             {section.newRows.map((row, i) => (
-                              <tr key={row._id} className="bg-blue-50/70 dark:bg-blue-900/10 border-l-[3px] border-l-blue-400">
+<tr key={row._id} className="relative focus-within:z-20 bg-blue-50/70 dark:bg-blue-900/10 border-l-[3px] border-l-blue-400">
                                 <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-blue-400 text-xs">
                                   {section.routes.length + i + 1}
                                 </td>

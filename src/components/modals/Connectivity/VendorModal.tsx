@@ -20,6 +20,9 @@ import {
 } from "../../../api/policyApi/vendorPolicyApi";
 import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 
+// --- Linked Provisioning API (Vendor Rate Group) ---
+import { createVendorRateGroupApi } from "../../../api/rateApi/vendorRateApi";
+
 // UI Components
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
@@ -279,6 +282,25 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     setFormData({ ...formData, [name]: value });
   };
 
+  // --- Auto-provision a Vendor Rate Group with the same name as the
+  // vendor's Profile Name, and link it back onto the newly created vendor.
+  // Only runs for brand new vendors (not on edit).
+  const handleAutoProvisionVendorRateGroup = async (
+    vendorId: number,
+    profileName: string,
+  ) => {
+    const rateGroup = await createVendorRateGroupApi(
+      { name: profileName, status: "ACTIVE" },
+      moduleName,
+    );
+
+    await updateVendorApi(
+      vendorId,
+      { vendorRateGroup: rateGroup.id },
+      moduleName,
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewMode) return;
@@ -366,12 +388,26 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       }
 
       let vendorId = editingVendor?.id;
+      const isNewVendor = !editingVendor;
 
       if (editingVendor) {
         await updateVendorApi(editingVendor.id!, vendorPayload, moduleName);
       } else {
         const vRes: any = await createVendorApi(vendorPayload, moduleName);
         vendorId = vRes?.id || vRes?.data?.id;
+      }
+
+      // On creation only, auto-create a linked Vendor Rate Group with the
+      // same name as the Profile Name and attach it to the vendor.
+      if (isNewVendor && vendorId) {
+        try {
+          await handleAutoProvisionVendorRateGroup(vendorId, formData.profileName);
+        } catch (linkErr) {
+          console.error("Failed to auto-provision Vendor Rate Group:", linkErr);
+          toast.warning(
+            "Vendor saved, but auto-creating the linked Vendor Rate Group failed.",
+          );
+        }
       }
 
       // --- 3. HANDLE POLICY ---

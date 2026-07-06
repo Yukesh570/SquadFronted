@@ -42,8 +42,20 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
   };
 
   const removeEmail = (indexToRemove: number) => {
+    const emailToRemove = emails[indexToRemove];
+    const confirmed = window.confirm(`Remove "${emailToRemove}"?`);
+    if (!confirmed) return;
+
     const newEmails = emails.filter((_, index) => index !== indexToRemove);
     onChange(name, newEmails.join(","));
+  };
+
+  const editEmail = (indexToEdit: number) => {
+    if (disabled) return;
+    const emailToEdit = emails[indexToEdit];
+    const newEmails = emails.filter((_, index) => index !== indexToEdit);
+    onChange(name, newEmails.join(","));
+    setInputValue(emailToEdit);
   };
 
   const handleBlur = () => {
@@ -74,7 +86,13 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
             key={index}
             className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded text-sm"
           >
-            {email}
+            <span
+              onClick={() => editEmail(index)}
+              className={!disabled ? "cursor-pointer hover:underline" : ""}
+              title={!disabled ? "Click to edit" : undefined}
+            >
+              {email}
+            </span>
             {!disabled && (
               <button
                 type="button"

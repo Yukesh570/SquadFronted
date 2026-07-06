@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
@@ -6,10 +6,9 @@ import Select from "../ui/Select";
 import MultiEmailInput from "../ui/multiEmailInput";
 import {
   createIpWhitelistApi,
-  updateIpWhitelistApi,
+  getIpWhitelistApi,
   type IpWhitelistData,
 } from "../../api/ipWhitelistApi/ipWhitelistApi";
-import { getClientsApi } from "../../api/clientApi/clientApi";
 
 interface IpWhitelistModalProps {
   isOpen: boolean;
@@ -21,134 +20,113 @@ interface IpWhitelistModalProps {
   fixedClient?: { id: number; name: string } | null;
 }
 
-interface Option {
-  label: string;
-  value: string;
-}
-
 const IpWhitelistModal: React.FC<IpWhitelistModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
   moduleName,
-  editingData,
-  isViewMode = false,
   fixedClient = null,
 }) => {
   const [formData, setFormData] = useState({
+    access_type: "IP",
     ip: "",
-    client: "",
+    hostname: "",
   });
 
-  const [clientOptions, setClientOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [existingRecords, setExistingRecords] = useState<IpWhitelistData[]>([]);
+  const [showExisting, setShowExisting] = useState(false);
+  const activeClientIdRef = useRef<number | null>(null);
 
-  // Load Clients
+  const fetchRecords = async () => {
+    if (fixedClient) {
+      const requestedClientId = fixedClient.id;
+      activeClientIdRef.current = requestedClientId;
+      try {
+        const res = await getIpWhitelistApi("ipWhitelist", 1, 1000, {
+          client: requestedClientId,
+        });
+        if (activeClientIdRef.current !== requestedClientId) return;
+        const filtered = (res.results || []).filter(
+          (r) => r.client === requestedClientId
+        );
+        setExistingRecords(filtered);
+      } catch (e) {
+        console.error("Failed to load existing access control records", e);
+      }
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
+      fetchRecords();
+      setShowExisting(false);
       if (fixedClient) {
-        setClientOptions([
-          { label: fixedClient.name, value: String(fixedClient.id) },
-        ]);
-        setFormData((prev) => ({ ...prev, client: String(fixedClient.id) }));
-      } else {
-        const fetchClients = async () => {
-          try {
-            const res: any = await getClientsApi("client", 1, 1000);
-            const list = res.results || (Array.isArray(res) ? res : []);
-            setClientOptions(
-              list.map((item: any) => ({
-                label: item.name,
-                value: String(item.id),
-              })),
-            );
-          } catch (error) {
-            console.error("Failed to load clients", error);
-          }
-        };
-        fetchClients();
+        setFormData({
+          access_type: "IP",
+          ip: "",
+          hostname: "",
+        });
       }
     }
   }, [isOpen, fixedClient]);
 
-  // Load Edit Data
-  useEffect(() => {
-    if (isOpen && editingData) {
-      setFormData({
-        ip: editingData.ip || "",
-        client: String(editingData.client || ""),
-      });
-    } else if (isOpen && !editingData && !fixedClient) {
-      setFormData({
-        ip: "",
-        client: "",
-      });
-    } else if (isOpen && fixedClient && !editingData) {
-      setFormData((prev) => ({ ...prev, ip: "" }));
-    }
-  }, [isOpen, editingData, fixedClient]);
-
-  // Removed unused handleChange function
-
   const handleSelect = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isViewMode) return;
+    if (!fixedClient) return;
 
-    if (!formData.ip) {
-      toast.error("IP Address is required");
-      return;
-    }
-    if (!formData.client) {
-      toast.error("Client is required");
+    const isIp = formData.access_type === "IP";
+    const rawValues = isIp ? formData.ip : formData.hostname;
+
+    if (!rawValues.trim()) {
+      toast.error(`Please provide at least one ${isIp ? "IP" : "Hostname"}`);
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      if (editingData?.id) {
-        const payload = {
-          ip: formData.ip.trim(),
-          client: Number(formData.client),
-        };
-        await updateIpWhitelistApi(editingData.id, payload, moduleName);
-        toast.success("IP Whitelist updated successfully!");
-      } else {
-        const ipList = formData.ip
-          .split(/[\n,]+/)
-          .map((ip) => ip.trim())
-          .filter((ip) => ip !== "");
+      const list = rawValues
+        .split(/[\n,]+/)
+        .map((v) => v.trim())
+        .filter((v) => v !== "");
 
-        if (ipList.length === 0) {
-          toast.error("No valid IP addresses found.");
-          setIsSubmitting(false);
-          return;
-        }
-
-        const promises = ipList.map((singleIp) =>
-          createIpWhitelistApi(
-            {
-              ip: singleIp,
-              client: Number(formData.client),
-            },
-            moduleName,
-          ),
-        );
-
-        await Promise.all(promises);
-        toast.success(`${ipList.length} IP(s) added successfully!`);
+      if (list.length === 0) {
+        toast.error(`No valid ${isIp ? "IP" : "Hostname"} entries found.`);
+        setIsSubmitting(false);
+        return;
       }
 
+      const promises = list.map((val) =>
+        createIpWhitelistApi(
+          {
+            client: fixedClient.id,
+            access_type: formData.access_type,
+            [isIp ? "ip" : "hostname"]: val,
+          },
+          moduleName
+        )
+      );
+
+      await Promise.all(promises);
+      toast.success(
+        `${list.length} ${isIp ? "IP(s)" : "Hostname(s)"} added successfully!`
+      );
+
+      setFormData((prev) => ({ ...prev, ip: "", hostname: "" }));
+      fetchRecords();
       onSuccess();
       onClose();
     } catch (error: any) {
       console.error(error);
       const msg =
-        error.response?.data?.ip?.[0] || "Failed to save IP Whitelist.";
+        error.response?.data?.ip?.[0] ||
+        error.response?.data?.hostname?.[0] ||
+        "Failed to save Access Control list.";
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
@@ -157,55 +135,115 @@ const IpWhitelistModal: React.FC<IpWhitelistModalProps> = ({
 
   if (!isOpen) return null;
 
+  const existingIps = existingRecords
+    .filter((r) => r.access_type === "IP")
+    .map((r) => r.ip)
+    .join(",");
+  const existingHosts = existingRecords
+    .filter((r) => r.access_type === "HOSTNAME" || r.access_type === "HOST")
+    .map((r) => r.hostname)
+    .join(",");
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={
-        isViewMode
-          ? "View IP Whitelist"
-          : editingData
-            ? "Edit IP Whitelist"
-            : "Add IP Whitelist"
-      }
+      title={`Add Access Control - ${fixedClient ? fixedClient.name : ""}`}
       className="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 gap-4">
           <Select
-            label="Client"
-            value={formData.client}
-            onChange={(v) => handleSelect("client", v)}
-            options={clientOptions}
-            placeholder="Select Client"
-            disabled={isViewMode || !!fixedClient}
+            label="Access Type"
+            value={formData.access_type}
+            onChange={(v) => handleSelect("access_type", v)}
+            options={[
+              { label: "IP Address", value: "IP" },
+              { label: "Hostname", value: "HOSTNAME" },
+            ]}
           />
-          <MultiEmailInput
-            label="IP Address"
-            name="ip"
-            value={formData.ip}
-            onChange={handleSelect}
-            placeholder="IPv4 or IPv6 (press Enter or comma)"
-            disabled={isViewMode}
-          />
-          {!editingData && !isViewMode && (
-            <p className="-mt-3 text-xs text-gray-500">
-              You can add multiple IPs by pressing Enter after each one.
-            </p>
+
+          {formData.access_type === "IP" && (
+            <div>
+              <MultiEmailInput
+                label="IP Address"
+                name="ip"
+                value={formData.ip}
+                onChange={handleSelect}
+                placeholder="IPv4 or IPv6 (press Enter or comma)"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                You can add multiple IPs by pressing Enter after each one.
+              </p>
+            </div>
+          )}
+
+          {formData.access_type === "HOSTNAME" && (
+            <div>
+              <MultiEmailInput
+                label="Hostname"
+                name="hostname"
+                value={formData.hostname}
+                onChange={handleSelect}
+                placeholder="Enter Hostname (press Enter or comma)"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                You can add multiple hostnames by pressing Enter after each one.
+              </p>
+            </div>
           )}
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex justify-end space-x-3 pt-2">
           <Button type="button" variant="secondary" onClick={onClose}>
-            {isViewMode ? "Close" : "Cancel"}
+            Close
           </Button>
-          {!isViewMode && (
-            <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : editingData ? "Update" : "Add"}
-            </Button>
-          )}
+          <Button type="submit" variant="primary" disabled={isSubmitting}>
+            {isSubmitting ? "Adding..." : "Add"}
+          </Button>
         </div>
       </form>
+
+      {/* Existing Records Section */}
+      {existingRecords.length > 0 && (
+        <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-sm font-semibold text-primary">
+              Existing Access Control Records
+            </h3>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowExisting(!showExisting)}
+            >
+              {showExisting ? "Hide" : "View"}
+            </Button>
+          </div>
+
+          {showExisting && (
+            <div className="space-y-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
+              {existingIps && (
+                <MultiEmailInput
+                  label="Saved IPs"
+                  name="existingIps"
+                  value={existingIps}
+                  onChange={() => {}}
+                  disabled={true}
+                />
+              )}
+              {existingHosts && (
+                <MultiEmailInput
+                  label="Saved Hostnames"
+                  name="existingHosts"
+                  value={existingHosts}
+                  onChange={() => {}}
+                  disabled={true}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </Modal>
   );
 };
