@@ -30,7 +30,7 @@ export interface VendorData {
   vendorRateGroup?: number;
   vendorRateGroupName?: string;
   connectionType: "SMPP" | "HTTP";
-  invoicePolicy: string; // ⚡️ FIX: Made mandatory
+  invoicePolicy: string; 
   smpp?: number;
   smppName?: string;
   bindStatus?: string;
@@ -111,5 +111,26 @@ export const getVendorRateGroupsApi = async (
     ...searchParams,
   };
   const response = await api.get(`/vendorRateGroup/${module}/`, { params });
+  return response.data;
+};
+
+// --- NEW: View Vendor Rates API ---
+export interface VendorRateData {
+  country_id?: number;
+  MCC?: string;
+  MNC?: string;
+  rate?: number;
+}
+
+export const getVendorRateByVendorApi = async (params: {
+  vendor_id: number;
+  page?: number;
+  page_size?: number;
+  [key: string]: any;
+}): Promise<PaginatedResponse<VendorRateData>> => {
+  const { vendor_id, page = 1, page_size = 10, ...rest } = params;
+  const response = await api.get(`/vendorRateByVendor/vendor`, {
+    params: { vendor_id, page, page_size, ...rest },
+  });
   return response.data;
 };

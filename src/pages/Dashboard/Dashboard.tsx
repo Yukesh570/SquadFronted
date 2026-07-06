@@ -72,6 +72,7 @@ const Dashboard: React.FC = () => {
   const [deliveredCount, setDeliveredCount] = useState<string>("-");
   const [failedCount, setFailedCount]       = useState<string>("-");
   const [deliveryRate, setDeliveryRate]     = useState<string>("-");
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [activeSessionsCount, setActiveSessionsCount] = useState<number | string>("-");
   const [onlineVendors, setOnlineVendors]   = useState<number | string>("-");
   const [onlineClients, setOnlineClients]   = useState<number | string>("-");
@@ -119,6 +120,7 @@ const Dashboard: React.FC = () => {
   // ─── Fetchers ────────────────────────────────────────────────────────────────
 
   const fetchSmsStats = async (range: RangeKey) => {
+    setIsStatsLoading(true);
     try {
       const d = await getSmsStatsApi(buildParams(range));
       setTotalSms(Number(d.count).toLocaleString());
@@ -127,6 +129,9 @@ const Dashboard: React.FC = () => {
       setDeliveryRate(`${d.deliveryRate}%`);
     } catch (e) {
       console.error("fetchSmsStats failed", e);
+    }
+    finally {
+    setIsStatsLoading(false);  
     }
   };
 
@@ -224,30 +229,35 @@ const Dashboard: React.FC = () => {
 
   // ─── Effects ─────────────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    fetchSmsStats(activeRange);
-    fetchHourlyTraffic(activeRange);
-    fetchDlrStats(activeRange);
-    fetchActiveSessions();
-    fetchOnlineVendors();
-    fetchOnlineClients();
-    fetchNotifications();
-    fetchRevenue(activeRange);
+ // Range-scoped data — refetched whenever the date range changes.
+useEffect(() => {
+  fetchSmsStats(activeRange);
+  fetchHourlyTraffic(activeRange);
+  fetchDlrStats(activeRange);
+  fetchRevenue(activeRange);
+}, [activeRange]);
 
-    const wsBase = import.meta.env.VITE_WS_BASE_URL;
-    if (!wsBase) return;
+// Connectivity/session data — independent of date range, fetched once.
+useEffect(() => {
+  fetchActiveSessions();
+  fetchOnlineVendors();
+  fetchOnlineClients();
+  fetchNotifications();
 
-    const ws = new WebSocket(`${wsBase}/ws/status/`);
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.action === "session_update") fetchActiveSessions();
-      } catch (err) {
-        console.error("WebSocket parse error in Dashboard", err);
-      }
-    };
-    return () => ws.close();
-  }, [activeRange]);
+  const wsBase = import.meta.env.VITE_WS_BASE_URL;
+  if (!wsBase) return;
+
+  const ws = new WebSocket(`${wsBase}/ws/status/`);
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.action === "session_update") fetchActiveSessions();
+    } catch (err) {
+      console.error("WebSocket parse error in Dashboard", err);
+    }
+  };
+  return () => ws.close();
+}, []);
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -322,22 +332,22 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard
           title={`Total SMS (${activeRangeLabel})`}
-          value={totalSms}
+          value={isStatsLoading ? "…" : totalSms}
           icon={<MessageSquare size={24} />}
         />
         <StatCard
           title={`Delivered (${activeRangeLabel})`}
-          value={deliveredCount}
+          value={isStatsLoading ? "…" : deliveredCount}
           icon={<Activity size={24} />}
         />
         <StatCard
           title={`Failed (${activeRangeLabel})`}
-          value={failedCount}
+          value={isStatsLoading ? "…" : failedCount}
           icon={<XCircle size={24} />}
         />
         <StatCard
           title="Delivery Rate"
-          value={deliveryRate}
+          value={isStatsLoading ? "…" : deliveryRate}
           icon={<Activity size={24} />}
           trendText={activeRangeLabel}
         />

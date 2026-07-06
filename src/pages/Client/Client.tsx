@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, ShieldPlus, Eye, Mail } from "lucide-react";
+// ⚡️ FIX: Added Layers icon for the View Rate context menu option
+import { Home, Plus, Edit, Trash, ShieldPlus, Eye, Mail, Layers } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -19,6 +20,7 @@ import { getCustomerRateGroupsApi } from "../../api/rateApi/customerRateApi";
 import { ClientModal } from "../../components/modals/ClientModal";
 import { ClientRoutingRateModal } from "../../components/modals/ClientRoutingRateModal";
 import IpWhitelistModal from "../../components/modals/WhiteListIPModal";
+import { ClientRateTableModal } from "../../components/modals/ClientRateTableModal"; // ⚡️ NEW: Import the View Rate modal
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -91,6 +93,10 @@ const Client: React.FC = () => {
 
   const [isIpModalOpen, setIsIpModalOpen] = useState(false);
   const [ipModalClient, setIpModalClient] = useState<{ id: number; name: string; } | null>(null);
+
+  // ⚡️ NEW: View Rate Modal State
+  const [isRateModalOpen, setIsRateModalOpen] = useState(false);
+  const [rateModalClient, setRateModalClient] = useState<{ id: number; name: string; } | null>(null);
 
   // --- Context Menu State ---
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number; } | null>(null);
@@ -508,7 +514,7 @@ const Client: React.FC = () => {
         ...(canUpdate
           ? [
               {
-                label: "Add Access Control", // ⚡️ FIX: Updated label
+                label: "Add Access Control", 
                 icon: <ShieldPlus size={16} />,
                 onClick: () => handleAddIp(selectedRowClient),
               },
@@ -518,6 +524,15 @@ const Client: React.FC = () => {
           label: "View Details",
           icon: <Eye size={16} />,
           onClick: () => handleView(selectedRowClient),
+        },
+        // ⚡️ NEW: View Rate context menu mapping to new Modal
+        {
+          label: "View Rate",
+          icon: <Layers size={16} />,
+          onClick: () => {
+            setRateModalClient({ id: selectedRowClient.id!, name: selectedRowClient.name });
+            setIsRateModalOpen(true);
+          }
         },
         {
           label: "Send Details",
@@ -883,6 +898,13 @@ const Client: React.FC = () => {
         editingClient={editingClient}
         routeGroupOptions={routeGroup}
         customerRateGroupOptions={customerRateGroupOptions}
+      />
+
+      {/* ⚡️ NEW: Rendering ClientRateTableModal component */}
+      <ClientRateTableModal
+        isOpen={isRateModalOpen}
+        onClose={() => setIsRateModalOpen(false)}
+        client={rateModalClient}
       />
 
       <IpWhitelistModal

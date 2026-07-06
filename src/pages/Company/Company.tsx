@@ -15,6 +15,7 @@ import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
 import { getCompanyStatusApi } from "../../api/settingApi/companyStatusApi/companyStatusApi";
 import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
 import { CompanyModal } from "../../components/modals/CompanyModal";
+import { AddCreditLimitModal } from "../../components/modals/Credit/AddCreditLimitModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -63,6 +64,7 @@ const CompanyList: React.FC = () => {
   );
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+  const [isAddCreditOpen, setIsAddCreditOpen] = useState(false);
 
   // --- Context Menu States ---
   const [contextMenuPos, setContextMenuPos] = useState<{
@@ -421,6 +423,11 @@ const CompanyList: React.FC = () => {
                 icon: <Edit size={16} />,
                 onClick: () => handleEdit(selectedRowCompany),
               },
+              {
+                label: "Add Credit Limit",
+                icon: <Plus size={16} />,
+                onClick: () => setIsAddCreditOpen(true),
+              },
             ]
           : []),
         ...(canDelete
@@ -663,6 +670,13 @@ const CompanyList: React.FC = () => {
         onConfirm={handleDelete}
         title="Delete Company"
         message="Are you sure you want to delete this company? This action cannot be undone."
+      />
+      <AddCreditLimitModal
+        isOpen={isAddCreditOpen}
+        onClose={() => setIsAddCreditOpen(false)}
+        onSuccess={() => fetchCompanies()}
+        moduleName={routeName}
+        company={selectedRowCompany}
       />
     </div>
   );

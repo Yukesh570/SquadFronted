@@ -44,7 +44,8 @@ const formatLocalDate = (date: Date) => {
 };
 
 const DEFAULT_SEARCH_COLUMNS = ["country__name__icontains", "operatorName__icontains", "status"];
-const DEFAULT_TABLE_COLUMNS = ["countryCode", "operatorName", "mccmnc", "operatorPrefixStartRange", "operatorPrefixEndRange", "status"];
+// ⚡️ FIX: Added countryName to default visible columns
+const DEFAULT_TABLE_COLUMNS = ["countryName", "countryCode", "operatorName", "mccmnc", "operatorPrefixStartRange", "operatorPrefixEndRange", "status"];
 
 const MccMncPrefixRange: React.FC = () => {
   const { canUpdate } = usePagePermissions();
@@ -95,6 +96,8 @@ const MccMncPrefixRange: React.FC = () => {
 
   const allColumns: ColumnConfig[] = [
     { key: "country__name__icontains", label: "Country Name (Search)", type: "text", isSearchOnly: true },
+    // ⚡️ FIX: Added countryName as a standard column mapping to the response JSON
+    { key: "countryName", label: "Country Name", type: "text", filterKey: "country__name__icontains" },
     { key: "countryCode", label: "Country Code", type: "text", filterKey: "countryCode__icontains" },
     { key: "operatorName", label: "Operator Name", type: "text", filterKey: "operatorName__icontains" },
     { key: "mcc", label: "MCC", type: "text", filterKey: "mcc__icontains" },

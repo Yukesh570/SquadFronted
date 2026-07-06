@@ -122,3 +122,24 @@ export const getClientRateOverViewApi = async (params: {
   const response = await api.get(`/clientRateOverView/`, { params });
   return response.data;
 };
+
+// --- NEW: View Client Rates API ---
+export interface ClientRateData {
+  country_id?: number;
+  MCC?: string;
+  MNC?: string;
+  rate?: number;
+}
+
+export const getCustomerRateByClientApi = async (params: {
+  client_id: number;
+  page?: number;
+  page_size?: number;
+  [key: string]: any;
+}): Promise<PaginatedResponse<ClientRateData>> => {
+  const { client_id, page = 1, page_size = 10, ...rest } = params;
+  const response = await api.get(`/customerRateByClient/client`, {
+    params: { client_id, page, page_size, ...rest },
+  });
+  return response.data;
+};

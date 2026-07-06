@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye, RefreshCw } from "lucide-react";
+import { Home, Plus, Edit, Trash, Eye, RefreshCw, Layers } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -12,6 +12,7 @@ import {
 import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 
 import { VendorModal } from "../../../components/modals/Connectivity/VendorModal";
+import { VendorRateTableModal } from "../../../components/modals/Connectivity/VendorRateTableModal"; 
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
@@ -76,6 +77,10 @@ const Vendor: React.FC = () => {
   const [editingVendor, setEditingVendor] = useState<VendorData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+
+  // Modal State for View Rate
+  const [isRateModalOpen, setIsRateModalOpen] = useState(false);
+  const [rateModalVendor, setRateModalVendor] = useState<{ id: number; profileName: string; } | null>(null);
 
   // --- Context Menu States ---
   const [contextMenuPos, setContextMenuPos] = useState<{
@@ -223,7 +228,6 @@ const Vendor: React.FC = () => {
     return <StatusBadge status={statusKey} customText={`${current}/${max}`} />;
   };
 
-  // ⚡️ FIX: Mapped filterKeys strictly to VendorFilter fields
   const allColumns: ColumnConfig[] = [
     {
       key: "profileName",
@@ -236,7 +240,7 @@ const Vendor: React.FC = () => {
       label: "Company",
       type: "text",
       options: companies,
-      filterKey: "company__name__icontains", // ⚡️ FIX: Adjusted to nested lookup
+      filterKey: "company__name__icontains", 
     },
     {
       key: "vendorRateGroup",
@@ -251,7 +255,7 @@ const Vendor: React.FC = () => {
       label: "Connection Type",
       type: "text",
       options: connectionTypeOptions,
-      filterKey: "connectionType__icontains", // ⚡️ FIX: Mapped to backend
+      filterKey: "connectionType__icontains",
       render: (c) => {
         const type = c.connectionType?.toUpperCase();
         const statusKey = type === "SMPP" ? "DELIVERED" : "SUBMITTED";
@@ -263,7 +267,7 @@ const Vendor: React.FC = () => {
       label: "Invoice Policy",
       type: "text",
       options: invoicePolicyOptions,
-      filterKey: "invoicePolicy__icontains", // ⚡️ FIX: Mapped to backend
+      filterKey: "invoicePolicy__icontains",
       render: (c) => {
         if (!c.invoicePolicy) return "-";
         const match = invoicePolicyOptions.find(opt => opt.value === c.invoicePolicy);
@@ -274,14 +278,14 @@ const Vendor: React.FC = () => {
       key: "smppName",
       label: "SMPP Name",
       type: "text",
-      filterKey: "smpp__smppHost__icontains", // ⚡️ FIX: Re-mapped to host as per class
+      filterKey: "smpp__smppHost__icontains",
     },
     {
       key: "bindStatus",
       label: "Bind Status",
       type: "text",
       options: bindStatusOptions,
-      filterKey: "bindStatus__icontains", // ⚡️ FIX: Mapped to backend
+      filterKey: "bindStatus__icontains",
       render: (c) => <StatusBadge status={c.bindStatus} />,
     },
     {
@@ -291,7 +295,6 @@ const Vendor: React.FC = () => {
       type: "text",
       render: (c) => renderSessionBadge(c),
     },
-    // --- INTEGRATED POLICY COLUMNS ---
     { 
       key: "maxSession", 
       label: "Max Sessions", 
@@ -441,7 +444,6 @@ const Vendor: React.FC = () => {
             currentSearchParams[`${columnDef.filterKey || key}__range`] =
               `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_range") {
-            // ⚡️ FIX: Safe parsing 
             const baseKey = key.replace("__range", "");
             const [start, end] = value.split(",");
             if (start && end) {
@@ -470,7 +472,7 @@ const Vendor: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = lt; // ⚡️ FIX: Fixed bug assigning gt to lt
+            if (lt) currentSearchParams[`${baseKey}__lt`] = lt; 
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -584,6 +586,14 @@ const Vendor: React.FC = () => {
           label: "View Details",
           icon: <Eye size={16} />,
           onClick: () => handleView(selectedRowVendor),
+        },
+        {
+          label: "View Rate",
+          icon: <Layers size={16} />,
+          onClick: () => {
+            setRateModalVendor({ id: selectedRowVendor.id!, profileName: selectedRowVendor.profileName });
+            setIsRateModalOpen(true);
+          }
         },
         ...(selectedRowVendor.bindStatus === "OFFLINE"
           ? [
@@ -938,6 +948,13 @@ const Vendor: React.FC = () => {
         editingVendor={editingVendor}
         isViewMode={isViewMode}
       />
+      
+      <VendorRateTableModal
+        isOpen={isRateModalOpen}
+        onClose={() => setIsRateModalOpen(false)}
+        vendor={rateModalVendor}
+      />
+
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
