@@ -193,9 +193,29 @@ const ClientInvoice: React.FC = () => {
     }
   };
 
+  const handleDownloadEdr = async (id?: number) => {
+    if (!id) { toast.error("Invoice ID not available."); return; }
+
+    try {
+      const response = await api.get(`/finance/TDR-invoice/download/${id}/`, { responseType: "blob" });
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.setAttribute("download", `EDR-${id}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success("EDR downloaded successfully!");
+    } catch (error) {
+      toast.error("Failed to download EDR.");
+    }
+  };
+
   const menuItems: ContextMenuItem[] = selectedRow ? [
     { label: "View Invoice", icon: <Eye size={16} />, onClick: () => handleViewPdf(selectedRow.invoicePdf) },
     { label: "Download PDF", icon: <Download size={16} />, onClick: () => handleDownloadPdf(selectedRow.downloadUrl || selectedRow.invoicePdf) },
+    { label: "Download EDR", icon: <Download size={16} />, onClick: () => handleDownloadEdr(selectedRow.id) },
     ...(canDelete ? [{ label: "Delete Invoice", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRow.id!) }] : []),
   ] : [];
 
