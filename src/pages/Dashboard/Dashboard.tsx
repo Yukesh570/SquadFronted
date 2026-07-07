@@ -8,11 +8,13 @@ import {
   Users,
   Server,
   ArrowRight,
-  Bell,
   TrendingUp,
   DollarSign,
   ChevronDown,
   Calendar,
+  Globe,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import StatCard from "../../components/ui/StatCard";
@@ -28,6 +30,8 @@ import {
   Pie,
   Cell,
   Legend,
+  BarChart,
+  Bar,
 } from "recharts";
 import Button from "../../components/ui/Button";
 import {
@@ -38,20 +42,32 @@ import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
 import { getClientsApi } from "../../api/clientApi/clientApi";
 import { getNotificationApi, type NotificationData } from "../../api/userActionApi/notificationApi";
 import {
-  getSmsStatsApi,
+  getSmsDailyApi,
   getSmsHourlyApi,
   getDlrStatsApi,
   getRevenueApi,
+  getFailureBreakdownApi,
+  getVendorPerformanceApi,
+  getClientPerformanceApi,
+  getGeoBreakdownApi,
+  getLatencyStatsApi,
   type SmsHourlyData,
   type RevenueData,
+  type FailureBreakdownData,
+  type VendorPerformanceData,
+  type ClientPerformanceData,
+  type GeoBreakdownData,
+  type LatencyStatsData,
+  getSmsStatsApi,
+  type SmsDailyData,
 } from "../../api/reportApi/smsCountsApi";
 
 // DLR colours — stable, not derived from API
 const DLR_COLORS: Record<string, string> = {
   Delivered: "#10b981",
-  Failed:    "#ef4444",
-  Pending:   "#f59e0b",
-  Rejected:  "#6b7280",
+  Failed: "#ef4444",
+  Pending: "#f59e0b",
+  Rejected: "#6b7280",
 };
 
 const Dashboard: React.FC = () => {
@@ -68,57 +84,85 @@ const Dashboard: React.FC = () => {
   }, []);
 
   // --- KPI states ---
-  const [totalSms, setTotalSms]             = useState<string>("-");
+  const [totalSms, setTotalSms] = useState<string>("-");
   const [deliveredCount, setDeliveredCount] = useState<string>("-");
-  const [failedCount, setFailedCount]       = useState<string>("-");
-  const [deliveryRate, setDeliveryRate]     = useState<string>("-");
+  const [failedCount, setFailedCount] = useState<string>("-");
+  const [deliveryRate, setDeliveryRate] = useState<string>("-");
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [activeSessionsCount, setActiveSessionsCount] = useState<number | string>("-");
-  const [onlineVendors, setOnlineVendors]   = useState<number | string>("-");
-  const [onlineClients, setOnlineClients]   = useState<number | string>("-");
+  const [onlineVendors, setOnlineVendors] = useState<number | string>("-");
+  const [onlineClients, setOnlineClients] = useState<number | string>("-");
 
   // --- Chart states ---
-  const [trafficData, setTrafficData] = useState<SmsHourlyData[]>([]);
-  const [dlrData, setDlrData]         = useState<{ name: string; value: number; color: string }[]>([]);
-  
-  // ⚡️ FIX: Dedicated loading states for charts to distinguish empty data from fetching
+  const [trafficData, setTrafficData] = useState<(SmsHourlyData | SmsDailyData)[]>([]);
+  const [dlrData, setDlrData] = useState<{ name: string; value: number; color: string }[]>([]);
+
+  // Dedicated loading states for charts to distinguish empty data from fetching
   const [isTrafficLoading, setIsTrafficLoading] = useState(true);
   const [isDlrLoading, setIsDlrLoading] = useState(true);
 
   // --- Table / panel states ---
-  const [liveSessions, setLiveSessions]   = useState<ClientSessionData[]>([]);
+  const [liveSessions, setLiveSessions] = useState<ClientSessionData[]>([]);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
-  const [revenue, setRevenue]             = useState<RevenueData | null>(null);
+  const [revenue, setRevenue] = useState<RevenueData | null>(null);
+
+  // --- Analytics: failure / vendor+route / client / geo / latency ---
+  const [failureBreakdown, setFailureBreakdown] = useState<FailureBreakdownData[]>([]);
+  const [isFailureLoading, setIsFailureLoading] = useState(true);
+  const [vendorPerformance, setVendorPerformance] = useState<VendorPerformanceData[]>([]);
+  const [isVendorLoading, setIsVendorLoading] = useState(true);
+  const [clientPerformance, setClientPerformance] = useState<ClientPerformanceData[]>([]);
+  const [isClientLoading, setIsClientLoading] = useState(true);
+  const [geoBreakdown, setGeoBreakdown] = useState<GeoBreakdownData[]>([]);
+  const [isGeoLoading, setIsGeoLoading] = useState(true);
+  const [latencyStats, setLatencyStats] = useState<LatencyStatsData | null>(null);
+  const [isLatencyLoading, setIsLatencyLoading] = useState(true);
 
   // ─── Date range ──────────────────────────────────────────────────────────────
 
   type RangeKey = "today" | "7d" | "30d" | "90d" | "365d" | "all";
 
   const RANGE_OPTIONS: { key: RangeKey; label: string }[] = [
-    { key: "today", label: "Today"        },
-    { key: "7d",    label: "Last 7 Days"  },
-    { key: "30d",   label: "Last 30 Days" },
-    { key: "90d",   label: "Last 90 Days" },
-    { key: "365d",  label: "Last Year"    },
-    { key: "all",   label: "All"          },
+    { key: "today", label: "Today" },
+    { key: "7d", label: "Last 7 Days" },
+    { key: "30d", label: "Last 30 Days" },
+    { key: "90d", label: "Last 90 Days" },
+    { key: "365d", label: "Last Year" },
+    { key: "all", label: "All" },
   ];
 
   const [activeRange, setActiveRange] = useState<RangeKey>("today");
-  const [rangeOpen, setRangeOpen]     = useState(false);
+  const [rangeOpen, setRangeOpen] = useState(false);
 
   const buildParams = (range: RangeKey): Record<string, any> => {
     if (range === "today") return { today: true };
-    if (range === "all")   return {};          // no date filter → backend returns everything
-    const end   = new Date();
+    if (range === "all") return {};
+    const end = new Date();
     const start = new Date();
-    const days  = range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 365;
+    const days = range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 365;
     start.setDate(start.getDate() - days + 1);
     const fmt = (d: Date) => d.toISOString().split("T")[0];
     return { startDate: fmt(start), endDate: fmt(end) };
   };
 
   // ─── Fetchers ────────────────────────────────────────────────────────────────
-
+  const fetchTrafficTraffic = async (range: RangeKey) => {
+    setIsTrafficLoading(true);
+    try {
+      if (range === "today") {
+        const data = await getSmsHourlyApi(buildParams(range));
+        setTrafficData(data);
+      } else {
+        const data = await getSmsDailyApi(buildParams(range));
+        setTrafficData(data);
+      }
+    } catch (e) {
+      console.error("fetchTrafficTraffic failed", e);
+      setTrafficData([]);
+    } finally {
+      setIsTrafficLoading(false);
+    }
+  };
   const fetchSmsStats = async (range: RangeKey) => {
     setIsStatsLoading(true);
     try {
@@ -129,9 +173,8 @@ const Dashboard: React.FC = () => {
       setDeliveryRate(`${d.deliveryRate}%`);
     } catch (e) {
       console.error("fetchSmsStats failed", e);
-    }
-    finally {
-    setIsStatsLoading(false);  
+    } finally {
+      setIsStatsLoading(false);
     }
   };
 
@@ -154,9 +197,9 @@ const Dashboard: React.FC = () => {
       const d = await getDlrStatsApi(buildParams(range));
       setDlrData([
         { name: "Delivered", value: d.deliveredPercent || 0, color: DLR_COLORS.Delivered },
-        { name: "Failed",    value: d.failedPercent || 0,    color: DLR_COLORS.Failed    },
-        { name: "Pending",   value: d.pendingPercent || 0,   color: DLR_COLORS.Pending   },
-        { name: "Rejected",  value: d.rejectedPercent || 0,  color: DLR_COLORS.Rejected  },
+        { name: "Failed", value: d.failedPercent || 0, color: DLR_COLORS.Failed },
+        { name: "Pending", value: d.pendingPercent || 0, color: DLR_COLORS.Pending },
+        { name: "Rejected", value: d.rejectedPercent || 0, color: DLR_COLORS.Rejected },
       ]);
     } catch (e) {
       console.error("fetchDlrStats failed", e);
@@ -170,12 +213,12 @@ const Dashboard: React.FC = () => {
     try {
       const [connectedRes, boundRes] = await Promise.all([
         getClientSessionsApi("clientSession", 1, 5, { status: "CONNECTED" }),
-        getClientSessionsApi("clientSession", 1, 5, { status: "BOUND"     }),
+        getClientSessionsApi("clientSession", 1, 5, { status: "BOUND" }),
       ]);
       const connectedResults = connectedRes?.results ?? [];
-      const boundResults     = boundRes?.results     ?? [];
-      const connectedCount   = connectedRes?.count   ?? 0;
-      const boundCount       = boundRes?.count       ?? 0;
+      const boundResults = boundRes?.results ?? [];
+      const connectedCount = connectedRes?.count ?? 0;
+      const boundCount = boundRes?.count ?? 0;
 
       const seen = new Set<string>();
       const merged: ClientSessionData[] = [];
@@ -227,45 +270,120 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // ─── Effects ─────────────────────────────────────────────────────────────────
-
- // Range-scoped data — refetched whenever the date range changes.
-useEffect(() => {
-  fetchSmsStats(activeRange);
-  fetchHourlyTraffic(activeRange);
-  fetchDlrStats(activeRange);
-  fetchRevenue(activeRange);
-}, [activeRange]);
-
-// Connectivity/session data — independent of date range, fetched once.
-useEffect(() => {
-  fetchActiveSessions();
-  fetchOnlineVendors();
-  fetchOnlineClients();
-  fetchNotifications();
-
-  const wsBase = import.meta.env.VITE_WS_BASE_URL;
-  if (!wsBase) return;
-
-  const ws = new WebSocket(`${wsBase}/ws/status/`);
-  ws.onmessage = (event) => {
+  const fetchFailureBreakdown = async (range: RangeKey) => {
+    setIsFailureLoading(true);
     try {
-      const data = JSON.parse(event.data);
-      if (data.action === "session_update") fetchActiveSessions();
-    } catch (err) {
-      console.error("WebSocket parse error in Dashboard", err);
+      const data = await getFailureBreakdownApi(buildParams(range));
+      setFailureBreakdown(data);
+    } catch (e) {
+      console.error("fetchFailureBreakdown failed", e);
+      setFailureBreakdown([]);
+    } finally {
+      setIsFailureLoading(false);
     }
   };
-  return () => ws.close();
-}, []);
+
+  const fetchVendorPerformance = async (range: RangeKey) => {
+    setIsVendorLoading(true);
+    try {
+      const data = await getVendorPerformanceApi(buildParams(range));
+      setVendorPerformance(data);
+    } catch (e) {
+      console.error("fetchVendorPerformance failed", e);
+      setVendorPerformance([]);
+    } finally {
+      setIsVendorLoading(false);
+    }
+  };
+
+  const fetchClientPerformance = async (range: RangeKey) => {
+    setIsClientLoading(true);
+    try {
+      const data = await getClientPerformanceApi(buildParams(range));
+      setClientPerformance(data);
+    } catch (e) {
+      console.error("fetchClientPerformance failed", e);
+      setClientPerformance([]);
+    } finally {
+      setIsClientLoading(false);
+    }
+  };
+
+  const fetchGeoBreakdown = async (range: RangeKey) => {
+    setIsGeoLoading(true);
+    try {
+      const data = await getGeoBreakdownApi(buildParams(range));
+      setGeoBreakdown(data);
+    } catch (e) {
+      console.error("fetchGeoBreakdown failed", e);
+      setGeoBreakdown([]);
+    } finally {
+      setIsGeoLoading(false);
+    }
+  };
+
+  const fetchLatencyStats = async (range: RangeKey) => {
+    setIsLatencyLoading(true);
+    try {
+      const d = await getLatencyStatsApi(buildParams(range));
+      setLatencyStats(d);
+    } catch (e) {
+      console.error("fetchLatencyStats failed", e);
+      setLatencyStats(null);
+    } finally {
+      setIsLatencyLoading(false);
+    }
+  };
+
+  // ─── Effects ─────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    fetchFailureBreakdown(activeRange);
+    fetchVendorPerformance(activeRange);
+    fetchClientPerformance(activeRange);
+    fetchGeoBreakdown(activeRange);
+    fetchLatencyStats(activeRange);
+    fetchSmsStats(activeRange);
+    fetchTrafficTraffic(activeRange);
+    fetchHourlyTraffic(activeRange);
+    fetchDlrStats(activeRange);
+    fetchRevenue(activeRange);
+  }, [activeRange]);
+
+  useEffect(() => {
+    fetchActiveSessions();
+    fetchOnlineVendors();
+    fetchOnlineClients();
+    fetchNotifications();
+
+    const wsBase = import.meta.env.VITE_WS_BASE_URL;
+    if (!wsBase) return;
+
+    const ws = new WebSocket(`${wsBase}/ws/status/`);
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.action === "session_update") fetchActiveSessions();
+      } catch (err) {
+        console.error("WebSocket parse error in Dashboard", err);
+      }
+    };
+    return () => ws.close();
+  }, []);
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
+  const formatLatency = (seconds: number | null | undefined) => {
+    if (seconds === null || seconds === undefined) return "-";
+    if (seconds < 1) return `${Math.round(seconds * 1000)}ms`;
+    if (seconds < 60) return `${seconds.toFixed(1)}s`;
+    return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+  };
 
   const formatNotificationTime = (iso?: string) => {
     if (!iso) return "";
     const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-    if (diff < 60)    return `${diff}s ago`;
-    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return `${Math.floor(diff / 86400)}d ago`;
   };
@@ -309,11 +427,10 @@ useEffect(() => {
                   <button
                     key={opt.key}
                     onClick={() => { setActiveRange(opt.key); setRangeOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                      activeRange === opt.key
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-text-secondary dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    }`}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${activeRange === opt.key
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-text-secondary dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      }`}
                   >
                     {opt.label}
                   </button>
@@ -396,8 +513,8 @@ useEffect(() => {
                 >
                   <defs>
                     <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="var(--color-primary)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0}   />
+                      <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
@@ -424,8 +541,8 @@ useEffect(() => {
                   <Tooltip
                     contentStyle={{
                       backgroundColor: isDark ? "#1f2937" : "#fff",
-                      borderColor:     isDark ? "#374151" : "#e5e7eb",
-                      borderRadius:    "0.5rem",
+                      borderColor: isDark ? "#374151" : "#e5e7eb",
+                      borderRadius: "0.5rem",
                     }}
                     itemStyle={{ color: "var(--color-primary)", fontWeight: 600 }}
                     labelFormatter={(h) => `Hour ${h}:00`}
@@ -480,8 +597,8 @@ useEffect(() => {
                   <Tooltip
                     contentStyle={{
                       backgroundColor: isDark ? "#1f2937" : "#fff",
-                      borderColor:     isDark ? "#374151" : "#e5e7eb",
-                      borderRadius:    "0.5rem",
+                      borderColor: isDark ? "#374151" : "#e5e7eb",
+                      borderRadius: "0.5rem",
                     }}
                     itemStyle={{ fontWeight: 600 }}
                     formatter={(value) => `${value}%`}
@@ -542,8 +659,7 @@ useEffect(() => {
       </div>
 
       {/* Row 5: Live Sessions + Notifications */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Live Sessions Table — 2/3 width */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
           <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-text-primary dark:text-white flex items-center">
@@ -559,50 +675,192 @@ useEffect(() => {
               </Button>
             </NavLink>
           </div>
+          <div className="p-6">
+            {liveSessions.length > 0 ? (
+              <div className="space-y-4">
+                {liveSessions.map((session, idx) => (
+                  <div key={session.id || idx} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-none">
+                    <span className="text-sm font-medium text-text-primary dark:text-white">
+                      {session.systemId || `Session #${session.id}`}
+                    </span>
+                    <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-450">
+                      {session.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-text-secondary dark:text-gray-400 text-center py-4">No active live client sessions.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Notifications */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm flex flex-col">
+          <h3 className="text-lg font-semibold text-text-primary dark:text-white mb-4">Recent Notifications</h3>
+          <div className="flex-1 overflow-y-auto space-y-3 max-h-[220px]">
+            {notifications.length > 0 ? (
+              notifications.map((n, i) => (
+                <div key={n.id || i} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-xs">
+                  <p className="font-medium text-text-primary dark:text-white">{n.title || "Alert"}</p>
+                  <span className="text-text-secondary dark:text-gray-400 mt-1 block">{formatNotificationTime(n.createdAt)}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-text-secondary dark:text-gray-400 text-center py-4">No new notifications.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Row 6: Failure Breakdown + Latency & SLA */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-text-primary dark:text-white mb-4 flex items-center gap-2">
+            <AlertTriangle size={18} className="text-primary" />
+            Failure Breakdown ({activeRangeLabel})
+          </h3>
+          <div className="h-[260px] w-full">
+            {isFailureLoading ? (
+              <div className="h-full flex items-center justify-center text-sm text-text-secondary dark:text-gray-500">
+                Loading failure data…
+              </div>
+            ) : failureBreakdown.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={failureBreakdown}
+                  layout="vertical"
+                  margin={{ top: 10, right: 20, left: 10, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    horizontal={false}
+                    stroke={isDark ? "#374151" : "#f3f4f6"}
+                  />
+                  <XAxis
+                    type="number"
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                    tick={{ fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 11 }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="category"
+                    axisLine={false}
+                    tickLine={false}
+                    width={150}
+                    tick={{ fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 11 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isDark ? "#1f2937" : "#fff",
+                      borderColor: isDark ? "#374151" : "#e5e7eb",
+                      borderRadius: "0.5rem",
+                    }}
+                    cursor={{ fill: isDark ? "#37415133" : "#f3f4f633" }}
+                  />
+                  <Bar dataKey="count" fill="var(--color-primary)" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-sm text-text-secondary dark:text-gray-500">
+                No failures recorded for this range.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Latency & SLA */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-text-primary dark:text-white mb-4 flex items-center gap-2">
+            <Clock size={18} className="text-primary" />
+            Latency & SLA ({activeRangeLabel})
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-text-secondary dark:text-gray-400 mb-1">Avg Latency</p>
+              <p className="text-xl font-bold text-text-primary dark:text-white">
+                {isLatencyLoading ? "…" : formatLatency(latencyStats?.avgLatencySeconds)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-text-secondary dark:text-gray-400 mb-1">P95 Latency</p>
+              <p className="text-xl font-bold text-text-primary dark:text-white">
+                {isLatencyLoading ? "…" : formatLatency(latencyStats?.p95LatencySeconds)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-text-secondary dark:text-gray-400 mb-1">P50 Latency</p>
+              <p className="text-xl font-bold text-text-primary dark:text-white">
+                {isLatencyLoading ? "…" : formatLatency(latencyStats?.p50LatencySeconds)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-text-secondary dark:text-gray-400 mb-1">
+                Stuck &gt;{latencyStats?.stuckThresholdMinutes ?? 5}m
+              </p>
+              <p
+                className={`text-xl font-bold ${(latencyStats?.stuckCount ?? 0) > 0
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-text-primary dark:text-white"
+                  }`}
+              >
+                {isLatencyLoading ? "…" : latencyStats?.stuckCount ?? 0}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 7: Vendor Performance + Client Performance + Geographic Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* Vendor & Route Performance */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-text-primary dark:text-white flex items-center gap-2">
+              <Server size={18} className="text-primary" />
+              Vendor & Route Performance
+            </h3>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
-                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Session ID</th>
-                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Client</th>
-                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">System ID</th>
-                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Bind Type</th>
-                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Status</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Vendor</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Route</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Total</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Delivery Rate</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Avg Latency</th>
                 </tr>
               </thead>
               <tbody>
-                {liveSessions.length > 0 ? (
-                  liveSessions.map((session, i) => (
+                {isVendorLoading ? (
+                  <tr>
+                    <td colSpan={5} className="p-10 text-center text-sm text-text-secondary dark:text-gray-500">
+                      Loading vendor performance…
+                    </td>
+                  </tr>
+                ) : vendorPerformance.length > 0 ? (
+                  vendorPerformance.map((v, i) => (
                     <tr
-                      key={session.id || session.sessionId || i}
+                      key={`${v.vendor}-${v.route}-${i}`}
                       className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >
-                      <td className="p-4 text-sm font-medium text-text-primary dark:text-white">
-                        {session.sessionId}
-                      </td>
+                      <td className="p-4 text-sm font-medium text-text-primary dark:text-white">{v.vendor}</td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{v.route}</td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{v.total.toLocaleString()}</td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{v.deliveryRate}%</td>
                       <td className="p-4 text-sm text-text-secondary dark:text-gray-300">
-                        {session.clientUsername}
-                      </td>
-                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">
-                        {session.systemId}
-                      </td>
-                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">
-                        {session.bindType || "—"}
-                      </td>
-                      <td className="p-4 text-sm">
-                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                          {session.status || "CONNECTED"}
-                        </span>
+                        {formatLatency(v.avgLatencySeconds)}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td colSpan={5} className="p-10 text-center">
-                      <Monitor size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                      <p className="text-text-secondary dark:text-gray-400 text-sm">
-                        No active sessions found.
-                      </p>
+                      <Server size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                      <p className="text-text-secondary dark:text-gray-400 text-sm">No vendor traffic yet.</p>
                     </td>
                   </tr>
                 )}
@@ -611,47 +869,105 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Notifications — 1/3 width */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
-          <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
+        {/* Client Performance */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-text-primary dark:text-white flex items-center gap-2">
-              <Bell size={18} />
-              Notifications
+              <Users size={18} className="text-primary" />
+              Client Performance
             </h3>
-            <NavLink to="/notifications">
-              <Button variant="secondary" size="sm" rightIcon={<ArrowRight size={14} />}>
-                View All
-              </Button>
-            </NavLink>
           </div>
-          <div className="flex-1 divide-y divide-gray-100 dark:divide-gray-700">
-            {notifications.length > 0 ? (
-              notifications.map((n, i) => (
-                <div
-                  key={n.id || i}
-                  className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                >
-                  <div className="flex justify-between items-start gap-2 mb-1">
-                    <p className="text-sm font-medium text-text-primary dark:text-white leading-snug">
-                      {n.title}
-                    </p>
-                    <span className="text-xs text-text-secondary dark:text-gray-500 whitespace-nowrap flex-shrink-0">
-                      {formatNotificationTime(n.createdAt)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-secondary dark:text-gray-400 leading-relaxed">
-                    {n.description}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <div className="p-10 text-center">
-                <Bell size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                <p className="text-text-secondary dark:text-gray-400 text-sm">
-                  No notifications yet.
-                </p>
-              </div>
-            )}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Client</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Total</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Delivery Rate</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Avg Latency</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isClientLoading ? (
+                  <tr>
+                    <td colSpan={4} className="p-10 text-center text-sm text-text-secondary dark:text-gray-500">
+                      Loading client performance…
+                    </td>
+                  </tr>
+                ) : clientPerformance.length > 0 ? (
+                  clientPerformance.map((c, i) => (
+                    <tr
+                      key={`${c.client}-${i}`}
+                      className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    >
+                      <td className="p-4 text-sm font-medium text-text-primary dark:text-white">{c.client}</td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{c.total.toLocaleString()}</td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{c.deliveryRate}%</td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">
+                        {formatLatency(c.avgLatencySeconds)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="p-10 text-center">
+                      <Users size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                      <p className="text-text-secondary dark:text-gray-400 text-sm">No client traffic yet.</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Geographic Breakdown */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-text-primary dark:text-white flex items-center gap-2">
+              <Globe size={18} className="text-primary" />
+              Geographic Breakdown
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Country</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Total</th>
+                  <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Delivery Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isGeoLoading ? (
+                  <tr>
+                    <td colSpan={3} className="p-10 text-center text-sm text-text-secondary dark:text-gray-500">
+                      Loading geographic data…
+                    </td>
+                  </tr>
+                ) : geoBreakdown.length > 0 ? (
+                  geoBreakdown.map((g, i) => (
+                    <tr
+                      key={`${g.iso2}-${i}`}
+                      className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    >
+                      <td className="p-4 text-sm font-medium text-text-primary dark:text-white">{g.country}</td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{g.total.toLocaleString()}</td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{g.deliveryRate}%</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={3} className="p-10 text-center">
+                      <Globe size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                      <p className="text-text-secondary dark:text-gray-400 text-sm">
+                        No geographic data yet — this section fills in as new traffic is routed.
+                      </p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
