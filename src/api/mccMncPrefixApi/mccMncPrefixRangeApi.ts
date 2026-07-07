@@ -48,3 +48,11 @@ export const updateMccMncPrefixRangeApi = async (
   const response = await api.patch(`/mccMncPrefixRange/${module}/${id}/`, data);
   return response.data;
 };
+
+export const createMccMncPrefixRangeApi = async (
+  data: any,
+  module: string
+): Promise<MccMncPrefixRangeData> => {
+  const response = await api.post(`/mccMncPrefixRange/${module}/`, data);
+  return response.data;
+};

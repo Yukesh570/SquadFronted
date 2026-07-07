@@ -98,8 +98,10 @@ const Dashboard: React.FC = () => {
   const [dlrData, setDlrData] = useState<{ name: string; value: number; color: string }[]>([]);
 
   // Dedicated loading states for charts to distinguish empty data from fetching
-  const [isTrafficLoading, setIsTrafficLoading] = useState(true);
+    const [isTrafficLoading, setIsTrafficLoading] = useState(true);
   const [isDlrLoading, setIsDlrLoading] = useState(true);
+  const trafficScrollRef = React.useRef<HTMLDivElement>(null);
+
 
   // --- Table / panel states ---
   const [liveSessions, setLiveSessions] = useState<ClientSessionData[]>([]);
@@ -175,19 +177,6 @@ const Dashboard: React.FC = () => {
       console.error("fetchSmsStats failed", e);
     } finally {
       setIsStatsLoading(false);
-    }
-  };
-
-  const fetchHourlyTraffic = async (range: RangeKey) => {
-    setIsTrafficLoading(true);
-    try {
-      const data = await getSmsHourlyApi(buildParams(range));
-      setTrafficData(data);
-    } catch (e) {
-      console.error("fetchHourlyTraffic failed", e);
-      setTrafficData([]);
-    } finally {
-      setIsTrafficLoading(false);
     }
   };
 
@@ -345,7 +334,6 @@ const Dashboard: React.FC = () => {
     fetchLatencyStats(activeRange);
     fetchSmsStats(activeRange);
     fetchTrafficTraffic(activeRange);
-    fetchHourlyTraffic(activeRange);
     fetchDlrStats(activeRange);
     fetchRevenue(activeRange);
   }, [activeRange]);
@@ -389,6 +377,102 @@ const Dashboard: React.FC = () => {
   };
 
   const activeRangeLabel = RANGE_OPTIONS.find((r) => r.key === activeRange)?.label ?? "";
+
+  // ─── Traffic Volume chart granularity helpers ───────────────────────────────
+  const isHourly = activeRange === "today";
+  const firstItem = trafficData[0] as any;
+  const xAxisKey = firstItem && ("date" in firstItem) ? "date" : firstItem && ("day" in firstItem) ? "day" : "hour";
+
+  // ⚡️ FIX: Fully integrated X-Axis index formatting based on exact user requests
+  const formatXAxisTick = (value: any) => {
+    if (isHourly) return `${value}:00`;
+    if (!value) return "";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+
+    if (activeRange === "365d" || activeRange === "all") {
+      return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    }
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const formatTooltipLabel = (value: any) => {
+    if (isHourly) return `Hour ${value}:00`;
+    if (!value) return "";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+
+    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  };
+
+  // Determine scrolling, intervals, and widths for the chart bounds
+  let tickInterval: any = "preserveStartEnd";
+  let chartMinWidth = "100%";
+  let needsScroll = false;
+
+  if (activeRange === "today") {
+    tickInterval = 3;
+  } else if (activeRange === "7d") {
+    tickInterval = 0;
+  } else if (activeRange === "30d") {
+    tickInterval = 0;
+    chartMinWidth = "1800px";
+    needsScroll = true;
+  } else if (activeRange === "90d") {
+    tickInterval = 0;
+    chartMinWidth = "4500px";
+    needsScroll = true;
+  } else if (activeRange === "365d" || activeRange === "all") {
+    tickInterval = 0;
+    chartMinWidth = "1800px";
+    needsScroll = true;
+  }
+   useEffect(() => {
+    if (needsScroll && trafficScrollRef.current) {
+      trafficScrollRef.current.scrollLeft = trafficScrollRef.current.scrollWidth;
+    }
+  }, [trafficData, needsScroll]);
+
+  // ─── Monthly ticks for 365d / all (one label per calendar month) ───────────
+  const monthlyTicks = React.useMemo(() => {
+    if (activeRange !== "365d" && activeRange !== "all") return undefined;
+    const seen = new Set<string>();
+    const ticks: string[] = [];
+    for (const item of trafficData as any[]) {
+      const raw = item[xAxisKey];
+      if (!raw) continue;
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) continue;
+const key = activeRange === "all"
+        ? `${d.getFullYear()}-${Math.floor(d.getMonth() / 6)}`
+        : `${d.getFullYear()}-${d.getMonth()}`;      if (!seen.has(key)) {
+        seen.add(key);
+        ticks.push(raw);
+      }
+    }
+    return ticks;
+  }, [trafficData, xAxisKey, activeRange]);
+
+  const renderTrafficTick = (props: any) => {
+    const { x, y, payload } = props;
+    let fill = isDark ? "#9ca3af" : "#6b7280";
+
+    if (activeRange === "90d" && payload?.value) {
+      const d = new Date(payload.value);
+      const start = new Date((trafficData[0] as any)?.[xAxisKey] ?? payload.value);
+      if (!isNaN(d.getTime()) && !isNaN(start.getTime())) {
+        const monthDiff =
+          (d.getFullYear() - start.getFullYear()) * 12 + (d.getMonth() - start.getMonth());
+        fill = monthDiff % 2 === 1 ? "var(--color-primary)" : (isDark ? "#9ca3af" : "#6b7280");
+      }
+    }
+
+    return (
+      <text x={x} y={y + 10} textAnchor="middle" fontSize={11} fill={fill}>
+        {formatXAxisTick(payload.value)}
+      </text>
+    );
+  };
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -495,69 +579,103 @@ const Dashboard: React.FC = () => {
       {/* Row 3: Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Traffic Volume */}
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm flex flex-col">
           <h3 className="text-lg font-semibold text-text-primary dark:text-white mb-4">
             Traffic Volume ({activeRangeLabel})
           </h3>
-          <div className="h-[280px] w-full">
-            {/* ⚡️ FIX: Check loading state first */}
+          {/* ⚡️ FIX: Added strict bounds to stop horizontal scroll from destroying the layout height */}
+          <div className="h-[280px] w-full overflow-hidden">
             {isTrafficLoading ? (
               <div className="h-full flex items-center justify-center text-sm text-text-secondary dark:text-gray-500">
                 Loading traffic data…
               </div>
             ) : trafficData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={trafficData}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke={isDark ? "#374151" : "#f3f4f6"}
-                  />
-                  <XAxis
-                    dataKey="hour"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 11 }}
-                    dy={10}
-                    interval={3}
-                    tickFormatter={(h) => `${h}:00`}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 11 }}
-                    dx={-10}
-                    allowDecimals={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: isDark ? "#1f2937" : "#fff",
-                      borderColor: isDark ? "#374151" : "#e5e7eb",
-                      borderRadius: "0.5rem",
-                    }}
-                    itemStyle={{ color: "var(--color-primary)", fontWeight: 600 }}
-                    labelFormatter={(h) => `Hour ${h}:00`}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="count"
-                    stroke="var(--color-primary)"
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorVolume)"
-                    activeDot={{ r: 6, strokeWidth: 0 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+<div className="h-full w-full flex">
+                {needsScroll && (
+                  <div className="h-full flex-shrink-0" style={{ width: 44 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={trafficData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 11 }}
+                          dx={-10}
+                          allowDecimals={false}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="count"
+                          stroke="none"
+                          fill="none"
+                          isAnimationActive={false}
+                          legendType="none"
+                          tooltipType="none"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                <div ref={trafficScrollRef} className={`h-full flex-1 min-w-0 ${needsScroll ? "overflow-x-auto overflow-y-hidden custom-scrollbar pb-2" : ""}`}>
+                  <div style={{ height: "100%", width: chartMinWidth }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={trafficData}
+                        margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke={isDark ? "#374151" : "#f3f4f6"}
+                        />
+                        <XAxis
+                          dataKey={xAxisKey}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={renderTrafficTick}
+                          dy={10}
+                          interval={tickInterval}
+                          minTickGap={activeRange === "365d" || activeRange === "all" ? 60 : 5}
+                          ticks={monthlyTicks}
+                          tickFormatter={formatXAxisTick}
+                        />
+                        {!needsScroll && (
+                          <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 11 }}
+                            dx={-10}
+                            allowDecimals={false}
+                          />
+                        )}
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: isDark ? "#1f2937" : "#fff",
+                            borderColor: isDark ? "#374151" : "#e5e7eb",
+                            borderRadius: "0.5rem",
+                          }}
+                          itemStyle={{ color: "var(--color-primary)", fontWeight: 600 }}
+                          labelFormatter={formatTooltipLabel}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="count"
+                          stroke="var(--color-primary)"
+                          strokeWidth={3}
+                          fillOpacity={1}
+                          fill="url(#colorVolume)"
+                          activeDot={{ r: 6, strokeWidth: 0 }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="h-full flex items-center justify-center text-sm text-text-secondary dark:text-gray-500">
                 No traffic data available.
@@ -572,7 +690,6 @@ const Dashboard: React.FC = () => {
             DLR Breakdown ({activeRangeLabel})
           </h3>
           <div className="h-[280px] w-full flex-1">
-            {/* ⚡️ FIX: Check loading state first, then check if ANY values actually exist > 0 */}
             {isDlrLoading ? (
               <div className="h-full flex items-center justify-center text-sm text-text-secondary dark:text-gray-500">
                 Loading DLR data…
@@ -698,7 +815,7 @@ const Dashboard: React.FC = () => {
         {/* Notifications */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm flex flex-col">
           <h3 className="text-lg font-semibold text-text-primary dark:text-white mb-4">Recent Notifications</h3>
-          <div className="flex-1 overflow-y-auto space-y-3 max-h-[220px]">
+          <div className="flex-1 overflow-y-auto space-y-3 max-h-[220px] custom-scrollbar">
             {notifications.length > 0 ? (
               notifications.map((n, i) => (
                 <div key={n.id || i} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-xs">
@@ -823,7 +940,7 @@ const Dashboard: React.FC = () => {
               Vendor & Route Performance
             </h3>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
@@ -877,7 +994,7 @@ const Dashboard: React.FC = () => {
               Client Performance
             </h3>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
@@ -929,7 +1046,7 @@ const Dashboard: React.FC = () => {
               Geographic Breakdown
             </h3>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">

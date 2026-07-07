@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Eye, Edit } from "lucide-react";
+import { Home, Eye, Edit, Plus } from "lucide-react";
+import Button from "../../components/ui/Button";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -195,6 +196,11 @@ const MccMncPrefixRange: React.FC = () => {
 
   const handleEdit = (item: MccMncPrefixRangeData) => { if (!canUpdate) return; setEditingData(item); setIsViewMode(false); setIsModalOpen(true); };
   const handleView = (item: MccMncPrefixRangeData) => { setEditingData(item); setIsViewMode(true); setIsModalOpen(true); };
+  const handleAdd = () => {
+  setEditingData(null);
+  setIsViewMode(false);
+  setIsModalOpen(true);
+};
 
   const handleContextMenu = (e: React.MouseEvent, item: MccMncPrefixRangeData) => {
     e.preventDefault();
@@ -256,7 +262,13 @@ const MccMncPrefixRange: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable serverSide={true} data={data} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} headers={tableHeaders} isLoading={isLoading}
+      <DataTable serverSide={true} data={data} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} headers={tableHeaders} isLoading={isLoading} headerActions={
+    canUpdate && (
+      <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>
+        Add Prefix Range
+      </Button>
+    )
+  }
         renderRow={(item, index) => (
           <tr key={item.id || index} onContextMenu={(e) => handleContextMenu(e, item)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
