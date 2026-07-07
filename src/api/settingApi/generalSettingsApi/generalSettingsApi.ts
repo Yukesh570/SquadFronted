@@ -7,7 +7,8 @@ export interface GeneralSettingsData {
   defaultTimezone: string;
   dateFormat: string;
   datetimeFormat: string;
-  baseCurrency: string;
+  baseCurrency: number | string; // ⚡️ FIX: Now accepts numeric ID
+  baseCurrency_name?: string;    // ⚡️ FIX: Added response mapping
   updatedBy?: number;
   updatedAt?: string;
 }
@@ -73,7 +74,6 @@ export const putDashboardImageApi = async (data: FormData): Promise<DashboardIma
 export const getPublicGeneralSettingsApi = async (): Promise<GeneralSettingsData> => {
   let baseURL = api.defaults.baseURL?.replace(/\/$/, "") || "";
   
-  // FIX: Strip out "/api" if it exists so we hit the ROOT endpoint exactly as the backend developer provided!
   if (baseURL.endsWith("/api")) {
     baseURL = baseURL.slice(0, -4);
   }
@@ -86,7 +86,6 @@ export const getPublicGeneralSettingsApi = async (): Promise<GeneralSettingsData
 
 export const getPublicDashboardImageApi = async (): Promise<DashboardImageData> => {
   const baseURL = api.defaults.baseURL?.replace(/\/$/, "") || "";
-  // The image endpoint works fine with the /api prefix based on your previous logs
   const response = await fetch(`${baseURL}/dashboardImage/`);
   
   if (!response.ok) throw new Error("Backend returned " + response.status);

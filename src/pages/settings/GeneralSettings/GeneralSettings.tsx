@@ -56,7 +56,7 @@ const GeneralSettings: React.FC = () => {
     defaultTimezone: "UTC",
     dateFormat: "YYYY-MM-DD",
     datetimeFormat: "YYYY-MM-DD HH:mm:ss",
-    baseCurrency: "USD",
+    baseCurrency: "", // ⚡️ FIX: Reset to empty string initially
   });
 
   const location = useLocation();
@@ -69,7 +69,11 @@ const GeneralSettings: React.FC = () => {
       .then((res: any) => {
         const rawData = res?.results || res?.data?.results || res?.data || res;
         const list = Array.isArray(rawData) ? rawData : [];
-        setCurrencyOptions(list.map((c: any) => ({ label: `${c.name || "Unknown"} (${c.currencyCode || "N/A"})`, value: String(c.currencyCode || "") })));
+        // ⚡️ FIX: Changed value to String(c.id) to match backend expectations
+        setCurrencyOptions(list.map((c: any) => ({ 
+          label: `${c.name || "Unknown"} (${c.currencyCode || "N/A"})`, 
+          value: String(c.id || "") 
+        })));
       })
       .catch(console.error);
 
@@ -99,15 +103,16 @@ const GeneralSettings: React.FC = () => {
           defaultTimezone: response.defaultTimezone || "UTC",
           dateFormat: response.dateFormat || "YYYY-MM-DD",
           datetimeFormat: response.datetimeFormat || "YYYY-MM-DD HH:mm:ss",
-          baseCurrency: response.baseCurrency || "USD",
+          // ⚡️ FIX: Pre-fill with stringified ID for the Select dropdown
+          baseCurrency: response.baseCurrency ? String(response.baseCurrency) : "", 
         });
       }
 
       const imgRes = await getDashboardImageApi();
-if (imgRes && imgRes.image) {
-  const imageBase = import.meta.env.VITE_IMAGE_URL || "";
-  setImagePreview(`${imageBase}${imgRes.image}`);
-}
+      if (imgRes && imgRes.image) {
+        const imageBase = import.meta.env.VITE_IMAGE_URL || "";
+        setImagePreview(`${imageBase}${imgRes.image}`);
+      }
     } catch (error: any) {
       if (error.name !== "AbortError") toast.error("Failed to fetch settings.");
     } finally {
@@ -178,8 +183,14 @@ if (imgRes && imgRes.image) {
     if (!canUpdate) return toast.error("Permission denied.");
     setIsSubmitting(true);
     
+    // ⚡️ FIX: Cast baseCurrency back to a Number when submitting to API
+    const payload = {
+      ...formData,
+      baseCurrency: formData.baseCurrency ? Number(formData.baseCurrency) : null
+    };
+
     try {
-      await updateGeneralSettingsApi(formData, routeName);
+      await updateGeneralSettingsApi(payload as any, routeName);
       localStorage.setItem("app_timezone", formData.defaultTimezone);
       localStorage.setItem("app_login_name", formData.companyName);
       window.dispatchEvent(new Event("BrandingUpdated")); 
@@ -187,7 +198,7 @@ if (imgRes && imgRes.image) {
     } catch (error: any) {
       if (error?.response?.status === 404) {
          try {
-            await createGeneralSettingsApi(formData, routeName);
+            await createGeneralSettingsApi(payload as any, routeName);
             localStorage.setItem("app_timezone", formData.defaultTimezone);
             localStorage.setItem("app_login_name", formData.companyName);
             window.dispatchEvent(new Event("BrandingUpdated")); 
@@ -212,13 +223,12 @@ if (imgRes && imgRes.image) {
       uploadData.append("image", imageFile);
       const res = await putDashboardImageApi(uploadData);
 
-      
       if (res && res.image) {
-  const imageBase = import.meta.env.VITE_IMAGE_URL || "";
-  const fullImageUrl = `${imageBase}${res.image}`;
-  localStorage.setItem("app_login_logo", fullImageUrl);
-  localStorage.setItem("app_sidebar_logo", fullImageUrl);
-}
+        const imageBase = import.meta.env.VITE_IMAGE_URL || "";
+        const fullImageUrl = `${imageBase}${res.image}`;
+        localStorage.setItem("app_login_logo", fullImageUrl);
+        localStorage.setItem("app_sidebar_logo", fullImageUrl);
+      }
 
       window.dispatchEvent(new Event("BrandingUpdated")); 
       toast.success("Dashboard Logo updated successfully!");
@@ -268,7 +278,7 @@ if (imgRes && imgRes.image) {
             {activeTab === "setup" && (
               <form className="space-y-6" onSubmit={handleSetupSubmit}>
                 <Input label="Company Name" name="companyName" value={formData.companyName} onChange={handleChange} placeholder="e.g. Squad SMS" required />
-                <Select label="Base Currency" value={formData.baseCurrency} onChange={(v) => handleSelectChange("baseCurrency", v)} options={currencyOptions} placeholder="Select System Currency" />
+                <Select label="Base Currency" value={String(formData.baseCurrency)} onChange={(v) => handleSelectChange("baseCurrency", v)} options={currencyOptions} placeholder="Select System Currency" />
                 <hr className="dark:border-gray-700" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <Select label="Default Language" value={formData.defaultLanguage} onChange={(v) => handleSelectChange("defaultLanguage", v)} options={languageOptions} placeholder="Language" />

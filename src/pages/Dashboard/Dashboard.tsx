@@ -9,7 +9,7 @@ import {
   Server,
   ArrowRight,
   TrendingUp,
-  DollarSign,
+  Banknote,
   ChevronDown,
   Calendar,
   Globe,
@@ -62,6 +62,9 @@ import {
   type SmsDailyData,
 } from "../../api/reportApi/smsCountsApi";
 
+import { getGeneralSettingsApi } from "../../api/settingApi/generalSettingsApi/generalSettingsApi";
+import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
+
 // DLR colours — stable, not derived from API
 const DLR_COLORS: Record<string, string> = {
   Delivered: "#10b981",
@@ -98,15 +101,17 @@ const Dashboard: React.FC = () => {
   const [dlrData, setDlrData] = useState<{ name: string; value: number; color: string }[]>([]);
 
   // Dedicated loading states for charts to distinguish empty data from fetching
-    const [isTrafficLoading, setIsTrafficLoading] = useState(true);
+  const [isTrafficLoading, setIsTrafficLoading] = useState(true);
   const [isDlrLoading, setIsDlrLoading] = useState(true);
   const trafficScrollRef = React.useRef<HTMLDivElement>(null);
-
 
   // --- Table / panel states ---
   const [liveSessions, setLiveSessions] = useState<ClientSessionData[]>([]);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [revenue, setRevenue] = useState<RevenueData | null>(null);
+
+  // ⚡️ FIX: Currency State
+  const [currencySymbol, setCurrencySymbol] = useState<string>("$");
 
   // --- Analytics: failure / vendor+route / client / geo / latency ---
   const [failureBreakdown, setFailureBreakdown] = useState<FailureBreakdownData[]>([]);
@@ -324,6 +329,24 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // ⚡️ FIX: Updated to match c.id against settings.baseCurrency
+  const fetchCurrencySymbol = async () => {
+    try {
+      const settings = await getGeneralSettingsApi("generalSettings");
+      if (settings?.baseCurrency) {
+        const currRes = await getCurrenciesApi("currency", 1, 1000);
+        const list = currRes?.results || (Array.isArray(currRes) ? currRes : []);
+        // Check by c.id instead of currencyCode
+        const matched = list.find((c: any) => String(c.id) === String(settings.baseCurrency));
+        if (matched && matched.symbol) {
+          setCurrencySymbol(matched.symbol);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch dynamic currency symbol", e);
+    }
+  };
+
   // ─── Effects ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -343,6 +366,7 @@ const Dashboard: React.FC = () => {
     fetchOnlineVendors();
     fetchOnlineClients();
     fetchNotifications();
+    fetchCurrencySymbol(); // ⚡️ Called once on mount
 
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
     if (!wsBase) return;
@@ -383,7 +407,6 @@ const Dashboard: React.FC = () => {
   const firstItem = trafficData[0] as any;
   const xAxisKey = firstItem && ("date" in firstItem) ? "date" : firstItem && ("day" in firstItem) ? "day" : "hour";
 
-  // ⚡️ FIX: Fully integrated X-Axis index formatting based on exact user requests
   const formatXAxisTick = (value: any) => {
     if (isHourly) return `${value}:00`;
     if (!value) return "";
@@ -427,13 +450,13 @@ const Dashboard: React.FC = () => {
     chartMinWidth = "1800px";
     needsScroll = true;
   }
-   useEffect(() => {
+  
+  useEffect(() => {
     if (needsScroll && trafficScrollRef.current) {
       trafficScrollRef.current.scrollLeft = trafficScrollRef.current.scrollWidth;
     }
   }, [trafficData, needsScroll]);
 
-  // ─── Monthly ticks for 365d / all (one label per calendar month) ───────────
   const monthlyTicks = React.useMemo(() => {
     if (activeRange !== "365d" && activeRange !== "all") return undefined;
     const seen = new Set<string>();
@@ -443,9 +466,10 @@ const Dashboard: React.FC = () => {
       if (!raw) continue;
       const d = new Date(raw);
       if (isNaN(d.getTime())) continue;
-const key = activeRange === "all"
+      const key = activeRange === "all"
         ? `${d.getFullYear()}-${Math.floor(d.getMonth() / 6)}`
-        : `${d.getFullYear()}-${d.getMonth()}`;      if (!seen.has(key)) {
+        : `${d.getFullYear()}-${d.getMonth()}`;      
+      if (!seen.has(key)) {
         seen.add(key);
         ticks.push(raw);
       }
@@ -583,14 +607,13 @@ const key = activeRange === "all"
           <h3 className="text-lg font-semibold text-text-primary dark:text-white mb-4">
             Traffic Volume ({activeRangeLabel})
           </h3>
-          {/* ⚡️ FIX: Added strict bounds to stop horizontal scroll from destroying the layout height */}
           <div className="h-[280px] w-full overflow-hidden">
             {isTrafficLoading ? (
               <div className="h-full flex items-center justify-center text-sm text-text-secondary dark:text-gray-500">
                 Loading traffic data…
               </div>
             ) : trafficData.length > 0 ? (
-<div className="h-full w-full flex">
+              <div className="h-full w-full flex">
                 {needsScroll && (
                   <div className="h-full flex-shrink-0" style={{ width: 44 }}>
                     <ResponsiveContainer width="100%" height="100%">
@@ -751,19 +774,19 @@ const key = activeRange === "all"
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard
           title="Total Revenue"
-          value={revenue ? `$${revenue.total_revenue.toFixed(4)}` : "-"}
-          icon={<DollarSign size={24} />}
+          value={revenue ? `${currencySymbol}${revenue.total_revenue.toFixed(4)}` : "-"}
+          icon={<Banknote size={24} />}
           trendText="Received from clients"
         />
         <StatCard
           title="Total Cost"
-          value={revenue ? `$${revenue.total_cost.toFixed(4)}` : "-"}
-          icon={<DollarSign size={24} />}
+          value={revenue ? `${currencySymbol}${revenue.total_cost.toFixed(4)}` : "-"}
+          icon={<Banknote size={24} />}
           trendText="Paid to vendors"
         />
         <StatCard
           title="Gross Margin"
-          value={revenue ? `$${revenue.gross_margin.toFixed(4)}` : "-"}
+          value={revenue ? `${currencySymbol}${revenue.gross_margin.toFixed(4)}` : "-"}
           icon={<TrendingUp size={24} />}
           trendText="Revenue minus cost"
         />
