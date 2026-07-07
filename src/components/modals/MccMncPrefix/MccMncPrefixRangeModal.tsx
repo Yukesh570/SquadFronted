@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 
-// ⚡️ FIX: Adjusted paths to match folder depth
 import { updateMccMncPrefixRangeApi, type MccMncPrefixRangeData } from "../../../api/mccMncPrefixApi/mccMncPrefixRangeApi";
-import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
@@ -19,11 +17,6 @@ interface MccMncPrefixRangeModalProps {
   isViewMode?: boolean;
 }
 
-interface Option {
-  label: string;
-  value: string;
-}
-
 export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
   isOpen,
   onClose,
@@ -32,13 +25,9 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
   editingData,
   isViewMode = false,
 }) => {
+  // ⚡️ FIX: country/countryCode/mcc/mnc/mccmnc removed — not in MccMncPrefixRangeData
   const [formData, setFormData] = useState({
-    country: "",
-    countryCode: "",
     operatorName: "",
-    mcc: "",
-    mnc: "",
-    mccmnc: "",
     operatorPrefixStartRange: "",
     operatorPrefixEndRange: "",
     externalPrefixId: "",
@@ -47,29 +36,12 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
     status: "ACTIVE",
   });
 
-  const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      getCountriesApi("country", 1, 1000)
-        .then((res: any) => {
-          let list = res.results || (Array.isArray(res) ? res : []);
-          setCountryOptions(list.map((c: any) => ({ label: c.name || `Country ${c.id}`, value: String(c.id) })));
-        })
-        .catch(() => console.error("Failed to load countries"));
-    }
-  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && editingData) {
       setFormData({
-        country: editingData.country ? String(editingData.country) : "",
-        countryCode: editingData.countryCode || "",
         operatorName: editingData.operatorName || "",
-        mcc: editingData.mcc || "",
-        mnc: editingData.mnc || "",
-        mccmnc: editingData.mccmnc || "",
         operatorPrefixStartRange: editingData.operatorPrefixStartRange ? String(editingData.operatorPrefixStartRange) : "",
         operatorPrefixEndRange: editingData.operatorPrefixEndRange ? String(editingData.operatorPrefixEndRange) : "",
         externalPrefixId: editingData.externalPrefixId ? String(editingData.externalPrefixId) : "",
@@ -95,12 +67,7 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
     setIsSubmitting(true);
     try {
       const payload = {
-        country: formData.country ? Number(formData.country) : null,
-        countryCode: formData.countryCode,
         operatorName: formData.operatorName,
-        mcc: formData.mcc,
-        mnc: formData.mnc,
-        mccmnc: formData.mccmnc,
         operatorPrefixStartRange: formData.operatorPrefixStartRange ? Number(formData.operatorPrefixStartRange) : null,
         operatorPrefixEndRange: formData.operatorPrefixEndRange ? Number(formData.operatorPrefixEndRange) : null,
         externalPrefixId: formData.externalPrefixId ? Number(formData.externalPrefixId) : null,
@@ -134,12 +101,7 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">Network Information</legend>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Select label="Country" value={formData.country} onChange={(v: string) => handleSelect("country", v)} options={countryOptions} placeholder="Select Country" disabled={isViewMode} />
-            <Input label="Country Code" name="countryCode" value={formData.countryCode} onChange={handleChange} disabled={isViewMode} />
             <Input label="Operator Name" name="operatorName" value={formData.operatorName} onChange={handleChange} disabled={isViewMode} />
-            <Input label="MCC" name="mcc" value={formData.mcc} onChange={handleChange} disabled={isViewMode} />
-            <Input label="MNC" name="mnc" value={formData.mnc} onChange={handleChange} disabled={isViewMode} />
-            <Input label="MCC MNC Combo" name="mccmnc" value={formData.mccmnc} onChange={handleChange} disabled={isViewMode} />
           </div>
         </fieldset>
 
@@ -157,7 +119,6 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
 
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">Status & Remarks</legend>
-          {/* ⚡️ FIX: Changed to md:grid-cols-2 to prevent the Select from becoming huge */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select
               label="Status"
@@ -166,7 +127,6 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
               options={[{ label: "Active", value: "ACTIVE" }, { label: "Inactive", value: "INACTIVE" }]}
               disabled={isViewMode}
             />
-            {/* ⚡️ FIX: Make TextArea span full width below the Select */}
             <div className="md:col-span-2">
               <TextArea label="Remarks" name="remark" value={formData.remark} onChange={handleChange} disabled={isViewMode} rows={3} />
             </div>

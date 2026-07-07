@@ -43,9 +43,9 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["country__name__icontains", "operatorName__icontains", "status"];
-// ⚡️ FIX: Added countryName to default visible columns
-const DEFAULT_TABLE_COLUMNS = ["countryName", "countryCode", "operatorName", "mccmnc", "operatorPrefixStartRange", "operatorPrefixEndRange", "status"];
+// ⚡️ FIX: country/mcc/mnc/mccmnc removed — not present in API response, replaced with operatorName (backed by operator__operator on the backend)
+const DEFAULT_SEARCH_COLUMNS = ["operatorName", "status"];
+const DEFAULT_TABLE_COLUMNS = ["operatorName", "externalPrefixId", "operatorPrefixStartRange", "operatorPrefixEndRange", "status", "sourceFileName"];
 
 const MccMncPrefixRange: React.FC = () => {
   const { canUpdate } = usePagePermissions();
@@ -65,7 +65,7 @@ const MccMncPrefixRange: React.FC = () => {
   // Filters & Pagination
   const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
-  
+
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("mcc_mnc_range_table_columns");
     return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
@@ -79,7 +79,7 @@ const MccMncPrefixRange: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const routeName = location.pathname.split("/")[1] || "mccMncPrefix"; 
+  const routeName = location.pathname.split("/")[1] || "mccMncPrefix";
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -94,28 +94,23 @@ const MccMncPrefixRange: React.FC = () => {
     { label: "Inactive", value: "INACTIVE" },
   ];
 
+  // ⚡️ FIX: country/countryCode/mcc/mnc/mccmnc columns removed (not in response / not filterable on backend).
+  // operatorName now filters via operator__operator__icontains per MccMncPrefixRangeFilter.
   const allColumns: ColumnConfig[] = [
-    { key: "country__name__icontains", label: "Country Name (Search)", type: "text", isSearchOnly: true },
-    // ⚡️ FIX: Added countryName as a standard column mapping to the response JSON
-    { key: "countryName", label: "Country Name", type: "text", filterKey: "country__name__icontains" },
-    { key: "countryCode", label: "Country Code", type: "text", filterKey: "countryCode__icontains" },
-    { key: "operatorName", label: "Operator Name", type: "text", filterKey: "operatorName__icontains" },
-    { key: "mcc", label: "MCC", type: "text", filterKey: "mcc__icontains" },
-    { key: "mnc", label: "MNC", type: "text", filterKey: "mnc__icontains" },
-    { key: "mccmnc", label: "MCC MNC", type: "text", filterKey: "mccmnc__icontains" },
-    { 
-      key: "status", 
-      label: "Status", 
-      type: "text", 
-      options: statusOptions, 
+    { key: "operatorName", label: "Operator Name", type: "text", filterKey: "operator__operator__icontains" },
+    {
+      key: "status",
+      label: "Status",
+      type: "text",
+      options: statusOptions,
       filterKey: "status",
-      render: (c) => <StatusBadge status={c.status === "ACTIVE" ? "ACTIVE" : "EXPIRED"} customText={c.status === "ACTIVE" ? "Active" : "Inactive"} /> 
+      render: (c) => <StatusBadge status={c.status === "ACTIVE" ? "ACTIVE" : "EXPIRED"} customText={c.status === "ACTIVE" ? "Active" : "Inactive"} />
     },
     { key: "operatorPrefixStartRange", label: "Start Range", type: "number", filterKey: "operatorPrefixStartRange" },
     { key: "operatorPrefixEndRange", label: "End Range", type: "number", filterKey: "operatorPrefixEndRange" },
-    { key: "externalPrefixId", label: "External Prefix ID", type: "number", filterKey: "externalPrefixId" },
+    { key: "externalPrefixId", label: "External Prefix ID", type: "number", filterKey: "externalPrefixId__icontains" },
     { key: "sourceFileName", label: "Source File Name", type: "text", filterKey: "sourceFileName__icontains" },
-    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
+    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
     { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
     { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", filterKey: "createdAt", isSearchOnly: true },
   ];
@@ -276,7 +271,7 @@ const MccMncPrefixRange: React.FC = () => {
       />
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
-      
+
       <MccMncPrefixRangeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchData} moduleName={routeName} editingData={editingData} isViewMode={isViewMode} />
     </div>
   );

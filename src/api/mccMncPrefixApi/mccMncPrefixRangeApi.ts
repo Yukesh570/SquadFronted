@@ -3,10 +3,6 @@ import api from "../axiosInstance";
 export interface MccMncPrefixRangeData {
   id?: number;
   externalPrefixId?: number;
-  mccmnc?: string;
-  mcc?: string;
-  mnc?: string;
-  countryCode?: string;
   operatorName?: string;
   operatorPrefixStartRange?: number;
   operatorPrefixEndRange?: number;
@@ -16,7 +12,7 @@ export interface MccMncPrefixRangeData {
   isDeleted?: boolean;
   createdAt?: string;
   updatedAt?: string;
-  country?: number;
+  operator?: number;
   importBatch?: number;
   createdBy?: number;
   updatedBy?: number;
