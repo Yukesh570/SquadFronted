@@ -16,6 +16,7 @@ interface DataTableProps<T> {
   rowsPerPage?: number;
   onPageChange?: (page: number) => void;
   onRowsPerPageChange?: (rows: number) => void;
+  rowsPerPageOptions?: { value: string; label: string }[]; // NEW
 }
 
 const rowsOptions = [
@@ -38,6 +39,7 @@ export function DataTable<T extends { id?: number | string }>({
   rowsPerPage = 10,
   onPageChange,
   onRowsPerPageChange,
+  rowsPerPageOptions = rowsOptions, // NEW default
 }: DataTableProps<T>) {
   const [clientPage, setClientPage] = useState(1);
   const [clientRows, setClientRows] = useState(10);
@@ -101,7 +103,7 @@ export function DataTable<T extends { id?: number | string }>({
               <Select
                 value={String(activeRows)}
                 onChange={(val) => handleRowsChange(Number(val))}
-                options={rowsOptions}
+                options={rowsPerPageOptions}
                 clearable={false}
               />
             </div>

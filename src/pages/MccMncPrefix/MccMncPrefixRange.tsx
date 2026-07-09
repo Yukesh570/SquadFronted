@@ -260,7 +260,14 @@ const allColumns: ColumnConfig[] = [
         })}
       </FilterCard>
 
-      <DataTable serverSide={true} data={data} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} headers={tableHeaders} isLoading={isLoading} headerActions={
+      <DataTable serverSide={true} data={data} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} rowsPerPageOptions={[
+    { value: "10", label: "10" },
+    { value: "25", label: "25" },
+    { value: "50", label: "50" },
+    { value: "100", label: "100" },
+    { value: "500", label: "500" },
+    { value: "1000", label: "1000" },
+  ]} headers={tableHeaders} isLoading={isLoading} headerActions={
     canUpdate && (
       <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>
         Add Prefix Range
