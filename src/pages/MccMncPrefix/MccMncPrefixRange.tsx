@@ -44,9 +44,8 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-// ⚡️ FIX: country/mcc/mnc/mccmnc removed — not present in API response, replaced with operatorName (backed by operator__operator on the backend)
-const DEFAULT_SEARCH_COLUMNS = ["operatorName", "status"];
-const DEFAULT_TABLE_COLUMNS = ["operatorName", "externalPrefixId", "operatorPrefixStartRange", "operatorPrefixEndRange", "status", "sourceFileName"];
+const DEFAULT_SEARCH_COLUMNS = ["countryName", "mccmnc", "status"];
+const DEFAULT_TABLE_COLUMNS = ["countryName", "mccmnc", "externalPrefixId", "operatorPrefixStartRange", "operatorPrefixEndRange", "status", "sourceFileName"];
 
 const MccMncPrefixRange: React.FC = () => {
   const { canUpdate } = usePagePermissions();
@@ -95,26 +94,25 @@ const MccMncPrefixRange: React.FC = () => {
     { label: "Inactive", value: "INACTIVE" },
   ];
 
-  // ⚡️ FIX: country/countryCode/mcc/mnc/mccmnc columns removed (not in response / not filterable on backend).
-  // operatorName now filters via operator__operator__icontains per MccMncPrefixRangeFilter.
-  const allColumns: ColumnConfig[] = [
-    { key: "operatorName", label: "Operator Name", type: "text", filterKey: "operator__operator__icontains" },
-    {
-      key: "status",
-      label: "Status",
-      type: "text",
-      options: statusOptions,
-      filterKey: "status",
-      render: (c) => <StatusBadge status={c.status === "ACTIVE" ? "ACTIVE" : "EXPIRED"} customText={c.status === "ACTIVE" ? "Active" : "Inactive"} />
-    },
-    { key: "operatorPrefixStartRange", label: "Start Range", type: "number", filterKey: "operatorPrefixStartRange" },
-    { key: "operatorPrefixEndRange", label: "End Range", type: "number", filterKey: "operatorPrefixEndRange" },
-    { key: "externalPrefixId", label: "External Prefix ID", type: "number", filterKey: "externalPrefixId__icontains" },
-    { key: "sourceFileName", label: "Source File Name", type: "text", filterKey: "sourceFileName__icontains" },
-    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
-    { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
-    { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", filterKey: "createdAt", isSearchOnly: true },
-  ];
+const allColumns: ColumnConfig[] = [
+  { key: "countryName", label: "Country Name", type: "text", filterKey: "country__name__icontains" },
+  { key: "mccmnc", label: "MCC MNC", type: "text", filterKey: "mccmnc__icontains" },
+  {
+    key: "status",
+    label: "Status",
+    type: "text",
+    options: statusOptions,
+    filterKey: "status",
+    render: (c) => <StatusBadge status={c.status === "ACTIVE" ? "ACTIVE" : "EXPIRED"} customText={c.status === "ACTIVE" ? "Active" : "Inactive"} />
+  },
+  { key: "operatorPrefixStartRange", label: "Start Range", type: "number", filterKey: "operatorPrefixStartRange" },
+  { key: "operatorPrefixEndRange", label: "End Range", type: "number", filterKey: "operatorPrefixEndRange" },
+  { key: "externalPrefixId", label: "External Prefix ID", type: "number", filterKey: "externalPrefixId__icontains" },
+  { key: "sourceFileName", label: "Source File Name", type: "text", filterKey: "sourceFileName__icontains" },
+  { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
+  { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
+  { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", filterKey: "createdAt", isSearchOnly: true },
+];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));

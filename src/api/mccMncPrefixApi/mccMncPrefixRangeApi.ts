@@ -2,8 +2,9 @@ import api from "../axiosInstance";
 
 export interface MccMncPrefixRangeData {
   id?: number;
+  countryName?: string; // read-only, response only — derived from `country` FK, never sent in POST/PATCH/PUT
+  mccmnc?: string;
   externalPrefixId?: number;
-  operatorName?: string;
   operatorPrefixStartRange?: number;
   operatorPrefixEndRange?: number;
   status?: "ACTIVE" | "INACTIVE";
@@ -12,7 +13,7 @@ export interface MccMncPrefixRangeData {
   isDeleted?: boolean;
   createdAt?: string;
   updatedAt?: string;
-  operator?: number;
+  country?: number;
   importBatch?: number;
   createdBy?: number;
   updatedBy?: number;

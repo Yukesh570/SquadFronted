@@ -6,7 +6,7 @@ import {
   createMccMncPrefixRangeApi,
   type MccMncPrefixRangeData,
 } from "../../../api/mccMncPrefixApi/mccMncPrefixRangeApi";
-import { getOperatorNetworkCodesApi } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
+import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
@@ -28,7 +28,8 @@ interface MccMncPrefixRangeModalProps {
 }
 
 const emptyForm = {
-  operator: "",
+  country: "",
+  mccmnc: "",
   operatorPrefixStartRange: "",
   operatorPrefixEndRange: "",
   externalPrefixId: "",
@@ -46,24 +47,21 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
   isViewMode = false,
 }) => {
   const [formData, setFormData] = useState(emptyForm);
-  const [operatorOptions, setOperatorOptions] = useState<Option[]>([]);
+  const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditMode = !!editingData;
 
-  // Operator dropdown = every OperatorNetworkCode row.
-  // value = that row's real numeric id (this is what mccMncPrefixRange.operator wants)
-  // label = name + country/MCC/MNC, so rows sharing the same operator name are distinguishable
   useEffect(() => {
     if (!isOpen) return;
-    getOperatorNetworkCodesApi("operatorNetworkCode", 1, 1000)
+    getCountriesApi("country", 1, 1000)
       .then((res: any) => {
         const list = res.results || (Array.isArray(res) ? res : []);
-        const options: Option[] = list.map((item: any) => ({
-          label: `${item.operator} (${item.country_name || "-"} — MCC ${item.MCC}/MNC ${item.MNC})`,
-          value: String(item.id),
+        const options: Option[] = list.map((c: any) => ({
+          label: c.name || `Country ${c.id}`,
+          value: String(c.id),
         }));
-        setOperatorOptions(options.sort((a, b) => a.label.localeCompare(b.label)));
+        setCountryOptions(options.sort((a, b) => a.label.localeCompare(b.label)));
       })
       .catch(console.error);
   }, [isOpen]);
@@ -71,7 +69,8 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
   useEffect(() => {
     if (isOpen && editingData) {
       setFormData({
-        operator: editingData.operator ? String(editingData.operator) : "",
+        country: editingData.country ? String(editingData.country) : "",
+        mccmnc: editingData.mccmnc || "",
         operatorPrefixStartRange: editingData.operatorPrefixStartRange
           ? String(editingData.operatorPrefixStartRange)
           : "",
@@ -102,8 +101,12 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
     e.preventDefault();
     if (isViewMode) return;
 
-    if (!formData.operator) {
-      toast.error("Operator is required.");
+    if (!formData.country) {
+      toast.error("Country is required.");
+      return;
+    }
+    if (!formData.mccmnc) {
+      toast.error("MCC MNC is required.");
       return;
     }
     if (!formData.operatorPrefixStartRange || !formData.operatorPrefixEndRange) {
@@ -114,7 +117,8 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
     setIsSubmitting(true);
     try {
       const payload: any = {
-        operator: Number(formData.operator), // numeric id, not the name
+        country: Number(formData.country),
+        mccmnc: formData.mccmnc,
         operatorPrefixStartRange: formData.operatorPrefixStartRange
           ? Number(formData.operatorPrefixStartRange)
           : null,
@@ -141,7 +145,7 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
       onSuccess();
       onClose();
     } catch (error: any) {
-      const raw = error?.response?.data?.error || error?.response?.data?.operator;
+      const raw = error?.response?.data?.error || error?.response?.data?.country;
       const message = Array.isArray(raw)
         ? raw.join(" ")
         : typeof raw === "string"
@@ -167,19 +171,23 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">Network Information</legend>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {isViewMode ? (
-              <Input label="Operator Name" value={editingData?.operatorName || ""} disabled />
+              <>
+                <Input label="Country" value={editingData?.countryName || ""} disabled />
+                <Input label="MCC MNC" value={editingData?.mccmnc || ""} disabled />
+              </>
             ) : (
-              <div className="md:col-span-3">
+              <>
                 <Select
-                  label="Operator"
-                  value={formData.operator}
-                  onChange={(v: string) => handleSelect("operator", v)}
-                  options={operatorOptions}
-                  placeholder="Select Operator"
+                  label="Country"
+                  value={formData.country}
+                  onChange={(v: string) => handleSelect("country", v)}
+                  options={countryOptions}
+                  placeholder="Select Country"
                   required
                   disabled={isViewMode}
                 />
-              </div>
+                <Input label="MCC MNC " name="mccmnc" value={formData.mccmnc} onChange={handleChange} disabled={isViewMode} required/>
+              </>
             )}
           </div>
         </fieldset>
