@@ -6,7 +6,10 @@ import {
   type VendorRateData,
 } from "../../../api/rateApi/vendorRateApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
-import { getOperatorNetworkCodelookupApi } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
+import {
+  getOperatorNetworkCodelookupApi,
+  getOperatorNetworkCodesApi,
+} from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
@@ -118,6 +121,29 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
       setMncOptions([]);
     }
   }, [formData.country, fullCountriesList]);
+
+  useEffect(() => {
+    if (formData.country && formData.MCC && formData.MNC && fullCountriesList.length > 0) {
+      const selectedCountry = fullCountriesList.find(
+        (c) => String(c.id) === formData.country
+      );
+      const countryNameParam = selectedCountry ? selectedCountry.name : "";
+
+      getOperatorNetworkCodesApi("operatorNetworkCode", 1, 10, {
+        country__name: countryNameParam,
+        MCC: formData.MCC,
+        MNC: formData.MNC,
+      })
+        .then((res: any) => {
+          const list = res.results || (Array.isArray(res) ? res : []);
+          const match = list[0];
+          if (match?.operator) {
+            setFormData((prev) => ({ ...prev, network: match.operator }));
+          }
+        })
+        .catch(console.error);
+    }
+  }, [formData.country, formData.MCC, formData.MNC, fullCountriesList]);
 
   useEffect(() => {
     if (isOpen && editingRate) {
@@ -261,7 +287,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
 
       if (formData.countryCode) payload.countryCode = Number(formData.countryCode);
       if (formData.network) payload.network = formData.network;
-      
+
       if (formData.MNC) {
         payload.MNC = isNaN(Number(formData.MNC)) ? formData.MNC : Number(formData.MNC);
       }
