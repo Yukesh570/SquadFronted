@@ -122,7 +122,13 @@ const InvoiceSetup: React.FC = () => {
 
   const allColumns: ColumnConfig[] = [
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
-    { key: "businessEntity", label: "Entity", type: "text" },
+    // ⚡️ FIX: Added a render to show businessEntityName from the backend response
+    { 
+      key: "businessEntity", 
+      label: "Entity", 
+      type: "text",
+      render: (s: InvoiceSetupData) => s.businessEntityName || s.businessEntity 
+    },
     { key: "invoiceFrequency", label: "Frequency", type: "text", options: frequencyOptions },
     { key: "dueDays", label: "Due Days", type: "number" },
     { key: "tax", label: "Tax Details", type: "text" },

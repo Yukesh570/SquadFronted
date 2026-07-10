@@ -5,7 +5,8 @@ export interface InvoiceSetupData {
   company: number;
   companyName?: string;
   billingAddressOverride?: string; 
-  businessEntity: string;
+  businessEntity: string | number;
+  businessEntityName?: string; // ⚡️ FIX: Added entity name to interface
   invoiceFrequency: string;
   dueDays: number;
   tax?: string;

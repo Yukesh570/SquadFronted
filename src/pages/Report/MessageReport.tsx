@@ -28,7 +28,6 @@ import { actionHelper } from "../../helper/action";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { MessageReportModal } from "../../components/modals/Report/MessageReportModal"; 
 
-// ⚡️ FIX: Import the StatusBadge
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
 // --- Interfaces ---
@@ -169,7 +168,7 @@ const MessageReport: React.FC = () => {
         options: clientOptions,
       },
       {
-        key: "vendorName",
+        key: "vendor__profileName",
         label: "Vendor",
         type: "text",
         options: vendorOptions,
@@ -233,7 +232,6 @@ const MessageReport: React.FC = () => {
         key: "status",
         label: "Status",
         type: "text",
-        // ⚡️ FIX: Updated to use the reusable StatusBadge component
         render: (log) => <StatusBadge status={log.status} />
       },
       { key: "encoding", label: "Encoding", type: "text" },
@@ -515,7 +513,6 @@ const MessageReport: React.FC = () => {
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
 
-      {/* Clean Embedded Reusable Modal */}
       <MessageReportModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
