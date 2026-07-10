@@ -14,10 +14,10 @@ import {
   type CampaignFormData,
 } from "../../api/campaignApi/campaignApi";
 // @ts-ignore
-// @ts-ignore
 import ReactQuill from "react-quill-new";
 import "../../quillDark.css";
 import { getClientsApi } from "../../api/clientApi/clientApi";
+
 interface CampaignModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -210,10 +210,19 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       toast.error("Client is required.");
       return;
     }
-    if (!formData.contactNumber.trim()) {
-      toast.error("Contact number is required.");
-      return;
+
+    // ⚡️ FIX: Smart validation - checks contactNumber OR csvFile based on selected tab
+    if (!editingCampaign) {
+      if (formData.audienceType === "specify" && !formData.contactNumber.trim()) {
+        toast.error("Contact number is required.");
+        return;
+      }
+      if (formData.audienceType === "import" && !csvFile) {
+        toast.error("Please upload a CSV/Excel file.");
+        return;
+      }
     }
+
     if (isContentEmpty(quillContent)) {
       toast.error("Campaign content cannot be empty.");
       return;
@@ -246,17 +255,13 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
             .map((c) => c.trim())
             .filter(Boolean);
           if (contacts.length === 0) {
-            toast.error("Please specify at least one contact number.");
+            toast.error("Please specify at least one valid contact number.");
             setIsSubmitting(false);
             return;
           }
           contacts.forEach((c) => dataToUpload.append("contacts", c));
         } else if (csvFile) {
           dataToUpload.append("csvFile", csvFile);
-        } else {
-          toast.error("Please provide contacts (Specify or Upload).");
-          setIsSubmitting(false);
-          return;
         }
       }
 
