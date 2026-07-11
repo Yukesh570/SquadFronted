@@ -28,7 +28,7 @@ export interface PaginatedResponse<T> {
 
 export interface ClientSessionSummaryData {
   systemId: string;
-  clientUsername: string;
+  client_name: string;
   companyName: string;
   active_sessions: number;
 }

@@ -845,7 +845,7 @@ const Dashboard: React.FC = () => {
                       className="border-b border-gray-100 dark:border-gray-700 last:border-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >
                       <td className="p-4 text-sm font-medium text-text-primary dark:text-white">{session.systemId}</td>
-                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{session.clientUsername}</td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{session.client_name}</td>
                       <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{session.companyName}</td>
                       <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{session.active_sessions}</td>
                     </tr>
