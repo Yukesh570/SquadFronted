@@ -26,6 +26,13 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
+export interface ClientSessionSummaryData {
+  systemId: string;
+  clientUsername: string;
+  companyName: string;
+  active_sessions: number;
+}
+
 // GET (Read-Only)
 export const getClientSessionsApi = async (
   module: string,
@@ -39,5 +46,11 @@ export const getClientSessionsApi = async (
     ...searchParams,
   };
   const response = await api.get(`/clientSession/${module}/`, { params });
+  return response.data;
+};
+
+// GET (Read-Only)
+export const getClientSessionSummaryApi = async (): Promise<ClientSessionSummaryData[]> => {
+  const response = await api.get(`/clientSessionSummary/clientSession/`);
   return response.data;
 };

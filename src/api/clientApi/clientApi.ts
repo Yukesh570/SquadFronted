@@ -126,6 +126,7 @@ export const getClientRateOverViewApi = async (params: {
 // --- NEW: View Client Rates API ---
 export interface ClientRateData {
   country_id?: number;
+  country_name?: string;
   MCC?: string;
   MNC?: string;
   rate?: number;

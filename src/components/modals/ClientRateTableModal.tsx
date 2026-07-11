@@ -108,7 +108,7 @@ export const ClientRateTableModal: React.FC<ClientRateTableModalProps> = ({
   const startIndex = (currentPage - 1) * rowsPerPage;
   const paginationLabel = `${totalItems === 0 ? 0 : startIndex + 1}-${Math.min(startIndex + rates.length, totalItems)} of ${totalItems}`;
 
-  const headers = ["Country ID", "MCC", "MNC", "Rate"];
+  const headers = ["Country", "MCC", "MNC", "Rate"];
 
   return (
     <Modal
@@ -172,7 +172,7 @@ export const ClientRateTableModal: React.FC<ClientRateTableModalProps> = ({
                     key={idx}
                     className="group border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
-                    <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.country_id || "-"}</td>
+<td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.country_name || "-"}</td>
                     <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MCC || "-"}</td>
                     <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MNC || "-"}</td>
                     <td className="py-3 px-4 text-text-secondary dark:text-gray-300 font-medium whitespace-nowrap">{v.rate || "-"}</td>

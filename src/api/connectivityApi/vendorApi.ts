@@ -114,9 +114,9 @@ export const getVendorRateGroupsApi = async (
   return response.data;
 };
 
-// --- NEW: View Vendor Rates API ---
 export interface VendorRateData {
   country_id?: number;
+  country_name?: string;
   MCC?: string;
   MNC?: string;
   rate?: number;

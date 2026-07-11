@@ -519,15 +519,19 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }
   };
 
-  // ── New row helpers ─────────────────────────────────────────────────────
-  const addRow = (countryId: string) =>
-    setSections((prev) =>
-      prev.map((s) =>
-        String(s.config.country) === countryId
-          ? { ...s, newRows: [...s.newRows, emptyRow()] }
-          : s,
-      ),
-    );
+const addRow = (countryId: string) =>
+  setSections((prev) =>
+    prev.map((s) => {
+      if (String(s.config.country) !== countryId) return s;
+
+      const codes = networkCodesByCountry[countryId];
+      const row = emptyRow();
+      if (codes?.mccOptions.length === 1) row.MCC = codes.mccOptions[0].value;
+      if (codes?.mncOptions.length === 1) row.MNC = codes.mncOptions[0].value;
+
+      return { ...s, newRows: [...s.newRows, row] };
+    }),
+  );
 
   const updateRow = (countryId: string, rowId: string, field: keyof NewRow, value: string) => {
     setSections((prev) =>

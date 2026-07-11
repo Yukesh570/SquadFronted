@@ -36,7 +36,8 @@ import {
 import Button from "../../components/ui/Button";
 import {
   getClientSessionsApi,
-  type ClientSessionData,
+  getClientSessionSummaryApi,
+  type ClientSessionSummaryData,
 } from "../../api/clientSessionApi/clientSessionApi";
 import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
 import { getClientsApi } from "../../api/clientApi/clientApi";
@@ -106,7 +107,8 @@ const Dashboard: React.FC = () => {
   const trafficScrollRef = React.useRef<HTMLDivElement>(null);
 
   // --- Table / panel states ---
-  const [liveSessions, setLiveSessions] = useState<ClientSessionData[]>([]);
+  const [liveSessions, setLiveSessions] = useState<ClientSessionSummaryData[]>([]);
+  const [isLiveSessionsLoading, setIsLiveSessionsLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [revenue, setRevenue] = useState<RevenueData | null>(null);
 
@@ -209,22 +211,24 @@ const Dashboard: React.FC = () => {
         getClientSessionsApi("clientSession", 1, 5, { status: "CONNECTED" }),
         getClientSessionsApi("clientSession", 1, 5, { status: "BOUND" }),
       ]);
-      const connectedResults = connectedRes?.results ?? [];
-      const boundResults = boundRes?.results ?? [];
       const connectedCount = connectedRes?.count ?? 0;
       const boundCount = boundRes?.count ?? 0;
-
-      const seen = new Set<string>();
-      const merged: ClientSessionData[] = [];
-      for (const s of [...connectedResults, ...boundResults]) {
-        const key = String(s.sessionId || s.id || "");
-        if (!seen.has(key)) { seen.add(key); merged.push(s); }
-      }
-
-      setLiveSessions(merged.slice(0, 5));
       setActiveSessionsCount(connectedCount + boundCount);
     } catch (e) {
       console.error("fetchActiveSessions failed", e);
+    }
+  };
+
+  const fetchClientSessionSummary = async () => {
+    setIsLiveSessionsLoading(true);
+    try {
+      const data = await getClientSessionSummaryApi();
+      setLiveSessions(data);
+    } catch (e) {
+      console.error("fetchClientSessionSummary failed", e);
+      setLiveSessions([]);
+    } finally {
+      setIsLiveSessionsLoading(false);
     }
   };
 
@@ -363,6 +367,7 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchActiveSessions();
+    fetchClientSessionSummary();
     fetchOnlineVendors();
     fetchOnlineClients();
     fetchNotifications();
@@ -375,7 +380,10 @@ const Dashboard: React.FC = () => {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.action === "session_update") fetchActiveSessions();
+        if (data.action === "session_update") {
+          fetchActiveSessions();
+          fetchClientSessionSummary();
+        }
       } catch (err) {
         console.error("WebSocket parse error in Dashboard", err);
       }
@@ -450,7 +458,7 @@ const Dashboard: React.FC = () => {
     chartMinWidth = "1800px";
     needsScroll = true;
   }
-  
+
   useEffect(() => {
     if (needsScroll && trafficScrollRef.current) {
       trafficScrollRef.current.scrollLeft = trafficScrollRef.current.scrollWidth;
@@ -468,7 +476,7 @@ const Dashboard: React.FC = () => {
       if (isNaN(d.getTime())) continue;
       const key = activeRange === "all"
         ? `${d.getFullYear()}-${Math.floor(d.getMonth() / 6)}`
-        : `${d.getFullYear()}-${d.getMonth()}`;      
+        : `${d.getFullYear()}-${d.getMonth()}`;
       if (!seen.has(key)) {
         seen.add(key);
         ticks.push(raw);
@@ -811,26 +819,43 @@ const Dashboard: React.FC = () => {
             </h3>
             <NavLink to="/clientSession">
               <Button variant="secondary" size="sm" rightIcon={<ArrowRight size={14} />}>
-                View All
+                View Details
               </Button>
             </NavLink>
           </div>
-          <div className="p-6">
-            {liveSessions.length > 0 ? (
-              <div className="space-y-4">
-                {liveSessions.map((session, idx) => (
-                  <div key={session.id || idx} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-none">
-                    <span className="text-sm font-medium text-text-primary dark:text-white">
-                      {session.systemId || `Session #${session.id}`}
-                    </span>
-                    <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-450">
-                      {session.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
+          <div className="overflow-y-auto custom-scrollbar max-h-[280px]">
+            {isLiveSessionsLoading ? (
+              <p className="text-sm text-text-secondary dark:text-gray-400 text-center py-8">
+                Loading sessions…
+              </p>
+            ) : liveSessions.length > 0 ? (
+              <table className="w-full text-left border-collapse">
+                <thead className="sticky top-0 bg-white dark:bg-gray-800">
+                  <tr className="border-b border-gray-100 dark:border-gray-700">
+                    <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">System ID</th>
+                    <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Username</th>
+                    <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Company</th>
+                    <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Active Sessions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {liveSessions.map((session, idx) => (
+                    <tr
+                      key={`${session.systemId}-${idx}`}
+                      className="border-b border-gray-100 dark:border-gray-700 last:border-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    >
+                      <td className="p-4 text-sm font-medium text-text-primary dark:text-white">{session.systemId}</td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{session.clientUsername}</td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{session.companyName}</td>
+                      <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{session.active_sessions}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             ) : (
-              <p className="text-sm text-text-secondary dark:text-gray-400 text-center py-4">No active live client sessions.</p>
+              <p className="text-sm text-text-secondary dark:text-gray-400 text-center py-8">
+                No active live client sessions.
+              </p>
             )}
           </div>
         </div>

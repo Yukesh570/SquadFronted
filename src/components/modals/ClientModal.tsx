@@ -451,18 +451,16 @@ if (editingClient) {
         if (formData.submitTimeoutSec !== "")
           policyPayload.submitTimeoutSec = Number(formData.submitTimeoutSec);
 
-        if (Object.keys(policyPayload).length > 0 || existingPolicyId) {
-          try {
-            if (existingPolicyId) {
-              await updateClientPolicyApi(existingPolicyId, policyPayload);
-            } else {
-              policyPayload.client = savedClientId;
-              await createClientPolicyApi(policyPayload);
-            }
-          } catch (policyErr) {
-            console.error("Policy configuration save error:", policyErr);
-            toast.warning("Client saved, but policy settings failed to save.");
+       try {
+          if (existingPolicyId) {
+            await updateClientPolicyApi(existingPolicyId, policyPayload);
+          } else {
+            policyPayload.client = savedClientId;
+            await createClientPolicyApi(policyPayload);
           }
+        } catch (policyErr) {
+          console.error("Policy configuration save error:", policyErr);
+          toast.warning("Client saved, but policy settings failed to save.");
         }
       }
 
