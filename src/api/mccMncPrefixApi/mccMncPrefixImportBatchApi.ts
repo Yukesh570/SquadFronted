@@ -60,8 +60,7 @@ export const importMccMncPrefixApi = async (
   return response.data;
 };
 
-// ⚡️ FIX: Added Status Check (Polling) API
-export const getMccMncPrefixImportStatusApi = async (taskId: string): Promise<any> => {
-  const response = await api.get(`/status/${taskId}/`);
+export const getMccMncPrefixImportStatusApi = async (batchId: number): Promise<any> => {
+  const response = await api.get(`/mccmncstatus/${batchId}/`);
   return response.data;
 };

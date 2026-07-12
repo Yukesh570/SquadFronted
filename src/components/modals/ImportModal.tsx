@@ -180,11 +180,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     try {
       const response = await importApi(formData);
 
-      if (response.task_id && checkStatusApi) {
-        toast.info("Import started. Processing...");
-        setIsPolling(true);
-        pollStatus(response.task_id);
-      } else {
+      const jobId = response.task_id || response.batch_id;
+
+if (jobId && checkStatusApi) {
+  toast.info("Import started. Processing...");
+  setIsPolling(true);
+  pollStatus(jobId);
+} else {
         if (response.status === "error" || response.error) {
           let msg = response.error || response.message || "Import failed.";
           toast.error(formatErrorMessage(String(msg)));
