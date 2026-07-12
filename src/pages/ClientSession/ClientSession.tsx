@@ -29,6 +29,7 @@ interface ColumnConfig extends FilterColumn {
   render?: (data: ClientSessionData) => React.ReactNode;
   filterKey?: string;
   isSearchOnly?: boolean;
+  isSearchable?: boolean; // ⚡️ FIX: Added flag to disable unsupported backend searches
   tableLabel?: string;
 }
 
@@ -131,7 +132,13 @@ const ClientSession: React.FC = () => {
       type: "text",
       filterKey: "client__smppUsername__icontains", // ⚡️ FIX: Mapped strictly to backend filter `client__smppUsername`
     },
-    { key: "companyName", label: "Company Name", type: "text", filterKey: "client__company__name__icontains" }, // Added backend mapping mapping
+    { 
+      key: "companyName", 
+      label: "Company Name", 
+      type: "text", 
+      filterKey: "client__company__name__icontains",
+      isSearchable: false // ⚡️ UNAVAILABLE IN BACKEND
+    }, 
     {
       key: "systemId",
       label: "System ID",
@@ -217,6 +224,7 @@ const ClientSession: React.FC = () => {
       tableLabel: "Disconnected At",
       type: "date",
       filterKey: "disconnectedAt",
+      isSearchable: false, // ⚡️ UNAVAILABLE IN BACKEND
       render: (c) =>
         c.disconnectedAt ? formatDateTime(c.disconnectedAt) : "-",
     },
@@ -225,12 +233,14 @@ const ClientSession: React.FC = () => {
       label: "Disconnect Reason",
       type: "text",
       filterKey: "disconnectReason__icontains",
+      isSearchable: false, // ⚡️ UNAVAILABLE IN BACKEND
     },
     {
       key: "disconnectInitiatedBy",
       label: "Disconnect Initiated By",
       type: "text",
       filterKey: "disconnectInitiatedBy__icontains",
+      isSearchable: false, // ⚡️ UNAVAILABLE IN BACKEND
     },
 
     {
@@ -258,7 +268,9 @@ const ClientSession: React.FC = () => {
     },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) =>
+  // ⚡️ Only allow searchable columns to be populated in the "Search Fields" dropdown
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+  const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
   const visibleTableFields = allColumns.filter((col) =>
@@ -452,7 +464,7 @@ const ClientSession: React.FC = () => {
           </h1>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={allColumns}
+              columns={searchableColumns} // ⚡️ FIX: Mapped to searchableColumns
               selectedColumns={searchColumns}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);

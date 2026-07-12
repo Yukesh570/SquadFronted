@@ -41,6 +41,7 @@ interface ColumnConfig extends FilterColumn {
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
+  isSearchable?: boolean;
   tableLabel?: string;
 }
 
@@ -248,6 +249,7 @@ const Vendor: React.FC = () => {
       type: "text",
       options: vendorRateGroupOptions,
       filterKey: "vendorRateGroup", 
+      isSearchable: false,
       render: (c: any) => c.vendorRateGroupName || c.vendorRateGroup || "-",
     },
     {
@@ -293,6 +295,7 @@ const Vendor: React.FC = () => {
       label: "Sessions (Current/Max)",
       tableLabel: "Sessions",
       type: "text",
+      isSearchable: false,
       render: (c) => renderSessionBadge(c),
     },
     { 
@@ -370,12 +373,14 @@ const Vendor: React.FC = () => {
       key: "bindRetryDelay", 
       label: "Bind Retry Delay (s)", 
       type: "number",
+      isSearchable: false,
       render: (c) => c.vendorPolicy?.bindRetryDelay ?? "-"
     },
     { 
       key: "bindRetryCount", 
       label: "Bind Retry Count", 
       type: "number",
+      isSearchable: false,
       render: (c) => c.vendorPolicy?.bindRetryCount ?? "-"
     },
     {
@@ -401,9 +406,12 @@ const Vendor: React.FC = () => {
     },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) =>
-    searchColumns.includes(col.key),
-  );
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+
+
+  const visibleSearchFields = searchableColumns.filter((col) =>
+  searchColumns.includes(col.key),
+);
   const visibleTableFields = allColumns.filter((col) =>
     tableColumns.includes(col.key),
   );
@@ -658,7 +666,7 @@ const Vendor: React.FC = () => {
           </h1>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={allColumns}
+              columns={searchableColumns}
               selectedColumns={searchColumns}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);

@@ -144,7 +144,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
             toast.error(formatErrorMessage(errorText));
           } else {
-            toast.success("Import completed successfully!");
+            const resultMessage = res.result?.message;
+            toast.success(resultMessage || "Import completed successfully!");
             setIsPolling(false);
             setIsSubmitting(false);
             onSuccess();
@@ -153,13 +154,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           return;
         }
 
-        if (attempts >= MAX_ATTEMPTS) {
-          clearInterval(intervalId);
-          toast.warning("Import is taking longer than expected.");
-          setIsPolling(false);
-          setIsSubmitting(false);
-          onClose();
-        }
+        // Still processing — keep polling regardless of elapsed time/attempts.
+        // No timeout-based cancellation here: large imports can legitimately
+        // take a long time, and the backend job keeps running whether or not
+        // we're still watching it, so we just keep asking until it reports
+        // completed/failed.
       }
     }, POLL_INTERVAL);
   };
@@ -179,14 +178,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
     try {
       const response = await importApi(formData);
-
       const jobId = response.task_id || response.batch_id;
 
-if (jobId && checkStatusApi) {
-  toast.info("Import started. Processing...");
-  setIsPolling(true);
-  pollStatus(jobId);
-} else {
+      if (jobId && checkStatusApi) {
+        toast.info("Import started. Processing...");
+        setIsPolling(true);
+        pollStatus(jobId);
+      } else {
         if (response.status === "error" || response.error) {
           let msg = response.error || response.message || "Import failed.";
           toast.error(formatErrorMessage(String(msg)));

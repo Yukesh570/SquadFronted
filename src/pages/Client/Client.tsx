@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-// ⚡️ FIX: Added Layers icon for the View Rate context menu option
 import { Home, Plus, Edit, Trash, ShieldPlus, Eye, Mail, Layers } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -12,15 +11,13 @@ import {
   type ClientData,
 } from "../../api/clientApi/clientApi";
 import { getCompaniesApi } from "../../api/companyApi/companyApi";
-
-// ⚡️ Fetching the Customer Rate Groups
 import { getCustomerRateGroupsApi } from "../../api/rateApi/customerRateApi";
 
 // --- Components ---
 import { ClientModal } from "../../components/modals/ClientModal";
 import { ClientRoutingRateModal } from "../../components/modals/ClientRoutingRateModal";
 import IpWhitelistModal from "../../components/modals/WhiteListIPModal";
-import { ClientRateTableModal } from "../../components/modals/ClientRateTableModal"; // ⚡️ NEW: Import the View Rate modal
+import { ClientRateTableModal } from "../../components/modals/ClientRateTableModal"; 
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -51,6 +48,7 @@ interface ColumnConfig extends FilterColumn {
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
+  isSearchable?: boolean; // ⚡️ FIX: Added flag to disable unsupported backend searches
   tableLabel?: string;
 }
 
@@ -94,7 +92,6 @@ const Client: React.FC = () => {
   const [isIpModalOpen, setIsIpModalOpen] = useState(false);
   const [ipModalClient, setIpModalClient] = useState<{ id: number; name: string; } | null>(null);
 
-  // ⚡️ NEW: View Rate Modal State
   const [isRateModalOpen, setIsRateModalOpen] = useState(false);
   const [rateModalClient, setRateModalClient] = useState<{ id: number; name: string; } | null>(null);
 
@@ -161,7 +158,7 @@ const Client: React.FC = () => {
         setrouteGroup(
           rgList.map((rg: any) => ({
             label: rg.name,
-            value: String(rg.id),
+            value: rg.name, // ⚡️ MATCHED Backend filter key
           }))
         );
       } catch (err) {
@@ -240,28 +237,29 @@ const Client: React.FC = () => {
     return <StatusBadge status={statusKey} customText={`${current}/${max}`} />;
   };
 
+  // ⚡️ FIX: Disabled search via 'isSearchable: false' for fields that don't exist in Django ClientFilter
   const allColumns: ColumnConfig[] = [
     { key: "name", label: "Client Name", type: "text", filterKey: "name__icontains" },
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
-    { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroup, filterKey: "routeGroup" },
-    { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, filterKey: "customerRateGroup" },
+    { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroup, filterKey: "routeGroup__name" }, // ⚡️ MATCHED Backend filter key
+    { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
     { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status", render: (c) => <StatusBadge status={c.status} /> },
     { key: "route", label: "Route Type", type: "text", options: routeOptions, filterKey: "route" },
     { key: "paymentTerms", label: "Payment Terms", type: "text", options: paymentTermOptions, filterKey: "paymentTerms" },
-    { key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions, filterKey: "invoicePolicy", render: (c) => {
+    { key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions, isSearchable: false, render: (c) => { // ⚡️ UNAVAILABLE IN BACKEND
         if (!c.invoicePolicy) return "-";
         const match = invoicePolicyOptions.find(opt => opt.value === c.invoicePolicy);
         return match ? match.label : c.invoicePolicy;
       }
     },
     { key: "allowNetting", label: "Allow Netting", type: "boolean", options: booleanOptions, filterKey: "allowNetting", render: (c) => renderBooleanBadge(c.allowNetting) },
-    { key: "enableDlr", label: "Enable Dlr", type: "boolean", options: booleanOptions, filterKey: "enableDlr", render: (c) => renderBooleanBadge(c.enableDlr) },
+    { key: "enableDlr", label: "Enable Dlr", type: "boolean", options: booleanOptions, isSearchable: false, render: (c) => renderBooleanBadge(c.enableDlr) }, // ⚡️ UNAVAILABLE IN BACKEND
     { key: "smppUsername", label: "SMPP Username", type: "text", filterKey: "smppUsername__icontains" },
     { key: "bindStatus", label: "Bind Status", type: "text", options: bindStatusOptions, filterKey: "bindStatus", render: (c) => <StatusBadge status={c.bindStatus} /> },
-    { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", filterKey: "session", render: (c) => renderSessionBadge(c) },
+    { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", isSearchable: false, render: (c) => renderSessionBadge(c) }, // ⚡️ UNAVAILABLE IN BACKEND
     { key: "maxTps", label: "Max TPS", type: "number", filterKey: "clientPolicy__maxTps", render: (c) => c.clientPolicy?.maxTps ?? "-" },
     { key: "maxSessions", label: "Max Sessions", type: "number", filterKey: "clientPolicy__maxSessions", render: (c) => c.clientPolicy?.maxSessions ?? "-" },
-    { key: "maxQueueDepth", label: "Max Queue Depth", type: "number", filterKey: "clientPolicy__maxQueueDepth", render: (c) => c.clientPolicy?.maxQueueDepth ?? "-" },
+    { key: "maxQueueDepth", label: "Max Queue Depth", type: "number", isSearchable: false, render: (c) => c.clientPolicy?.maxQueueDepth ?? "-" }, // ⚡️ UNAVAILABLE IN BACKEND
     { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number", filterKey: "clientPolicy__maxWindowGlobal", render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-" },
     { key: "maxWindowPerSession", label: "Max Window (Per Session)", type: "number", filterKey: "clientPolicy__maxWindowPerSession", render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-" },
     { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number", filterKey: "clientPolicy__idleTimeoutSec", render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-" },
@@ -272,7 +270,9 @@ const Client: React.FC = () => {
     { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
+  // ⚡️ Only allow searchable columns to be populated in the "Search Fields" dropdown
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+  const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
 
   const tableFilterColumns = allColumns
@@ -525,7 +525,6 @@ const Client: React.FC = () => {
           icon: <Eye size={16} />,
           onClick: () => handleView(selectedRowClient),
         },
-        // ⚡️ NEW: View Rate context menu mapping to new Modal
         {
           label: "View Rate",
           icon: <Layers size={16} />,
@@ -586,7 +585,7 @@ const Client: React.FC = () => {
 
           <div className="relative z-20">
             <AdvancedFilter
-              columns={allColumns}
+              columns={searchableColumns}
               selectedColumns={searchColumns}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
@@ -900,7 +899,6 @@ const Client: React.FC = () => {
         customerRateGroupOptions={customerRateGroupOptions}
       />
 
-      {/* ⚡️ NEW: Rendering ClientRateTableModal component */}
       <ClientRateTableModal
         isOpen={isRateModalOpen}
         onClose={() => setIsRateModalOpen(false)}

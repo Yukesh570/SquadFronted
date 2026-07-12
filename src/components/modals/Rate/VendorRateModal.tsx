@@ -385,14 +385,6 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
                 disabled={isViewMode}
                 required
               />
-              <Input
-                label="Network"
-                name="network"
-                value={formData.network}
-                onChange={handleChange}
-                placeholder="NTC"
-                disabled={isViewMode}
-              />
               <Select
                 label="MCC"
                 value={formData.MCC}
@@ -410,6 +402,14 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
                 placeholder={formData.country ? "Select MNC" : "Select Country First"}
                 disabled={!formData.country || isViewMode}
                 required
+              />
+              <Input
+                label="Network"
+                name="network"
+                value={formData.network}
+                onChange={handleChange}
+                placeholder="NTC"
+                disabled={isViewMode}
               />
             </>
           )}

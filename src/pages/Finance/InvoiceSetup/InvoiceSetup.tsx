@@ -22,6 +22,7 @@ import { actionHelper } from "../../../helper/action";
 
 // ⚡️ FIX: Import the StatusBadge
 import { StatusBadge } from "../../../components/ui/StatusBadge";
+import { formatDateTime } from "../../../helper/dateFormatter";
 
 interface Option {
   label: string;
@@ -124,11 +125,12 @@ const InvoiceSetup: React.FC = () => {
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
     // ⚡️ FIX: Added a render to show businessEntityName from the backend response
     { 
-      key: "businessEntity", 
-      label: "Entity", 
-      type: "text",
-      render: (s: InvoiceSetupData) => s.businessEntityName || s.businessEntity 
-    },
+  key: "businessEntity", 
+  label: "Entity", 
+  type: "text",
+  filterKey: "businessEntity__legalEntityName__icontains",
+  render: (s: InvoiceSetupData) => s.businessEntityName || s.businessEntity 
+},
     { key: "invoiceFrequency", label: "Frequency", type: "text", options: frequencyOptions },
     { key: "dueDays", label: "Due Days", type: "number" },
     { key: "tax", label: "Tax Details", type: "text" },
@@ -139,7 +141,9 @@ const InvoiceSetup: React.FC = () => {
       options: booleanOptions, 
       render: (s: any) => renderBooleanBadge(s.isTaxApplied) 
     },
-  ];
+    { key: "billingAddressOverride", label: "Billing Address", type: "text", filterKey: "billingAddressOverride__icontains" },
+    { key: "createdAt", label: "Created At", type: "date", filterKey: "createdAt", render: (s: InvoiceSetupData) => (s.createdAt ? formatDateTime(s.createdAt) : "-") },
+];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
