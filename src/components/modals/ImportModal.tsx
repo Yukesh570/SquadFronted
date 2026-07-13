@@ -9,7 +9,7 @@ interface ImportModalProps {
   onClose: () => void;
   onSuccess: () => void;
   importApi: (formData: FormData) => Promise<any>;
-  checkStatusApi?: (taskId: string | number) => Promise<any>;
+  checkStatusApi?: (taskId: string) => Promise<any>;
   title?: string;
   sampleFileLink?: string;
   sampleFileName?: string;
@@ -68,7 +68,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     return msg;
   };
 
-  const pollStatus = async (taskId: string | number) => {
+  const pollStatus = async (taskId: string) => {
     if (!checkStatusApi) return;
 
     let attempts = 0;
@@ -140,7 +140,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             let errorText =
               typeof firstError === "string"
                 ? firstError
-                : `Row ${firstError.row}: ${firstError.error}`;
+                : `Row ${firstError.row}:${firstError.error}`;
 
             toast.error(formatErrorMessage(errorText));
           } else {

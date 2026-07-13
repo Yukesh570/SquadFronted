@@ -325,7 +325,7 @@ const MccMncPrefixImportBatch: React.FC = () => {
         onClose={() => setIsImportModalOpen(false)}
         onSuccess={() => fetchData()}
         importApi={importMccMncPrefixApi}
-        checkStatusApi={(id) => getMccMncPrefixImportStatusApi(Number(id))} 
+        checkStatusApi={(taskId: string) => getMccMncPrefixImportStatusApi(Number(taskId))}
         title="Import MCC MNC Prefixes"
         sampleFileLink="/MccMncPrefix-Sample.csv"
         sampleFileName="MccMncPrefix-Sample.csv"
