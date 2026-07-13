@@ -9,7 +9,7 @@ interface ImportModalProps {
   onClose: () => void;
   onSuccess: () => void;
   importApi: (formData: FormData) => Promise<any>;
-  checkStatusApi?: (taskId: string) => Promise<any>;
+  checkStatusApi?: (taskId: string | number) => Promise<any>;
   title?: string;
   sampleFileLink?: string;
   sampleFileName?: string;
@@ -68,7 +68,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     return msg;
   };
 
-  const pollStatus = async (taskId: string) => {
+  const pollStatus = async (taskId: string | number) => {
     if (!checkStatusApi) return;
 
     let attempts = 0;
@@ -153,12 +153,6 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           }
           return;
         }
-
-        // Still processing — keep polling regardless of elapsed time/attempts.
-        // No timeout-based cancellation here: large imports can legitimately
-        // take a long time, and the backend job keeps running whether or not
-        // we're still watching it, so we just keep asking until it reports
-        // completed/failed.
       }
     }, POLL_INTERVAL);
   };
