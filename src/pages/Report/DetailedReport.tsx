@@ -48,13 +48,22 @@ const DEFAULT_TABLE_COLUMNS = [
   "text_message_id", "destination", "content", "submitStatus", "client", "vendor", "vendor_msg_id", "request_time"
 ];
 
+// Fixed batch size for infinite scroll. Pagination UI is hidden for this
+// page only, so this is no longer user-adjustable — it's just the page
+// size used per fetch.
+const BATCH_SIZE = 100;
+
+// How close (in px) to the bottom of the scroll container before we
+// trigger the next batch fetch.
+const LOAD_MORE_THRESHOLD_PX = 200;
+
 const DetailedReport: React.FC = () => {
   const [reports, setReports] = useState<DetailedReportData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true); // initial / fresh search load
+  const [isFetchingMore, setIsFetchingMore] = useState(false); // infinite-scroll load
+  const [loadedPage, setLoadedPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewLog, setViewLog] = useState<DetailedReportData | null>(null);
@@ -74,6 +83,11 @@ const DetailedReport: React.FC = () => {
 
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Wrapper around DataTable used to reach its internal scroll container
+  // (className "custom-scrollbar") from the outside, since DataTable.tsx
+  // itself is not being modified.
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     localStorage.setItem("detailed_table_columns", JSON.stringify(tableColumns));
@@ -135,11 +149,22 @@ const DetailedReport: React.FC = () => {
 
   const handleFilterChange = (key: string, value: string) => { setFilterValues((prev) => ({ ...prev, [key]: value })); };
 
-  const fetchReports = async (filters: Record<string, string> | null = null) => {
+  /**
+   * Fetches a page of reports.
+   * - append = false (default): fresh search/clear/initial load. Replaces `reports`.
+   * - append = true: infinite-scroll batch. Appends to `reports`.
+   */
+  const fetchReports = async (
+    filters: Record<string, string> | null = null,
+    page: number = 1,
+    append: boolean = false,
+  ) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
-    setIsLoading(true);
+
+    if (append) setIsFetchingMore(true);
+    else setIsLoading(true);
 
     try {
       const activeFilters = filters || filterValues;
@@ -173,25 +198,61 @@ const DetailedReport: React.FC = () => {
         }
       });
 
-      const response: any = await getDetailedReportsApi(currentPage, rowsPerPage, currentSearchParams);
+      const response: any = await getDetailedReportsApi(page, BATCH_SIZE, currentSearchParams);
 
       if (newController.signal.aborted) return;
-      if (response && response.results) { setReports(response.results); setTotalItems(response.count); } 
-      else { setReports([]); setTotalItems(0); }
+      if (response && response.results) {
+        setReports((prev) => (append ? [...prev, ...response.results] : response.results));
+        setTotalItems(response.count);
+        setHasMore(Boolean(response.next));
+        setLoadedPage(page);
+      } else {
+        if (!append) setReports([]);
+        setTotalItems(0);
+        setHasMore(false);
+      }
     } catch (error: any) {
       if (error.name !== "AbortError") toast.error("Failed to fetch detailed reports.");
     } finally {
-      if (abortControllerRef.current === newController) setIsLoading(false);
+      if (abortControllerRef.current === newController) {
+        setIsLoading(false);
+        setIsFetchingMore(false);
+      }
     }
   };
 
+  // Initial load. Filters are only applied on explicit Search/Clear, same
+  // as before — this effect only re-fires if the visible search fields change.
   useEffect(() => {
-    fetchReports();
+    fetchReports(undefined, 1, false);
     return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
-  }, [currentPage, rowsPerPage, searchColumns]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchColumns]);
 
-  const handleSearch = () => { setCurrentPage(1); fetchReports(); };
-  const handleClearFilters = () => { setFilterValues({}); setCurrentPage(1); fetchReports({}); };
+  // Infinite scroll: listen on DataTable's internal scroll container
+  // (class "custom-scrollbar", defined inside DataTable.tsx) via the
+  // wrapper ref, since DataTable itself isn't being modified.
+  useEffect(() => {
+    const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(
+      ".custom-scrollbar",
+    );
+    if (!scrollEl) return;
+
+    const handleScroll = () => {
+      if (isLoading || isFetchingMore || !hasMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = scrollEl;
+      if (scrollHeight - scrollTop - clientHeight < LOAD_MORE_THRESHOLD_PX) {
+        fetchReports(filterValues, loadedPage + 1, true);
+      }
+    };
+
+    scrollEl.addEventListener("scroll", handleScroll);
+    return () => scrollEl.removeEventListener("scroll", handleScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, reports.length]);
+
+  const handleSearch = () => { fetchReports(undefined, 1, false); };
+  const handleClearFilters = () => { setFilterValues({}); fetchReports({}, 1, false); };
 
   const handleExport = async () => {
     try {
@@ -217,7 +278,7 @@ const DetailedReport: React.FC = () => {
     { label: "View Details", icon: <Eye size={16} />, onClick: () => { setViewLog(selectedRowLog); setIsModalOpen(true); } },
   ] : [];
 
-  const tableHeaders = [...visibleTableFields.map((col) => col.tableLabel || col.label)];
+  const tableHeaders = ["S.N", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
   const getBaseLabel = (label: string) => label.split(" (")[0].trim();
 
   return (
@@ -266,18 +327,50 @@ const DetailedReport: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable serverSide={true} data={reports} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} headers={tableHeaders} isLoading={isLoading}
-        headerActions={<Button variant="secondary" onClick={handleExport} leftIcon={<Download size={18} />}>Export</Button>}
-        renderRow={(log, index) => (
-          <tr key={log.id || index} onContextMenu={(e) => handleContextMenu(e, log)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
-            {visibleTableFields.map((col) => {
-              const cellData = (log as any)[col.key];
-              if (col.render) return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{col.render(log)}</td>;
-              return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{cellData || "-"}</td>;
-            })}
-          </tr>
+      <style>{`
+        .detailed-report-table > div > div:first-child > div:first-child > div:first-child {
+          display: none !important;
+        }
+        .detailed-report-table > div > div:first-child > div:first-child > div:last-child {
+          display: none !important;
+        }
+        .detailed-report-table td {
+          padding-top: 0.625rem !important;
+          padding-bottom: 0.625rem !important;
+        }
+        .detailed-report-table th {
+          padding-top: 0.5rem !important;
+          padding-bottom: 0.5rem !important;
+        }
+        .detailed-report-table th:first-child,
+        .detailed-report-table td:first-child {
+          min-width: 56px !important;
+          width: 56px !important;
+        }
+      `}</style>
+
+      <div ref={tableWrapperRef} className="detailed-report-table">
+        <DataTable serverSide={true} data={reports} totalItems={totalItems} rowsPerPage={BATCH_SIZE} headers={tableHeaders} isLoading={isLoading}
+          headerActions={<Button variant="secondary" onClick={handleExport} leftIcon={<Download size={18} />}>Export</Button>}
+          renderRow={(log, index) => (
+            <tr key={log.id || index} onContextMenu={(e) => handleContextMenu(e, log)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
+              <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
+                {index + 1}
+              </td>
+              {visibleTableFields.map((col) => {
+                const cellData = (log as any)[col.key];
+                if (col.render) return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{col.render(log)}</td>;
+                return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{cellData || "-"}</td>;
+              })}
+            </tr>
+          )}
+        />
+        {isFetchingMore && (
+          <div className="text-center text-xs text-text-secondary dark:text-gray-400 py-2">
+            Loading more...
+          </div>
         )}
-      />
+      </div>
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
       

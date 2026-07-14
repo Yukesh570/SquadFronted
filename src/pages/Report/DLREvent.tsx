@@ -39,10 +39,22 @@ const formatLocalDate = (date: Date) => {
 const DEFAULT_SEARCH_COLUMNS = ["event_type", "status_code", "vendorMessageId"];
 const DEFAULT_TABLE_COLUMNS = ["id", "vendorMessageId", "event_type", "segment_number", "status_code", "received_at"];
 
+// Fixed batch size for infinite scroll. Pagination UI is hidden for this
+// page only, so this is no longer user-adjustable — it's just the page
+// size used per fetch.
+const BATCH_SIZE = 100;
+
+// How close (in px) to the bottom of the scroll container before we
+// trigger the next batch fetch.
+const LOAD_MORE_THRESHOLD_PX = 200;
+
 const DLREvent: React.FC = () => {
   const [events, setEvents] = useState<DLREventData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // initial / fresh search load
+  const [isFetchingMore, setIsFetchingMore] = useState(false); // infinite-scroll load
+  const [loadedPage, setLoadedPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRow, setSelectedRow] = useState<DLREventData | null>(null);
@@ -59,12 +71,14 @@ const DLREvent: React.FC = () => {
 
   useEffect(() => { localStorage.setItem("dlr_event_columns_v3", JSON.stringify(tableColumns)); }, [tableColumns]);
 
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-
   const location = useLocation();
   const pathParts = location.pathname.split("/").filter(Boolean);
   const routeName = pathParts[pathParts.length - 1] || "dlr-event";
+
+  // Wrapper around DataTable used to reach its internal scroll container
+  // (className "custom-scrollbar") from the outside, since DataTable.tsx
+  // itself is not being modified.
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   const allColumns: ColumnConfig[] = [
     { key: "id", label: "DLR ID", type: "text" },
@@ -90,8 +104,14 @@ const DLREvent: React.FC = () => {
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
 
-  const fetchEvents = async (filters: Record<string, string> | null = null) => {
-    setIsLoading(true);
+  const fetchEvents = async (
+    filters: Record<string, string> | null = null,
+    page: number = 1,
+    append: boolean = false,
+  ) => {
+    if (append) setIsFetchingMore(true);
+    else setIsLoading(true);
+
     try {
       const activeFilters = filters || filterValues;
       const cleanParams: Record<string, string> = {};
@@ -103,22 +123,48 @@ const DLREvent: React.FC = () => {
         }
       });
 
-      const response: any = await getDLREventApi(routeName, currentPage, rowsPerPage, cleanParams);
+      const response: any = await getDLREventApi(routeName, page, BATCH_SIZE, cleanParams);
       if (response && response.results) {
-        setEvents(response.results);
+        setEvents((prev) => (append ? [...prev, ...response.results] : response.results));
         setTotalItems(response.count);
+        setHasMore(Boolean(response.next));
+        setLoadedPage(page);
       } else {
-        setEvents([]);
+        if (!append) setEvents([]);
         setTotalItems(0);
+        setHasMore(false);
       }
     } catch (error) {
       toast.error("Failed to fetch DLR events.");
     } finally {
       setIsLoading(false);
+      setIsFetchingMore(false);
     }
   };
 
-  useEffect(() => { fetchEvents(); }, [currentPage, rowsPerPage, searchColumns]);
+  useEffect(() => { fetchEvents(undefined, 1, false); }, [searchColumns]);
+
+  // Infinite scroll: listen on DataTable's internal scroll container
+  // (class "custom-scrollbar", defined inside DataTable.tsx) via the
+  // wrapper ref, since DataTable itself isn't being modified.
+  useEffect(() => {
+    const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(
+      ".custom-scrollbar",
+    );
+    if (!scrollEl) return;
+
+    const handleScroll = () => {
+      if (isLoading || isFetchingMore || !hasMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = scrollEl;
+      if (scrollHeight - scrollTop - clientHeight < LOAD_MORE_THRESHOLD_PX) {
+        fetchEvents(filterValues, loadedPage + 1, true);
+      }
+    };
+
+    scrollEl.addEventListener("scroll", handleScroll);
+    return () => scrollEl.removeEventListener("scroll", handleScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, events.length]);
 
   const handleContextMenu = (e: React.MouseEvent, item: DLREventData) => {
     e.preventDefault();
@@ -158,7 +204,7 @@ const DLREvent: React.FC = () => {
         </div>
       </div>
 
-      <FilterCard onSearch={() => { setCurrentPage(1); fetchEvents(); }} onClear={() => { setFilterValues({}); setCurrentPage(1); fetchEvents({}); }}>
+      <FilterCard onSearch={() => { fetchEvents(undefined, 1, false); }} onClear={() => { setFilterValues({}); fetchEvents({}, 1, false); }}>
         {visibleSearchFields.map((col) => {
           if (col.options) {
             return (
@@ -194,37 +240,63 @@ const DLREvent: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable
-        serverSide={true}
-        data={events}
-        totalItems={totalItems}
-        currentPage={currentPage}
-        rowsPerPage={rowsPerPage}
-        onPageChange={setCurrentPage}
-        onRowsPerPageChange={setRowsPerPage}
-        headers={["S.N.", ...visibleTableFields.map(c => c.label)]}
-        isLoading={isLoading}
-        renderRow={(event, index) => (
-          <tr
-            key={event.id || index}
-            onContextMenu={(e) => handleContextMenu(e, event)}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
-          >
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {(currentPage - 1) * rowsPerPage + index + 1}
-            </td>
-            {visibleTableFields.map((col) => {
-              const rawValue = (event as any)[col.key];
-              const cellContent = col.render ? col.render(event) : (rawValue || "-");
-              return (
-                <td key={col.key} className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap`}>
-                  {cellContent}
-                </td>
-              );
-            })}
-          </tr>
+      <style>{`
+        .dlr-event-table > div > div:first-child > div:first-child > div:first-child {
+          display: none !important;
+        }
+        .dlr-event-table > div > div:first-child > div:first-child > div:last-child {
+          display: none !important;
+        }
+        .dlr-event-table td {
+          padding-top: 0.625rem !important;
+          padding-bottom: 0.625rem !important;
+        }
+        .dlr-event-table th {
+          padding-top: 0.5rem !important;
+          padding-bottom: 0.5rem !important;
+        }
+        .dlr-event-table th:first-child,
+        .dlr-event-table td:first-child {
+          min-width: 56px !important;
+          width: 56px !important;
+        }
+      `}</style>
+
+      <div ref={tableWrapperRef} className="dlr-event-table">
+        <DataTable
+          serverSide={true}
+          data={events}
+          totalItems={totalItems}
+          rowsPerPage={BATCH_SIZE}
+          headers={["S.N", ...visibleTableFields.map(c => c.label)]}
+          isLoading={isLoading}
+          renderRow={(event, index) => (
+            <tr
+              key={event.id || index}
+              onContextMenu={(e) => handleContextMenu(e, event)}
+              className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
+            >
+              <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
+                {index + 1}
+              </td>
+              {visibleTableFields.map((col) => {
+                const rawValue = (event as any)[col.key];
+                const cellContent = col.render ? col.render(event) : (rawValue || "-");
+                return (
+                  <td key={col.key} className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap`}>
+                    {cellContent}
+                  </td>
+                );
+              })}
+            </tr>
+          )}
+        />
+        {isFetchingMore && (
+          <div className="text-center text-xs text-text-secondary dark:text-gray-400 py-2">
+            Loading more...
+          </div>
         )}
-      />
+      </div>
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
 

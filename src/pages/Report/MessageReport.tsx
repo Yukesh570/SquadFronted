@@ -512,20 +512,11 @@ const MessageReport: React.FC = () => {
         })}
       </FilterCard>
 
-      {/*
-        Scoped, local-only overrides for this page:
-        - hides DataTable's built-in pagination bar (rows-per-page + prev/next),
-          keeping the Export button visible and pushed to the right
-        - tightens row vertical padding
-        DataTable.tsx itself is not modified; this relies on its current
-        internal DOM structure and the "custom-scrollbar" class name it
-        already exposes.
-      */}
       <style>{`
-        .message-report-table > div > div:first-child {
-          justify-content: flex-end !important;
+        .message-report-table > div > div:first-child > div:first-child > div:first-child {
+          display: none !important;
         }
-        .message-report-table > div > div:first-child > div:first-child {
+        .message-report-table > div > div:first-child > div:first-child > div:last-child {
           display: none !important;
         }
         .message-report-table td {
