@@ -17,8 +17,7 @@ import { SmsMessagePartModal } from "../../components/modals/Report/SmsMessagePa
 import { actionHelper } from "../../helper/action";
 
 interface Option { label: string; value: string; }
-interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; }
-
+interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; isSearchable?: boolean; }
 const DLR_STATUS_COLORS: Record<string, { bg: string; text: string; border: string; label: string }> = {
   DELIVERED: {
     bg: "#DCFCE7",
@@ -164,14 +163,15 @@ const SmsMessagePart: React.FC = () => {
   // itself is not being modified.
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
-  const allColumns: ColumnConfig[] = [
-    { key: "id", label: "Segment ID", type: "text" },
-    { key: "message", label: "Message ID", type: "text" },
+const allColumns: ColumnConfig[] = [
+    { key: "id", label: "Segment ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "message", label: "Message ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
     { key: "parent_message_destination", label: "Destination", type: "text", filterKey: "message__destination__icontains" },
     { 
       key: "text", 
       label: "Text", 
       type: "text",
+      isSearchable: false, // ⚡️ UNAVAILABLE IN BACKEND
       render: (data: any) => {
         if (!data.text) return "-";
         const strippedContent = data.text.replace(/<[^>]*>/g, "");
@@ -187,7 +187,7 @@ const SmsMessagePart: React.FC = () => {
     { key: "part_total", label: "Part Total", type: "text", filterKey: "part_total__icontains" },
     { key: "udh_ref", label: "UDH Ref", type: "text", filterKey: "udh_ref__icontains" },
     { key: "udh_hex", label: "UDH Hex", type: "text", filterKey: "udh_hex__icontains" },
-    { key: "esm_class", label: "ESM Class", type: "text" },
+    { key: "esm_class", label: "ESM Class", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
     { 
       key: "submit_status", 
       label: "Submit Status", 
@@ -206,17 +206,20 @@ const SmsMessagePart: React.FC = () => {
       render: (log) => renderStatusBadge(log.vendor_submit_status)
     },
     { key: "submit_attempts", label: "Submit Attempts", type: "text", filterKey: "submit_attempts__icontains" },
-    { key: "failure_reason", label: "Failure Reason", type: "text" },
+    { key: "failure_reason", label: "Failure Reason", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
     { key: "submitted_at", label: "Submitted At", type: "date", render: (data: any) => data.submitted_at ? new Date(data.submitted_at).toLocaleString() : "-" },
     { key: "sent_at", label: "Sent At", type: "date", render: (data: any) => data.sent_at ? new Date(data.sent_at).toLocaleString() : "-" },
-    { key: "delivered_at", label: "Delivered At", type: "date", render: (data: any) => data.delivered_at ? new Date(data.delivered_at).toLocaleString() : "-" },
+    { key: "delivered_at", label: "Delivered At", type: "date", isSearchable: false, render: (data: any) => data.delivered_at ? new Date(data.delivered_at).toLocaleString() : "-" }, // ⚡️ UNAVAILABLE IN BACKEND
     { key: "failed_at", label: "Failed At", type: "date", render: (data: any) => data.failed_at ? new Date(data.failed_at).toLocaleString() : "-" },
     { key: "created_at", label: "Created At", type: "date", render: (data: any) => data.created_at ? new Date(data.created_at).toLocaleString() : "-" },
-    { key: "updated_at", label: "Updated At", type: "date", render: (data: any) => data.updated_at ? new Date(data.updated_at).toLocaleString() : "-" },
-    { key: "last_submit_at", label: "Last Submit At", type: "date", render: (data: any) => data.last_submit_at ? new Date(data.last_submit_at).toLocaleString() : "-" },
+    { key: "updated_at", label: "Updated At", type: "date", isSearchable: false, render: (data: any) => data.updated_at ? new Date(data.updated_at).toLocaleString() : "-" }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "last_submit_at", label: "Last Submit At", type: "date", isSearchable: false, render: (data: any) => data.last_submit_at ? new Date(data.last_submit_at).toLocaleString() : "-" }, // ⚡️ UNAVAILABLE IN BACKEND
   ];
 
-  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
+  // ⚡️ Only allow searchable columns to be populated in the "Search Fields" dropdown
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+
+  const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
 
   const fetchSegments = async (
@@ -305,8 +308,7 @@ const SmsMessagePart: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Message Segments</h1>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns as any} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
-          </div>
+<AdvancedFilter columns={searchableColumns as any} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />          </div>
           <div className="relative z-20">
             <AdvancedFilter columns={allColumns as any} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
           </div>

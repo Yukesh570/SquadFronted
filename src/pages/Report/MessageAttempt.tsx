@@ -20,7 +20,7 @@ import { actionHelper } from "../../helper/action";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
 interface Option { label: string; value: string; }
-interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; }
+interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; isSearchable?: boolean; }
 
 const statusOptions: Option[] = [
   { label: "QUEUED", value: "QUEUED" },
@@ -82,9 +82,8 @@ const MessageAttempt: React.FC = () => {
 
   // EXACT keys for data matching, clean Title Case labels for UI
   const allColumns: ColumnConfig[] = [
-    { key: "id", label: "Attempt ID", type: "text" },
-    { key: "message", label: "Message ID", type: "text" },
-    { key: "segment", label: "Segment ID", type: "text" },
+    { key: "id", label: "Attempt ID", type: "text", isSearchable: false },
+{ key: "message", label: "Message ID", type: "text", isSearchable: false },
     { key: "attempt_number", label: "Attempt Number", type: "text" },
     { key: "provider", label: "Provider", type: "text", filterKey: "provider__icontains" },
     { key: "vendorMessageId", label: "Vendor Message ID", type: "text", filterKey: "vendorMessageId__icontains" },
@@ -97,14 +96,17 @@ const MessageAttempt: React.FC = () => {
       // ⚡️ FIX: Implemented generic StatusBadge
       render: (log) => <StatusBadge status={log.status} />
     },
-    { key: "error_message", label: "Error Message", type: "text", filterKey: "error_message__icontains" },
+    { key: "error_message", label: "Error Message", type: "text", filterKey: "error_message__icontains", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
     { key: "started_at", label: "Started At", type: "date", render: (data: any) => data.started_at ? new Date(data.started_at).toLocaleString() : "-" },
     { key: "completed_at", label: "Completed At", type: "date", render: (data: any) => data.completed_at ? new Date(data.completed_at).toLocaleString() : "-" },
-    { key: "request_payload", label: "Request Payload", type: "text", render: (data: any) => data.request_payload ? "{...}" : "-" },
-    { key: "response_payload", label: "Response Payload", type: "text", render: (data: any) => data.response_payload ? "{...}" : "-" },
+    { key: "request_payload", label: "Request Payload", type: "text", render: (data: any) => data.request_payload ? "{...}" : "-", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "response_payload", label: "Response Payload", type: "text", render: (data: any) => data.response_payload ? "{...}" : "-", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
   ];
 
-  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
+  // ⚡️ Only allow searchable columns to be populated in the "Search Fields" dropdown
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+
+  const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
 
   /**
@@ -198,7 +200,7 @@ const MessageAttempt: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Message Attempts</h1>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter columns={searchableColumns} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
           </div>
           <div className="relative z-20">
             <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
