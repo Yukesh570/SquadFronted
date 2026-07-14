@@ -77,15 +77,23 @@ const DEFAULT_TABLE_COLUMNS = [
   // "createdAt",
 ];
 
+// Fixed batch size for infinite scroll. Pagination UI is hidden for this
+// page only (see .message-report-table CSS below), so this is no longer
+// user-adjustable — it's just the page size used per fetch.
+const BATCH_SIZE = 100;
+
+// How close (in px) to the bottom of the scroll container before we
+// trigger the next batch fetch.
+const LOAD_MORE_THRESHOLD_PX = 200;
+
 const MessageReport: React.FC = () => {
   // --- State ---
   const [logs, setLogs] = useState<MessageLogData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Pagination
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true); // initial / fresh search load
+  const [isFetchingMore, setIsFetchingMore] = useState(false); // infinite-scroll load
+  const [loadedPage, setLoadedPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   // Dynamic Options
   const [clientOptions, setClientOptions] = useState<Option[]>([]);
@@ -115,6 +123,11 @@ const MessageReport: React.FC = () => {
   const location = useLocation();
   const moduleName = location.pathname.split("/").pop() || "messageReport";
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Wrapper around DataTable used to reach its internal scroll container
+  // (className "custom-scrollbar") from the outside, since DataTable.tsx
+  // itself is not being modified.
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   // --- Helper: Extract Options ---
   const extractOptions = (
@@ -271,12 +284,23 @@ const MessageReport: React.FC = () => {
     tableColumns.includes(col.key),
   );
 
-  const fetchLogs = async (overrideParams?: Record<string, any>) => {
+  /**
+   * Fetches a page of logs.
+   * - append = false (default): fresh search/clear/initial load. Replaces `logs`.
+   * - append = true: infinite-scroll batch. Appends to `logs`.
+   */
+  const fetchLogs = async (
+    overrideParams?: Record<string, any>,
+    page: number = 1,
+    append: boolean = false,
+  ) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
 
-    setIsLoading(true);
+    if (append) setIsFetchingMore(true);
+    else setIsLoading(true);
+
     try {
       const currentSearchParams: Record<string, any> = {};
       const sourceFilters = overrideParams || filterValues;
@@ -287,19 +311,22 @@ const MessageReport: React.FC = () => {
 
       const response = await getMessageLogsApi(
         moduleName,
-        currentPage,
-        rowsPerPage,
+        page,
+        BATCH_SIZE,
         currentSearchParams,
       );
 
       if (newController.signal.aborted) return;
 
       if (response && response.results) {
-        setLogs(response.results);
+        setLogs((prev) => (append ? [...prev, ...response.results] : response.results));
         setTotalItems(response.count);
+        setHasMore(Boolean(response.next));
+        setLoadedPage(page);
       } else {
-        setLogs([]);
+        if (!append) setLogs([]);
         setTotalItems(0);
+        setHasMore(false);
       }
     } catch (error: any) {
       if (error.name !== "AbortError") {
@@ -307,16 +334,44 @@ const MessageReport: React.FC = () => {
         toast.error("Failed to fetch message logs.");
       }
     } finally {
-      if (abortControllerRef.current === newController) setIsLoading(false);
+      if (abortControllerRef.current === newController) {
+        setIsLoading(false);
+        setIsFetchingMore(false);
+      }
     }
   };
 
+  // Initial load. Filters are only applied on explicit Search/Clear, same
+  // as before — this effect only re-fires if the module route changes.
   useEffect(() => {
-    fetchLogs();
+    fetchLogs(undefined, 1, false);
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [moduleName, currentPage, rowsPerPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleName]);
+
+  // Infinite scroll: listen on DataTable's internal scroll container
+  // (class "custom-scrollbar", defined inside DataTable.tsx) via the
+  // wrapper ref, since DataTable itself isn't being modified.
+  useEffect(() => {
+    const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(
+      ".custom-scrollbar",
+    );
+    if (!scrollEl) return;
+
+    const handleScroll = () => {
+      if (isLoading || isFetchingMore || !hasMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = scrollEl;
+      if (scrollHeight - scrollTop - clientHeight < LOAD_MORE_THRESHOLD_PX) {
+        fetchLogs(filterValues, loadedPage + 1, true);
+      }
+    };
+
+    scrollEl.addEventListener("scroll", handleScroll);
+    return () => scrollEl.removeEventListener("scroll", handleScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, logs.length]);
 
   // --- Handlers ---
   const handleFilterChange = (key: string, value: string) => {
@@ -324,14 +379,12 @@ const MessageReport: React.FC = () => {
   };
 
   const handleSearch = () => {
-    setCurrentPage(1);
-    fetchLogs();
+    fetchLogs(undefined, 1, false);
   };
 
   const handleClearFilters = () => {
     setFilterValues({});
-    setCurrentPage(1);
-    setTimeout(() => fetchLogs({}), 0);
+    fetchLogs({}, 1, false);
   };
 
   const handleExport = async () => {
@@ -381,7 +434,7 @@ const MessageReport: React.FC = () => {
     }
   }, []);
 
-  const tableHeaders = [...visibleTableFields.map((col) => col.label)];
+  const tableHeaders = ["S.N", ...visibleTableFields.map((col) => col.label)];
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -459,57 +512,95 @@ const MessageReport: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable
-        serverSide={true}
-        data={logs}
-        totalItems={totalItems}
-        currentPage={currentPage}
-        rowsPerPage={rowsPerPage}
-        onPageChange={setCurrentPage}
-        onRowsPerPageChange={setRowsPerPage}
-        headers={tableHeaders}
-        isLoading={isLoading}
-        headerActions={
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={handleExport}
-              leftIcon={<Download size={18} />}
-            >
-              Export
-            </Button>
-          </div>
+      {/*
+        Scoped, local-only overrides for this page:
+        - hides DataTable's built-in pagination bar (rows-per-page + prev/next),
+          keeping the Export button visible and pushed to the right
+        - tightens row vertical padding
+        DataTable.tsx itself is not modified; this relies on its current
+        internal DOM structure and the "custom-scrollbar" class name it
+        already exposes.
+      */}
+      <style>{`
+        .message-report-table > div > div:first-child {
+          justify-content: flex-end !important;
         }
-        renderRow={(log, index) => (
-          <tr
-            key={log.id || index}
-            onContextMenu={(e) => handleContextMenu(e, log)}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 transition-colors cursor-context-menu"
-          >
-            {visibleTableFields.map((col) => {
-              const cellData = (log as any)[col.key];
-              if (col.render) {
+        .message-report-table > div > div:first-child > div:first-child {
+          display: none !important;
+        }
+        .message-report-table td {
+          padding-top: 0.625rem !important;
+          padding-bottom: 0.625rem !important;
+        }
+        .message-report-table th {
+          padding-top: 0.5rem !important;
+          padding-bottom: 0.5rem !important;
+        }
+        .message-report-table th:first-child,
+        .message-report-table td:first-child {
+          min-width: 56px !important;
+          width: 56px !important;
+        }
+      `}</style>
+
+      <div ref={tableWrapperRef} className="message-report-table">
+        <DataTable
+          serverSide={true}
+          data={logs}
+          totalItems={totalItems}
+          rowsPerPage={BATCH_SIZE}
+          headers={tableHeaders}
+          isLoading={isLoading}
+          headerActions={
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={handleExport}
+                leftIcon={<Download size={18} />}
+              >
+                Export
+              </Button>
+            </div>
+          }
+          renderRow={(log, index) => (
+            <tr
+              key={log.id || index}
+              onContextMenu={(e) => handleContextMenu(e, log)}
+              className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 transition-colors cursor-context-menu"
+            >
+              <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
+                {index + 1}
+              </td>
+              {visibleTableFields.map((col) => {
+                const cellData = (log as any)[col.key];
+                if (col.render) {
+                  return (
+                    <td
+                      key={col.key}
+                      className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+                    >
+                      {col.render(log)}
+                    </td>
+                  );
+                }
                 return (
                   <td
                     key={col.key}
                     className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
                   >
-                    {col.render(log)}
+                    {cellData || "-"}
                   </td>
                 );
-              }
-              return (
-                <td
-                  key={col.key}
-                  className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
-                >
-                  {cellData || "-"}
-                </td>
-              );
-            })}
-          </tr>
+              })}
+            </tr>
+          )}
+        />
+        {isFetchingMore && (
+          <div className="text-center text-xs text-text-secondary dark:text-gray-400 py-2">
+            Loading more...
+          </div>
         )}
-      />
+      </div>
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
 

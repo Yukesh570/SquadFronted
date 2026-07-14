@@ -90,7 +90,7 @@ export function DataTable<T extends { id?: number | string }>({
   )} of ${activeTotal}`;
 
   return (
-    <div className="rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0">
+    <div className="rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0 app-data-table">
       
       {/* 1. TOP BAR (Controls + Action Buttons) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 relative z-10">
@@ -192,6 +192,16 @@ export function DataTable<T extends { id?: number | string }>({
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* Zebra striping: alternate row backgrounds so each row reads as visually separated. */
+        .app-data-table tbody tr:nth-child(odd) { background-color: #ffffff; }
+        .app-data-table tbody tr:nth-child(even) { background-color: #f9fafb; }
+        .dark .app-data-table tbody tr:nth-child(odd) { background-color: #1f2937; }
+        .dark .app-data-table tbody tr:nth-child(even) { background-color: rgba(17, 24, 39, 0.4); }
+
+        /* Keep hover feedback visible on top of the stripe (equal specificity, declared after = wins on hover). */
+        .app-data-table tbody tr:hover { background-color: #f3f4f6; }
+        .dark .app-data-table tbody tr:hover { background-color: #374151; }
       `,
         }}
       />
