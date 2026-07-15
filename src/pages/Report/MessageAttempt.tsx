@@ -20,7 +20,7 @@ import { actionHelper } from "../../helper/action";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
 interface Option { label: string; value: string; }
-interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; isSearchable?: boolean; }
+interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; isSearchable?: boolean; isSearchOnly?: boolean; tableLabel?: string; }
 
 const statusOptions: Option[] = [
   { label: "QUEUED", value: "QUEUED" },
@@ -83,7 +83,7 @@ const MessageAttempt: React.FC = () => {
   // EXACT keys for data matching, clean Title Case labels for UI
   const allColumns: ColumnConfig[] = [
     { key: "id", label: "Attempt ID", type: "text", isSearchable: false },
-{ key: "message", label: "Message ID", type: "text", isSearchable: false },
+    { key: "message", label: "Message ID", type: "text", isSearchable: false },
     { key: "attempt_number", label: "Attempt Number", type: "text" },
     { key: "provider", label: "Provider", type: "text", filterKey: "provider__icontains" },
     { key: "vendorMessageId", label: "Vendor Message ID", type: "text", filterKey: "vendorMessageId__icontains" },
@@ -98,7 +98,9 @@ const MessageAttempt: React.FC = () => {
     },
     { key: "error_message", label: "Error Message", type: "text", filterKey: "error_message__icontains", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
     { key: "started_at", label: "Started At", type: "date", render: (data: any) => data.started_at ? new Date(data.started_at).toLocaleString() : "-" },
+    { key: "started_at__range", label: "Started At", type: "date_range", filterKey: "started_at", isSearchOnly: true },
     { key: "completed_at", label: "Completed At", type: "date", render: (data: any) => data.completed_at ? new Date(data.completed_at).toLocaleString() : "-" },
+    { key: "completed_at__range", label: "Completed At", type: "date_range", filterKey: "completed_at", isSearchOnly: true },
     { key: "request_payload", label: "Request Payload", type: "text", render: (data: any) => data.request_payload ? "{...}" : "-", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
     { key: "response_payload", label: "Response Payload", type: "text", render: (data: any) => data.response_payload ? "{...}" : "-", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
   ];
@@ -108,6 +110,8 @@ const MessageAttempt: React.FC = () => {
 
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+  // ⚡️ "Columns" dropdown should not offer the range search-only variant as a table column
+  const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
 
   /**
    * Fetches a page of attempts.
@@ -127,9 +131,15 @@ const MessageAttempt: React.FC = () => {
       const cleanParams: Record<string, string> = {};
 
       Object.entries(activeFilters).forEach(([key, value]) => {
-        if (value) {
-          const colDef = allColumns.find(c => c.key === key);
-          cleanParams[colDef?.filterKey || key] = value;
+        if (!value) return;
+        const colDef = allColumns.find(c => c.key === key);
+        const baseKey = colDef?.filterKey || key;
+
+        if (colDef?.type === "date_range") {
+          const [start, end] = value.split(",");
+          if (start && end) cleanParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
+        } else {
+          cleanParams[baseKey] = value;
         }
       });
 
@@ -203,7 +213,7 @@ const MessageAttempt: React.FC = () => {
             <AdvancedFilter columns={searchableColumns} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+            <AdvancedFilter columns={tableFilterColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
           </div>
         </div>
 
@@ -236,6 +246,31 @@ const MessageAttempt: React.FC = () => {
                 selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
                 onChange={(val: Date | null) => setFilterValues(p => ({ ...p, [col.key]: val ? formatLocalDate(val) : "" }))}
               />
+            );
+          }
+          if (col.type === "date_range") {
+            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
+            return (
+              <React.Fragment key={col.key}>
+                <DatePicker
+                  label={`Search ${col.label} (From)`}
+                  selected={startStr ? new Date(startStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newStart = val ? formatLocalDate(val) : "";
+                    const currentEnd = endStr || "";
+                    setFilterValues(p => ({ ...p, [col.key]: newStart || currentEnd ? `${newStart},${currentEnd}` : "" }));
+                  }}
+                />
+                <DatePicker
+                  label={`Search ${col.label} (To)`}
+                  selected={endStr ? new Date(endStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newEnd = val ? formatLocalDate(val) : "";
+                    const currentStart = startStr || "";
+                    setFilterValues(p => ({ ...p, [col.key]: currentStart || newEnd ? `${currentStart},${newEnd}` : "" }));
+                  }}
+                />
+              </React.Fragment>
             );
           }
           return (
@@ -278,7 +313,7 @@ const MessageAttempt: React.FC = () => {
           data={attempts}
           totalItems={totalItems}
           rowsPerPage={BATCH_SIZE}
-          headers={["S.N", ...visibleTableFields.map(c => c.label)]}
+          headers={["S.N", ...visibleTableFields.map(c => c.tableLabel || c.label)]}
           isLoading={isLoading}
           renderRow={(attempt, index) => (
             <tr

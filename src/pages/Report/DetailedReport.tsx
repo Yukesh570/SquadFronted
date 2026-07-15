@@ -137,7 +137,7 @@ const DetailedReport: React.FC = () => {
     
     { key: "request_time", label: "Req Time (Exact)", tableLabel: "Request Time", type: "date", filterKey: "request_time" },
     { key: "request_time__range", label: "Req Time (From/To)", type: "date_range", filterKey: "request_time", isSearchOnly: true },
-    { key: "request_time__gt_lt", label: "Req Time (After/Before)", type: "date_gt_lt", filterKey: "request_time", isSearchOnly: true },
+    // { key: "request_time__gt_lt", label: "Req Time (After/Before)", type: "date_gt_lt", filterKey: "request_time", isSearchOnly: true },
     
     { key: "delivery_time", label: "Del Time (Exact)", tableLabel: "Delivery Time", type: "date", filterKey: "delivery_time" },
     { key: "delivery_time__range", label: "Del Time (From/To)", type: "date_range", filterKey: "delivery_time", isSearchOnly: true },

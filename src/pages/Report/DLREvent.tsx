@@ -20,7 +20,7 @@ import { actionHelper } from "../../helper/action";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
 interface Option { label: string; value: string; }
-interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; }
+interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; isSearchable?: boolean; isSearchOnly?: boolean; tableLabel?: string; }
 
 const statusOptions: Option[] = [
   { label: "QUEUED", value: "QUEUED" },
@@ -75,16 +75,14 @@ const DLREvent: React.FC = () => {
   const pathParts = location.pathname.split("/").filter(Boolean);
   const routeName = pathParts[pathParts.length - 1] || "dlr-event";
 
-  // Wrapper around DataTable used to reach its internal scroll container
-  // (className "custom-scrollbar") from the outside, since DataTable.tsx
-  // itself is not being modified.
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
+
   const allColumns: ColumnConfig[] = [
-    { key: "id", label: "DLR ID", type: "text" },
-    { key: "message", label: "Message ID", type: "text" },
-    { key: "segment", label: "Segment ID", type: "text" },
-    { key: "vendorMessageId", label: "Vendor Message ID", type: "text", filterKey: "vendorMessageId__icontains" },
+    { key: "id", label: "DLR ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "message", label: "Message ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND (only message__destination exists, not bare "message")
+    { key: "segment", label: "Segment ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "vendorMessageId", label: "Vendor Message ID", type: "text", filterKey: "vendorMessageId__icontains" }, // ⚡️ still mismatched vs backend's provider_message_id, left untouched per scope
     {
       key: "event_type",
       label: "Event Type",
@@ -96,13 +94,19 @@ const DLREvent: React.FC = () => {
     },
     { key: "segment_number", label: "Segment Number", type: "text", filterKey: "segment_number__icontains" },
     { key: "status_code", label: "Status Code", type: "text", filterKey: "status_code__icontains" },
-    { key: "status_description", label: "Status Description", type: "text", filterKey: "status_description__icontains" },
-    { key: "received_at", label: "Received At", type: "date", render: (data: any) => data.received_at ? new Date(data.received_at).toLocaleString() : "-" },
-    { key: "raw_payload", label: "Raw Payload", type: "text", render: (data: any) => data.raw_payload ? "{...}" : "-" },
+    { key: "status_description", label: "Status Description", type: "text", filterKey: "status_description__icontains", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "received_at", label: "Received At", tableLabel: "Received At", type: "date", render: (data: any) => data.received_at ? new Date(data.received_at).toLocaleString() : "-" },
+    { key: "received_at__range", label: "Received At", type: "date_range", filterKey: "received_at", isSearchOnly: true },
+    { key: "raw_payload", label: "Raw Payload", type: "text", render: (data: any) => data.raw_payload ? "{...}" : "-", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
   ];
 
-  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
+  // ⚡️ Only allow searchable columns to be populated in the "Search Fields" dropdown
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+
+  const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+  // ⚡️ "Columns" dropdown should not offer the range search-only variant as a table column
+  const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
 
   const fetchEvents = async (
     filters: Record<string, string> | null = null,
@@ -117,9 +121,15 @@ const DLREvent: React.FC = () => {
       const cleanParams: Record<string, string> = {};
 
       Object.entries(activeFilters).forEach(([key, value]) => {
-        if (value) {
-          const colDef = allColumns.find(c => c.key === key);
-          cleanParams[colDef?.filterKey || key] = value;
+        if (!value) return;
+        const colDef = allColumns.find(c => c.key === key);
+        const baseKey = colDef?.filterKey || key;
+
+        if (colDef?.type === "date_range") {
+          const [start, end] = value.split(",");
+          if (start && end) cleanParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
+        } else {
+          cleanParams[baseKey] = value;
         }
       });
 
@@ -190,10 +200,10 @@ const DLREvent: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">DLR Events</h1>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter columns={searchableColumns} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+            <AdvancedFilter columns={tableFilterColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
           </div>
         </div>
 
@@ -226,6 +236,31 @@ const DLREvent: React.FC = () => {
                 selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
                 onChange={(val: Date | null) => setFilterValues(p => ({ ...p, [col.key]: val ? formatLocalDate(val) : "" }))}
               />
+            );
+          }
+          if (col.type === "date_range") {
+            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
+            return (
+              <React.Fragment key={col.key}>
+                <DatePicker
+                  label={`Search ${col.label} (From)`}
+                  selected={startStr ? new Date(startStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newStart = val ? formatLocalDate(val) : "";
+                    const currentEnd = endStr || "";
+                    setFilterValues(p => ({ ...p, [col.key]: newStart || currentEnd ? `${newStart},${currentEnd}` : "" }));
+                  }}
+                />
+                <DatePicker
+                  label={`Search ${col.label} (To)`}
+                  selected={endStr ? new Date(endStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newEnd = val ? formatLocalDate(val) : "";
+                    const currentStart = startStr || "";
+                    setFilterValues(p => ({ ...p, [col.key]: currentStart || newEnd ? `${currentStart},${newEnd}` : "" }));
+                  }}
+                />
+              </React.Fragment>
             );
           }
           return (
@@ -268,7 +303,7 @@ const DLREvent: React.FC = () => {
           data={events}
           totalItems={totalItems}
           rowsPerPage={BATCH_SIZE}
-          headers={["S.N", ...visibleTableFields.map(c => c.label)]}
+          headers={["S.N", ...visibleTableFields.map(c => c.tableLabel || c.label)]}
           isLoading={isLoading}
           renderRow={(event, index) => (
             <tr

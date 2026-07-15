@@ -19,6 +19,7 @@ import { getSmppApi } from "../../api/connectivityApi/smppApi";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
+import DatePicker from "../../components/ui/DatePicker";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import AdvancedFilter, {
@@ -40,7 +41,10 @@ interface ColumnConfig extends FilterColumn {
   render?: (data: MessageLogData) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
-  type: "text" | "number" | "date";
+  isSearchable?: boolean;
+  isSearchOnly?: boolean;
+  tableLabel?: string;
+  type: "text" | "number" | "date" | "date_range";
 }
 
 // --- Static Options ---
@@ -76,6 +80,13 @@ const DEFAULT_TABLE_COLUMNS = [
   "systemId",
   // "createdAt",
 ];
+
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 // Fixed batch size for infinite scroll. Pagination UI is hidden for this
 // page only (see .message-report-table CSS below), so this is no longer
@@ -169,37 +180,73 @@ const MessageReport: React.FC = () => {
     fetchAllOptions();
   }, []);
 
-  // --- Configuration ---
+  
   const filterOptionsConfig: ColumnConfig[] = useMemo(
     () => [
-      { key: "message_id", label: "Message ID", type: "text" },
-      { key: "destination", label: "Destination", type: "text" },
+      { key: "message_id", label: "Message ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+      { key: "destination", label: "Destination", type: "text", filterKey: "destination__icontains" },
       {
         key: "clientName",
         label: "Client",
         type: "text",
         options: clientOptions,
+        filterKey: "client__name", // ⚡️ FIX: Mapped to correct backend field
       },
       {
         key: "vendor__profileName",
         label: "Vendor",
         type: "text",
         options: vendorOptions,
+        filterKey: "vendor__profileName",
       },
-      { key: "smppName", label: "SMPP", type: "text", options: smppOptions },
-      { key: "systemId", label: "System ID", type: "text" },
-      { key: "status", label: "Status", type: "text", options: statusOptions },
+      {
+        key: "smppName",
+        label: "SMPP",
+        type: "text",
+        options: smppOptions,
+        filterKey: "smpp__smppHost", // ⚡️ FIX: Mapped to correct backend field
+      },
+      { key: "systemId", label: "System ID", type: "text", filterKey: "systemId__icontains" }, // ⚡️ FIX: backend supports exact/icontains, was wrongly disabled
+      { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status" },
       {
         key: "encoding",
         label: "Encoding",
         type: "text",
         options: encodingOptions,
+        isSearchable: false, // ⚡️ UNAVAILABLE IN BACKEND
       },
-      { key: "segmentNumber", label: "Segment Number", type: "text" },
-      { key: "characterCount", label: "Character Count", type: "text" },
+      { key: "segmentNumber", label: "Segment Number", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+      { key: "characterCount", label: "Character Count", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+
+      // --- Created At variants ---
+      { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt" },
+      { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
+
+      // --- Queued At variants ---
+      { key: "queued_at", label: "Queued At (Exact)", tableLabel: "Queued At", type: "date", filterKey: "queued_at" },
+      { key: "queued_at__range", label: "Queued At (Range)", type: "date_range", filterKey: "queued_at", isSearchOnly: true },
+
+      // --- Submitted At variants ---
+      { key: "submitted_at", label: "Submitted At (Exact)", tableLabel: "Submitted At", type: "date", filterKey: "submitted_at" },
+      { key: "submitted_at__range", label: "Submitted At (Range)", type: "date_range", filterKey: "submitted_at", isSearchOnly: true },
+
+      // --- Sent At variants ---
+      { key: "sent_at", label: "Sent At (Exact)", tableLabel: "Sent At", type: "date", filterKey: "sent_at" },
+      { key: "sent_at__range", label: "Sent At (Range)", type: "date_range", filterKey: "sent_at", isSearchOnly: true },
+
+      // --- Delivered At variants ---
+      { key: "delivered_at", label: "Delivered At (Exact)", tableLabel: "Delivered At", type: "date", filterKey: "delivered_at" },
+      { key: "delivered_at__range", label: "Delivered At (Range)", type: "date_range", filterKey: "delivered_at", isSearchOnly: true },
+
+      // --- Failed At variants ---
+      { key: "failed_at", label: "Failed At (Exact)", tableLabel: "Failed At", type: "date", filterKey: "failed_at" },
+      { key: "failed_at__range", label: "Failed At (Range)", type: "date_range", filterKey: "failed_at", isSearchOnly: true },
     ],
     [clientOptions, vendorOptions, smppOptions],
   );
+
+  // ⚡️ Only allow searchable columns to be populated in the "Search Fields" dropdown
+  const searchableColumns = filterOptionsConfig.filter((col) => col.isSearchable !== false);
 
   const tableColumnsConfig: ColumnConfig[] = useMemo(
     () => [
@@ -277,7 +324,7 @@ const MessageReport: React.FC = () => {
     localStorage.setItem("msg_search_columns", JSON.stringify(searchColumns));
   }, [searchColumns]);
 
-  const visibleSearchFields = filterOptionsConfig.filter((col) =>
+  const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
   const visibleTableFields = tableColumnsConfig.filter((col) =>
@@ -306,7 +353,18 @@ const MessageReport: React.FC = () => {
       const sourceFilters = overrideParams || filterValues;
 
       Object.entries(sourceFilters).forEach(([key, val]) => {
-        if (val) currentSearchParams[key] = val;
+        if (!val) return;
+        const colDef = filterOptionsConfig.find((c) => c.key === key);
+        const baseKey = colDef?.filterKey || key;
+
+        if (colDef?.type === "date") {
+          currentSearchParams[`${baseKey}__range`] = `${val}T00:00:00,${val}T23:59:59`;
+        } else if (colDef?.type === "date_range") {
+          const [start, end] = String(val).split(",");
+          if (start && end) currentSearchParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
+        } else {
+          currentSearchParams[baseKey] = val;
+        }
       });
 
       const response = await getMessageLogsApi(
@@ -435,6 +493,7 @@ const MessageReport: React.FC = () => {
   }, []);
 
   const tableHeaders = ["S.N", ...visibleTableFields.map((col) => col.label)];
+  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -447,7 +506,7 @@ const MessageReport: React.FC = () => {
 
           <div className="relative z-20">
             <AdvancedFilter
-              columns={filterOptionsConfig}
+              columns={searchableColumns}
               selectedColumns={searchColumns}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
@@ -488,25 +547,62 @@ const MessageReport: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label);
+
           if (col.options) {
             return (
               <Select
                 key={col.key}
-                label={col.label}
+                label={baseLabel}
                 value={filterValues[col.key] || ""}
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
-                placeholder={`Select ${col.label}`}
+                placeholder={`Select ${baseLabel}`}
               />
+            );
+          }
+          if (col.type === "date") {
+            return (
+              <DatePicker
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
+                onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")}
+              />
+            );
+          }
+          if (col.type === "date_range") {
+            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
+            return (
+              <React.Fragment key={col.key}>
+                <DatePicker
+                  label={`Search ${baseLabel} (From)`}
+                  selected={startStr ? new Date(startStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newStart = val ? formatLocalDate(val) : "";
+                    const currentEnd = endStr || "";
+                    handleFilterChange(col.key, newStart || currentEnd ? `${newStart},${currentEnd}` : "");
+                  }}
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (To)`}
+                  selected={endStr ? new Date(endStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newEnd = val ? formatLocalDate(val) : "";
+                    const currentStart = startStr || "";
+                    handleFilterChange(col.key, currentStart || newEnd ? `${currentStart},${newEnd}` : "");
+                  }}
+                />
+              </React.Fragment>
             );
           }
           return (
             <Input
               key={col.key}
-              label={col.label}
+              label={baseLabel}
               value={filterValues[col.key] || ""}
               onChange={(e) => handleFilterChange(col.key, e.target.value)}
-              placeholder={`Search ${col.label}`}
+              placeholder={`Search ${baseLabel}`}
             />
           );
         })}
