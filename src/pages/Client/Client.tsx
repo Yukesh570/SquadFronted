@@ -48,7 +48,7 @@ interface ColumnConfig extends FilterColumn {
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
-  isSearchable?: boolean; // ⚡️ FIX: Added flag to disable unsupported backend searches
+  isSearchable?: boolean; 
   tableLabel?: string;
 }
 
@@ -80,6 +80,7 @@ const Client: React.FC = () => {
   // --- Dropdown States ---
   const [companies, setCompanies] = useState<Option[]>([]);
   const [routeGroup, setrouteGroup] = useState<Option[]>([]);
+  const [routeGroupFilter, setRouteGroupFilter] = useState<Option[]>([]); // ⚡️ FIX: Dedicated state for search filter
   const [customerRateGroupOptions, setCustomerRateGroupOptions] = useState<Option[]>([]);
 
   // --- Modal States ---
@@ -155,10 +156,20 @@ const Client: React.FC = () => {
       try {
         const rgRes: any = await getGroupedCustomRoutesApi("customRoute", 1, 1000);
         const rgList = rgRes.results || (Array.isArray(rgRes) ? rgRes : []);
+        
+        // ⚡️ FIX: ID values specifically for the Edit Modal
         setrouteGroup(
           rgList.map((rg: any) => ({
             label: rg.name,
-            value: rg.name, // ⚡️ MATCHED Backend filter key
+            value: String(rg.id), 
+          }))
+        );
+
+        // ⚡️ FIX: Name values specifically for the Search Filter backend match
+        setRouteGroupFilter(
+          rgList.map((rg: any) => ({
+            label: rg.name,
+            value: rg.name, 
           }))
         );
       } catch (err) {
@@ -237,29 +248,28 @@ const Client: React.FC = () => {
     return <StatusBadge status={statusKey} customText={`${current}/${max}`} />;
   };
 
-  // ⚡️ FIX: Disabled search via 'isSearchable: false' for fields that don't exist in Django ClientFilter
   const allColumns: ColumnConfig[] = [
     { key: "name", label: "Client Name", type: "text", filterKey: "name__icontains" },
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
-    { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroup, filterKey: "routeGroup__name" }, // ⚡️ MATCHED Backend filter key
-    { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroupFilter, filterKey: "routeGroup__name" }, // ⚡️ FIX: Mapped to the specific search array
+    { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, isSearchable: false }, 
     { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status", render: (c) => <StatusBadge status={c.status} /> },
     { key: "route", label: "Route Type", type: "text", options: routeOptions, filterKey: "route" },
     { key: "paymentTerms", label: "Payment Terms", type: "text", options: paymentTermOptions, filterKey: "paymentTerms" },
-    { key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions, isSearchable: false, render: (c) => { // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions, isSearchable: false, render: (c) => { 
         if (!c.invoicePolicy) return "-";
         const match = invoicePolicyOptions.find(opt => opt.value === c.invoicePolicy);
         return match ? match.label : c.invoicePolicy;
       }
     },
     { key: "allowNetting", label: "Allow Netting", type: "boolean", options: booleanOptions, filterKey: "allowNetting", render: (c) => renderBooleanBadge(c.allowNetting) },
-    { key: "enableDlr", label: "Enable Dlr", type: "boolean", options: booleanOptions, isSearchable: false, render: (c) => renderBooleanBadge(c.enableDlr) }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "enableDlr", label: "Enable Dlr", type: "boolean", options: booleanOptions, isSearchable: false, render: (c) => renderBooleanBadge(c.enableDlr) }, 
     { key: "smppUsername", label: "SMPP Username", type: "text", filterKey: "smppUsername__icontains" },
     { key: "bindStatus", label: "Bind Status", type: "text", options: bindStatusOptions, filterKey: "bindStatus", render: (c) => <StatusBadge status={c.bindStatus} /> },
-    { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", isSearchable: false, render: (c) => renderSessionBadge(c) }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", isSearchable: false, render: (c) => renderSessionBadge(c) }, 
     { key: "maxTps", label: "Max TPS", type: "number", filterKey: "clientPolicy__maxTps", render: (c) => c.clientPolicy?.maxTps ?? "-" },
     { key: "maxSessions", label: "Max Sessions", type: "number", filterKey: "clientPolicy__maxSessions", render: (c) => c.clientPolicy?.maxSessions ?? "-" },
-    { key: "maxQueueDepth", label: "Max Queue Depth", type: "number", isSearchable: false, render: (c) => c.clientPolicy?.maxQueueDepth ?? "-" }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "maxQueueDepth", label: "Max Queue Depth", type: "number", isSearchable: false, render: (c) => c.clientPolicy?.maxQueueDepth ?? "-" }, 
     { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number", filterKey: "clientPolicy__maxWindowGlobal", render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-" },
     { key: "maxWindowPerSession", label: "Max Window (Per Session)", type: "number", filterKey: "clientPolicy__maxWindowPerSession", render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-" },
     { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number", filterKey: "clientPolicy__idleTimeoutSec", render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-" },
@@ -270,7 +280,6 @@ const Client: React.FC = () => {
     { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
   ];
 
-  // ⚡️ Only allow searchable columns to be populated in the "Search Fields" dropdown
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
@@ -895,7 +904,7 @@ const Client: React.FC = () => {
         onSuccess={fetchClients}
         moduleName={routeName}
         editingClient={editingClient}
-        routeGroupOptions={routeGroup}
+        routeGroupOptions={routeGroup} // ⚡️ FIXED: Passes IDs to modal
         customerRateGroupOptions={customerRateGroupOptions}
       />
 

@@ -126,9 +126,10 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         status: String(editingCompany.status || ""),
         currency: String(editingCompany.currency || ""),
         timeZone: String(editingCompany.timeZone || ""),
-        customerCreditLimit: String(editingCompany.customerCreditLimit || ""),
-        vendorCreditLimit: String(editingCompany.vendorCreditLimit || ""),
-        balanceAlertAmount: String(editingCompany.balanceAlertAmount || ""),
+        // ⚡️ FIX: Use null checks so "0" or "0.0000" doesn't get wiped by || ""
+        customerCreditLimit: editingCompany.customerCreditLimit != null ? String(editingCompany.customerCreditLimit) : "",
+        vendorCreditLimit: editingCompany.vendorCreditLimit != null ? String(editingCompany.vendorCreditLimit) : "",
+        balanceAlertAmount: editingCompany.balanceAlertAmount != null ? String(editingCompany.balanceAlertAmount) : "",
         referenceNumber: editingCompany.referencNumber || "",
         address: editingCompany.address,
         validityPeriod: editingCompany.validityPeriod || "LTD",
@@ -193,7 +194,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     e.preventDefault();
     if (isViewMode) return;
 
-    // ⚡️ FIX: Custom toast.error validations
     if (!formData.name.trim()) {
       toast.error("Company Name is required.");
       return;
@@ -237,10 +237,9 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
 
     setIsSubmitting(true);
 
-    const { vendorCreditLimit, ...restFormData } = formData;
-
+    // ⚡️ FIX: Removed explicit exclusion of vendorCreditLimit
     const payload = {
-      ...restFormData,
+      ...formData,
       country: Number(formData.country) || null,
       state: Number(formData.state) || null,
       category: Number(formData.category) || null,
@@ -293,7 +292,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       <form
         onSubmit={handleSubmit}
         className="space-y-6 max-h-[80vh] overflow-y-auto px-1"
-        noValidate // ⚡️ FIX: Disables browser default tooltips
+        noValidate 
       >
         {/* Identity & Contacts */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -383,7 +382,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               options={countries}
               placeholder="Select Country"
               disabled={isViewMode}
-              required // ⚡️ FIX: Added visual required indicator
+              required 
             />
             <Select
               label="State Name"
@@ -408,7 +407,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               options={statuses}
               placeholder="Select Status"
               disabled={isViewMode}
-              required // ⚡️ FIX: Added visual required indicator
+              required 
             />
           </div>
         </fieldset>
@@ -426,7 +425,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               options={currencies}
               placeholder="Select Currency"
               disabled={isViewMode}
-              required // ⚡️ FIX: Added visual required indicator
+              required 
             />
             <Select
               label="Time Zone"
@@ -435,7 +434,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               options={timeZones}
               placeholder="Select Time Zone"
               disabled={isViewMode}
-              required // ⚡️ FIX: Added visual required indicator
+              required 
             />
             <Input
               label="Customer Credit Limit"
@@ -445,7 +444,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={handleChange}
               placeholder="5000.00"
               disabled={isViewMode}
-              required // ⚡️ FIX: Added visual required indicator
+              required 
             />
 
               <Input
@@ -467,7 +466,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={handleChange}
               placeholder="500.00"
               disabled={isViewMode}
-              required // ⚡️ FIX: Added visual required indicator
+              required 
             />
             <Input
               label="Reference Number"
@@ -494,7 +493,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             }
             placeholder="Koteshwor, Kathmandu, Nepal"
             disabled={isViewMode}
-            required // ⚡️ FIX: Added visual required indicator (TextArea supports this if configured, assuming standard HTML semantics apply)
+            required 
           />
         </fieldset>
 
