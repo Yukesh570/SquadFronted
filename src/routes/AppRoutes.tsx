@@ -92,25 +92,25 @@ const componentMap: Record<string, JSX.Element> = {
   liveTraffic: <LiveTraffic />,
   messageReport: <MessageReport />,
   addCredit: <AddCredit />,
-  detailedReport: <DetailedReport/>,
+  detailedReport: <DetailedReport />,
   clientTransaction: <ClientTransaction />,
   vendorTransaction: <VendorTransaction />,
   invoiceSetup: <InvoiceSetup />,
   clientInvoice: <ClientInvoice />,
   generateClientInvoice: <GenerateClientInvoice />,
-  vendorInvoice: <VendorInvoice/>,
-  generateVendorInvoice: <GenerateVendorInvoice/>,
-  messageAttempt: <MessageAttempt/>,
-  dlrEvent: <DLREvent/>,
-  smsMessagePart: <SmsMessagePart/>,
-  operatorNetworkCode: <OperatorNetworkCode/>,
-  clientSession: <ClientSession/>,
-  generalSettings: <GeneralSettings/>,
-  currencyExchangeRate: <CurrencyExchangeRate/>,
-  serverInfo: <ServerInfo/>,
-  emailSource: <EmailSource/>,
-  importAttachment: <ImportAttachment/>,
-  importAudit: <ImportAudit/>,
+  vendorInvoice: <VendorInvoice />,
+  generateVendorInvoice: <GenerateVendorInvoice />,
+  messageAttempt: <MessageAttempt />,
+  dlrEvent: <DLREvent />,
+  smsMessagePart: <SmsMessagePart />,
+  operatorNetworkCode: <OperatorNetworkCode />,
+  clientSession: <ClientSession />,
+  generalSettings: <GeneralSettings />,
+  currencyExchangeRate: <CurrencyExchangeRate />,
+  serverInfo: <ServerInfo />,
+  emailSource: <EmailSource />,
+  importAttachment: <ImportAttachment />,
+  importAudit: <ImportAudit />,
   importBatch: <ImportBatch />,
   importMail: <ImportMail />,
   importRow: <ImportRow />,
@@ -120,10 +120,10 @@ const componentMap: Record<string, JSX.Element> = {
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
-  
+
   const { navItems, loading: isNavLoading, error: hasNavError } = useContext(NavItemsContext);
   const [navTimeout, setNavTimeout] = useState(false);
- 
+
   type NavUrl = {
     url: string;
     label: string;
@@ -151,7 +151,7 @@ const AppRoutes = () => {
     if (isAuthenticated && (!navItems || !navItems.results || navItems.results.length === 0)) {
       timer = window.setTimeout(() => {
         setNavTimeout(true);
-      }, 5000); // 5 second timeout
+      }, 10000); // 5 second timeout
     }
     return () => window.clearTimeout(timer);
   }, [isAuthenticated, navItems]);
