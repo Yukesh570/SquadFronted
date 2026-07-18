@@ -47,12 +47,19 @@ interface ColumnConfig extends FilterColumn {
   type: "text" | "number" | "date" | "date_range";
 }
 
-// --- Static Options ---
 const statusOptions: Option[] = [
-  { label: "Queued", value: "queued" },
-  { label: "Sent", value: "sent" },
-  { label: "Failed", value: "failed" },
-  { label: "Delivered", value: "delivered" },
+  { label: "Pending", value: "PENDING" },
+  { label: "Queued", value: "QUEUED" },
+  { label: "Submitted", value: "SUBMITTED" },
+  { label: "Failed", value: "FAILED" },
+  { label: "Delivered", value: "DELIVERED" },
+  { label: "Rejected", value: "REJECTED" },
+  { label: "Undelivered", value: "UNDELIVERED" },
+  { label: "Expired", value: "EXPIRED" },
+  { label: "In Progress", value: "IN_PROGRESS" },
+  { label: "Partially Delivered", value: "PARTIALLY_DELIVERED" },
+  { label: "No Route", value: "NO_ROUTE" },
+  { label: "Retry Pending", value: "RETRY_PENDING" },
 ];
 
 const encodingOptions: Option[] = [

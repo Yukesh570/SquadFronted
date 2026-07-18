@@ -3,7 +3,19 @@ export interface MessageLogData {
   id: number;
   destination: string;
   text: string;
-  status: "queued" | "sent" | "failed" | "delivered";
+status:
+  | "PENDING"
+  | "QUEUED"
+  | "SUBMITTED"
+  | "FAILED"
+  | "DELIVERED"
+  | "REJECTED"
+  | "UNDELIVERED"
+  | "EXPIRED"
+  | "IN_PROGRESS"
+  | "PARTIALLY_DELIVERED"
+  | "NO_ROUTE"
+  | "RETRY_PENDING";
   message_id: string;
   encoding?: string;
   segmentNumber?: string;
