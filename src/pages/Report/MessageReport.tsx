@@ -27,7 +27,7 @@ import AdvancedFilter, {
 } from "../../components/ui/AdvancedFilter";
 import { actionHelper } from "../../helper/action";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
-import { MessageReportModal } from "../../components/modals/Report/MessageReportModal"; 
+import { MessageReportModal } from "../../components/modals/Report/MessageReportModal";
 
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
@@ -146,7 +146,7 @@ const MessageReport: React.FC = () => {
   // (className "custom-scrollbar") from the outside, since DataTable.tsx
   // itself is not being modified.
   const tableWrapperRef = useRef<HTMLDivElement>(null);
-
+  const isAtTopRef = useRef(true);
   // --- Helper: Extract Options ---
   const extractOptions = (
     response: any,
@@ -187,7 +187,7 @@ const MessageReport: React.FC = () => {
     fetchAllOptions();
   }, []);
 
-  
+
   const filterOptionsConfig: ColumnConfig[] = useMemo(
     () => [
       { key: "message_id", label: "Message ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
@@ -343,18 +343,26 @@ const MessageReport: React.FC = () => {
    * Fetches a page of logs.
    * - append = false (default): fresh search/clear/initial load. Replaces `logs`.
    * - append = true: infinite-scroll batch. Appends to `logs`.
+   * - silent = true: background API polling. Skips loading spinners.
    */
   const fetchLogs = async (
     overrideParams?: Record<string, any>,
     page: number = 1,
     append: boolean = false,
+    silent: boolean = false
   ) => {
+    // Prevent the silent background poll from interrupting an active manual search or scroll
+    if (silent && (isLoading || isFetchingMore)) return;
+
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
 
-    if (append) setIsFetchingMore(true);
-    else setIsLoading(true);
+    // Only trigger loading spinners if this is a user-initiated action
+    if (!silent) {
+      if (append) setIsFetchingMore(true);
+      else setIsLoading(true);
+    }
 
     try {
       const currentSearchParams: Record<string, any> = {};
@@ -397,18 +405,20 @@ const MessageReport: React.FC = () => {
     } catch (error: any) {
       if (error.name !== "AbortError") {
         console.error(error);
-        toast.error("Failed to fetch message logs.");
+        if (!silent) toast.error("Failed to fetch message logs.");
       }
     } finally {
       if (abortControllerRef.current === newController) {
-        setIsLoading(false);
-        setIsFetchingMore(false);
+        // Only clear loading spinners if this was a user-initiated action
+        if (!silent) {
+          setIsLoading(false);
+          setIsFetchingMore(false);
+        }
       }
     }
   };
 
-  // Initial load. Filters are only applied on explicit Search/Clear, same
-  // as before — this effect only re-fires if the module route changes.
+  // Initial load effect (Keep your existing one)
   useEffect(() => {
     fetchLogs(undefined, 1, false);
     return () => {
@@ -417,9 +427,25 @@ const MessageReport: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleName]);
 
+  useEffect(() => {
+    const liveUpdateTimer = setInterval(() => {
+
+      // Check our React Ref instead of querying the DOM
+      if (isAtTopRef.current) {
+        // params: overrideParams=undefined, page=1, append=false, silent=true
+        fetchLogs(undefined, 1, false, true);
+      }
+
+    }, 5000);
+
+    return () => clearInterval(liveUpdateTimer);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterValues, isLoading, isFetchingMore]);
   // Infinite scroll: listen on DataTable's internal scroll container
   // (class "custom-scrollbar", defined inside DataTable.tsx) via the
   // wrapper ref, since DataTable itself isn't being modified.
+  // Infinite scroll listener (Updated to track top position)
   useEffect(() => {
     const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(
       ".custom-scrollbar",
@@ -427,6 +453,10 @@ const MessageReport: React.FC = () => {
     if (!scrollEl) return;
 
     const handleScroll = () => {
+      // 1. UPDATE OUR REF: True if at the top, false if scrolled down
+      isAtTopRef.current = scrollEl.scrollTop === 0;
+
+      // 2. EXISTING INFINITE SCROLL LOGIC
       if (isLoading || isFetchingMore || !hasMore) return;
       const { scrollTop, scrollHeight, clientHeight } = scrollEl;
       if (scrollHeight - scrollTop - clientHeight < LOAD_MORE_THRESHOLD_PX) {
@@ -438,12 +468,10 @@ const MessageReport: React.FC = () => {
     return () => scrollEl.removeEventListener("scroll", handleScroll);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, logs.length]);
-
   // --- Handlers ---
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
-
   const handleSearch = () => {
     fetchLogs(undefined, 1, false);
   };
@@ -474,13 +502,13 @@ const MessageReport: React.FC = () => {
   };
 
   const menuItems: ContextMenuItem[] = selectedRowLog ? [
-    { 
-      label: "View Full Message", 
-      icon: <Eye size={16} />, 
+    {
+      label: "View Full Message",
+      icon: <Eye size={16} />,
       onClick: () => {
         setViewLog(selectedRowLog);
         setIsModalOpen(true);
-      } 
+      }
     },
   ] : [];
 
@@ -492,10 +520,10 @@ const MessageReport: React.FC = () => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-        
+
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); 
-      
+      }, 100);
+
       hasLoggedOpening.current = true;
     }
   }, []);
@@ -699,10 +727,10 @@ const MessageReport: React.FC = () => {
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
 
-      <MessageReportModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        viewLog={viewLog} 
+      <MessageReportModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        viewLog={viewLog}
       />
 
     </div>
