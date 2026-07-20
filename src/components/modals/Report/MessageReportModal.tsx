@@ -58,6 +58,14 @@ export const MessageReportModal: React.FC<MessageReportModalProps> = ({
               {viewLog.createdAt ? new Date(viewLog.createdAt).toLocaleString() : "-"}
             </div>
           </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
+              Failure Reason
+            </label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">
+              {viewLog.failure_reason || "-"}
+            </div>
+          </div>
 
           {/* Row 2 */}
           <div>

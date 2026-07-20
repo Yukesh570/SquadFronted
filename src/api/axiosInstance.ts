@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
 });
 
 // 1. Request Interceptor (Adds token)
@@ -21,15 +21,25 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     if (!error.response) {
-      if (error.code === "ECONNABORTED") {
-        toast.error("Connection timed out. Backend is not responding.");
-      } else {
-        toast.error("Cannot connect to server. Is the Backend running?");
-      }
+    if (error.code === "ECONNABORTED") {
+  toast.error("Connection timed out. Backend is not responding.", {
+    toastId: "backend-timeout",
+  });
+} else {
+  toast.error("Cannot connect to server. Is the Backend running?", {
+    toastId: "backend-unreachable",
+  });
+}
       return Promise.reject(error);
     }
 
-    if ((error.response.status === 401 || error.response.status === 403) && !originalRequest._retry) {
+    const isLoginRequest = originalRequest?.url?.includes("login/");
+
+    if (
+      !isLoginRequest &&
+      (error.response.status === 401 || error.response.status === 403) &&
+      !originalRequest._retry
+    ) {
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem("refreshToken");
@@ -68,7 +78,7 @@ api.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
-    if (error.response.status === 403) {
+    if (!isLoginRequest && error.response.status === 403) {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("user");

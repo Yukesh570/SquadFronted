@@ -154,9 +154,9 @@ const Dashboard: React.FC = () => {
     return { startDate: fmt(start), endDate: fmt(end) };
   };
 
-  // ─── Fetchers ────────────────────────────────────────────────────────────────
-  const fetchTrafficTraffic = async (range: RangeKey) => {
-    setIsTrafficLoading(true);
+  
+  const fetchTrafficTraffic = async (range: RangeKey, isBackground = false) => {
+    if (!isBackground) setIsTrafficLoading(true);
     try {
       if (range === "today") {
         const data = await getSmsHourlyApi(buildParams(range));
@@ -169,11 +169,11 @@ const Dashboard: React.FC = () => {
       console.error("fetchTrafficTraffic failed", e);
       setTrafficData([]);
     } finally {
-      setIsTrafficLoading(false);
+      if (!isBackground) setIsTrafficLoading(false);
     }
   };
-  const fetchSmsStats = async (range: RangeKey) => {
-    setIsStatsLoading(true);
+  const fetchSmsStats = async (range: RangeKey, isBackground = false) => {
+    if (!isBackground) setIsStatsLoading(true);
     try {
       const d = await getSmsStatsApi(buildParams(range));
       setTotalSms(Number(d.count).toLocaleString());
@@ -183,12 +183,12 @@ const Dashboard: React.FC = () => {
     } catch (e) {
       console.error("fetchSmsStats failed", e);
     } finally {
-      setIsStatsLoading(false);
+      if (!isBackground) setIsStatsLoading(false);
     }
   };
 
-  const fetchDlrStats = async (range: RangeKey) => {
-    setIsDlrLoading(true);
+  const fetchDlrStats = async (range: RangeKey, isBackground = false) => {
+    if (!isBackground) setIsDlrLoading(true);
     try {
       const d = await getDlrStatsApi(buildParams(range));
       setDlrData([
@@ -201,7 +201,7 @@ const Dashboard: React.FC = () => {
       console.error("fetchDlrStats failed", e);
       setDlrData([]);
     } finally {
-      setIsDlrLoading(false);
+      if (!isBackground) setIsDlrLoading(false);
     }
   };
 
@@ -219,8 +219,8 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const fetchClientSessionSummary = async () => {
-    setIsLiveSessionsLoading(true);
+  const fetchClientSessionSummary = async (isBackground = false) => {
+    if (!isBackground) setIsLiveSessionsLoading(true);
     try {
       const data = await getClientSessionSummaryApi();
       setLiveSessions(data);
@@ -228,7 +228,7 @@ const Dashboard: React.FC = () => {
       console.error("fetchClientSessionSummary failed", e);
       setLiveSessions([]);
     } finally {
-      setIsLiveSessionsLoading(false);
+      if (!isBackground) setIsLiveSessionsLoading(false);
     }
   };
 
@@ -268,8 +268,8 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const fetchFailureBreakdown = async (range: RangeKey) => {
-    setIsFailureLoading(true);
+  const fetchFailureBreakdown = async (range: RangeKey, isBackground = false) => {
+    if (!isBackground) setIsFailureLoading(true);
     try {
       const data = await getFailureBreakdownApi(buildParams(range));
       setFailureBreakdown(data);
@@ -277,12 +277,12 @@ const Dashboard: React.FC = () => {
       console.error("fetchFailureBreakdown failed", e);
       setFailureBreakdown([]);
     } finally {
-      setIsFailureLoading(false);
+      if (!isBackground) setIsFailureLoading(false);
     }
   };
 
-  const fetchVendorPerformance = async (range: RangeKey) => {
-    setIsVendorLoading(true);
+  const fetchVendorPerformance = async (range: RangeKey, isBackground = false) => {
+    if (!isBackground) setIsVendorLoading(true);
     try {
       const data = await getVendorPerformanceApi(buildParams(range));
       setVendorPerformance(data);
@@ -290,12 +290,12 @@ const Dashboard: React.FC = () => {
       console.error("fetchVendorPerformance failed", e);
       setVendorPerformance([]);
     } finally {
-      setIsVendorLoading(false);
+      if (!isBackground) setIsVendorLoading(false);
     }
   };
 
-  const fetchClientPerformance = async (range: RangeKey) => {
-    setIsClientLoading(true);
+  const fetchClientPerformance = async (range: RangeKey, isBackground = false) => {
+    if (!isBackground) setIsClientLoading(true);
     try {
       const data = await getClientPerformanceApi(buildParams(range));
       setClientPerformance(data);
@@ -303,12 +303,12 @@ const Dashboard: React.FC = () => {
       console.error("fetchClientPerformance failed", e);
       setClientPerformance([]);
     } finally {
-      setIsClientLoading(false);
+      if (!isBackground) setIsClientLoading(false);
     }
   };
 
-  const fetchGeoBreakdown = async (range: RangeKey) => {
-    setIsGeoLoading(true);
+  const fetchGeoBreakdown = async (range: RangeKey, isBackground = false) => {
+    if (!isBackground) setIsGeoLoading(true);
     try {
       const data = await getGeoBreakdownApi(buildParams(range));
       setGeoBreakdown(data);
@@ -316,12 +316,12 @@ const Dashboard: React.FC = () => {
       console.error("fetchGeoBreakdown failed", e);
       setGeoBreakdown([]);
     } finally {
-      setIsGeoLoading(false);
+      if (!isBackground) setIsGeoLoading(false);
     }
   };
 
-  const fetchLatencyStats = async (range: RangeKey) => {
-    setIsLatencyLoading(true);
+  const fetchLatencyStats = async (range: RangeKey, isBackground = false) => {
+    if (!isBackground) setIsLatencyLoading(true);
     try {
       const d = await getLatencyStatsApi(buildParams(range));
       setLatencyStats(d);
@@ -329,7 +329,7 @@ const Dashboard: React.FC = () => {
       console.error("fetchLatencyStats failed", e);
       setLatencyStats(null);
     } finally {
-      setIsLatencyLoading(false);
+      if (!isBackground) setIsLatencyLoading(false);
     }
   };
 
@@ -363,6 +363,30 @@ const Dashboard: React.FC = () => {
     fetchTrafficTraffic(activeRange);
     fetchDlrStats(activeRange);
     fetchRevenue(activeRange);
+  }, [activeRange]);
+
+  // Auto-refresh every 10s in the background (mirrors ServerInfo's polling
+  // pattern). Uses isBackground=true so loading spinners don't retrigger.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchFailureBreakdown(activeRange, true);
+      fetchVendorPerformance(activeRange, true);
+      fetchClientPerformance(activeRange, true);
+      fetchGeoBreakdown(activeRange, true);
+      fetchLatencyStats(activeRange, true);
+      fetchSmsStats(activeRange, true);
+      fetchTrafficTraffic(activeRange, true);
+      fetchDlrStats(activeRange, true);
+      fetchRevenue(activeRange);
+      fetchActiveSessions();
+      fetchClientSessionSummary(true);
+      fetchOnlineVendors();
+      fetchOnlineClients();
+      fetchNotifications();
+      fetchCurrencySymbol();
+    }, 10000);
+
+    return () => clearInterval(intervalId);
   }, [activeRange]);
 
   useEffect(() => {

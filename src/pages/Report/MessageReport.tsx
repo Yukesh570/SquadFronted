@@ -308,6 +308,7 @@ const MessageReport: React.FC = () => {
       { key: "vendorName", label: "Vendor", type: "text" },
       { key: "smppName", label: "SMPP", type: "text" },
       { key: "systemId", label: "System ID", type: "text" },
+      { key: "failure_reason", label: "Failure Reason", type: "text" },
       {
         key: "createdAt",
         label: "Created At",

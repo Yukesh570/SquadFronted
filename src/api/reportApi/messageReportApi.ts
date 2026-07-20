@@ -20,6 +20,7 @@ status:
   encoding?: string;
   segmentNumber?: string;
   characterCount?: string;
+  failure_reason?: string;
 
   clientName?: string;
   vendorName?: string;

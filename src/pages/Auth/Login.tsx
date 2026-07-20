@@ -90,8 +90,9 @@ const Login = () => {
     setErrorMessage("");
     try {
       await login({ username: formData.username, password: formData.password });
-    } catch (error) {
-      setErrorMessage("Invalid username or password. Please try again.");
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
+      setErrorMessage(backendMessage || "Invalid username or password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -147,17 +148,12 @@ const Login = () => {
           <div className="space-y-4">
             <Input label="Username" type="text" name="username" id="username" value={formData.username} onChange={handleChange} placeholder="Enter your username" required className="py-3" />
 
-            <div>
-              <Input label="Password" type={showPassword ? "text" : "password"} name="password" id="password" value={formData.password} onChange={handleChange} placeholder="Enter your password" required className="py-3" rightIcon={
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none transition-colors">
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                }
-              />
-              <div className="flex justify-end mt-2">
-                <a href="#" className="text-xs font-medium hover:underline transition-colors" style={{ color: primaryColor }}>Forgot Password?</a>
-              </div>
-            </div>
+            <Input label="Password" type={showPassword ? "text" : "password"} name="password" id="password" value={formData.password} onChange={handleChange} placeholder="Enter your password" required className="py-3" rightIcon={
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none transition-colors">
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
+            />
           </div>
 
           <Button type="submit" variant="primary" className="w-full py-3 text-base font-semibold transition-all duration-200" style={{ boxShadow: `0 8px 20px -6px ${primaryColor}80` }} disabled={loading}>
