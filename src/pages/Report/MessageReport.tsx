@@ -339,12 +339,6 @@ const MessageReport: React.FC = () => {
     tableColumns.includes(col.key),
   );
 
-  /**
-   * Fetches a page of logs.
-   * - append = false (default): fresh search/clear/initial load. Replaces `logs`.
-   * - append = true: infinite-scroll batch. Appends to `logs`.
-   * - silent = true: background API polling. Skips loading spinners.
-   */
   const fetchLogs = async (
     overrideParams?: Record<string, any>,
     page: number = 1,
