@@ -403,10 +403,65 @@ const Dashboard: React.FC = () => {
     const ws = new WebSocket(`${wsBase}/ws/status/`);
     ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
-        if (data.action === "session_update") {
+        const payload = JSON.parse(event.data);
+        if (payload.action === "session_update") {
           fetchActiveSessions();
           fetchClientSessionSummary();
+        } else if (payload.action === "dashboard_metrics_update") {
+          const { data } = payload;
+
+          if (data.smsStats) {
+            setTotalSms(Number(data.smsStats.count).toLocaleString());
+            setDeliveredCount(Number(data.smsStats.deliveredCount).toLocaleString());
+            setFailedCount(Number(data.smsStats.failedCount).toLocaleString());
+            setDeliveryRate(`${data.smsStats.deliveryRate}%`);
+            setIsStatsLoading(false);
+          }
+          if (data.dlrStats) {
+            setDlrData([
+              { name: "Delivered", value: data.dlrStats.deliveredPercent || 0, color: DLR_COLORS.Delivered },
+              { name: "Failed", value: data.dlrStats.failedPercent || 0, color: DLR_COLORS.Failed },
+              { name: "Pending", value: data.dlrStats.pendingPercent || 0, color: DLR_COLORS.Pending },
+              { name: "Rejected", value: data.dlrStats.rejectedPercent || 0, color: DLR_COLORS.Rejected },
+            ]);
+            setIsDlrLoading(false);
+          }
+          if (data.activeSessionsCount !== undefined) {
+            setActiveSessionsCount(data.activeSessionsCount);
+          }
+          if (data.onlineClients !== undefined) {
+            setOnlineClients(data.onlineClients);
+          }
+          if (data.onlineVendors !== undefined) {
+            setOnlineVendors(data.onlineVendors);
+          }
+          if (data.revenue) {
+            setRevenue(data.revenue);
+          }
+          if (data.trafficData) {
+            setTrafficData(data.trafficData);
+            setIsTrafficLoading(false);
+          }
+          if (data.failureBreakdown) {
+            setFailureBreakdown(data.failureBreakdown);
+            setIsFailureLoading(false);
+          }
+          if (data.vendorPerformance) {
+            setVendorPerformance(data.vendorPerformance);
+            setIsVendorLoading(false);
+          }
+          if (data.clientPerformance) {
+            setClientPerformance(data.clientPerformance);
+            setIsClientLoading(false);
+          }
+          if (data.geoBreakdown) {
+            setGeoBreakdown(data.geoBreakdown);
+            setIsGeoLoading(false);
+          }
+          if (data.latencyStats) {
+            setLatencyStats(data.latencyStats);
+            setIsLatencyLoading(false);
+          }
         }
       } catch (err) {
         console.error("WebSocket parse error in Dashboard", err);
