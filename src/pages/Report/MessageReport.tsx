@@ -576,66 +576,96 @@ const MessageReport: React.FC = () => {
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
-        {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label);
+        {(() => {
+          const generalFields = visibleSearchFields.filter(c => c.type !== "date" && c.type !== "date_range");
+          const dateFields = visibleSearchFields.filter(c => c.type === "date" || c.type === "date_range");
 
-          if (col.options) {
+          const renderField = (col: typeof visibleSearchFields[0]) => {
+            const baseLabel = getBaseLabel(col.label);
+
+            if (col.options) {
+              return (
+                <Select
+                  key={col.key}
+                  label={baseLabel}
+                  value={filterValues[col.key] || ""}
+                  onChange={(val) => handleFilterChange(col.key, val)}
+                  options={col.options}
+                  placeholder={`Select ${baseLabel}`}
+                />
+              );
+            }
+            if (col.type === "date") {
+              return (
+                <DatePicker
+                  key={col.key}
+                  label={`Search ${baseLabel}`}
+                  selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
+                  onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")}
+                />
+              );
+            }
+            if (col.type === "date_range") {
+              const [startStr, endStr] = (filterValues[col.key] || "").split(",");
+              return (
+                <div key={col.key} className="col-span-1 md:col-span-2 lg:col-span-2 flex flex-col w-full">
+                  <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400">
+                    Search {baseLabel} (Range)
+                  </label>
+                  <div className="flex gap-2 w-full">
+                    <div className="flex-1">
+                      <DatePicker
+                        label=""
+                        placeholder="From"
+                        selected={startStr ? new Date(startStr) : null}
+                        onChange={(val: Date | null) => {
+                          const newStart = val ? formatLocalDate(val) : "";
+                          const currentEnd = endStr || "";
+                          handleFilterChange(col.key, newStart || currentEnd ? `${newStart},${currentEnd}` : "");
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <DatePicker
+                        label=""
+                        placeholder="To"
+                        selected={endStr ? new Date(endStr) : null}
+                        onChange={(val: Date | null) => {
+                          const newEnd = val ? formatLocalDate(val) : "";
+                          const currentStart = startStr || "";
+                          handleFilterChange(col.key, currentStart || newEnd ? `${currentStart},${newEnd}` : "");
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            }
             return (
-              <Select
+              <Input
                 key={col.key}
                 label={baseLabel}
                 value={filterValues[col.key] || ""}
-                onChange={(val) => handleFilterChange(col.key, val)}
-                options={col.options}
-                placeholder={`Select ${baseLabel}`}
+                onChange={(e) => handleFilterChange(col.key, e.target.value)}
+                placeholder={`Search ${baseLabel}`}
               />
             );
-          }
-          if (col.type === "date") {
-            return (
-              <DatePicker
-                key={col.key}
-                label={`Search ${baseLabel}`}
-                selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
-                onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")}
-              />
-            );
-          }
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    handleFilterChange(col.key, newStart || currentEnd ? `${newStart},${currentEnd}` : "");
-                  }}
-                />
-                <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    handleFilterChange(col.key, currentStart || newEnd ? `${currentStart},${newEnd}` : "");
-                  }}
-                />
-              </React.Fragment>
-            );
-          }
+          };
+
           return (
-            <Input
-              key={col.key}
-              label={baseLabel}
-              value={filterValues[col.key] || ""}
-              onChange={(e) => handleFilterChange(col.key, e.target.value)}
-              placeholder={`Search ${baseLabel}`}
-            />
+            <>
+              {generalFields.map(renderField)}
+
+              {dateFields.length > 0 && (
+                <div className="col-span-full border-b border-gray-100 dark:border-gray-700 pb-2 mt-4 text-sm font-semibold text-gray-800 dark:text-gray-200">
+                  Date Filters
+                </div>
+              )}
+
+              {dateFields.map(renderField)}
+            </>
           );
-        })}
+        })()}
       </FilterCard>
 
       <style>{`
