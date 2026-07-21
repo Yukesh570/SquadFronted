@@ -34,6 +34,7 @@ import {
   Bar,
 } from "recharts";
 import Button from "../../components/ui/Button";
+import ToggleSwitch from "../../components/ui/ToggleSwitch"; // ⚡️ FIX: Added ToggleSwitch import
 import {
   getClientSessionsApi,
   getClientSessionSummaryApi,
@@ -86,6 +87,29 @@ const Dashboard: React.FC = () => {
     observer.observe(document.documentElement, { attributeFilter: ["class"] });
     return () => observer.disconnect();
   }, []);
+
+  // --- Auto-Refresh States (Persisted in LocalStorage) ---
+  const [isMetricsLive, setIsMetricsLive] = useState<boolean>(() => {
+    const saved = localStorage.getItem("dashboard_metrics_live");
+    return saved ? JSON.parse(saved) : true;
+  });
+  const isMetricsLiveRef = React.useRef(isMetricsLive);
+
+  const [isAnalyticsLive, setIsAnalyticsLive] = useState<boolean>(() => {
+    const saved = localStorage.getItem("dashboard_analytics_live");
+    return saved ? JSON.parse(saved) : true;
+  });
+  const isAnalyticsLiveRef = React.useRef(isAnalyticsLive);
+
+  useEffect(() => {
+    localStorage.setItem("dashboard_metrics_live", JSON.stringify(isMetricsLive));
+    isMetricsLiveRef.current = isMetricsLive;
+  }, [isMetricsLive]);
+
+  useEffect(() => {
+    localStorage.setItem("dashboard_analytics_live", JSON.stringify(isAnalyticsLive));
+    isAnalyticsLiveRef.current = isAnalyticsLive;
+  }, [isAnalyticsLive]);
 
   // --- KPI states ---
   const [totalSms, setTotalSms] = useState<string>("-");
@@ -381,62 +405,70 @@ const Dashboard: React.FC = () => {
       try {
         const payload = JSON.parse(event.data);
         if (payload.action === "session_update") {
-          fetchActiveSessions();
-          fetchClientSessionSummary();
-          } else if (payload.action === "dashboard_metrics_update") {
+          // Respect auto-refresh toggles for session updates
+          if (isMetricsLiveRef.current) fetchActiveSessions();
+          if (isAnalyticsLiveRef.current) fetchClientSessionSummary();
+        } else if (payload.action === "dashboard_metrics_update") {
           const { data } = payload;
 
-          if (data.smsStats) {
-            setTotalSms(Number(data.smsStats.count).toLocaleString());
-            setDeliveredCount(Number(data.smsStats.deliveredCount).toLocaleString());
-            setFailedCount(Number(data.smsStats.failedCount).toLocaleString());
-            setDeliveryRate(`${data.smsStats.deliveryRate}%`);
-            setIsStatsLoading(false);
+          // ⚡️ APPLY PART 1 (METRICS) TOGGLE CHECK
+          if (isMetricsLiveRef.current) {
+            if (data.smsStats) {
+              setTotalSms(Number(data.smsStats.count).toLocaleString());
+              setDeliveredCount(Number(data.smsStats.deliveredCount).toLocaleString());
+              setFailedCount(Number(data.smsStats.failedCount).toLocaleString());
+              setDeliveryRate(`${data.smsStats.deliveryRate}%`);
+              setIsStatsLoading(false);
+            }
+            if (data.dlrStats) {
+              setDlrData([
+                { name: "Delivered", value: data.dlrStats.deliveredPercent || 0, color: DLR_COLORS.Delivered },
+                { name: "Failed", value: data.dlrStats.failedPercent || 0, color: DLR_COLORS.Failed },
+                { name: "Pending", value: data.dlrStats.pendingPercent || 0, color: DLR_COLORS.Pending },
+                { name: "Rejected", value: data.dlrStats.rejectedPercent || 0, color: DLR_COLORS.Rejected },
+              ]);
+              setIsDlrLoading(false);
+            }
+            if (data.activeSessionsCount !== undefined) {
+              setActiveSessionsCount(data.activeSessionsCount);
+            }
+            if (data.onlineClients !== undefined) {
+              setOnlineClients(data.onlineClients);
+            }
+            if (data.onlineVendors !== undefined) {
+              setOnlineVendors(data.onlineVendors);
+            }
+            if (data.revenue) {
+              setRevenue(data.revenue);
+            }
+            if (data.trafficData) {
+              setTrafficData(data.trafficData);
+              setIsTrafficLoading(false);
+            }
           }
-          if (data.dlrStats) {
-            setDlrData([
-              { name: "Delivered", value: data.dlrStats.deliveredPercent || 0, color: DLR_COLORS.Delivered },
-              { name: "Failed", value: data.dlrStats.failedPercent || 0, color: DLR_COLORS.Failed },
-              { name: "Pending", value: data.dlrStats.pendingPercent || 0, color: DLR_COLORS.Pending },
-              { name: "Rejected", value: data.dlrStats.rejectedPercent || 0, color: DLR_COLORS.Rejected },
-            ]);
-            setIsDlrLoading(false);
-          }
-          if (data.activeSessionsCount !== undefined) {
-            setActiveSessionsCount(data.activeSessionsCount);
-          }
-          if (data.onlineClients !== undefined) {
-            setOnlineClients(data.onlineClients);
-          }
-          if (data.onlineVendors !== undefined) {
-            setOnlineVendors(data.onlineVendors);
-          }
-          if (data.revenue) {
-            setRevenue(data.revenue);
-          }
-          if (data.trafficData) {
-            setTrafficData(data.trafficData);
-            setIsTrafficLoading(false);
-          }
-          if (data.failureBreakdown) {
-            setFailureBreakdown(data.failureBreakdown);
-            setIsFailureLoading(false);
-          }
-          if (data.vendorPerformance) {
-            setVendorPerformance(data.vendorPerformance);
-            setIsVendorLoading(false);
-          }
-          if (data.clientPerformance) {
-            setClientPerformance(data.clientPerformance);
-            setIsClientLoading(false);
-          }
-          if (data.geoBreakdown) {
-            setGeoBreakdown(data.geoBreakdown);
-            setIsGeoLoading(false);
-          }
-          if (data.latencyStats) {
-            setLatencyStats(data.latencyStats);
-            setIsLatencyLoading(false);
+
+          // ⚡️ APPLY PART 2 (ANALYTICS) TOGGLE CHECK
+          if (isAnalyticsLiveRef.current) {
+            if (data.failureBreakdown) {
+              setFailureBreakdown(data.failureBreakdown);
+              setIsFailureLoading(false);
+            }
+            if (data.vendorPerformance) {
+              setVendorPerformance(data.vendorPerformance);
+              setIsVendorLoading(false);
+            }
+            if (data.clientPerformance) {
+              setClientPerformance(data.clientPerformance);
+              setIsClientLoading(false);
+            }
+            if (data.geoBreakdown) {
+              setGeoBreakdown(data.geoBreakdown);
+              setIsGeoLoading(false);
+            }
+            if (data.latencyStats) {
+              setLatencyStats(data.latencyStats);
+              setIsLatencyLoading(false);
+            }
           }
         }
       } catch (err) {
@@ -579,6 +611,13 @@ const Dashboard: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {/* ⚡️ FIX: Added Auto-Refresh toggle for Part 1 (Metrics) */}
+          <ToggleSwitch
+            label="Auto-Refresh Metrics"
+            checked={isMetricsLive}
+            onChange={setIsMetricsLive}
+          />
+          
           {/* Range dropdown */}
           <div className="relative">
             <button
@@ -861,16 +900,32 @@ const Dashboard: React.FC = () => {
         />
       </div>
 
+      {/* ⚡️ FIX: Added Auto-Refresh toggle for Part 2 (Analytics) */}
+      <div className="flex justify-end mb-4">
+        <ToggleSwitch
+          label="Auto-Refresh Analytics"
+          checked={isAnalyticsLive}
+          onChange={setIsAnalyticsLive}
+        />
+      </div>
+
       {/* Row 5: Live Sessions + Notifications */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
           <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-text-primary dark:text-white flex items-center">
               Live Client Sessions
-              <span className="ml-3 flex h-3 w-3 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-              </span>
+              {/* ⚡️ FIX: Pause ping animation if toggle is off */}
+              {isAnalyticsLive ? (
+                <span className="ml-3 flex h-3 w-3 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </span>
+              ) : (
+                <span className="ml-3 flex h-3 w-3 relative">
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-gray-400"></span>
+                </span>
+              )}
             </h3>
             <NavLink to="/clientSession">
               <Button variant="secondary" size="sm" rightIcon={<ArrowRight size={14} />}>
