@@ -47,9 +47,9 @@ const statusOptions: Option[] = [
 ];
 
 const transactionTypeOptions: Option[] = [
-  { label: "On Attempt", value: "ON_ATTEMPT" },
-  { label: "On Submit", value: "ON_SUBMIT" },
-  { label: "On Delivered", value: "ON_DELIVERED" },
+  { label: "Deduction", value: "DEDUCTION" },
+  { label: "Refund", value: "REFUND" },
+  { label: "Top-Up", value: "TOPUP" },
 ];
 
 const DEFAULT_SEARCH_COLUMNS = ["clientName", "message_id", "transactionType"];
@@ -102,14 +102,13 @@ const ClientTransaction: React.FC = () => {
     { key: "amount", label: "Amount", type: "number", filterKey: "amount" },
     { key: "balanceSpent", label: "Balance Spent", type: "number", filterKey: "balanceSpent" },
 
-    // --- Created At: exact stays exact-only, range is separate ---
-    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt", render: (log) => (<span>{log.createdAt ? new Date(log.createdAt).toLocaleString() : "-"}</span>) },
-    { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
+    // --- Filter keys explicitly point to createdAt__range for both single day and date span ---
+    { key: "createdAt", label: "Created At (Single Day)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range", render: (log) => (<span>{log.createdAt ? new Date(log.createdAt).toLocaleString() : "-"}</span>) },
+    { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt__range", isSearchOnly: true },
   ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
-  // ⚡️ "Columns" dropdown should not offer the range search-only variant as a table column
   const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
 
   const handleFilterChange = (key: string, value: string) => {
@@ -140,11 +139,6 @@ const ClientTransaction: React.FC = () => {
         if (columnDef?.options) {
           const selectedOption = columnDef.options.find((opt) => opt.value === value);
           currentSearchParams[baseKey] = selectedOption ? selectedOption.value : value;
-        } else if (columnDef?.type === "date") {
-          currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
-        } else if (columnDef?.type === "date_range") {
-          const [start, end] = value.split(",");
-          if (start && end) currentSearchParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
         } else {
           currentSearchParams[baseKey] = value;
         }
@@ -183,6 +177,7 @@ const ClientTransaction: React.FC = () => {
     fetchTransactions(undefined, 1, false);
     return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
   }, [routeName, searchColumns]);
+
   useEffect(() => {
     const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(
       ".custom-scrollbar",
@@ -270,17 +265,30 @@ const ClientTransaction: React.FC = () => {
             return <Select key={col.key} label={baseLabel} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} />;
           }
           if (col.type === "date") {
+            const rawVal = filterValues[col.key] || "";
+            const datePart = rawVal.split("T")[0];
+
             return (
               <DatePicker
                 key={col.key}
                 label={`Search ${baseLabel}`}
-                selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
-                onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")}
+                selected={datePart ? new Date(datePart) : null}
+                onChange={(val: Date | null) => {
+                  if (val) {
+                    const formatted = formatLocalDate(val);
+                    handleFilterChange(col.key, `${formatted}T00:00:00,${formatted}T23:59:59`);
+                  } else {
+                    handleFilterChange(col.key, "");
+                  }
+                }}
               />
             );
           }
           if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
+            const [startRange, endRange] = (filterValues[col.key] || "").split(",");
+            const startStr = startRange ? startRange.split("T")[0] : "";
+            const endStr = endRange ? endRange.split("T")[0] : "";
+
             return (
               <React.Fragment key={col.key}>
                 <DatePicker
@@ -289,7 +297,13 @@ const ClientTransaction: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newStart = val ? formatLocalDate(val) : "";
                     const currentEnd = endStr || "";
-                    handleFilterChange(col.key, newStart || currentEnd ? `${newStart},${currentEnd}` : "");
+                    if (newStart || currentEnd) {
+                      const startVal = newStart ? `${newStart}T00:00:00` : "";
+                      const endVal = currentEnd ? `${currentEnd}T23:59:59` : "";
+                      handleFilterChange(col.key, `${startVal},${endVal}`);
+                    } else {
+                      handleFilterChange(col.key, "");
+                    }
                   }}
                 />
                 <DatePicker
@@ -298,7 +312,13 @@ const ClientTransaction: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newEnd = val ? formatLocalDate(val) : "";
                     const currentStart = startStr || "";
-                    handleFilterChange(col.key, currentStart || newEnd ? `${currentStart},${newEnd}` : "");
+                    if (currentStart || newEnd) {
+                      const startVal = currentStart ? `${currentStart}T00:00:00` : "";
+                      const endVal = newEnd ? `${newEnd}T23:59:59` : "";
+                      handleFilterChange(col.key, `${startVal},${endVal}`);
+                    } else {
+                      handleFilterChange(col.key, "");
+                    }
                   }}
                 />
               </React.Fragment>

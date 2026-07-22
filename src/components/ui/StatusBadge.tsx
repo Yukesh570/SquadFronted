@@ -6,6 +6,7 @@ export const STATUS_COLORS: Record<string, { bg: string; text: string; border: s
   SUBMITTED: { bg: "#DBEAFE", text: "#1E40AF", border: "#2563EB", label: "Submitted" },
   SENT_TO_VENDOR: { bg: "#E0E7FF", text: "#3730A3", border: "#4F46E5", label: "Sent to Vendor" },
   SUBMITTING: { bg: "#F3E8FF", text: "#6B21A8", border: "#9333EA", label: "Submitting" },
+  ATTEMPTING: { bg: "#F3E8FF", text: "#6B21A8", border: "#9333EA", label: "Attempting" },
   QUEUED: { bg: "#F3F4F6", text: "#374151", border: "#6B7280", label: "Queued" },
   PENDING: { bg: "#FEF3C7", text: "#92400E", border: "#F59E0B", label: "Pending" },
   UNDELIVERED: { bg: "#FFEDD5", text: "#9A3412", border: "#EA580C", label: "Undelivered" },

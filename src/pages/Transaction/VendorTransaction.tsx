@@ -8,6 +8,7 @@ import { VendorTransactionModal } from "../../components/modals/Transaction/Vend
 
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
+import DatePicker from "../../components/ui/DatePicker";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedFilter";
@@ -20,13 +21,40 @@ interface ColumnConfig extends FilterColumn {
   render?: (data: VendorTransactionData) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
+  isSearchOnly?: boolean;
+  tableLabel?: string;
 }
+
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+// ⚡️ Choice options straight from backend model choices
+const chargePolicyOptions: Option[] = [
+  { label: "On Attempt", value: "ON_ATTEMPT" },
+  { label: "On Submit", value: "ON_SUBMIT" },
+  { label: "On Delivered", value: "ON_DELIVERED" },
+];
+
+const statusOptions: Option[] = [
+  { label: "Pending", value: "PENDING" },
+  { label: "Charged", value: "CHARGED" },
+  { label: "Refunded", value: "REFUNDED" },
+  { label: "Failed", value: "FAILED" },
+];
+
+const transactionTypeOptions: Option[] = [
+  { label: "Deduction", value: "DEDUCTION" },
+  { label: "Refund", value: "REFUND" },
+  { label: "Top-Up", value: "TOPUP" },
+];
 
 const DEFAULT_SEARCH_COLUMNS = ["vendorProfileName", "message_id", "transactionType"];
 const DEFAULT_TABLE_COLUMNS = ["message_id", "vendorProfileName", "transactionType", "segments", "amount", "createdAt"];
-
 const BATCH_SIZE = 100;
-
 const LOAD_MORE_THRESHOLD_PX = 200;
 
 const VendorTransaction: React.FC = () => {
@@ -37,15 +65,12 @@ const VendorTransaction: React.FC = () => {
   const [loadedPage, setLoadedPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewData, setViewData] = useState<VendorTransactionData | null>(null);
 
-  // --- Context Menu States ---
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRowLog, setSelectedRowLog] = useState<VendorTransactionData | null>(null);
 
-  // --- Filters ---
   const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
@@ -58,7 +83,6 @@ const VendorTransaction: React.FC = () => {
     localStorage.setItem("vendortx_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
 
-  // EXACT CLONE: Dynamic Route Name
   const location = useLocation();
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const routeName = pathSegments[pathSegments.length - 1] || "vendorTransaction";
@@ -67,24 +91,30 @@ const VendorTransaction: React.FC = () => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   const allColumns: ColumnConfig[] = [
-    { key: "message_id", label: "Message ID", type: "text" },
-    { key: "vendorProfileName", label: "Vendor Name", type: "text" },
-    { key: "transactionType", label: "Type", type: "text" },
-    { key: "segments", label: "Segments", type: "text" },
-    { key: "ratePerSegment", label: "Rate Per Segment", type: "text" },
-    { key: "amount", label: "Amount", type: "text" },
-    { key: "balanceSpent", label: "Balance Spent", type: "text" },
-    { key: "createdAt", label: "Created At", type: "text", render: (log) => (<span>{log.createdAt ? new Date(log.createdAt).toLocaleString() : "-"}</span>) },
+    { key: "message_id", label: "Message ID", type: "text", filterKey: "message__message_id__icontains" },
+    { key: "vendorProfileName", label: "Vendor Name", type: "text", filterKey: "vendorProfileName__icontains" },
+    { key: "transactionType", label: "Type", type: "text", options: transactionTypeOptions, filterKey: "transactionType" },
+    { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status" },
+    { key: "chargePolicy", label: "Charge Policy", type: "text", options: chargePolicyOptions, filterKey: "chargePolicy" },
+    { key: "currency", label: "Currency", type: "text", filterKey: "currency__icontains" },
+    { key: "segments", label: "Segments", type: "number", filterKey: "segments" },
+    { key: "ratePerSegment", label: "Rate Per Segment", type: "number", filterKey: "ratePerSegment" },
+    { key: "amount", label: "Amount", type: "number", filterKey: "amount" },
+    { key: "balanceSpent", label: "Balance Spent", type: "number", filterKey: "balanceSpent" },
+
+    // --- Filter keys explicitly point to createdAt__range for both single day and date span ---
+    { key: "createdAt", label: "Created At (Single Day)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range", render: (log) => (<span>{log.createdAt ? new Date(log.createdAt).toLocaleString() : "-"}</span>) },
+    { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt__range", isSearchOnly: true },
   ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+  const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  // EXACT CLONE: Fetch Logic
   const fetchTransactions = async (
     filters: Record<string, string> | null = null,
     page: number = 1,
@@ -102,20 +132,15 @@ const VendorTransaction: React.FC = () => {
 
       searchColumns.forEach((key) => {
         const value = activeFilters[key];
-        if (value) {
-          const columnDef = allColumns.find((c) => c.key === key);
-          if (columnDef?.options) {
-            if (columnDef.filterKey) {
-              const selectedOption = columnDef.options.find((opt) => opt.value === value);
-              currentSearchParams[columnDef.filterKey] = selectedOption ? selectedOption.label : value;
-            } else {
-              currentSearchParams[key] = value;
-            }
-          } else if (columnDef?.type === "text") {
-            currentSearchParams[`${key}__icontains`] = value;
-          } else {
-            currentSearchParams[key] = value;
-          }
+        if (!value) return;
+        const columnDef = allColumns.find((c) => c.key === key);
+        const baseKey = columnDef?.filterKey || key;
+
+        if (columnDef?.options) {
+          const selectedOption = columnDef.options.find((opt) => opt.value === value);
+          currentSearchParams[baseKey] = selectedOption ? selectedOption.value : value;
+        } else {
+          currentSearchParams[baseKey] = value;
         }
       });
 
@@ -151,7 +176,6 @@ const VendorTransaction: React.FC = () => {
   useEffect(() => {
     fetchTransactions(undefined, 1, false);
     return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeName, searchColumns]);
 
   useEffect(() => {
@@ -184,7 +208,6 @@ const VendorTransaction: React.FC = () => {
 
   const handleView = (log: VendorTransactionData) => { setViewData(log); setIsModalOpen(true); };
 
-  // --- Context Menu ---
   const handleContextMenu = (e: React.MouseEvent, log: VendorTransactionData) => {
     e.preventDefault();
     setContextMenuPos({ x: e.clientX, y: e.clientY });
@@ -195,7 +218,8 @@ const VendorTransaction: React.FC = () => {
     { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowLog) },
   ] : [];
 
-  const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.label)];
+  const tableHeaders = ["S.N", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
+  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
 
   const hasLoggedOpening = useRef(false);
 
@@ -222,7 +246,7 @@ const VendorTransaction: React.FC = () => {
             <AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={(newCols) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+            <AdvancedFilter columns={tableFilterColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
           </div>
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
@@ -235,10 +259,72 @@ const VendorTransaction: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label);
+
           if (col.options) {
-            return <Select key={col.key} label={col.label} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${col.label}`} />;
+            return <Select key={col.key} label={baseLabel} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} />;
           }
-          return <Input key={col.key} label={col.label} value={filterValues[col.key] || ""} onChange={(e) => handleFilterChange(col.key, e.target.value)} placeholder={`Search ${col.label}`} />;
+          if (col.type === "date") {
+            const rawVal = filterValues[col.key] || "";
+            const datePart = rawVal.split("T")[0];
+
+            return (
+              <DatePicker
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                selected={datePart ? new Date(datePart) : null}
+                onChange={(val: Date | null) => {
+                  if (val) {
+                    const formatted = formatLocalDate(val);
+                    handleFilterChange(col.key, `${formatted}T00:00:00,${formatted}T23:59:59`);
+                  } else {
+                    handleFilterChange(col.key, "");
+                  }
+                }}
+              />
+            );
+          }
+          if (col.type === "date_range") {
+            const [startRange, endRange] = (filterValues[col.key] || "").split(",");
+            const startStr = startRange ? startRange.split("T")[0] : "";
+            const endStr = endRange ? endRange.split("T")[0] : "";
+
+            return (
+              <React.Fragment key={col.key}>
+                <DatePicker
+                  label={`Search ${baseLabel} (From)`}
+                  selected={startStr ? new Date(startStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newStart = val ? formatLocalDate(val) : "";
+                    const currentEnd = endStr || "";
+                    if (newStart || currentEnd) {
+                      const startVal = newStart ? `${newStart}T00:00:00` : "";
+                      const endVal = currentEnd ? `${currentEnd}T23:59:59` : "";
+                      handleFilterChange(col.key, `${startVal},${endVal}`);
+                    } else {
+                      handleFilterChange(col.key, "");
+                    }
+                  }}
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (To)`}
+                  selected={endStr ? new Date(endStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newEnd = val ? formatLocalDate(val) : "";
+                    const currentStart = startStr || "";
+                    if (currentStart || newEnd) {
+                      const startVal = currentStart ? `${currentStart}T00:00:00` : "";
+                      const endVal = newEnd ? `${newEnd}T23:59:59` : "";
+                      handleFilterChange(col.key, `${startVal},${endVal}`);
+                    } else {
+                      handleFilterChange(col.key, "");
+                    }
+                  }}
+                />
+              </React.Fragment>
+            );
+          }
+          return <Input key={col.key} label={baseLabel} value={filterValues[col.key] || ""} onChange={(e) => handleFilterChange(col.key, e.target.value)} placeholder={`Search ${baseLabel}`} />;
         })}
       </FilterCard>
 
@@ -274,7 +360,7 @@ const VendorTransaction: React.FC = () => {
           isLoading={isLoading}
           renderRow={(log, index) => (
             <tr key={log.id || index} onContextMenu={(e) => handleContextMenu(e, log)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
-              <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{index + 1}</td>
+              <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{index + 1}</td>
               {visibleTableFields.map((col) => {
                 let cellData = (log as any)[col.key];
                 if (col.render) return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{col.render(log)}</td>;

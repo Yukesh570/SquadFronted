@@ -13,6 +13,9 @@ export interface VendorTransactionData {
   balanceSpent: string | number;
   description: string;
   createdAt: string;
+  chargePolicy?: string;
+  status?: string;
+  currency?: string;
 }
 
 export interface ClientTransactionData {
@@ -28,9 +31,9 @@ export interface ClientTransactionData {
   balanceSpent: string | number;
   description: string;
   createdAt: string;
-  chargePolicy?: string; // 
-  status?: string;       //
-  currency?: string;     //
+  chargePolicy?: string;
+  status?: string;
+  currency?: string;
 }
 
 export interface PaginatedResponse<T> {

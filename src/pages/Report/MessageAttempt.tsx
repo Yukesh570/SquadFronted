@@ -23,10 +23,14 @@ interface Option { label: string; value: string; }
 interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; isSearchable?: boolean; isSearchOnly?: boolean; tableLabel?: string; }
 
 const statusOptions: Option[] = [
-  { label: "QUEUED", value: "QUEUED" },
+  { label: "ATTEMPTING", value: "ATTEMPTING" },
   { label: "SUBMITTED", value: "SUBMITTED" },
+  { label: "SENT TO VENDOR", value: "SENT_TO_VENDOR" },
   { label: "FAILED", value: "FAILED" },
   { label: "DELIVERED", value: "DELIVERED" },
+  { label: "REJECTED", value: "REJECTED" },
+  { label: "UNDELIVERED", value: "UNDELIVERED" },
+  { label: "EXPIRED", value: "EXPIRED" },
 ];
 
 const formatLocalDate = (date: Date) => {
@@ -84,7 +88,8 @@ const MessageAttempt: React.FC = () => {
   const allColumns: ColumnConfig[] = [
     { key: "id", label: "Attempt ID", type: "text", isSearchable: false },
     { key: "message", label: "Message ID", type: "text", isSearchable: false },
-    { key: "attempt_number", label: "Attempt Number", type: "text" },
+    { key: "segment", label: "Segment ID", type: "text", isSearchable: false },
+    { key: "attempt_number", label: "Attempt Number", type: "text" , isSearchable: false },
     { key: "provider", label: "Provider", type: "text", filterKey: "provider__icontains" },
     { key: "vendorMessageId", label: "Vendor Message ID", type: "text", filterKey: "vendorMessageId__icontains" },
     {
@@ -113,11 +118,6 @@ const MessageAttempt: React.FC = () => {
   // ⚡️ "Columns" dropdown should not offer the range search-only variant as a table column
   const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
 
-  /**
-   * Fetches a page of attempts.
-   * - append = false (default): fresh search/clear/initial load. Replaces `attempts`.
-   * - append = true: infinite-scroll batch. Appends to `attempts`.
-   */
   const fetchAttempts = async (
     filters: Record<string, string> | null = null,
     page: number = 1,
