@@ -52,3 +52,23 @@ body {
   background-color: #f3f4f6 !important;
   border-radius: 0.5rem !important;
 }
+@keyframes selectedPulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.selected-bar-animate {
+  animation: selectedPulse 1.5s infinite ease-in-out;
+}
+
+/* Force remove focus rings on all recharts components */
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-surface,
+.recharts-surface:focus,
+.recharts-responsive-container,
+.recharts-responsive-container:focus,
+.recharts-default-tooltip {
+  outline: none !important;
+}

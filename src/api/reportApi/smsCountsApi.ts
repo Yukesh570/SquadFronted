@@ -151,3 +151,17 @@ export const getSmsDailyApi = async (
   });
   return response.data;
 };
+
+export interface FailureReasonCountsData {
+  failure_reason: string;
+  count: number;
+}
+
+export const getFailureReasonCountsApi = async (
+  searchParams?: Record<string, any>
+): Promise<FailureReasonCountsData[]> => {
+  const response = await api.get("/failureReasonCounts/", {
+    params: searchParams,
+  });
+  return response.data;
+};

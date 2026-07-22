@@ -62,6 +62,8 @@ import {
   type LatencyStatsData,
   getSmsStatsApi,
   type SmsDailyData,
+  getFailureReasonCountsApi,
+  type FailureReasonCountsData,
 } from "../../api/reportApi/smsCountsApi";
 
 import { getGeneralSettingsApi } from "../../api/settingApi/generalSettingsApi/generalSettingsApi";
@@ -142,6 +144,9 @@ const Dashboard: React.FC = () => {
   // --- Analytics: failure / vendor+route / client / geo / latency ---
   const [failureBreakdown, setFailureBreakdown] = useState<FailureBreakdownData[]>([]);
   const [isFailureLoading, setIsFailureLoading] = useState(true);
+  const [selectedFailureCategory, setSelectedFailureCategory] = useState<string | null>(null);
+  const [failureReasonCounts, setFailureReasonCounts] = useState<FailureReasonCountsData[]>([]);
+  const [isFailureReasonCountsLoading, setIsFailureReasonCountsLoading] = useState(true);
   const [vendorPerformance, setVendorPerformance] = useState<VendorPerformanceData[]>([]);
   const [isVendorLoading, setIsVendorLoading] = useState(true);
   const [clientPerformance, setClientPerformance] = useState<ClientPerformanceData[]>([]);
@@ -161,10 +166,14 @@ const Dashboard: React.FC = () => {
     { key: "30d", label: "Last 30 Days" },
     { key: "90d", label: "Last 90 Days" },
     { key: "365d", label: "Last Year" },
-    { key: "all", label: "All" },
   ];
 
   const [activeRange, setActiveRange] = useState<RangeKey>("today");
+  const activeRangeRef = React.useRef<RangeKey>(activeRange);
+
+  useEffect(() => {
+    activeRangeRef.current = activeRange;
+  }, [activeRange]);
   const [rangeOpen, setRangeOpen] = useState(false);
 
   const buildParams = (range: RangeKey): Record<string, any> => {
@@ -305,6 +314,19 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const fetchFailureReasonCounts = async (range: RangeKey, category: string) => {
+    setIsFailureReasonCountsLoading(true);
+    try {
+      const data = await getFailureReasonCountsApi({ ...buildParams(range), category });
+      setFailureReasonCounts(data);
+    } catch (e) {
+      console.error("fetchFailureReasonCounts failed", e);
+      setFailureReasonCounts([]);
+    } finally {
+      setIsFailureReasonCountsLoading(false);
+    }
+  };
+
   const fetchVendorPerformance = async (range: RangeKey) => {
     setIsVendorLoading(true);
     try {
@@ -387,7 +409,17 @@ const Dashboard: React.FC = () => {
     fetchTrafficTraffic(activeRange);
     fetchDlrStats(activeRange);
     fetchRevenue(activeRange);
+    // Reset selected category when range changes
+    setSelectedFailureCategory(null);
   }, [activeRange]);
+
+  useEffect(() => {
+    if (selectedFailureCategory) {
+      fetchFailureReasonCounts(activeRange, selectedFailureCategory);
+    } else {
+      setFailureReasonCounts([]);
+    }
+  }, [activeRange, selectedFailureCategory]);
 
   useEffect(() => {
     fetchActiveSessions();
@@ -398,12 +430,32 @@ const Dashboard: React.FC = () => {
     fetchCurrencySymbol(); // ⚡️ Called once on mount
 
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
-    if (!wsBase) return;
+    if (!wsBase) {
+      console.error("WebSocket Error: VITE_WS_BASE_URL is missing in your .env file!");
+      return;
+    }
 
-    const ws = new WebSocket(`${wsBase}/ws/status/`);
+    const wsUrl = `${wsBase}/ws/status/`;
+    console.log(`Attempting to connect to WebSocket at: ${wsUrl}`);
+
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log("WebSocket connected successfully!");
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket encountered an error. Is the backend ASGI server running?", error);
+    };
+
+    ws.onclose = (event) => {
+      console.warn("WebSocket closed.", event.reason);
+    };
+
     ws.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
+        console.log("WebSocket Message Received:", payload);
         if (payload.action === "session_update") {
           // Respect auto-refresh toggles for session updates
           if (isMetricsLiveRef.current) fetchActiveSessions();
@@ -411,8 +463,8 @@ const Dashboard: React.FC = () => {
         } else if (payload.action === "dashboard_metrics_update") {
           const { data } = payload;
 
-          // ⚡️ APPLY PART 1 (METRICS) TOGGLE CHECK
-          if (isMetricsLiveRef.current) {
+          // ⚡️ APPLY PART 1 (METRICS) TOGGLE CHECK (Only apply if viewing "today")
+          if (isMetricsLiveRef.current && activeRangeRef.current === "today") {
             if (data.smsStats) {
               setTotalSms(Number(data.smsStats.count).toLocaleString());
               setDeliveredCount(Number(data.smsStats.deliveredCount).toLocaleString());
@@ -447,8 +499,8 @@ const Dashboard: React.FC = () => {
             }
           }
 
-          // ⚡️ APPLY PART 2 (ANALYTICS) TOGGLE CHECK
-          if (isAnalyticsLiveRef.current) {
+          // ⚡️ APPLY PART 2 (ANALYTICS) TOGGLE CHECK (Only apply if viewing "today")
+          if (isAnalyticsLiveRef.current && activeRangeRef.current === "today") {
             if (data.failureBreakdown) {
               setFailureBreakdown(data.failureBreakdown);
               setIsFailureLoading(false);
@@ -617,7 +669,7 @@ const Dashboard: React.FC = () => {
             checked={isMetricsLive}
             onChange={setIsMetricsLive}
           />
-          
+
           {/* Range dropdown */}
           <div className="relative">
             <button
@@ -1001,11 +1053,12 @@ const Dashboard: React.FC = () => {
                 Loading failure data…
               </div>
             ) : failureBreakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" style={{ outline: 'none' }}>
                 <BarChart
                   data={failureBreakdown}
                   layout="vertical"
                   margin={{ top: 10, right: 20, left: 10, bottom: 0 }}
+                  style={{ outline: "none" }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -1035,7 +1088,29 @@ const Dashboard: React.FC = () => {
                     }}
                     cursor={{ fill: isDark ? "#37415133" : "#f3f4f633" }}
                   />
-                  <Bar dataKey="count" fill="var(--color-primary)" radius={[0, 4, 4, 0]} />
+                  <Bar
+                    dataKey="count"
+                    radius={[0, 4, 4, 0]}
+                    minPointSize={5}
+                    onClick={(data: any) => {
+                      if (data && data.category) {
+                        setSelectedFailureCategory(data.category);
+                      }
+                    }}
+                    cursor="pointer"
+                  >
+                    {failureBreakdown.map((entry, index) => {
+                      const isSelected = entry.category === selectedFailureCategory;
+                      return (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={isSelected ? "var(--color-primary)" : (isDark ? "#4ade8080" : "#86efac")}
+                          className={isSelected ? "selected-bar-animate" : ""}
+                          style={{ outline: "none" }}
+                        />
+                      );
+                    })}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -1088,7 +1163,63 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Row 7: Vendor Performance + Client Performance + Geographic Breakdown */}
+      {/* Row 7: Detailed Error Messages (Raw) */}
+      {selectedFailureCategory && (
+        <div className="mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-text-primary dark:text-white flex items-center gap-2">
+                <AlertTriangle size={18} className="text-primary" />
+                Detailed Error "{selectedFailureCategory}" ({activeRangeLabel})
+              </h3>
+              <Button variant="secondary" size="sm" onClick={() => setSelectedFailureCategory(null)}>
+                Close Details
+              </Button>
+            </div>
+            <div className="overflow-x-auto custom-scrollbar max-h-[300px]">
+              <table className="w-full text-left border-collapse">
+                <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800">
+                  <tr className="border-b border-gray-100 dark:border-gray-700">
+                    <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Error Reason</th>
+                    <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400 w-32 text-right">Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isFailureReasonCountsLoading ? (
+                    <tr>
+                      <td colSpan={2} className="p-10 text-center text-sm text-text-secondary dark:text-gray-500">
+                        Loading error details…
+                      </td>
+                    </tr>
+                  ) : failureReasonCounts.length > 0 ? (
+                    failureReasonCounts.map((f, i) => (
+                      <tr
+                        key={i}
+                        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      >
+                        <td className="p-4 text-sm text-text-secondary dark:text-gray-300 break-words whitespace-normal">
+                          {f.failure_reason || "Unknown"}
+                        </td>
+                        <td className="p-4 text-sm font-medium text-text-primary dark:text-white text-right">
+                          {f.count.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={2} className="p-10 text-center text-sm text-text-secondary dark:text-gray-500">
+                        No errors recorded for this range.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Row 8: Vendor Performance + Client Performance + Geographic Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* Vendor & Route Performance */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
