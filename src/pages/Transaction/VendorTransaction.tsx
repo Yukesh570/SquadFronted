@@ -25,10 +25,17 @@ interface ColumnConfig extends FilterColumn {
 const DEFAULT_SEARCH_COLUMNS = ["vendorProfileName", "message_id", "transactionType"];
 const DEFAULT_TABLE_COLUMNS = ["message_id", "vendorProfileName", "transactionType", "segments", "amount", "createdAt"];
 
+const BATCH_SIZE = 100;
+
+const LOAD_MORE_THRESHOLD_PX = 200;
+
 const VendorTransaction: React.FC = () => {
   const [transactions, setTransactions] = useState<VendorTransactionData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [loadedPage, setLoadedPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,14 +58,13 @@ const VendorTransaction: React.FC = () => {
     localStorage.setItem("vendortx_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
 
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-
   // EXACT CLONE: Dynamic Route Name
   const location = useLocation();
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const routeName = pathSegments[pathSegments.length - 1] || "vendorTransaction";
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   const allColumns: ColumnConfig[] = [
     { key: "message_id", label: "Message ID", type: "text" },
@@ -79,11 +85,16 @@ const VendorTransaction: React.FC = () => {
   };
 
   // EXACT CLONE: Fetch Logic
-  const fetchTransactions = async (filters: Record<string, string> | null = null) => {
+  const fetchTransactions = async (
+    filters: Record<string, string> | null = null,
+    page: number = 1,
+    append: boolean = false,
+  ) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
-    setIsLoading(true);
+    if (append) setIsFetchingMore(true);
+    else setIsLoading(true);
 
     try {
       const activeFilters = filters || filterValues;
@@ -108,41 +119,67 @@ const VendorTransaction: React.FC = () => {
         }
       });
 
-      const response: any = await getVendorTransactionsApi(routeName, currentPage, rowsPerPage, currentSearchParams);
+      const response: any = await getVendorTransactionsApi(routeName, page, BATCH_SIZE, currentSearchParams);
       
       if (newController.signal.aborted) return;
       
       if (response && response.results) {
-        setTransactions(response.results);
+        setTransactions((prev) => (append ? [...prev, ...response.results] : response.results));
         setTotalItems(response.count);
+        setHasMore(Boolean(response.next));
+        setLoadedPage(page);
       } else if (Array.isArray(response)) {
-        setTransactions(response);
+        setTransactions((prev) => (append ? [...prev, ...response] : response));
         setTotalItems(response.length);
+        setHasMore(false);
+        setLoadedPage(page);
       } else {
-        setTransactions([]);
+        if (!append) setTransactions([]);
         setTotalItems(0);
+        setHasMore(false);
       }
     } catch (error: any) {
       if (error.name !== "AbortError") toast.error("Failed to fetch vendor transactions.");
     } finally {
-      if (abortControllerRef.current === newController) setIsLoading(false);
+      if (abortControllerRef.current === newController) {
+        setIsLoading(false);
+        setIsFetchingMore(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchTransactions();
+    fetchTransactions(undefined, 1, false);
     return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
-  }, [routeName, currentPage, rowsPerPage, searchColumns]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeName, searchColumns]);
+
+  useEffect(() => {
+    const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(
+      ".custom-scrollbar",
+    );
+    if (!scrollEl) return;
+
+    const handleScroll = () => {
+      if (isLoading || isFetchingMore || !hasMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = scrollEl;
+      if (scrollHeight - scrollTop - clientHeight < LOAD_MORE_THRESHOLD_PX) {
+        fetchTransactions(filterValues, loadedPage + 1, true);
+      }
+    };
+
+    scrollEl.addEventListener("scroll", handleScroll);
+    return () => scrollEl.removeEventListener("scroll", handleScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, transactions.length]);
 
   const handleSearch = () => {
-    setCurrentPage(1);
-    fetchTransactions();
+    fetchTransactions(undefined, 1, false);
   };
 
   const handleClearFilters = () => {
     setFilterValues({});
-    setCurrentPage(1);
-    fetchTransactions({});
+    fetchTransactions({}, 1, false);
   };
 
   const handleView = (log: VendorTransactionData) => { setViewData(log); setIsModalOpen(true); };
@@ -205,28 +242,54 @@ const VendorTransaction: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable
-        serverSide={true}
-        data={transactions}
-        totalItems={totalItems}
-        currentPage={currentPage}
-        rowsPerPage={rowsPerPage}
-        onPageChange={setCurrentPage}
-        onRowsPerPageChange={setRowsPerPage}
-        headers={tableHeaders}
-        isLoading={isLoading}
-        renderRow={(log, index) => (
-          <tr key={log.id || index} onContextMenu={(e) => handleContextMenu(e, log)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
-            {visibleTableFields.map((col) => {
-              let cellData = (log as any)[col.key];
-              if (col.render) return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{col.render(log)}</td>;
-              if (col.options) { const match = col.options.find((opt) => opt.value === String(cellData)); cellData = match ? match.label : cellData; }
-              return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{cellData || "-"}</td>;
-            })}
-          </tr>
+      <style>{`
+        .vendor-transaction-table > div > div:first-child > div:first-child > div:first-child {
+          display: none !important;
+        }
+        .vendor-transaction-table > div > div:first-child > div:first-child > div:last-child {
+          display: none !important;
+        }
+        .vendor-transaction-table td {
+          padding-top: 0.625rem !important;
+          padding-bottom: 0.625rem !important;
+        }
+        .vendor-transaction-table th {
+          padding-top: 0.5rem !important;
+          padding-bottom: 0.5rem !important;
+        }
+        .vendor-transaction-table th:first-child,
+        .vendor-transaction-table td:first-child {
+          min-width: 56px !important;
+          width: 56px !important;
+        }
+      `}</style>
+
+      <div ref={tableWrapperRef} className="vendor-transaction-table">
+        <DataTable
+          serverSide={true}
+          data={transactions}
+          totalItems={totalItems}
+          rowsPerPage={BATCH_SIZE}
+          headers={tableHeaders}
+          isLoading={isLoading}
+          renderRow={(log, index) => (
+            <tr key={log.id || index} onContextMenu={(e) => handleContextMenu(e, log)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
+              <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{index + 1}</td>
+              {visibleTableFields.map((col) => {
+                let cellData = (log as any)[col.key];
+                if (col.render) return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{col.render(log)}</td>;
+                if (col.options) { const match = col.options.find((opt) => opt.value === String(cellData)); cellData = match ? match.label : cellData; }
+                return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{cellData || "-"}</td>;
+              })}
+            </tr>
+          )}
+        />
+        {isFetchingMore && (
+          <div className="text-center text-xs text-text-secondary dark:text-gray-400 py-2">
+            Loading more...
+          </div>
         )}
-      />
+      </div>
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
       <VendorTransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} viewData={viewData} />

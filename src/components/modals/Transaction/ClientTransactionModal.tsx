@@ -36,7 +36,19 @@ export const ClientTransactionModal: React.FC<ClientTransactionModalProps> = ({
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Client Name</label>
             <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.clientName || "-"}</div>
           </div>
+<div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Status</label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.status || "-"}</div>
+          </div>
           <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Charge Policy</label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.chargePolicy || "-"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Currency</label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.currency || "-"}</div>
+          </div>
+                    <div>
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Segments</label>
             <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.segments || "0"}</div>
           </div>
