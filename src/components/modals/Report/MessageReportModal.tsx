@@ -58,6 +58,32 @@ export const MessageReportModal: React.FC<MessageReportModalProps> = ({
               {viewLog.createdAt ? new Date(viewLog.createdAt).toLocaleString() : "-"}
             </div>
           </div>
+
+          {/* Timestamps Row */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
+              Sent At
+            </label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">
+              {viewLog.sent_at ? new Date(viewLog.sent_at).toLocaleString() : "-"}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
+              Delivered At
+            </label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">
+              {viewLog.delivered_at ? new Date(viewLog.delivered_at).toLocaleString() : "-"}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
+              Failed At
+            </label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">
+              {viewLog.failed_at ? new Date(viewLog.failed_at).toLocaleString() : "-"}
+            </div>
+          </div>
           <div>
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
               Failure Reason
@@ -67,7 +93,7 @@ export const MessageReportModal: React.FC<MessageReportModalProps> = ({
             </div>
           </div>
 
-          {/* Row 2 */}
+          {/* Account Details */}
           <div>
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
               Client
@@ -101,7 +127,7 @@ export const MessageReportModal: React.FC<MessageReportModalProps> = ({
             </div>
           </div>
 
-          {/* Row 3 */}
+          {/* Payload Meta */}
           <div>
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
               Encoding

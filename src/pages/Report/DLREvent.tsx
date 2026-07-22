@@ -15,18 +15,20 @@ import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedF
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { DLREventModal } from "../../components/modals/Report/DLREventModal";
 import { actionHelper } from "../../helper/action";
-
-// ⚡️ FIX: Import the StatusBadge
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
 interface Option { label: string; value: string; }
 interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; isSearchable?: boolean; isSearchOnly?: boolean; tableLabel?: string; }
 
+// ⚡️ Choice options matching backend EVENT_TYPE_CHOICES exactly
 const statusOptions: Option[] = [
-  { label: "QUEUED", value: "QUEUED" },
-  { label: "SUBMITTED", value: "SUBMITTED" },
-  { label: "FAILED", value: "FAILED" },
-  { label: "DELIVERED", value: "DELIVERED" },
+  { label: "Submitted", value: "SUBMITTED" },
+  { label: "Delivered", value: "DELIVERED" },
+  { label: "Queued", value: "QUEUED" },
+  { label: "Failed", value: "FAILED" },
+  { label: "Rejected", value: "REJECTED" },
+  { label: "Expired", value: "EXPIRED" },
+  { label: "Undelivered", value: "UNDELIVERED" },
 ];
 
 const formatLocalDate = (date: Date) => {
@@ -39,20 +41,14 @@ const formatLocalDate = (date: Date) => {
 const DEFAULT_SEARCH_COLUMNS = ["event_type", "status_code", "vendorMessageId"];
 const DEFAULT_TABLE_COLUMNS = ["id", "vendorMessageId", "event_type", "segment_number", "status_code", "received_at"];
 
-// Fixed batch size for infinite scroll. Pagination UI is hidden for this
-// page only, so this is no longer user-adjustable — it's just the page
-// size used per fetch.
 const BATCH_SIZE = 100;
-
-// How close (in px) to the bottom of the scroll container before we
-// trigger the next batch fetch.
 const LOAD_MORE_THRESHOLD_PX = 200;
 
 const DLREvent: React.FC = () => {
   const [events, setEvents] = useState<DLREventData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
-  const [isLoading, setIsLoading] = useState(true); // initial / fresh search load
-  const [isFetchingMore, setIsFetchingMore] = useState(false); // infinite-scroll load
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [loadedPage, setLoadedPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -77,35 +73,33 @@ const DLREvent: React.FC = () => {
 
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
-
   const allColumns: ColumnConfig[] = [
-    { key: "id", label: "DLR ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
-    { key: "message", label: "Message ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND (only message__destination exists, not bare "message")
-    { key: "segment", label: "Segment ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
-    { key: "vendorMessageId", label: "Vendor Message ID", type: "text", filterKey: "vendorMessageId__icontains" }, // ⚡️ still mismatched vs backend's provider_message_id, left untouched per scope
+    { key: "id", label: "DLR ID", type: "text", isSearchable: false },
+    { key: "message", label: "Message ID", type: "text", isSearchable: false },
+    { key: "segment", label: "Segment ID", type: "text", isSearchable: false },
+    { key: "vendorMessageId", label: "Vendor Message ID", type: "text", filterKey: "vendorMessageId__icontains" },
     {
       key: "event_type",
       label: "Event Type",
       type: "text",
       options: statusOptions,
       filterKey: "event_type",
-      // ⚡️ FIX: Implemented generic StatusBadge
       render: (log) => <StatusBadge status={log.event_type} />
     },
     { key: "segment_number", label: "Segment Number", type: "text", filterKey: "segment_number__icontains" },
     { key: "status_code", label: "Status Code", type: "text", filterKey: "status_code__icontains" },
-    { key: "status_description", label: "Status Description", type: "text", filterKey: "status_description__icontains", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
-    { key: "received_at", label: "Received At", tableLabel: "Received At", type: "date", render: (data: any) => data.received_at ? new Date(data.received_at).toLocaleString() : "-" },
-    { key: "received_at__range", label: "Received At", type: "date_range", filterKey: "received_at", isSearchOnly: true },
-    { key: "raw_payload", label: "Raw Payload", type: "text", render: (data: any) => data.raw_payload ? "{...}" : "-", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "status_description", label: "Status Description", type: "text", filterKey: "status_description__icontains", isSearchable: false },
+    
+    // --- Filter keys explicitly point to received_at__range ---
+    { key: "received_at", label: "Received At (Single Day)", tableLabel: "Received At", type: "date", filterKey: "received_at__range", render: (data: any) => data.received_at ? new Date(data.received_at).toLocaleString() : "-" },
+    { key: "received_at__range", label: "Received At (Range)", type: "date_range", filterKey: "received_at__range", isSearchOnly: true },
+    
+    { key: "raw_payload", label: "Raw Payload", type: "text", render: (data: any) => data.raw_payload ? "{...}" : "-", isSearchable: false },
   ];
 
-  // ⚡️ Only allow searchable columns to be populated in the "Search Fields" dropdown
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
-
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
-  // ⚡️ "Columns" dropdown should not offer the range search-only variant as a table column
   const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
 
   const fetchEvents = async (
@@ -120,14 +114,15 @@ const DLREvent: React.FC = () => {
       const activeFilters = filters || filterValues;
       const cleanParams: Record<string, string> = {};
 
-      Object.entries(activeFilters).forEach(([key, value]) => {
+      searchColumns.forEach((key) => {
+        const value = activeFilters[key];
         if (!value) return;
-        const colDef = allColumns.find(c => c.key === key);
+        const colDef = allColumns.find((c) => c.key === key);
         const baseKey = colDef?.filterKey || key;
 
-        if (colDef?.type === "date_range") {
-          const [start, end] = value.split(",");
-          if (start && end) cleanParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
+        if (colDef?.options) {
+          const selectedOption = colDef.options.find((opt) => opt.value === value);
+          cleanParams[baseKey] = selectedOption ? selectedOption.value : value;
         } else {
           cleanParams[baseKey] = value;
         }
@@ -154,9 +149,6 @@ const DLREvent: React.FC = () => {
 
   useEffect(() => { fetchEvents(undefined, 1, false); }, [searchColumns]);
 
-  // Infinite scroll: listen on DataTable's internal scroll container
-  // (class "custom-scrollbar", defined inside DataTable.tsx) via the
-  // wrapper ref, since DataTable itself isn't being modified.
   useEffect(() => {
     const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(
       ".custom-scrollbar",
@@ -185,6 +177,8 @@ const DLREvent: React.FC = () => {
   const menuItems: ContextMenuItem[] = selectedRow ? [
     { label: "View Details", icon: <Eye size={16} />, onClick: () => { setViewLog(selectedRow); setIsModalOpen(true); } },
   ] : [];
+
+  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
 
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
@@ -216,48 +210,75 @@ const DLREvent: React.FC = () => {
 
       <FilterCard onSearch={() => { fetchEvents(undefined, 1, false); }} onClear={() => { setFilterValues({}); fetchEvents({}, 1, false); }}>
         {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label);
+
           if (col.options) {
             return (
               <Select
                 key={col.key}
-                label={`Search ${col.label}`}
+                label={baseLabel}
                 value={filterValues[col.key] || ""}
                 onChange={(val) => setFilterValues(p => ({ ...p, [col.key]: val }))}
                 options={col.options}
-                placeholder={`Select ${col.label}`}
+                placeholder={`Select ${baseLabel}`}
               />
             );
           }
           if (col.type === "date") {
+            const rawVal = filterValues[col.key] || "";
+            const datePart = rawVal.split("T")[0];
+
             return (
               <DatePicker
                 key={col.key}
-                label={`Search ${col.label}`}
-                selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
-                onChange={(val: Date | null) => setFilterValues(p => ({ ...p, [col.key]: val ? formatLocalDate(val) : "" }))}
+                label={`Search ${baseLabel}`}
+                selected={datePart ? new Date(datePart) : null}
+                onChange={(val: Date | null) => {
+                  if (val) {
+                    const formatted = formatLocalDate(val);
+                    setFilterValues(p => ({ ...p, [col.key]: `${formatted}T00:00:00,${formatted}T23:59:59` }));
+                  } else {
+                    setFilterValues(p => ({ ...p, [col.key]: "" }));
+                  }
+                }}
               />
             );
           }
           if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
+            const [startRange, endRange] = (filterValues[col.key] || "").split(",");
+            const startStr = startRange ? startRange.split("T")[0] : "";
+            const endStr = endRange ? endRange.split("T")[0] : "";
+
             return (
               <React.Fragment key={col.key}>
                 <DatePicker
-                  label={`Search ${col.label} (From)`}
+                  label={`Search ${baseLabel} (From)`}
                   selected={startStr ? new Date(startStr) : null}
                   onChange={(val: Date | null) => {
                     const newStart = val ? formatLocalDate(val) : "";
                     const currentEnd = endStr || "";
-                    setFilterValues(p => ({ ...p, [col.key]: newStart || currentEnd ? `${newStart},${currentEnd}` : "" }));
+                    if (newStart || currentEnd) {
+                      const startVal = newStart ? `${newStart}T00:00:00` : "";
+                      const endVal = currentEnd ? `${currentEnd}T23:59:59` : "";
+                      setFilterValues(p => ({ ...p, [col.key]: `${startVal},${endVal}` }));
+                    } else {
+                      setFilterValues(p => ({ ...p, [col.key]: "" }));
+                    }
                   }}
                 />
                 <DatePicker
-                  label={`Search ${col.label} (To)`}
+                  label={`Search ${baseLabel} (To)`}
                   selected={endStr ? new Date(endStr) : null}
                   onChange={(val: Date | null) => {
                     const newEnd = val ? formatLocalDate(val) : "";
                     const currentStart = startStr || "";
-                    setFilterValues(p => ({ ...p, [col.key]: currentStart || newEnd ? `${currentStart},${newEnd}` : "" }));
+                    if (currentStart || newEnd) {
+                      const startVal = currentStart ? `${currentStart}T00:00:00` : "";
+                      const endVal = newEnd ? `${newEnd}T23:59:59` : "";
+                      setFilterValues(p => ({ ...p, [col.key]: `${startVal},${endVal}` }));
+                    } else {
+                      setFilterValues(p => ({ ...p, [col.key]: "" }));
+                    }
                   }}
                 />
               </React.Fragment>
@@ -266,10 +287,10 @@ const DLREvent: React.FC = () => {
           return (
             <Input
               key={col.key}
-              label={`Search ${col.label}`}
+              label={`Search ${baseLabel}`}
               value={filterValues[col.key] || ""}
               onChange={(e) => setFilterValues(p => ({ ...p, [col.key]: e.target.value }))}
-              placeholder={`Search ${col.label}`}
+              placeholder={`Search ${baseLabel}`}
             />
           );
         })}

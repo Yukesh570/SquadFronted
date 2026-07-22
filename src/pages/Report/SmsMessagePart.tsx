@@ -27,23 +27,32 @@ interface ColumnConfig extends FilterColumn {
 }
 
 const DLR_STATUS_COLORS: Record<string, { bg: string; text: string; border: string; label: string }> = {
+  PENDING: { bg: "#FEF3C7", text: "#92400E", border: "#F59E0B", label: "Pending" },
+  QUEUED: { bg: "#F3F4F6", text: "#374151", border: "#6B7280", label: "Queued" },
+  SUBMITTING: { bg: "#F3E8FF", text: "#6B21A8", border: "#9333EA", label: "Submitting" },
+  SENT_TO_VENDOR: { bg: "#E0E7FF", text: "#3730A3", border: "#4F46E5", label: "Sent to Vendor" },
   DELIVERED: { bg: "#DCFCE7", text: "#166534", border: "#16A34A", label: "Delivered" },
   SUBMITTED: { bg: "#DBEAFE", text: "#1E40AF", border: "#2563EB", label: "Submitted" },
-  SENT_TO_VENDOR: { bg: "#E0E7FF", text: "#3730A3", border: "#4F46E5", label: "Sent to Vendor" },
-  SUBMITTING: { bg: "#F3E8FF", text: "#6B21A8", border: "#9333EA", label: "Submitting" },
-  QUEUED: { bg: "#F3F4F6", text: "#374151", border: "#6B7280", label: "Queued" },
-  PENDING: { bg: "#FEF3C7", text: "#92400E", border: "#F59E0B", label: "Pending" },
-  UNDELIVERED: { bg: "#FFEDD5", text: "#9A3412", border: "#EA580C", label: "Undelivered" },
   FAILED: { bg: "#FEE2E2", text: "#991B1B", border: "#DC2626", label: "Failed" },
   REJECTED: { bg: "#FEE2E2", text: "#7F1D1D", border: "#991B1B", label: "Rejected" },
+  UNDELIVERED: { bg: "#FFEDD5", text: "#9A3412", border: "#EA580C", label: "Undelivered" },
   EXPIRED: { bg: "#FEF3C7", text: "#78350F", border: "#92400E", label: "Expired" },
   UNKNOWN: { bg: "#E2E8F0", text: "#334155", border: "#475569", label: "Unknown" },
 };
 
-const statusOptions: Option[] = Object.keys(DLR_STATUS_COLORS).map((key) => ({
-  label: DLR_STATUS_COLORS[key].label,
-  value: key,
-}));
+// ⚡️ Choice options matching backend STATUS_CHOICES exactly
+const statusOptions: Option[] = [
+  { label: "Pending", value: "PENDING" },
+  { label: "Queued", value: "QUEUED" },
+  { label: "Submitting", value: "SUBMITTING" },
+  { label: "Sent to Vendor", value: "SENT_TO_VENDOR" },
+  { label: "Delivered", value: "DELIVERED" },
+  { label: "Submitted", value: "SUBMITTED" },
+  { label: "Failed", value: "FAILED" },
+  { label: "Rejected", value: "REJECTED" },
+  { label: "Undelivered", value: "UNDELIVERED" },
+  { label: "Expired", value: "EXPIRED" },
+];
 
 const renderStatusBadge = (status?: string) => {
   if (!status) return <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">-</span>;
@@ -108,14 +117,14 @@ const SmsMessagePart: React.FC = () => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   const allColumns: ColumnConfig[] = [
-    { key: "id", label: "Segment ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
-    { key: "message", label: "Message ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "id", label: "Segment ID", type: "text", isSearchable: false },
+    { key: "message", label: "Message ID", type: "text", isSearchable: false },
     { key: "parent_message_destination", label: "Destination", type: "text", filterKey: "message__destination__icontains" },
     {
       key: "text",
       label: "Text",
       type: "text",
-      isSearchable: false, // ⚡️ UNAVAILABLE IN BACKEND
+      isSearchable: false,
       render: (data: any) => {
         if (!data.text) return "-";
         const strippedContent = data.text.replace(/<[^>]*>/g, "");
@@ -131,7 +140,7 @@ const SmsMessagePart: React.FC = () => {
     { key: "part_total", label: "Part Total", type: "text", filterKey: "part_total__icontains" },
     { key: "udh_ref", label: "UDH Ref", type: "text", filterKey: "udh_ref__icontains" },
     { key: "udh_hex", label: "UDH Hex", type: "text", filterKey: "udh_hex__icontains" },
-    { key: "esm_class", label: "ESM Class", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "esm_class", label: "ESM Class", type: "text", isSearchable: false },
     {
       key: "submit_status",
       label: "Submit Status",
@@ -149,39 +158,36 @@ const SmsMessagePart: React.FC = () => {
       filterKey: "vendor_submit_status__icontains",
       render: (log) => renderStatusBadge(log.vendor_submit_status)
     },
-    { key: "submit_attempts", label: "Submit Attempts", type: "text", filterKey: "submit_attempts__icontains" }, // ⚡️ RESTORED
+    { key: "submit_attempts", label: "Submit Attempts", type: "text", filterKey: "submit_attempts__icontains" },
 
-    { key: "submitted_at", label: "Submitted At", type: "date", render: (data: any) => data.submitted_at ? new Date(data.submitted_at).toLocaleString() : "-" },
-    { key: "submitted_at__range", label: "Submitted At", type: "date_range", filterKey: "submitted_at", isSearchOnly: true },
+    // --- Date Filters explicitly mapped to __range ---
+    { key: "submitted_at", label: "Submitted At (Single Day)", tableLabel: "Submitted At", type: "date", filterKey: "submitted_at__range", render: (data: any) => data.submitted_at ? new Date(data.submitted_at).toLocaleString() : "-" },
+    { key: "submitted_at__range", label: "Submitted At (Range)", type: "date_range", filterKey: "submitted_at__range", isSearchOnly: true },
 
-    { key: "sent_at", label: "Sent At", type: "date", render: (data: any) => data.sent_at ? new Date(data.sent_at).toLocaleString() : "-" },
-    { key: "sent_at__range", label: "Sent At", type: "date_range", filterKey: "sent_at", isSearchOnly: true },
+    { key: "sent_at", label: "Sent At (Single Day)", tableLabel: "Sent At", type: "date", filterKey: "sent_at__range", render: (data: any) => data.sent_at ? new Date(data.sent_at).toLocaleString() : "-" },
+    { key: "sent_at__range", label: "Sent At (Range)", type: "date_range", filterKey: "sent_at__range", isSearchOnly: true },
 
-    { key: "delivered_at", label: "Delivered At", type: "date", render: (data: any) => data.delivered_at ? new Date(data.delivered_at).toLocaleString() : "-" }, // ⚡️ Backend now supports this field
-    { key: "delivered_at__range", label: "Delivered At", type: "date_range", filterKey: "delivered_at", isSearchOnly: true },
+    { key: "delivered_at", label: "Delivered At (Single Day)", tableLabel: "Delivered At", type: "date", filterKey: "delivered_at__range", render: (data: any) => data.delivered_at ? new Date(data.delivered_at).toLocaleString() : "-" },
+    { key: "delivered_at__range", label: "Delivered At (Range)", type: "date_range", filterKey: "delivered_at__range", isSearchOnly: true },
 
-    { key: "failed_at", label: "Failed At", type: "date", render: (data: any) => data.failed_at ? new Date(data.failed_at).toLocaleString() : "-" },
-    { key: "failed_at__range", label: "Failed At", type: "date_range", filterKey: "failed_at", isSearchOnly: true },
+    { key: "failed_at", label: "Failed At (Single Day)", tableLabel: "Failed At", type: "date", filterKey: "failed_at__range", render: (data: any) => data.failed_at ? new Date(data.failed_at).toLocaleString() : "-" },
+    { key: "failed_at__range", label: "Failed At (Range)", type: "date_range", filterKey: "failed_at__range", isSearchOnly: true },
 
-    { key: "created_at", label: "Created At", type: "date", render: (data: any) => data.created_at ? new Date(data.created_at).toLocaleString() : "-" },
-    { key: "created_at__range", label: "Created At", type: "date_range", filterKey: "created_at", isSearchOnly: true },
+    { key: "created_at", label: "Created At (Single Day)", tableLabel: "Created At", type: "date", filterKey: "created_at__range", render: (data: any) => data.created_at ? new Date(data.created_at).toLocaleString() : "-" },
+    { key: "created_at__range", label: "Created At (Range)", type: "date_range", filterKey: "created_at__range", isSearchOnly: true },
 
-    { key: "updated_at", label: "Updated At", type: "date", render: (data: any) => data.updated_at ? new Date(data.updated_at).toLocaleString() : "-" }, // ⚡️ Backend now supports this field
-    { key: "updated_at__range", label: "Updated At", type: "date_range", filterKey: "updated_at", isSearchOnly: true },
+    { key: "updated_at", label: "Updated At (Single Day)", tableLabel: "Updated At", type: "date", filterKey: "updated_at__range", render: (data: any) => data.updated_at ? new Date(data.updated_at).toLocaleString() : "-" },
+    { key: "updated_at__range", label: "Updated At (Range)", type: "date_range", filterKey: "updated_at__range", isSearchOnly: true },
 
-    { key: "last_submit_at", label: "Last Submit At", type: "date", render: (data: any) => data.last_submit_at ? new Date(data.last_submit_at).toLocaleString() : "-" }, // ⚡️ Backend now supports this field
-    { key: "last_submit_at__range", label: "Last Submit At", type: "date_range", filterKey: "last_submit_at", isSearchOnly: true },
+    { key: "last_submit_at", label: "Last Submit At (Single Day)", tableLabel: "Last Submit At", type: "date", filterKey: "last_submit_at__range", render: (data: any) => data.last_submit_at ? new Date(data.last_submit_at).toLocaleString() : "-" },
+    { key: "last_submit_at__range", label: "Last Submit At (Range)", type: "date_range", filterKey: "last_submit_at__range", isSearchOnly: true },
 
-    { key: "failure_reason", label: "Failure Reason", type: "text", isSearchable: false }, // ⚡️ RESTORED — UNAVAILABLE IN BACKEND
+    { key: "failure_reason", label: "Failure Reason", type: "text", isSearchable: false },
   ];
 
-  // ⚡️ Only allow searchable columns to be populated in the "Search Fields" dropdown
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
-
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
-
-  // ⚡️ "Columns" dropdown should not offer the range search-only variants as table columns
   const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
 
   const fetchSegments = async (
@@ -196,14 +202,15 @@ const SmsMessagePart: React.FC = () => {
       const activeFilters = filters || filterValues;
       const cleanParams: Record<string, string> = {};
 
-      Object.entries(activeFilters).forEach(([key, value]) => {
+      searchColumns.forEach((key) => {
+        const value = activeFilters[key];
         if (!value) return;
-        const colDef = allColumns.find(c => c.key === key);
+        const colDef = allColumns.find((c) => c.key === key);
         const baseKey = colDef?.filterKey || key;
 
-        if (colDef?.type === "date_range") {
-          const [start, end] = value.split(",");
-          if (start && end) cleanParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
+        if (colDef?.options) {
+          const selectedOption = colDef.options.find((opt) => opt.value === value);
+          cleanParams[baseKey] = selectedOption ? selectedOption.value : value;
         } else {
           cleanParams[baseKey] = value;
         }
@@ -259,6 +266,8 @@ const SmsMessagePart: React.FC = () => {
     { label: "View Segment Details", icon: <Eye size={16} />, onClick: () => { setViewLog(selectedRow); setIsModalOpen(true); } },
   ] : [];
 
+  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
     if (!hasLoggedOpening.current) {
@@ -289,48 +298,75 @@ const SmsMessagePart: React.FC = () => {
 
       <FilterCard onSearch={() => { fetchSegments(undefined, 1, false); }} onClear={() => { setFilterValues({}); fetchSegments({}, 1, false); }}>
         {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label);
+
           if (col.options) {
              return (
               <Select
                 key={col.key}
-                label={`Search ${col.label}`}
+                label={baseLabel}
                 value={filterValues[col.key] || ""}
                 onChange={(val) => setFilterValues(p => ({...p, [col.key]: val}))}
                 options={col.options}
-                placeholder={`Select ${col.label}`}
+                placeholder={`Select ${baseLabel}`}
               />
              );
           }
           if (col.type === "date") {
+            const rawVal = filterValues[col.key] || "";
+            const datePart = rawVal.split("T")[0];
+
             return (
               <DatePicker
                 key={col.key}
-                label={`Search ${col.label}`}
-                selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
-                onChange={(val: Date | null) => setFilterValues(p => ({...p, [col.key]: val ? formatLocalDate(val) : ""}))}
+                label={`Search ${baseLabel}`}
+                selected={datePart ? new Date(datePart) : null}
+                onChange={(val: Date | null) => {
+                  if (val) {
+                    const formatted = formatLocalDate(val);
+                    setFilterValues(p => ({ ...p, [col.key]: `${formatted}T00:00:00,${formatted}T23:59:59` }));
+                  } else {
+                    setFilterValues(p => ({ ...p, [col.key]: "" }));
+                  }
+                }}
               />
             );
           }
           if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
+            const [startRange, endRange] = (filterValues[col.key] || "").split(",");
+            const startStr = startRange ? startRange.split("T")[0] : "";
+            const endStr = endRange ? endRange.split("T")[0] : "";
+
             return (
               <React.Fragment key={col.key}>
                 <DatePicker
-                  label={`Search ${col.label} (From)`}
+                  label={`Search ${baseLabel} (From)`}
                   selected={startStr ? new Date(startStr) : null}
                   onChange={(val: Date | null) => {
                     const newStart = val ? formatLocalDate(val) : "";
                     const currentEnd = endStr || "";
-                    setFilterValues(p => ({ ...p, [col.key]: newStart || currentEnd ? `${newStart},${currentEnd}` : "" }));
+                    if (newStart || currentEnd) {
+                      const startVal = newStart ? `${newStart}T00:00:00` : "";
+                      const endVal = currentEnd ? `${currentEnd}T23:59:59` : "";
+                      setFilterValues(p => ({ ...p, [col.key]: `${startVal},${endVal}` }));
+                    } else {
+                      setFilterValues(p => ({ ...p, [col.key]: "" }));
+                    }
                   }}
                 />
                 <DatePicker
-                  label={`Search ${col.label} (To)`}
+                  label={`Search ${baseLabel} (To)`}
                   selected={endStr ? new Date(endStr) : null}
                   onChange={(val: Date | null) => {
                     const newEnd = val ? formatLocalDate(val) : "";
                     const currentStart = startStr || "";
-                    setFilterValues(p => ({ ...p, [col.key]: currentStart || newEnd ? `${currentStart},${newEnd}` : "" }));
+                    if (currentStart || newEnd) {
+                      const startVal = currentStart ? `${currentStart}T00:00:00` : "";
+                      const endVal = newEnd ? `${newEnd}T23:59:59` : "";
+                      setFilterValues(p => ({ ...p, [col.key]: `${startVal},${endVal}` }));
+                    } else {
+                      setFilterValues(p => ({ ...p, [col.key]: "" }));
+                    }
                   }}
                 />
               </React.Fragment>
@@ -339,10 +375,10 @@ const SmsMessagePart: React.FC = () => {
           return (
             <Input
               key={col.key}
-              label={`Search ${col.label}`}
+              label={`Search ${baseLabel}`}
               value={filterValues[col.key] || ""}
               onChange={(e) => setFilterValues(p => ({...p, [col.key]: e.target.value}))}
-              placeholder={`Search ${col.label}`}
+              placeholder={`Search ${baseLabel}`}
             />
           );
         })}

@@ -1,21 +1,22 @@
 import api from "../../api/axiosInstance";
+
 export interface MessageLogData {
   id: number;
   destination: string;
   text: string;
-status:
-  | "PENDING"
-  | "QUEUED"
-  | "SUBMITTED"
-  | "FAILED"
-  | "DELIVERED"
-  | "REJECTED"
-  | "UNDELIVERED"
-  | "EXPIRED"
-  | "IN_PROGRESS"
-  | "PARTIALLY_DELIVERED"
-  | "NO_ROUTE"
-  | "RETRY_PENDING";
+  status:
+    | "PENDING"
+    | "QUEUED"
+    | "SUBMITTED"
+    | "FAILED"
+    | "DELIVERED"
+    | "REJECTED"
+    | "UNDELIVERED"
+    | "EXPIRED"
+    | "IN_PROGRESS"
+    | "PARTIALLY_DELIVERED"
+    | "NO_ROUTE"
+    | "RETRY_PENDING";
   message_id: string;
   encoding?: string;
   segmentNumber?: string;
@@ -27,6 +28,10 @@ status:
   smppName?: string;
   systemId?: string;
   createdAt?: string;
+  queued_at?: string | null;
+  sent_at?: string | null;
+  delivered_at?: string | null;
+  failed_at?: string | null;
 }
 
 export interface PaginatedResponse<T> {

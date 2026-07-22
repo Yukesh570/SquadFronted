@@ -15,8 +15,6 @@ import FilterCard from "../../components/ui/FilterCard";
 import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedFilter";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
-
-// ⚡️ FIX: Import the StatusBadge
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
 interface Option { label: string; value: string; }
@@ -31,9 +29,12 @@ interface ColumnConfig extends FilterColumn {
 
 const statusOptions: Option[] = [
   { label: "Queued", value: "QUEUED" },
-  { label: "Sent / Submitted", value: "SUBMITTED" },
-  { label: "Failed", value: "FAILED" },
   { label: "Delivered", value: "DELIVERED" },
+  { label: "Submitted", value: "SUBMITTED" },
+  { label: "Failed", value: "FAILED" },
+  { label: "Rejected", value: "REJECTED" },
+  { label: "Expired", value: "EXPIRED" },
+  { label: "Undelivered", value: "UNDELIVERED" },
 ];
 
 const formatLocalDate = (date: Date) => {
@@ -48,20 +49,14 @@ const DEFAULT_TABLE_COLUMNS = [
   "text_message_id", "destination", "content", "submitStatus", "client", "vendor", "vendor_msg_id", "request_time"
 ];
 
-// Fixed batch size for infinite scroll. Pagination UI is hidden for this
-// page only, so this is no longer user-adjustable — it's just the page
-// size used per fetch.
 const BATCH_SIZE = 100;
-
-// How close (in px) to the bottom of the scroll container before we
-// trigger the next batch fetch.
 const LOAD_MORE_THRESHOLD_PX = 200;
 
 const DetailedReport: React.FC = () => {
   const [reports, setReports] = useState<DetailedReportData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
-  const [isLoading, setIsLoading] = useState(true); // initial / fresh search load
-  const [isFetchingMore, setIsFetchingMore] = useState(false); // infinite-scroll load
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [loadedPage, setLoadedPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -84,9 +79,6 @@ const DetailedReport: React.FC = () => {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Wrapper around DataTable used to reach its internal scroll container
-  // (className "custom-scrollbar") from the outside, since DataTable.tsx
-  // itself is not being modified.
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -124,7 +116,6 @@ const DetailedReport: React.FC = () => {
       </div>
     )},
     
-    // ⚡️ FIX: Replaced inline mapping with reusable StatusBadge
     { key: "submitStatus", label: "Status", type: "text", options: statusOptions, filterKey: "submitStatus", render: (log) => {
       return <StatusBadge status={log.submitStatus} />;
     }},
@@ -135,12 +126,9 @@ const DetailedReport: React.FC = () => {
     { key: "vendor_charge", label: "Vendor Charge", type: "number", filterKey: "vendor_charge__icontains" },
     { key: "part_total", label: "Parts", type: "number", filterKey: "part_total__icontains" },
     
-    { key: "request_time", label: "Req Time (Exact)", tableLabel: "Request Time", type: "date", filterKey: "request_time" },
-    { key: "request_time__range", label: "Req Time (From/To)", type: "date_range", filterKey: "request_time", isSearchOnly: true },
-    // { key: "request_time__gt_lt", label: "Req Time (After/Before)", type: "date_gt_lt", filterKey: "request_time", isSearchOnly: true },
-    
-    { key: "delivery_time", label: "Del Time (Exact)", tableLabel: "Delivery Time", type: "date", filterKey: "delivery_time" },
-    { key: "delivery_time__range", label: "Del Time (From/To)", type: "date_range", filterKey: "delivery_time", isSearchOnly: true },
+    // --- Request Time: Single day picks 24-hour range, multi-day range is separate ---
+    { key: "request_time", label: "Request Time (Single Day)", tableLabel: "Request Time", type: "date", filterKey: "request_time__range", render: (log) => (<span>{log.request_time ? new Date(log.request_time).toLocaleString() : "-"}</span>) },
+    { key: "request_time__range", label: "Request Time (Range)", type: "date_range", filterKey: "request_time__range", isSearchOnly: true },
   ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
@@ -149,11 +137,6 @@ const DetailedReport: React.FC = () => {
 
   const handleFilterChange = (key: string, value: string) => { setFilterValues((prev) => ({ ...prev, [key]: value })); };
 
-  /**
-   * Fetches a page of reports.
-   * - append = false (default): fresh search/clear/initial load. Replaces `reports`.
-   * - append = true: infinite-scroll batch. Appends to `reports`.
-   */
   const fetchReports = async (
     filters: Record<string, string> | null = null,
     page: number = 1,
@@ -172,29 +155,15 @@ const DetailedReport: React.FC = () => {
 
       searchColumns.forEach((key) => {
         const value = activeFilters[key];
-        if (value) {
-          const columnDef = allColumns.find((c) => c.key === key);
-          const baseKey = columnDef?.filterKey ? columnDef.filterKey.split("__")[0] : key.split("__")[0];
+        if (!value) return;
+        const columnDef = allColumns.find((c) => c.key === key);
+        const baseKey = columnDef?.filterKey || key;
 
-          if (columnDef?.options) {
-            currentSearchParams[columnDef.filterKey || key] = value;
-          } else if (columnDef?.type === "date") {
-            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const [start, end] = value.split(",");
-            if (start && end) currentSearchParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
-            else {
-              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
-          } else if (columnDef?.type === "date_gt_lt") {
-            const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
-          } else {
-            const filterKey = columnDef?.filterKey || `${key}__icontains`;
-            currentSearchParams[filterKey] = value;
-          }
+        if (columnDef?.options) {
+          const selectedOption = columnDef.options.find((opt) => opt.value === value);
+          currentSearchParams[baseKey] = selectedOption ? selectedOption.value : value;
+        } else {
+          currentSearchParams[baseKey] = value;
         }
       });
 
@@ -221,17 +190,12 @@ const DetailedReport: React.FC = () => {
     }
   };
 
-  // Initial load. Filters are only applied on explicit Search/Clear, same
-  // as before — this effect only re-fires if the visible search fields change.
   useEffect(() => {
     fetchReports(undefined, 1, false);
     return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchColumns]);
 
-  // Infinite scroll: listen on DataTable's internal scroll container
-  // (class "custom-scrollbar", defined inside DataTable.tsx) via the
-  // wrapper ref, since DataTable itself isn't being modified.
   useEffect(() => {
     const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(
       ".custom-scrollbar",
@@ -264,7 +228,7 @@ const DetailedReport: React.FC = () => {
       a.click();
       toast.success("Export started successfully");
     } catch (err) {
-      toast.error("Failed to export data. End point might not be ready.");
+      toast.error("Failed to export data.");
     }
   };
 
@@ -304,22 +268,63 @@ const DetailedReport: React.FC = () => {
         {visibleSearchFields.map((col) => {
           const baseLabel = getBaseLabel(col.label);
           if (col.options) return <Select key={col.key} label={`Search ${baseLabel}`} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} />;
-          if (col.type === "date") return <DatePicker key={col.key} label={`Search ${baseLabel}`} selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null} onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")} />;
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
+          if (col.type === "date") {
+            const rawVal = filterValues[col.key] || "";
+            const datePart = rawVal.split("T")[0];
+
             return (
-              <React.Fragment key={col.key}>
-                <DatePicker label={`Search ${baseLabel} (From)`} selected={startStr ? new Date(startStr) : null} onChange={(val: Date | null) => { const newStart = val ? formatLocalDate(val) : ""; const currentEnd = endStr || ""; handleFilterChange(col.key, newStart || currentEnd ? `${newStart},${currentEnd}` : ""); }} />
-                <DatePicker label={`Search ${baseLabel} (To)`} selected={endStr ? new Date(endStr) : null} onChange={(val: Date | null) => { const newEnd = val ? formatLocalDate(val) : ""; const currentStart = startStr || ""; handleFilterChange(col.key, currentStart || newEnd ? `${currentStart},${newEnd}` : ""); }} />
-              </React.Fragment>
+              <DatePicker
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                selected={datePart ? new Date(datePart) : null}
+                onChange={(val: Date | null) => {
+                  if (val) {
+                    const formatted = formatLocalDate(val);
+                    handleFilterChange(col.key, `${formatted}T00:00:00,${formatted}T23:59:59`);
+                  } else {
+                    handleFilterChange(col.key, "");
+                  }
+                }}
+              />
             );
           }
-          if (col.type === "date_gt_lt") {
-            const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
+          if (col.type === "date_range") {
+            const [startRange, endRange] = (filterValues[col.key] || "").split(",");
+            const startStr = startRange ? startRange.split("T")[0] : "";
+            const endStr = endRange ? endRange.split("T")[0] : "";
+
             return (
               <React.Fragment key={col.key}>
-                <DatePicker label={`Search ${baseLabel} (> After)`} selected={gtStr ? new Date(gtStr) : null} onChange={(val: Date | null) => { const newGt = val ? formatLocalDate(val) : ""; const currentLt = ltStr || ""; handleFilterChange(col.key, newGt || currentLt ? `${newGt},${currentLt}` : ""); }} />
-                <DatePicker label={`Search ${baseLabel} (< Before)`} selected={ltStr ? new Date(ltStr) : null} onChange={(val: Date | null) => { const newLt = val ? formatLocalDate(val) : ""; const currentGt = gtStr || ""; handleFilterChange(col.key, currentGt || newLt ? `${currentGt},${newLt}` : ""); }} />
+                <DatePicker
+                  label={`Search ${baseLabel} (From)`}
+                  selected={startStr ? new Date(startStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newStart = val ? formatLocalDate(val) : "";
+                    const currentEnd = endStr || "";
+                    if (newStart || currentEnd) {
+                      const startVal = newStart ? `${newStart}T00:00:00` : "";
+                      const endVal = currentEnd ? `${currentEnd}T23:59:59` : "";
+                      handleFilterChange(col.key, `${startVal},${endVal}`);
+                    } else {
+                      handleFilterChange(col.key, "");
+                    }
+                  }}
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (To)`}
+                  selected={endStr ? new Date(endStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newEnd = val ? formatLocalDate(val) : "";
+                    const currentStart = startStr || "";
+                    if (currentStart || newEnd) {
+                      const startVal = currentStart ? `${currentStart}T00:00:00` : "";
+                      const endVal = newEnd ? `${newEnd}T23:59:59` : "";
+                      handleFilterChange(col.key, `${startVal},${endVal}`);
+                    } else {
+                      handleFilterChange(col.key, "");
+                    }
+                  }}
+                />
               </React.Fragment>
             );
           }

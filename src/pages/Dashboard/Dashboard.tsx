@@ -34,7 +34,7 @@ import {
   Bar,
 } from "recharts";
 import Button from "../../components/ui/Button";
-import ToggleSwitch from "../../components/ui/ToggleSwitch"; // ⚡️ FIX: Added ToggleSwitch import
+import ToggleSwitch from "../../components/ui/ToggleSwitch";
 import {
   getClientSessionsApi,
   getClientSessionSummaryApi,
@@ -138,7 +138,7 @@ const Dashboard: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [revenue, setRevenue] = useState<RevenueData | null>(null);
 
-  // ⚡️ FIX: Currency State
+  // Dynamic Currency State
   const [currencySymbol, setCurrencySymbol] = useState<string>("$");
 
   // --- Analytics: failure / vendor+route / client / geo / latency ---
@@ -379,14 +379,12 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // ⚡️ FIX: Updated to match c.id against settings.baseCurrency
   const fetchCurrencySymbol = async () => {
     try {
       const settings = await getGeneralSettingsApi("generalSettings");
       if (settings?.baseCurrency) {
         const currRes = await getCurrenciesApi("currency", 1, 1000);
         const list = currRes?.results || (Array.isArray(currRes) ? currRes : []);
-        // Check by c.id instead of currencyCode
         const matched = list.find((c: any) => String(c.id) === String(settings.baseCurrency));
         if (matched && matched.symbol) {
           setCurrencySymbol(matched.symbol);
@@ -409,7 +407,6 @@ const Dashboard: React.FC = () => {
     fetchTrafficTraffic(activeRange);
     fetchDlrStats(activeRange);
     fetchRevenue(activeRange);
-    // Reset selected category when range changes
     setSelectedFailureCategory(null);
   }, [activeRange]);
 
@@ -427,7 +424,7 @@ const Dashboard: React.FC = () => {
     fetchOnlineVendors();
     fetchOnlineClients();
     fetchNotifications();
-    fetchCurrencySymbol(); // ⚡️ Called once on mount
+    fetchCurrencySymbol();
 
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
     if (!wsBase) {
@@ -457,13 +454,11 @@ const Dashboard: React.FC = () => {
         const payload = JSON.parse(event.data);
         console.log("WebSocket Message Received:", payload);
         if (payload.action === "session_update") {
-          // Respect auto-refresh toggles for session updates
           if (isMetricsLiveRef.current) fetchActiveSessions();
           if (isAnalyticsLiveRef.current) fetchClientSessionSummary();
         } else if (payload.action === "dashboard_metrics_update") {
           const { data } = payload;
 
-          // ⚡️ APPLY PART 1 (METRICS) TOGGLE CHECK (Only apply if viewing "today")
           if (isMetricsLiveRef.current && activeRangeRef.current === "today") {
             if (data.smsStats) {
               setTotalSms(Number(data.smsStats.count).toLocaleString());
@@ -499,7 +494,6 @@ const Dashboard: React.FC = () => {
             }
           }
 
-          // ⚡️ APPLY PART 2 (ANALYTICS) TOGGLE CHECK (Only apply if viewing "today")
           if (isAnalyticsLiveRef.current && activeRangeRef.current === "today") {
             if (data.failureBreakdown) {
               setFailureBreakdown(data.failureBreakdown);
@@ -575,7 +569,6 @@ const Dashboard: React.FC = () => {
     return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
   };
 
-  // Determine scrolling, intervals, and widths for the chart bounds
   let tickInterval: any = "preserveStartEnd";
   let chartMinWidth = "100%";
   let needsScroll = false;
@@ -663,7 +656,6 @@ const Dashboard: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* ⚡️ FIX: Added Auto-Refresh toggle for Part 1 (Metrics) */}
           <ToggleSwitch
             label="Auto-Refresh Metrics"
             checked={isMetricsLive}
@@ -952,7 +944,7 @@ const Dashboard: React.FC = () => {
         />
       </div>
 
-      {/* ⚡️ FIX: Added Auto-Refresh toggle for Part 2 (Analytics) */}
+      {/* Analytics Toggle */}
       <div className="flex justify-end mb-4">
         <ToggleSwitch
           label="Auto-Refresh Analytics"
@@ -967,7 +959,6 @@ const Dashboard: React.FC = () => {
           <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-text-primary dark:text-white flex items-center">
               Live Client Sessions
-              {/* ⚡️ FIX: Pause ping animation if toggle is off */}
               {isAnalyticsLive ? (
                 <span className="ml-3 flex h-3 w-3 relative">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -1229,10 +1220,10 @@ const Dashboard: React.FC = () => {
               Vendor & Route Performance
             </h3>
           </div>
-          <div className="overflow-x-auto custom-scrollbar">
+          <div className="overflow-x-auto overflow-y-auto max-h-[320px] custom-scrollbar">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
+              <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                <tr className="border-b border-gray-100 dark:border-gray-700">
                   <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Vendor</th>
                   <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Route</th>
                   <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Total</th>
@@ -1283,10 +1274,10 @@ const Dashboard: React.FC = () => {
               Client Performance
             </h3>
           </div>
-          <div className="overflow-x-auto custom-scrollbar">
+          <div className="overflow-x-auto overflow-y-auto max-h-[320px] custom-scrollbar">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
+              <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                <tr className="border-b border-gray-100 dark:border-gray-700">
                   <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Client</th>
                   <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Total</th>
                   <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Delivery Rate</th>
@@ -1335,10 +1326,10 @@ const Dashboard: React.FC = () => {
               Geographic Breakdown
             </h3>
           </div>
-          <div className="overflow-x-auto custom-scrollbar">
+          <div className="overflow-x-auto overflow-y-auto max-h-[320px] custom-scrollbar">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
+              <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                <tr className="border-b border-gray-100 dark:border-gray-700">
                   <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Country</th>
                   <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Total</th>
                   <th className="p-4 text-xs font-medium text-text-secondary dark:text-gray-400">Delivery Rate</th>

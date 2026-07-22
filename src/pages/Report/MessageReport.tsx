@@ -31,7 +31,6 @@ import { MessageReportModal } from "../../components/modals/Report/MessageReport
 
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
-// --- Interfaces ---
 interface Option {
   label: string;
   value: string;
@@ -67,7 +66,6 @@ const encodingOptions: Option[] = [
   { label: "UCS-2", value: "UCS-2" },
 ];
 
-// --- Defaults ---
 const DEFAULT_SEARCH_COLUMNS = [
   "destination",
   "clientName",
@@ -85,7 +83,6 @@ const DEFAULT_TABLE_COLUMNS = [
   "vendorName",
   "smppName",
   "systemId",
-  // "createdAt",
 ];
 
 const formatLocalDate = (date: Date) => {
@@ -95,30 +92,21 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-// Fixed batch size for infinite scroll. Pagination UI is hidden for this
-// page only (see .message-report-table CSS below), so this is no longer
-// user-adjustable — it's just the page size used per fetch.
 const BATCH_SIZE = 100;
-
-// How close (in px) to the bottom of the scroll container before we
-// trigger the next batch fetch.
 const LOAD_MORE_THRESHOLD_PX = 200;
 
 const MessageReport: React.FC = () => {
-  // --- State ---
   const [logs, setLogs] = useState<MessageLogData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
-  const [isLoading, setIsLoading] = useState(true); // initial / fresh search load
-  const [isFetchingMore, setIsFetchingMore] = useState(false); // infinite-scroll load
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [loadedPage, setLoadedPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  // Dynamic Options
   const [clientOptions, setClientOptions] = useState<Option[]>([]);
   const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
   const [smppOptions, setSmppOptions] = useState<Option[]>([]);
 
-  // Filter & Column Visibility
   const [searchColumns, setSearchColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("msg_search_columns");
     return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
@@ -131,23 +119,18 @@ const MessageReport: React.FC = () => {
 
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
-  // --- View Modal & Context Menu States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewLog, setViewLog] = useState<MessageLogData | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRowLog, setSelectedRowLog] = useState<MessageLogData | null>(null);
 
-  // Routing
   const location = useLocation();
   const moduleName = location.pathname.split("/").pop() || "messageReport";
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Wrapper around DataTable used to reach its internal scroll container
-  // (className "custom-scrollbar") from the outside, since DataTable.tsx
-  // itself is not being modified.
   const tableWrapperRef = useRef<HTMLDivElement>(null);
   const isAtTopRef = useRef(true);
-  // --- Helper: Extract Options ---
+
   const extractOptions = (
     response: any,
     labelKey: string,
@@ -187,17 +170,16 @@ const MessageReport: React.FC = () => {
     fetchAllOptions();
   }, []);
 
-
   const filterOptionsConfig: ColumnConfig[] = useMemo(
     () => [
-      { key: "message_id", label: "Message ID", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+      { key: "message_id", label: "Message ID", type: "text", isSearchable: false },
       { key: "destination", label: "Destination", type: "text", filterKey: "destination__icontains" },
       {
         key: "clientName",
         label: "Client",
         type: "text",
         options: clientOptions,
-        filterKey: "client__name", // ⚡️ FIX: Mapped to correct backend field
+        filterKey: "client__name",
       },
       {
         key: "vendor__profileName",
@@ -211,48 +193,40 @@ const MessageReport: React.FC = () => {
         label: "SMPP",
         type: "text",
         options: smppOptions,
-        filterKey: "smpp__smppHost", // ⚡️ FIX: Mapped to correct backend field
+        filterKey: "smpp__smppHost",
       },
-      { key: "systemId", label: "System ID", type: "text", filterKey: "systemId__icontains" }, // ⚡️ FIX: backend supports exact/icontains, was wrongly disabled
+      { key: "systemId", label: "System ID", type: "text", filterKey: "systemId__icontains" },
       { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status" },
+      { key: "failure_reason", label: "Failure Reason", type: "text", filterKey: "failure_reason__icontains" },
       {
         key: "encoding",
         label: "Encoding",
         type: "text",
         options: encodingOptions,
-        isSearchable: false, // ⚡️ UNAVAILABLE IN BACKEND
+        isSearchable: false,
       },
-      { key: "segmentNumber", label: "Segment Number", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
-      { key: "characterCount", label: "Character Count", type: "text", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+      { key: "segmentNumber", label: "Segment Number", type: "text", isSearchable: false },
+      { key: "characterCount", label: "Character Count", type: "text", isSearchable: false },
 
-      // --- Created At variants ---
-      { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt" },
-      { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
+      // --- Date Filters explicitly mapped to __range ---
+      { key: "createdAt", label: "Created At (Single Day)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range" },
+      { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt__range", isSearchOnly: true },
 
-      // --- Queued At variants ---
-      { key: "queued_at", label: "Queued At (Exact)", tableLabel: "Queued At", type: "date", filterKey: "queued_at" },
-      { key: "queued_at__range", label: "Queued At (Range)", type: "date_range", filterKey: "queued_at", isSearchOnly: true },
+      { key: "queued_at", label: "Queued At (Single Day)", tableLabel: "Queued At", type: "date", filterKey: "queued_at__range" },
+      { key: "queued_at__range", label: "Queued At (Range)", type: "date_range", filterKey: "queued_at__range", isSearchOnly: true },
 
-      // --- Submitted At variants ---
-      { key: "submitted_at", label: "Submitted At (Exact)", tableLabel: "Submitted At", type: "date", filterKey: "submitted_at" },
-      { key: "submitted_at__range", label: "Submitted At (Range)", type: "date_range", filterKey: "submitted_at", isSearchOnly: true },
+      { key: "sent_at", label: "Sent At (Single Day)", tableLabel: "Sent At", type: "date", filterKey: "sent_at__range" },
+      { key: "sent_at__range", label: "Sent At (Range)", type: "date_range", filterKey: "sent_at__range", isSearchOnly: true },
 
-      // --- Sent At variants ---
-      { key: "sent_at", label: "Sent At (Exact)", tableLabel: "Sent At", type: "date", filterKey: "sent_at" },
-      { key: "sent_at__range", label: "Sent At (Range)", type: "date_range", filterKey: "sent_at", isSearchOnly: true },
+      { key: "delivered_at", label: "Delivered At (Single Day)", tableLabel: "Delivered At", type: "date", filterKey: "delivered_at__range" },
+      { key: "delivered_at__range", label: "Delivered At (Range)", type: "date_range", filterKey: "delivered_at__range", isSearchOnly: true },
 
-      // --- Delivered At variants ---
-      { key: "delivered_at", label: "Delivered At (Exact)", tableLabel: "Delivered At", type: "date", filterKey: "delivered_at" },
-      { key: "delivered_at__range", label: "Delivered At (Range)", type: "date_range", filterKey: "delivered_at", isSearchOnly: true },
-
-      // --- Failed At variants ---
-      { key: "failed_at", label: "Failed At (Exact)", tableLabel: "Failed At", type: "date", filterKey: "failed_at" },
-      { key: "failed_at__range", label: "Failed At (Range)", type: "date_range", filterKey: "failed_at", isSearchOnly: true },
+      { key: "failed_at", label: "Failed At (Single Day)", tableLabel: "Failed At", type: "date", filterKey: "failed_at__range" },
+      { key: "failed_at__range", label: "Failed At (Range)", type: "date_range", filterKey: "failed_at__range", isSearchOnly: true },
     ],
     [clientOptions, vendorOptions, smppOptions],
   );
 
-  // ⚡️ Only allow searchable columns to be populated in the "Search Fields" dropdown
   const searchableColumns = filterOptionsConfig.filter((col) => col.isSearchable !== false);
 
   const tableColumnsConfig: ColumnConfig[] = useMemo(
@@ -314,8 +288,48 @@ const MessageReport: React.FC = () => {
         label: "Created At",
         type: "date",
         render: (log) => (
-          <span className="text-xs text-text-secondary">
+          <span>
             {log.createdAt ? new Date(log.createdAt).toLocaleString() : "-"}
+          </span>
+        ),
+      },
+      {
+        key: "queued_at",
+        label: "Queued At",
+        type: "date",
+        render: (log) => (
+          <span>
+            {log.queued_at ? new Date(log.queued_at).toLocaleString() : "-"}
+          </span>
+        ),
+      },
+      {
+        key: "sent_at",
+        label: "Sent At",
+        type: "date",
+        render: (log) => (
+          <span>
+            {log.sent_at ? new Date(log.sent_at).toLocaleString() : "-"}
+          </span>
+        ),
+      },
+      {
+        key: "delivered_at",
+        label: "Delivered At",
+        type: "date",
+        render: (log) => (
+          <span>
+            {log.delivered_at ? new Date(log.delivered_at).toLocaleString() : "-"}
+          </span>
+        ),
+      },
+      {
+        key: "failed_at",
+        label: "Failed At",
+        type: "date",
+        render: (log) => (
+          <span>
+            {log.failed_at ? new Date(log.failed_at).toLocaleString() : "-"}
           </span>
         ),
       },
@@ -323,7 +337,6 @@ const MessageReport: React.FC = () => {
     [],
   );
 
-  // --- Effects ---
   useEffect(() => {
     localStorage.setItem("msg_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
@@ -345,14 +358,12 @@ const MessageReport: React.FC = () => {
     append: boolean = false,
     silent: boolean = false
   ) => {
-    // Prevent the silent background poll from interrupting an active manual search or scroll
     if (silent && (isLoading || isFetchingMore)) return;
 
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
 
-    // Only trigger loading spinners if this is a user-initiated action
     if (!silent) {
       if (append) setIsFetchingMore(true);
       else setIsLoading(true);
@@ -362,18 +373,17 @@ const MessageReport: React.FC = () => {
       const currentSearchParams: Record<string, any> = {};
       const sourceFilters = overrideParams || filterValues;
 
-      Object.entries(sourceFilters).forEach(([key, val]) => {
-        if (!val) return;
+      searchColumns.forEach((key) => {
+        const value = sourceFilters[key];
+        if (!value) return;
         const colDef = filterOptionsConfig.find((c) => c.key === key);
         const baseKey = colDef?.filterKey || key;
 
-        if (colDef?.type === "date") {
-          currentSearchParams[`${baseKey}__range`] = `${val}T00:00:00,${val}T23:59:59`;
-        } else if (colDef?.type === "date_range") {
-          const [start, end] = String(val).split(",");
-          if (start && end) currentSearchParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
+        if (colDef?.options) {
+          const selectedOption = colDef.options.find((opt) => opt.value === value);
+          currentSearchParams[baseKey] = selectedOption ? selectedOption.value : value;
         } else {
-          currentSearchParams[baseKey] = val;
+          currentSearchParams[baseKey] = value;
         }
       });
 
@@ -403,7 +413,6 @@ const MessageReport: React.FC = () => {
       }
     } finally {
       if (abortControllerRef.current === newController) {
-        // Only clear loading spinners if this was a user-initiated action
         if (!silent) {
           setIsLoading(false);
           setIsFetchingMore(false);
@@ -412,34 +421,25 @@ const MessageReport: React.FC = () => {
     }
   };
 
-  // Initial load effect (Keep your existing one)
   useEffect(() => {
     fetchLogs(undefined, 1, false);
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moduleName]);
+  }, [moduleName, searchColumns]);
 
   useEffect(() => {
     const liveUpdateTimer = setInterval(() => {
-
-      // Check our React Ref instead of querying the DOM
       if (isAtTopRef.current) {
-        // params: overrideParams=undefined, page=1, append=false, silent=true
         fetchLogs(undefined, 1, false, true);
       }
-
     }, 5000);
 
     return () => clearInterval(liveUpdateTimer);
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterValues, isLoading, isFetchingMore]);
-  // Infinite scroll: listen on DataTable's internal scroll container
-  // (class "custom-scrollbar", defined inside DataTable.tsx) via the
-  // wrapper ref, since DataTable itself isn't being modified.
-  // Infinite scroll listener (Updated to track top position)
+
   useEffect(() => {
     const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(
       ".custom-scrollbar",
@@ -447,10 +447,8 @@ const MessageReport: React.FC = () => {
     if (!scrollEl) return;
 
     const handleScroll = () => {
-      // 1. UPDATE OUR REF: True if at the top, false if scrolled down
       isAtTopRef.current = scrollEl.scrollTop === 0;
 
-      // 2. EXISTING INFINITE SCROLL LOGIC
       if (isLoading || isFetchingMore || !hasMore) return;
       const { scrollTop, scrollHeight, clientHeight } = scrollEl;
       if (scrollHeight - scrollTop - clientHeight < LOAD_MORE_THRESHOLD_PX) {
@@ -462,10 +460,11 @@ const MessageReport: React.FC = () => {
     return () => scrollEl.removeEventListener("scroll", handleScroll);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, logs.length]);
-  // --- Handlers ---
+
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
+
   const handleSearch = () => {
     fetchLogs(undefined, 1, false);
   };
@@ -527,7 +526,6 @@ const MessageReport: React.FC = () => {
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
-      {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
@@ -596,17 +594,30 @@ const MessageReport: React.FC = () => {
               );
             }
             if (col.type === "date") {
+              const rawVal = filterValues[col.key] || "";
+              const datePart = rawVal.split("T")[0];
+
               return (
                 <DatePicker
                   key={col.key}
                   label={`Search ${baseLabel}`}
-                  selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
-                  onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")}
+                  selected={datePart ? new Date(datePart) : null}
+                  onChange={(val: Date | null) => {
+                    if (val) {
+                      const formatted = formatLocalDate(val);
+                      handleFilterChange(col.key, `${formatted}T00:00:00,${formatted}T23:59:59`);
+                    } else {
+                      handleFilterChange(col.key, "");
+                    }
+                  }}
                 />
               );
             }
             if (col.type === "date_range") {
-              const [startStr, endStr] = (filterValues[col.key] || "").split(",");
+              const [startRange, endRange] = (filterValues[col.key] || "").split(",");
+              const startStr = startRange ? startRange.split("T")[0] : "";
+              const endStr = endRange ? endRange.split("T")[0] : "";
+
               return (
                 <div key={col.key} className="col-span-1 md:col-span-2 lg:col-span-2 flex flex-col w-full">
                   <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400">
@@ -621,7 +632,13 @@ const MessageReport: React.FC = () => {
                         onChange={(val: Date | null) => {
                           const newStart = val ? formatLocalDate(val) : "";
                           const currentEnd = endStr || "";
-                          handleFilterChange(col.key, newStart || currentEnd ? `${newStart},${currentEnd}` : "");
+                          if (newStart || currentEnd) {
+                            const startVal = newStart ? `${newStart}T00:00:00` : "";
+                            const endVal = currentEnd ? `${currentEnd}T23:59:59` : "";
+                            handleFilterChange(col.key, `${startVal},${endVal}`);
+                          } else {
+                            handleFilterChange(col.key, "");
+                          }
                         }}
                       />
                     </div>
@@ -633,7 +650,13 @@ const MessageReport: React.FC = () => {
                         onChange={(val: Date | null) => {
                           const newEnd = val ? formatLocalDate(val) : "";
                           const currentStart = startStr || "";
-                          handleFilterChange(col.key, currentStart || newEnd ? `${currentStart},${newEnd}` : "");
+                          if (currentStart || newEnd) {
+                            const startVal = currentStart ? `${currentStart}T00:00:00` : "";
+                            const endVal = newEnd ? `${newEnd}T23:59:59` : "";
+                            handleFilterChange(col.key, `${startVal},${endVal}`);
+                          } else {
+                            handleFilterChange(col.key, "");
+                          }
                         }}
                       />
                     </div>
@@ -756,7 +779,6 @@ const MessageReport: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         viewLog={viewLog}
       />
-
     </div>
   );
 };

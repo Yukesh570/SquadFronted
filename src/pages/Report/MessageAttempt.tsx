@@ -15,22 +15,20 @@ import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedF
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { MessageAttemptModal } from "../../components/modals/Report/MessageAttemptModal";
 import { actionHelper } from "../../helper/action";
-
-// ⚡️ FIX: Import the StatusBadge
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
 interface Option { label: string; value: string; }
 interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; isSearchable?: boolean; isSearchOnly?: boolean; tableLabel?: string; }
 
 const statusOptions: Option[] = [
-  { label: "ATTEMPTING", value: "ATTEMPTING" },
-  { label: "SUBMITTED", value: "SUBMITTED" },
-  { label: "SENT TO VENDOR", value: "SENT_TO_VENDOR" },
-  { label: "FAILED", value: "FAILED" },
-  { label: "DELIVERED", value: "DELIVERED" },
-  { label: "REJECTED", value: "REJECTED" },
-  { label: "UNDELIVERED", value: "UNDELIVERED" },
-  { label: "EXPIRED", value: "EXPIRED" },
+  { label: "Attempting", value: "ATTEMPTING" },
+  { label: "Submitted", value: "SUBMITTED" },
+  { label: "Sent to Vendor", value: "SENT_TO_VENDOR" },
+  { label: "Failed", value: "FAILED" },
+  { label: "Delivered", value: "DELIVERED" },
+  { label: "Rejected", value: "REJECTED" },
+  { label: "Undelivered", value: "UNDELIVERED" },
+  { label: "Expired", value: "EXPIRED" },
 ];
 
 const formatLocalDate = (date: Date) => {
@@ -43,20 +41,14 @@ const formatLocalDate = (date: Date) => {
 const DEFAULT_SEARCH_COLUMNS = ["provider", "status", "vendorMessageId"];
 const DEFAULT_TABLE_COLUMNS = ["id", "attempt_number", "provider", "vendorMessageId", "status", "started_at"];
 
-// Fixed batch size for infinite scroll. Pagination UI is hidden for this
-// page only, so this is no longer user-adjustable — it's just the page
-// size used per fetch.
 const BATCH_SIZE = 100;
-
-// How close (in px) to the bottom of the scroll container before we
-// trigger the next batch fetch.
 const LOAD_MORE_THRESHOLD_PX = 200;
 
 const MessageAttempt: React.FC = () => {
   const [attempts, setAttempts] = useState<MessageAttemptData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
-  const [isLoading, setIsLoading] = useState(true); // initial / fresh search load
-  const [isFetchingMore, setIsFetchingMore] = useState(false); // infinite-scroll load
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [loadedPage, setLoadedPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -79,12 +71,8 @@ const MessageAttempt: React.FC = () => {
   const pathParts = location.pathname.split("/").filter(Boolean);
   const routeName = pathParts[pathParts.length - 1] || "message-attempt";
 
-  // Wrapper around DataTable used to reach its internal scroll container
-  // (className "custom-scrollbar") from the outside, since DataTable.tsx
-  // itself is not being modified.
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
-  // EXACT keys for data matching, clean Title Case labels for UI
   const allColumns: ColumnConfig[] = [
     { key: "id", label: "Attempt ID", type: "text", isSearchable: false },
     { key: "message", label: "Message ID", type: "text", isSearchable: false },
@@ -98,24 +86,22 @@ const MessageAttempt: React.FC = () => {
       type: "text",
       options: statusOptions,
       filterKey: "status",
-      // ⚡️ FIX: Implemented generic StatusBadge
       render: (log) => <StatusBadge status={log.status} />
     },
-    { key: "error_message", label: "Error Message", type: "text", filterKey: "error_message__icontains", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
-    { key: "started_at", label: "Started At", type: "date", render: (data: any) => data.started_at ? new Date(data.started_at).toLocaleString() : "-" },
-    { key: "started_at__range", label: "Started At", type: "date_range", filterKey: "started_at", isSearchOnly: true },
-    { key: "completed_at", label: "Completed At", type: "date", render: (data: any) => data.completed_at ? new Date(data.completed_at).toLocaleString() : "-" },
-    { key: "completed_at__range", label: "Completed At", type: "date_range", filterKey: "completed_at", isSearchOnly: true },
-    { key: "request_payload", label: "Request Payload", type: "text", render: (data: any) => data.request_payload ? "{...}" : "-", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
-    { key: "response_payload", label: "Response Payload", type: "text", render: (data: any) => data.response_payload ? "{...}" : "-", isSearchable: false }, // ⚡️ UNAVAILABLE IN BACKEND
+    { key: "error_message", label: "Error Message", type: "text", filterKey: "error_message__icontains", isSearchable: false },
+    
+    { key: "started_at", label: "Started At (Single Day)", tableLabel: "Started At", type: "date", filterKey: "started_at__range", render: (data: any) => data.started_at ? new Date(data.started_at).toLocaleString() : "-" },
+    { key: "started_at__range", label: "Started At (Range)", type: "date_range", filterKey: "started_at__range", isSearchOnly: true },
+    { key: "completed_at", label: "Completed At (Single Day)", tableLabel: "Completed At", type: "date", filterKey: "completed_at__range", render: (data: any) => data.completed_at ? new Date(data.completed_at).toLocaleString() : "-" },
+    { key: "completed_at__range", label: "Completed At (Range)", type: "date_range", filterKey: "completed_at__range", isSearchOnly: true },
+    
+    { key: "request_payload", label: "Request Payload", type: "text", render: (data: any) => data.request_payload ? "{...}" : "-", isSearchable: false },
+    { key: "response_payload", label: "Response Payload", type: "text", render: (data: any) => data.response_payload ? "{...}" : "-", isSearchable: false },
   ];
 
-  // ⚡️ Only allow searchable columns to be populated in the "Search Fields" dropdown
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
-
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
-  // ⚡️ "Columns" dropdown should not offer the range search-only variant as a table column
   const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
 
   const fetchAttempts = async (
@@ -130,14 +116,15 @@ const MessageAttempt: React.FC = () => {
       const activeFilters = filters || filterValues;
       const cleanParams: Record<string, string> = {};
 
-      Object.entries(activeFilters).forEach(([key, value]) => {
+      searchColumns.forEach((key) => {
+        const value = activeFilters[key];
         if (!value) return;
-        const colDef = allColumns.find(c => c.key === key);
+        const colDef = allColumns.find((c) => c.key === key);
         const baseKey = colDef?.filterKey || key;
 
-        if (colDef?.type === "date_range") {
-          const [start, end] = value.split(",");
-          if (start && end) cleanParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
+        if (colDef?.options) {
+          const selectedOption = colDef.options.find((opt) => opt.value === value);
+          cleanParams[baseKey] = selectedOption ? selectedOption.value : value;
         } else {
           cleanParams[baseKey] = value;
         }
@@ -164,9 +151,6 @@ const MessageAttempt: React.FC = () => {
 
   useEffect(() => { fetchAttempts(undefined, 1, false); }, [searchColumns]);
 
-  // Infinite scroll: listen on DataTable's internal scroll container
-  // (class "custom-scrollbar", defined inside DataTable.tsx) via the
-  // wrapper ref, since DataTable itself isn't being modified.
   useEffect(() => {
     const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(
       ".custom-scrollbar",
@@ -195,6 +179,8 @@ const MessageAttempt: React.FC = () => {
   const menuItems: ContextMenuItem[] = selectedRow ? [
     { label: "View Payloads", icon: <Eye size={16} />, onClick: () => { setViewLog(selectedRow); setIsModalOpen(true); } },
   ] : [];
+
+  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
 
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
@@ -226,48 +212,75 @@ const MessageAttempt: React.FC = () => {
 
       <FilterCard onSearch={() => { fetchAttempts(undefined, 1, false); }} onClear={() => { setFilterValues({}); fetchAttempts({}, 1, false); }}>
         {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label);
+
           if (col.options) {
             return (
               <Select
                 key={col.key}
-                label={`Search ${col.label}`}
+                label={baseLabel}
                 value={filterValues[col.key] || ""}
                 onChange={(val) => setFilterValues(p => ({ ...p, [col.key]: val }))}
                 options={col.options}
-                placeholder={`Select ${col.label}`}
+                placeholder={`Select ${baseLabel}`}
               />
             );
           }
           if (col.type === "date") {
+            const rawVal = filterValues[col.key] || "";
+            const datePart = rawVal.split("T")[0];
+
             return (
               <DatePicker
                 key={col.key}
-                label={`Search ${col.label}`}
-                selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
-                onChange={(val: Date | null) => setFilterValues(p => ({ ...p, [col.key]: val ? formatLocalDate(val) : "" }))}
+                label={`Search ${baseLabel}`}
+                selected={datePart ? new Date(datePart) : null}
+                onChange={(val: Date | null) => {
+                  if (val) {
+                    const formatted = formatLocalDate(val);
+                    setFilterValues(p => ({ ...p, [col.key]: `${formatted}T00:00:00,${formatted}T23:59:59` }));
+                  } else {
+                    setFilterValues(p => ({ ...p, [col.key]: "" }));
+                  }
+                }}
               />
             );
           }
           if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
+            const [startRange, endRange] = (filterValues[col.key] || "").split(",");
+            const startStr = startRange ? startRange.split("T")[0] : "";
+            const endStr = endRange ? endRange.split("T")[0] : "";
+
             return (
               <React.Fragment key={col.key}>
                 <DatePicker
-                  label={`Search ${col.label} (From)`}
+                  label={`Search ${baseLabel} (From)`}
                   selected={startStr ? new Date(startStr) : null}
                   onChange={(val: Date | null) => {
                     const newStart = val ? formatLocalDate(val) : "";
                     const currentEnd = endStr || "";
-                    setFilterValues(p => ({ ...p, [col.key]: newStart || currentEnd ? `${newStart},${currentEnd}` : "" }));
+                    if (newStart || currentEnd) {
+                      const startVal = newStart ? `${newStart}T00:00:00` : "";
+                      const endVal = currentEnd ? `${currentEnd}T23:59:59` : "";
+                      setFilterValues(p => ({ ...p, [col.key]: `${startVal},${endVal}` }));
+                    } else {
+                      setFilterValues(p => ({ ...p, [col.key]: "" }));
+                    }
                   }}
                 />
                 <DatePicker
-                  label={`Search ${col.label} (To)`}
+                  label={`Search ${baseLabel} (To)`}
                   selected={endStr ? new Date(endStr) : null}
                   onChange={(val: Date | null) => {
                     const newEnd = val ? formatLocalDate(val) : "";
                     const currentStart = startStr || "";
-                    setFilterValues(p => ({ ...p, [col.key]: currentStart || newEnd ? `${currentStart},${newEnd}` : "" }));
+                    if (currentStart || newEnd) {
+                      const startVal = currentStart ? `${currentStart}T00:00:00` : "";
+                      const endVal = newEnd ? `${newEnd}T23:59:59` : "";
+                      setFilterValues(p => ({ ...p, [col.key]: `${startVal},${endVal}` }));
+                    } else {
+                      setFilterValues(p => ({ ...p, [col.key]: "" }));
+                    }
                   }}
                 />
               </React.Fragment>
@@ -276,10 +289,10 @@ const MessageAttempt: React.FC = () => {
           return (
             <Input
               key={col.key}
-              label={`Search ${col.label}`}
+              label={`Search ${baseLabel}`}
               value={filterValues[col.key] || ""}
               onChange={(e) => setFilterValues(p => ({ ...p, [col.key]: e.target.value }))}
-              placeholder={`Search ${col.label}`}
+              placeholder={`Search ${baseLabel}`}
             />
           );
         })}
