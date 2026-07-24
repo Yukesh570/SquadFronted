@@ -6,7 +6,6 @@ import { Eye, EyeOff } from "lucide-react";
 import {
   createVendorApi,
   updateVendorApi,
-  getVendorRateGroupsApi,
   type VendorData,
 } from "../../../api/connectivityApi/vendorApi";
 import {
@@ -54,7 +53,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   const [formData, setFormData] = useState({
     company: "",
     profileName: "",
-    vendorRateGroup: "",
     connectionType: "SMPP",
     invoicePolicy: "ON_ATTEMPT",
     smppId: 0,
@@ -98,7 +96,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
 
   // Dropdown Options
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
-  const [vendorRateGroupOptions, setVendorRateGroupOptions] = useState<Option[]>([]);
 
   const connectionTypeOptions = [
     { label: "SMPP", value: "SMPP" },
@@ -139,18 +136,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           );
         })
         .catch((err: any) => console.error("Failed to load companies", err));
-
-      getVendorRateGroupsApi("vendorRateGroup", 1, 1000)
-        .then((res: any) => {
-          let list = res.results || (Array.isArray(res) ? res : []);
-          setVendorRateGroupOptions(
-            list.map((rg: any) => ({
-              label: rg.name,
-              value: String(rg.id),
-            })),
-          );
-        })
-        .catch((err: any) => console.error("Failed to load vendor rate groups", err));
     }
   }, [isOpen]);
 
@@ -167,7 +152,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         setFormData({
           company: editingVendor.company ? String(editingVendor.company) : "",
           profileName: editingVendor.profileName,
-          vendorRateGroup: editingVendor.vendorRateGroup != null ? String(editingVendor.vendorRateGroup) : "",
           connectionType: editingVendor.connectionType || "",
           invoicePolicy: editingVendor.invoicePolicy || "ON_ATTEMPT",
           smppId: anyVendor.smpp || 0,
@@ -235,7 +219,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         setFormData({
           company: "",
           profileName: "",
-          vendorRateGroup: "",
           connectionType: "SMPP",
           invoicePolicy: "ON_ATTEMPT",
           smppId: 0,
@@ -305,7 +288,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     e.preventDefault();
     if (isViewMode) return;
 
-    // ⚡️ FIX: Custom toast warnings instead of browser defaults
     if (!formData.company) {
       toast.error("Company Name is required.");
       return;
@@ -377,7 +359,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       const vendorPayload: any = {
         company: Number(formData.company),
         profileName: formData.profileName,
-        vendorRateGroup: formData.vendorRateGroup ? Number(formData.vendorRateGroup) : null,
         connectionType: formData.connectionType,
         smpp: finalSmppValue,
       };
@@ -478,7 +459,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       <form
         onSubmit={handleSubmit}
         className="space-y-5 max-h-[80vh] overflow-y-auto px-1"
-        noValidate // ⚡️ FIX: Disables browser default tooltips
+        noValidate 
       >
         {isLoadingDetails && (
           <div className="p-3 mb-2 text-sm text-blue-800 bg-blue-50 rounded border border-blue-200 flex items-center">
@@ -511,15 +492,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               disabled={isViewMode}
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <Select
-              label="Vendor Rate Group"
-              value={formData.vendorRateGroup}
-              onChange={(v) => handleSelect("vendorRateGroup", v)}
-              options={vendorRateGroupOptions}
-              placeholder="Select Rate Group"
-              disabled={isViewMode}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <Select
               label="Invoice Policy"
               value={formData.invoicePolicy}
@@ -539,6 +512,22 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             />
           </div>
         </fieldset>
+
+        {isViewMode && (
+          <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <legend className="text-sm font-semibold text-primary px-2">
+              Rate Plan
+            </legend>
+            <div className="grid grid-cols-1 gap-4">
+              <Input
+                label="Vendor Rate Group"
+                name="vendorRateGroupView"
+                value={editingVendor?.vendorRateGroupName || "-"}
+                disabled={true}
+              />
+            </div>
+          </fieldset>
+        )}
 
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">

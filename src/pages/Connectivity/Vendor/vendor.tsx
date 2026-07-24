@@ -13,6 +13,7 @@ import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 
 import { VendorModal } from "../../../components/modals/Connectivity/VendorModal";
 import { VendorRateTableModal } from "../../../components/modals/Connectivity/VendorRateTableModal"; 
+import { VendorRateGroupModal } from "../../../components/modals/Connectivity/VendorRateGroupModal"; // ⚡️ ADDED
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
@@ -78,6 +79,9 @@ const Vendor: React.FC = () => {
   const [editingVendor, setEditingVendor] = useState<VendorData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+
+  // Modal State for Edit Rate Group ⚡️ ADDED
+  const [isRateGroupModalOpen, setIsRateGroupModalOpen] = useState(false);
 
   // Modal State for View Rate
   const [isRateModalOpen, setIsRateModalOpen] = useState(false);
@@ -553,6 +557,12 @@ const Vendor: React.FC = () => {
     setIsViewMode(false);
     setIsModalOpen(true);
   };
+  
+  const handleEditRateGroup = (vendor: VendorData) => {
+    if (!canUpdate) return;
+    setEditingVendor(vendor);
+    setIsRateGroupModalOpen(true);
+  };
 
   const handleAdd = () => {
     if (!canCreate) return;
@@ -618,6 +628,11 @@ const Vendor: React.FC = () => {
                 label: "Edit Vendor",
                 icon: <Edit size={16} />,
                 onClick: () => handleEdit(selectedRowVendor),
+              },
+              {
+                label: !selectedRowVendor.vendorRateGroup ? "Add Rate Group" : "Edit Rate Group",
+                icon: !selectedRowVendor.vendorRateGroup ? <Plus size={16} /> : <Edit size={16} />,
+                onClick: () => handleEditRateGroup(selectedRowVendor),
               },
             ]
           : []),
@@ -955,6 +970,15 @@ const Vendor: React.FC = () => {
         moduleName={routeName}
         editingVendor={editingVendor}
         isViewMode={isViewMode}
+      />
+      
+      <VendorRateGroupModal
+        isOpen={isRateGroupModalOpen}
+        onClose={() => setIsRateGroupModalOpen(false)}
+        onSuccess={fetchVendors}
+        moduleName={routeName}
+        editingVendor={editingVendor}
+        vendorRateGroupOptions={vendorRateGroupOptions}
       />
       
       <VendorRateTableModal
