@@ -431,7 +431,11 @@ const MessageReport: React.FC = () => {
 
   useEffect(() => {
     const liveUpdateTimer = setInterval(() => {
-      if (isAtTopRef.current) {
+      const isFiltering = Object.values(filterValues).some(val => val !== "");
+
+      // Check our React Ref instead of querying the DOM
+      if (isAtTopRef.current && !isFiltering) {
+        // params: overrideParams=undefined, page=1, append=false, silent=true
         fetchLogs(undefined, 1, false, true);
       }
     }, 5000);
