@@ -12,6 +12,7 @@ import { InvoiceSetupModal } from "../../../components/modals/Finance/InvoiceSet
 import Button from "../../../components/ui/Button";
 import Select from "../../../components/ui/Select";
 import Input from "../../../components/ui/Input"; 
+import DatePicker from "../../../components/ui/DatePicker";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import AdvancedFilter, { type FilterColumn } from "../../../components/ui/AdvancedFilter";
@@ -20,7 +21,6 @@ import ContextMenu, { type ContextMenuItem } from "../../../components/ui/Contex
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import { actionHelper } from "../../../helper/action";
 
-// ⚡️ FIX: Import the StatusBadge
 import { StatusBadge } from "../../../components/ui/StatusBadge";
 import { formatDateTime } from "../../../helper/dateFormatter";
 
@@ -33,7 +33,16 @@ interface ColumnConfig extends FilterColumn {
   render?: (data: any) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
+  isSearchOnly?: boolean;
+  tableLabel?: string;
 }
+
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const DEFAULT_SEARCH_COLUMNS = ["companyName", "invoiceFrequency"];
 const DEFAULT_TABLE_COLUMNS = ["companyName", "businessEntity", "invoiceFrequency", "dueDays", "isTaxApplied"];
@@ -113,9 +122,8 @@ const InvoiceSetup: React.FC = () => {
     { label: "No", value: "false" },
   ];
 
-  // ⚡️ FIX: Implemented exact DLR Hex color codes mapped via StatusBadge
   const renderBooleanBadge = (value: boolean) => {
-    const statusKey = value ? "DELIVERED" : "PENDING"; // Based on previous user instruction for Yes/No mapping
+    const statusKey = value ? "DELIVERED" : "PENDING";
     const labelText = value ? "Yes" : "No";
     
     return <StatusBadge status={statusKey} customText={labelText} />;
@@ -123,30 +131,34 @@ const InvoiceSetup: React.FC = () => {
 
   const allColumns: ColumnConfig[] = [
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
-    // ⚡️ FIX: Added a render to show businessEntityName from the backend response
     { 
-  key: "businessEntity", 
-  label: "Entity", 
-  type: "text",
-  filterKey: "businessEntity__legalEntityName__icontains",
-  render: (s: InvoiceSetupData) => s.businessEntityName || s.businessEntity 
-},
-    { key: "invoiceFrequency", label: "Frequency", type: "text", options: frequencyOptions },
-    { key: "dueDays", label: "Due Days", type: "number" },
-    { key: "tax", label: "Tax Details", type: "text" },
+      key: "businessEntity", 
+      label: "Entity", 
+      type: "text",
+      filterKey: "businessEntity__legalEntityName__icontains",
+      render: (s: InvoiceSetupData) => s.businessEntityName || s.businessEntity 
+    },
+    { key: "invoiceFrequency", label: "Frequency", type: "text", options: frequencyOptions, filterKey: "invoiceFrequency" },
+    { key: "dueDays", label: "Due Days", type: "number", filterKey: "dueDays" },
+    { key: "tax", label: "Tax Details", type: "text", filterKey: "tax__icontains" },
     { 
       key: "isTaxApplied", 
       label: "Tax Applied", 
-      type: "boolean", 
+      type: "text", 
       options: booleanOptions, 
+      filterKey: "isTaxApplied",
       render: (s: any) => renderBooleanBadge(s.isTaxApplied) 
     },
     { key: "billingAddressOverride", label: "Billing Address", type: "text", filterKey: "billingAddressOverride__icontains" },
-    { key: "createdAt", label: "Created At", type: "date", filterKey: "createdAt", render: (s: InvoiceSetupData) => (s.createdAt ? formatDateTime(s.createdAt) : "-") },
-];
+
+    // --- Date Filters explicitly mapped to createdAt__range ---
+    { key: "createdAt", label: "Created At (Single Day)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range", render: (s: InvoiceSetupData) => (s.createdAt ? formatDateTime(s.createdAt) : "-") },
+    { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt__range", isSearchOnly: true },
+  ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+  const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
@@ -164,14 +176,15 @@ const InvoiceSetup: React.FC = () => {
 
       searchColumns.forEach((key) => {
         const value = activeFilters[key];
-        if (value) {
-          const columnDef = allColumns.find((c) => c.key === key);
-          if (columnDef?.options) {
-            const selectedOption = columnDef.options.find((opt: Option) => opt.value === value);
-            currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value; 
-          } else {
-            currentSearchParams[columnDef?.filterKey || key] = value;
-          }
+        if (!value) return;
+        const columnDef = allColumns.find((c) => c.key === key);
+        const baseKey = columnDef?.filterKey || key;
+
+        if (columnDef?.options) {
+          const selectedOption = columnDef.options.find((opt: Option) => opt.value === value);
+          currentSearchParams[baseKey] = selectedOption ? selectedOption.value : value; 
+        } else {
+          currentSearchParams[baseKey] = value;
         }
       });
 
@@ -235,7 +248,8 @@ const InvoiceSetup: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Setup", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRow.id!) }] : []),
   ] : [];
 
-  const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.label)];
+  const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
+  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -246,7 +260,7 @@ const InvoiceSetup: React.FC = () => {
             <AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+            <AdvancedFilter columns={tableFilterColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
           </div>
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
@@ -259,25 +273,87 @@ const InvoiceSetup: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label);
+
           if (col.options) {
             return (
               <Select 
                 key={col.key} 
-                label={`Search ${col.label}`} 
+                label={`Search ${baseLabel}`} 
                 value={filterValues[col.key] || ""} 
                 onChange={(val) => handleFilterChange(col.key, val)} 
                 options={col.options} 
-                placeholder={`Select ${col.label}`} 
+                placeholder={`Select ${baseLabel}`} 
               />
+            );
+          }
+          if (col.type === "date") {
+            const rawVal = filterValues[col.key] || "";
+            const datePart = rawVal.split("T")[0];
+
+            return (
+              <DatePicker
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                selected={datePart ? new Date(datePart) : null}
+                onChange={(val: Date | null) => {
+                  if (val) {
+                    const formatted = formatLocalDate(val);
+                    handleFilterChange(col.key, `${formatted}T00:00:00,${formatted}T23:59:59`);
+                  } else {
+                    handleFilterChange(col.key, "");
+                  }
+                }}
+              />
+            );
+          }
+          if (col.type === "date_range") {
+            const [startRange, endRange] = (filterValues[col.key] || "").split(",");
+            const startStr = startRange ? startRange.split("T")[0] : "";
+            const endStr = endRange ? endRange.split("T")[0] : "";
+
+            return (
+              <React.Fragment key={col.key}>
+                <DatePicker
+                  label={`Search ${baseLabel} (From)`}
+                  selected={startStr ? new Date(startStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newStart = val ? formatLocalDate(val) : "";
+                    const currentEnd = endStr || "";
+                    if (newStart || currentEnd) {
+                      const startVal = newStart ? `${newStart}T00:00:00` : "";
+                      const endVal = currentEnd ? `${currentEnd}T23:59:59` : "";
+                      handleFilterChange(col.key, `${startVal},${endVal}`);
+                    } else {
+                      handleFilterChange(col.key, "");
+                    }
+                  }}
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (To)`}
+                  selected={endStr ? new Date(endStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newEnd = val ? formatLocalDate(val) : "";
+                    const currentStart = startStr || "";
+                    if (currentStart || newEnd) {
+                      const startVal = currentStart ? `${currentStart}T00:00:00` : "";
+                      const endVal = newEnd ? `${newEnd}T23:59:59` : "";
+                      handleFilterChange(col.key, `${startVal},${endVal}`);
+                    } else {
+                      handleFilterChange(col.key, "");
+                    }
+                  }}
+                />
+              </React.Fragment>
             );
           }
           return (
              <Input
                key={col.key}
-               label={`Search ${col.label}`}
+               label={`Search ${baseLabel}`}
                value={filterValues[col.key] || ""}
                onChange={(e) => handleFilterChange(col.key, e.target.value)}
-               placeholder={`Search ${col.label}`}
+               placeholder={`Search ${baseLabel}`}
              />
           );
         })}
