@@ -177,6 +177,7 @@ const ClientInvoice: React.FC = () => {
     if (!url) { toast.error("Download link not available."); return; }
     const cleanUrl = url.replace(/^None\/?/, "/").replace(/(?<!:)\/\//g, "/");
 
+const toastId = toast.loading("Downloading PDF...", { type: "info" });
     try {
       const response = await api.get(cleanUrl, { responseType: "blob" });
       const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
@@ -187,15 +188,16 @@ const ClientInvoice: React.FC = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(blobUrl);
-      toast.success("PDF downloaded successfully!");
+      toast.update(toastId, { render: "PDF downloaded successfully!", type: "success", isLoading: false, autoClose: 3000 });
     } catch (error) {
-      toast.error("Failed to download PDF.");
+      toast.update(toastId, { render: "Failed to download PDF.", type: "error", isLoading: false, autoClose: 3000 });
     }
   };
 
   const handleDownloadEdr = async (id?: number) => {
     if (!id) { toast.error("Invoice ID not available."); return; }
 
+const toastId = toast.loading("Downloading EDR...", { type: "info" });
     try {
       const response = await api.get(`/finance/TDR-invoice/download/${id}/`, { responseType: "blob" });
       const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
@@ -206,9 +208,9 @@ const ClientInvoice: React.FC = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(blobUrl);
-      toast.success("EDR downloaded successfully!");
+      toast.update(toastId, { render: "EDR downloaded successfully!", type: "success", isLoading: false, autoClose: 3000 });
     } catch (error) {
-      toast.error("Failed to download EDR.");
+      toast.update(toastId, { render: "Failed to download EDR.", type: "error", isLoading: false, autoClose: 3000 });
     }
   };
 
