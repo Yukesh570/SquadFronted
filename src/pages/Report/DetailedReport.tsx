@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Download, Eye } from "lucide-react";
+import { Home, Eye } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import { getDetailedReportsApi, exportDetailedReportsApi, type DetailedReportData } from "../../api/reportApi/detailedReportApi";
+import { getDetailedReportsApi, /* exportDetailedReportsApi, */ type DetailedReportData } from "../../api/reportApi/detailedReportApi";
 import { DetailedReportModal } from "../../components/modals/Report/DetailedReportModal";
 
-import Button from "../../components/ui/Button";
+// import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import DatePicker from "../../components/ui/DatePicker";
@@ -62,14 +62,11 @@ const DetailedReport: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewLog, setViewLog] = useState<DetailedReportData | null>(null);
-  
+
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRowLog, setSelectedRowLog] = useState<DetailedReportData | null>(null);
 
-  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
-    const saved = localStorage.getItem("detailed_search_columns");
-    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
-  });
+  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("detailed_table_columns");
@@ -84,10 +81,6 @@ const DetailedReport: React.FC = () => {
   useEffect(() => {
     localStorage.setItem("detailed_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
-
-  useEffect(() => {
-    localStorage.setItem("detailed_search_columns", JSON.stringify(searchColumns));
-  }, [searchColumns]);
 
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
@@ -109,13 +102,13 @@ const DetailedReport: React.FC = () => {
     { key: "vendor", label: "Vendor", type: "text", filterKey: "vendor__icontains" },
     { key: "senderId", label: "Sender ID", type: "text", filterKey: "senderId__icontains" },
     { key: "vendor_msg_id", label: "Vendor Msg ID", type: "text", filterKey: "vendor_msg_id__icontains" },
-    
+
     { key: "content", label: "Content", type: "text", filterKey: "text__icontains", render: (log) => (
       <div className="max-w-xs truncate text-sm text-text-secondary cursor-pointer hover:text-primary transition-colors" title="Click to view full message" onClick={(e) => { e.stopPropagation(); setViewLog(log); setIsModalOpen(true); }}>
         {log.content}
       </div>
     )},
-    
+
     { key: "submitStatus", label: "Status", type: "text", options: statusOptions, filterKey: "submitStatus", render: (log) => {
       return <StatusBadge status={log.submitStatus} />;
     }},
@@ -125,7 +118,7 @@ const DetailedReport: React.FC = () => {
     { key: "vendorRate", label: "Vendor Rate", type: "number", filterKey: "vendorRate__icontains" },
     { key: "vendor_charge", label: "Vendor Charge", type: "number", filterKey: "vendor_charge__icontains" },
     { key: "part_total", label: "Parts", type: "number", filterKey: "part_total__icontains" },
-    
+
     // --- Request Time: Single day picks 24-hour range, multi-day range is separate ---
     { key: "request_time", label: "Request Time (Single Day)", tableLabel: "Request Time", type: "date", filterKey: "request_time__range", render: (log) => (<span>{log.request_time ? new Date(log.request_time).toLocaleString() : "-"}</span>) },
     { key: "request_time__range", label: "Request Time (Range)", type: "date_range", filterKey: "request_time__range", isSearchOnly: true },
@@ -218,19 +211,19 @@ const DetailedReport: React.FC = () => {
   const handleSearch = () => { fetchReports(undefined, 1, false); };
   const handleClearFilters = () => { setFilterValues({}); fetchReports({}, 1, false); };
 
-  const handleExport = async () => {
-    try {
-      const blob = await exportDetailedReportsApi(filterValues);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `detailed_report_${new Date().toISOString()}.csv`;
-      a.click();
-      toast.success("Export started successfully");
-    } catch (err) {
-      toast.error("Failed to export data.");
-    }
-  };
+  // const handleExport = async () => {
+  //   try {
+  //     const blob = await exportDetailedReportsApi(filterValues);
+  //     const url = window.URL.createObjectURL(blob);
+  //     const a = document.createElement("a");
+  //     a.href = url;
+  //     a.download = `detailed_report_${new Date().toISOString()}.csv`;
+  //     a.click();
+  //     toast.success("Export started successfully");
+  //   } catch (err) {
+  //     toast.error("Failed to export data.");
+  //   }
+  // };
 
   const handleContextMenu = (e: React.MouseEvent, log: DetailedReportData) => {
     e.preventDefault();
@@ -356,7 +349,7 @@ const DetailedReport: React.FC = () => {
 
       <div ref={tableWrapperRef} className="detailed-report-table">
         <DataTable serverSide={true} data={reports} totalItems={totalItems} rowsPerPage={BATCH_SIZE} headers={tableHeaders} isLoading={isLoading}
-          headerActions={<Button variant="secondary" onClick={handleExport} leftIcon={<Download size={18} />}>Export</Button>}
+          // headerActions={<Button variant="secondary" onClick={handleExport} leftIcon={<Download size={18} />}>Export</Button>}
           renderRow={(log, index) => (
             <tr key={log.id || index} onContextMenu={(e) => handleContextMenu(e, log)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
               <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
@@ -378,7 +371,7 @@ const DetailedReport: React.FC = () => {
       </div>
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
-      
+
       <DetailedReportModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} viewLog={viewLog} />
     </div>
   );

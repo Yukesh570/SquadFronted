@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Home, Download, Eye } from "lucide-react";
+import { Home, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
 // --- API ---
 import {
   getMessageLogsApi,
-  exportMessageLogsApi,
+  /* exportMessageLogsApi, */
   type MessageLogData,
 } from "../../api/reportApi/messageReportApi";
 
@@ -16,7 +16,7 @@ import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
 import { getSmppApi } from "../../api/connectivityApi/smppApi";
 
 // --- Components ---
-import Button from "../../components/ui/Button";
+// import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import DatePicker from "../../components/ui/DatePicker";
@@ -107,10 +107,7 @@ const MessageReport: React.FC = () => {
   const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
   const [smppOptions, setSmppOptions] = useState<Option[]>([]);
 
-  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
-    const saved = localStorage.getItem("msg_search_columns");
-    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
-  });
+  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("msg_table_columns");
@@ -341,10 +338,6 @@ const MessageReport: React.FC = () => {
     localStorage.setItem("msg_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
 
-  useEffect(() => {
-    localStorage.setItem("msg_search_columns", JSON.stringify(searchColumns));
-  }, [searchColumns]);
-
   const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
@@ -478,19 +471,19 @@ const MessageReport: React.FC = () => {
     fetchLogs({}, 1, false);
   };
 
-  const handleExport = async () => {
-    try {
-      const blob = await exportMessageLogsApi(moduleName, filterValues);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `message_report_${new Date().toISOString()}.csv`;
-      a.click();
-      toast.success("Export started successfully");
-    } catch (err) {
-      toast.error("Failed to export data");
-    }
-  };
+  // const handleExport = async () => {
+  //   try {
+  //     const blob = await exportMessageLogsApi(moduleName, filterValues);
+  //     const url = window.URL.createObjectURL(blob);
+  //     const a = document.createElement("a");
+  //     a.href = url;
+  //     a.download = `message_report_${new Date().toISOString()}.csv`;
+  //     a.click();
+  //     toast.success("Export started successfully");
+  //   } catch (err) {
+  //     toast.error("Failed to export data");
+  //   }
+  // };
 
   const handleContextMenu = (e: React.MouseEvent, log: MessageLogData) => {
     e.preventDefault();
@@ -724,17 +717,17 @@ const MessageReport: React.FC = () => {
           rowsPerPage={BATCH_SIZE}
           headers={tableHeaders}
           isLoading={isLoading}
-          headerActions={
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={handleExport}
-                leftIcon={<Download size={18} />}
-              >
-                Export
-              </Button>
-            </div>
-          }
+          // headerActions={
+          //   <div className="flex gap-2">
+          //     <Button
+          //       variant="secondary"
+          //       onClick={handleExport}
+          //       leftIcon={<Download size={18} />}
+          //     >
+          //       Export
+          //     </Button>
+          //   </div>
+          // }
           renderRow={(log, index) => (
             <tr
               key={log.id || index}
