@@ -462,6 +462,15 @@ const ClientSession: React.FC = () => {
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
             Client Sessions
           </h1>
+           <div className="relative z-20">
+            <AdvancedFilter
+              columns={tableFilterColumns}
+              selectedColumns={tableColumns}
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+            />
+          </div>
           <div className="relative z-20">
             <AdvancedFilter
               columns={searchableColumns} // ⚡️ FIX: Mapped to searchableColumns
@@ -479,15 +488,6 @@ const ClientSession: React.FC = () => {
               onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
               isLoading={isLoading}
               buttonLabel="Search Fields"
-            />
-          </div>
-          <div className="relative z-20">
-            <AdvancedFilter
-              columns={tableFilterColumns}
-              selectedColumns={tableColumns}
-              onFilter={setTableColumns}
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
-              buttonLabel="Columns"
             />
           </div>
         </div>

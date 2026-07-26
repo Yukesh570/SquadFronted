@@ -381,6 +381,15 @@ const MappingSetup: React.FC = () => {
           </h1>
           <div className="relative z-20">
             <AdvancedFilter
+              columns={tableFilterColumns}
+              selectedColumns={tableColumns}
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+            />
+          </div>
+          <div className="relative z-20">
+            <AdvancedFilter
               columns={allColumns}
               selectedColumns={searchColumns}
               onFilter={(newCols) => {
@@ -396,15 +405,6 @@ const MappingSetup: React.FC = () => {
               onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
               isLoading={isLoading}
               buttonLabel="Search Fields"
-            />
-          </div>
-          <div className="relative z-20">
-            <AdvancedFilter
-              columns={tableFilterColumns}
-              selectedColumns={tableColumns}
-              onFilter={setTableColumns}
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
-              buttonLabel="Columns"
             />
           </div>
         </div>

@@ -535,6 +535,15 @@ const MessageReport: React.FC = () => {
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
             Message Report
           </h1>
+          <div className="relative z-20">
+            <AdvancedFilter
+              columns={tableColumnsConfig}
+              selectedColumns={tableColumns}
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+            />
+          </div>
 
           <div className="relative z-20">
             <AdvancedFilter
@@ -553,16 +562,6 @@ const MessageReport: React.FC = () => {
               onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
               isLoading={isLoading}
               buttonLabel="Search Fields"
-            />
-          </div>
-
-          <div className="relative z-20">
-            <AdvancedFilter
-              columns={tableColumnsConfig}
-              selectedColumns={tableColumns}
-              onFilter={setTableColumns}
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
-              buttonLabel="Columns"
             />
           </div>
         </div>

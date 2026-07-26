@@ -461,6 +461,15 @@ const OperatorNetworkCode: React.FC = () => {
           </h1>
           <div className="relative z-20">
             <AdvancedFilter
+              columns={tableFilterColumns}
+              selectedColumns={tableColumns}
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+            />
+          </div>
+          <div className="relative z-20">
+            <AdvancedFilter
               columns={allColumns}
               selectedColumns={searchColumns}
               onFilter={(newCols) => {
@@ -478,15 +487,7 @@ const OperatorNetworkCode: React.FC = () => {
               buttonLabel="Search Fields"
             />
           </div>
-          <div className="relative z-20">
-            <AdvancedFilter
-              columns={tableFilterColumns}
-              selectedColumns={tableColumns}
-              onFilter={setTableColumns}
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
-              buttonLabel="Columns"
-            />
-          </div>
+          
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />

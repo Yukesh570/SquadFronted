@@ -175,13 +175,12 @@ const Entity: React.FC = () => {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Entity Settings</h1>
-
+          <div className="relative z-20">
+            <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+          </div>
           {/* FIXED: Advanced Filters Integrated */}
           <div className="relative z-20">
             <AdvancedFilter columns={allColumns.filter(c => c.key !== 'companyLogo')} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
-          </div>
-          <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
           </div>
         </div>
 

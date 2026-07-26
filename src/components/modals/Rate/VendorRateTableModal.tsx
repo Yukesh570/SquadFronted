@@ -192,7 +192,7 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
       <Modal
         isOpen={isOpen}
         onClose={onClose}
-        title={`Routing Group Details: ${rateGroup || ""}`}
+        title={`Vendor Rates: ${rateGroup || ""}`}
         className="max-w-[95vw] w-full"
       >
         <div className="p-4 w-full flex flex-col" onClick={() => setContextMenuPos(null)}>

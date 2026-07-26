@@ -594,6 +594,16 @@ const Client: React.FC = () => {
 
           <div className="relative z-20">
             <AdvancedFilter
+              columns={tableFilterColumns}
+              selectedColumns={tableColumns}
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+            />
+          </div>
+
+          <div className="relative z-20">
+            <AdvancedFilter
               columns={searchableColumns}
               selectedColumns={searchColumns}
               onFilter={(newCols) => {
@@ -612,15 +622,6 @@ const Client: React.FC = () => {
             />
           </div>
 
-          <div className="relative z-20">
-            <AdvancedFilter
-              columns={tableFilterColumns}
-              selectedColumns={tableColumns}
-              onFilter={setTableColumns}
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
-              buttonLabel="Columns"
-            />
-          </div>
         </div>
 
         <div className="flex items-center space-x-2 text-sm text-text-secondary">

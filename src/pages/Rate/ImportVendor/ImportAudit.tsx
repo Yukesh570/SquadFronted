@@ -197,10 +197,10 @@ const ImportAudit: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Import Audit Logs</h1>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns as any} selectedColumns={searchColumns} onFilter={(newCols: string[]) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter columns={tableFilterColumns as any} selectedColumns={tableColumns} onFilter={(cols: string[]) => setTableColumns(cols)} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={tableFilterColumns as any} selectedColumns={tableColumns} onFilter={(cols: string[]) => setTableColumns(cols)} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+            <AdvancedFilter columns={allColumns as any} selectedColumns={searchColumns} onFilter={(newCols: string[]) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
           </div>
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">

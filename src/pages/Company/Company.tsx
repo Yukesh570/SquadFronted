@@ -519,6 +519,15 @@ const CompanyList: React.FC = () => {
           <div className="relative z-20">
             <AdvancedFilter
               columns={allColumns}
+              selectedColumns={tableColumns}
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+            />
+          </div>
+          <div className="relative z-20">
+            <AdvancedFilter
+              columns={allColumns}
               selectedColumns={searchColumns}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
@@ -533,15 +542,6 @@ const CompanyList: React.FC = () => {
               onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
               isLoading={isLoading}
               buttonLabel="Search Fields"
-            />
-          </div>
-          <div className="relative z-20">
-            <AdvancedFilter
-              columns={allColumns}
-              selectedColumns={tableColumns}
-              onFilter={setTableColumns}
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
-              buttonLabel="Columns"
             />
           </div>
         </div>

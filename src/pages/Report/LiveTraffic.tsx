@@ -411,6 +411,17 @@ const hasLoggedOpening = useRef(false);
             Live Traffic Monitor
           </h1>
 
+            {/* Table Columns Dropdown */}
+          <div className="relative z-20">
+            <AdvancedFilter
+              columns={tableColumnsConfig}
+              selectedColumns={tableColumns}
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+            />
+          </div>
+
           {/* Search Fields Dropdown */}
           <div className="relative z-20">
             <AdvancedFilter
@@ -434,17 +445,6 @@ const hasLoggedOpening = useRef(false);
               onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
               isLoading={isLoading}
               buttonLabel="Search Fields"
-            />
-          </div>
-
-          {/* Table Columns Dropdown */}
-          <div className="relative z-20">
-            <AdvancedFilter
-              columns={tableColumnsConfig}
-              selectedColumns={tableColumns}
-              onFilter={setTableColumns}
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
-              buttonLabel="Columns"
             />
           </div>
 

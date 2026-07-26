@@ -319,6 +319,15 @@ const CustomRoute: React.FC = () => {
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
             Custom Route Manager
           </h1>
+           <div className="relative z-20">
+            <AdvancedFilter
+              columns={tableFilterColumns as any}
+              selectedColumns={tableColumns}
+              onFilter={(cols: any) => setTableColumns(cols)}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+            />
+          </div>
           <div className="relative z-20">
             <AdvancedFilter
               columns={allColumns as any}
@@ -336,15 +345,6 @@ const CustomRoute: React.FC = () => {
               onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
               isLoading={isLoading}
               buttonLabel="Search Fields"
-            />
-          </div>
-          <div className="relative z-20">
-            <AdvancedFilter
-              columns={tableFilterColumns as any}
-              selectedColumns={tableColumns}
-              onFilter={(cols: any) => setTableColumns(cols)}
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
-              buttonLabel="Columns"
             />
           </div>
         </div>
