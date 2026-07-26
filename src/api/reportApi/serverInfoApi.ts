@@ -30,9 +30,18 @@ export interface DatabaseStats {
   largest_tables: { table: string; size: string }[];
 }
 
+export interface CpuLoad {
+  load_1m?: number;
+  load_5m?: number;
+  load_15m?: number;
+  load_1m_per_cpu?: number;
+  cpu_count?: number;
+}
+
 export interface HardwareData {
   server_uptime: string;
   cpu_usage_percent: number;
+  cpu_load?: CpuLoad; // ⚡️ NEW: Load average reported separately from actual CPU usage
   ram_usage_percent: number;
   ram_details: string;
   disk_usage_percent: number;

@@ -178,7 +178,7 @@ const ServerInfo: React.FC = () => {
   }
 
   const system_status = serverData?.system_status || "UNKNOWN";
-  const hardware = serverData?.hardware || { cpu_usage_percent: 0, ram_usage_percent: 0, ram_details: "N/A", disk_usage_percent: 0, server_uptime: "N/A", network_traffic: "N/A", disk_partitions: [] };
+  const hardware = serverData?.hardware || { cpu_usage_percent: 0, cpu_load: {}, ram_usage_percent: 0, ram_details: "N/A", disk_usage_percent: 0, server_uptime: "N/A", network_traffic: "N/A", disk_partitions: [] };
   const infrastructure = serverData?.infrastructure || { database: "UNKNOWN", redis: "UNKNOWN", rabbitmqPortStatus: "UNKNOWN", celery_workers: "UNKNOWN", active_celery_nodes: 0, pending_tasks: 0 };
   const db_stats = serverData?.database_stats;
   const isWarning = system_status === "WARNING" || system_status === "DOWN" || system_status === "CRITICAL";
@@ -215,7 +215,13 @@ const ServerInfo: React.FC = () => {
       <div>
         <h2 className="text-sm font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider mb-4">Instantaneous Hardware</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <ResourceCard title="CPU Usage" percent={hardware.cpu_usage_percent} details="Total CPU load" icon={Cpu} colorClass="bg-blue-500 text-blue-500" />
+          <ResourceCard 
+            title="CPU Usage" 
+            percent={hardware.cpu_usage_percent} 
+            details={hardware.cpu_load?.load_1m !== undefined ? `Load (1m): ${hardware.cpu_load.load_1m} | ${hardware.cpu_load.cpu_count || 1} Cores` : "Real-time utilization"} 
+            icon={Cpu} 
+            colorClass="bg-blue-500 text-blue-500" 
+          />
           <ResourceCard title="RAM Usage" percent={hardware.ram_usage_percent} details={hardware.ram_details} icon={Activity} colorClass="bg-purple-500 text-purple-500" />
           <ResourceCard title="Disk Usage (Root)" percent={hardware.disk_usage_percent} details="Primary storage consumption" icon={HardDrive} colorClass="bg-orange-500 text-orange-500" />
         </div>
