@@ -920,25 +920,41 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard
           title="Total Revenue"
-          value={revenue ? `${currencySymbol}${revenue.total_revenue.toFixed(4)}` : "-"}
+          value={
+            revenue && revenue.total_revenue != null && !isNaN(Number(revenue.total_revenue))
+              ? `${currencySymbol}${Number(revenue.total_revenue).toFixed(4)}`
+              : "-"
+          }
           icon={<Banknote size={24} />}
           trendText="Received from clients"
         />
         <StatCard
           title="Total Cost"
-          value={revenue ? `${currencySymbol}${revenue.total_cost.toFixed(4)}` : "-"}
+          value={
+            revenue && revenue.total_cost != null && !isNaN(Number(revenue.total_cost))
+              ? `${currencySymbol}${Number(revenue.total_cost).toFixed(4)}`
+              : "-"
+          }
           icon={<Banknote size={24} />}
           trendText="Paid to vendors"
         />
         <StatCard
           title="Gross Margin"
-          value={revenue ? `${currencySymbol}${revenue.gross_margin.toFixed(4)}` : "-"}
+          value={
+            revenue && revenue.gross_margin != null && !isNaN(Number(revenue.gross_margin))
+              ? `${currencySymbol}${Number(revenue.gross_margin).toFixed(4)}`
+              : "-"
+          }
           icon={<TrendingUp size={24} />}
           trendText="Revenue minus cost"
         />
         <StatCard
           title="Margin %"
-          value={revenue ? `${revenue.margin_pct}%` : "-"}
+          value={
+            revenue && revenue.margin_pct != null && !isNaN(Number(revenue.margin_pct))
+              ? `${Number(revenue.margin_pct).toFixed(2)}%`
+              : "-"
+          }
           icon={<Activity size={24} />}
           trendText="Gross margin percentage"
         />
