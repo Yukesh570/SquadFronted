@@ -10,7 +10,7 @@ export interface TrafficLogData {
   msisdn: string;
   senderId: string;
   messageType: string;
-  status: "DELIVERED" | "FAILED" | "PENDING" | "UNDELIVERED";
+  status: "DELIVERED" | "FAILED" | "PENDING" | "UNDELIVERED" | "UNCERTAIN";
   error?: string;
   latency: string;
   cost: string;

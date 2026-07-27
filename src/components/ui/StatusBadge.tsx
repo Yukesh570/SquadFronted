@@ -13,6 +13,7 @@ export const STATUS_COLORS: Record<string, { bg: string; text: string; border: s
   FAILED: { bg: "#FEE2E2", text: "#991B1B", border: "#DC2626", label: "Failed" },
   REJECTED: { bg: "#FEE2E2", text: "#7F1D1D", border: "#991B1B", label: "Rejected" },
   EXPIRED: { bg: "#FEF3C7", text: "#78350F", border: "#92400E", label: "Expired" },
+  UNCERTAIN: { bg: "#FEF9C3", text: "#854D0E", border: "#EAB308", label: "Uncertain" },
   UNKNOWN: { bg: "#E2E8F0", text: "#334155", border: "#475569", label: "Unknown" },
 
   // --- Extended Generic Statuses using the same PM Color Palette ---

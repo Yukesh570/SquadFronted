@@ -16,7 +16,8 @@ export interface MessageLogData {
     | "IN_PROGRESS"
     | "PARTIALLY_DELIVERED"
     | "NO_ROUTE"
-    | "RETRY_PENDING";
+    | "RETRY_PENDING"
+    | "UNCERTAIN";
   message_id: string;
   encoding?: string;
   segmentNumber?: string;

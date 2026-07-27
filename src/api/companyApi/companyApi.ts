@@ -10,7 +10,7 @@ export interface CompanyData {
   billingEmail: string;
   ratesEmail: string;
   lowBalanceAlertEmail: string;
-  
+
   // Foreign Keys (IDs)
   country: number;
   state: number;
@@ -19,17 +19,19 @@ export interface CompanyData {
   currency: number;
   timeZone: number;
   // businessEntity: number;
-  
+
   // Finance
   customerCreditLimit: string; // Decimal as string
   vendorCreditLimit: string; // Restored
   balanceAlertAmount: string;
+  usedCustomerCredit: string;
+  usedVendorCredit: string;
   referencNumber: string;
   // vatNumber: string;
-  
+
   // Address
   address: string;
-  
+
   // Enums & Booleans
   validityPeriod: string; // 'LTD' or 'UNL'
   defaultEmail: string;   // 'CMP' or 'SUP'
@@ -56,18 +58,18 @@ export const getCompaniesApi = async (
   pageSize: number = 10,
   searchParams?: Record<string, any>
 ): Promise<PaginatedResponse<CompanyData>> => {
-    const params: any = {
-      page: page,
+  const params: any = {
+    page: page,
     page_size: pageSize,
     ...searchParams
-    };
+  };
   const response = await api.get(`/company/${module}/`, { params });
   return response.data;
 };
 
 // POST
 export const createCompanyApi = async (
-  data: any, 
+  data: any,
   module: string
 ): Promise<CompanyData> => {
   const response = await api.post(`/company/${module}/`, data);

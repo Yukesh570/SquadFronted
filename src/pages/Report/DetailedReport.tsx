@@ -35,6 +35,7 @@ const statusOptions: Option[] = [
   { label: "Rejected", value: "REJECTED" },
   { label: "Expired", value: "EXPIRED" },
   { label: "Undelivered", value: "UNDELIVERED" },
+  { label: "Uncertain", value: "UNCERTAIN" },
 ];
 
 const formatLocalDate = (date: Date) => {

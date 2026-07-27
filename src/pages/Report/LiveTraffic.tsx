@@ -52,6 +52,7 @@ const deliveryStatusOptions: Option[] = [
   { label: "Undelivered", value: "UNDELIVERED" },
   { label: "Rejected", value: "REJECTED" },
   { label: "Expired", value: "EXPIRED" },
+  { label: "Uncertain", value: "UNCERTAIN" },
 ];
 
 // --- Defaults ---

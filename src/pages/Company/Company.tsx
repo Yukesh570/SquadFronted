@@ -49,7 +49,7 @@ interface ColumnConfig extends FilterColumn {
 
 // --- Default Configuration ---
 const DEFAULT_SEARCH_COLUMNS = ["name"];
-const DEFAULT_TABLE_COLUMNS = ["name", "shortName", "companyEmail", "phone"];
+const DEFAULT_TABLE_COLUMNS = ["name", "shortName", "companyEmail", "phone", "usedCustomerCredit", "usedVendorCredit"];
 
 const CompanyList: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -135,7 +135,7 @@ const CompanyList: React.FC = () => {
   const renderBooleanBadge = (value: boolean) => {
     const statusKey = value ? "DELIVERED" : "PENDING";
     const labelText = value ? "Yes" : "No";
-    
+
     return <StatusBadge status={statusKey} customText={labelText} />;
   };
 
@@ -150,6 +150,9 @@ const CompanyList: React.FC = () => {
     { key: "shortName", label: "Short Name", type: "text", filterKey: "shortName__icontains" },
     { key: "phone", label: "Phone", type: "text", filterKey: "phone__icontains" },
     { key: "companyEmail", label: "Company Email", type: "text", filterKey: "companyEmail__icontains" },
+    { key: "usedCustomerCredit", label: "Used Customer Credit", type: "text", filterKey: "usedCustomerCredit__icontains" },
+    { key: "usedVendorCredit", label: "Used Vendor Credit", type: "text", filterKey: "usedVendorCredit__icontains" },
+
     { key: "supportEmail", label: "Support Email", type: "text", filterKey: "supportEmail__icontains" },
     { key: "billingEmail", label: "Billing Email", type: "text", filterKey: "billingEmail__icontains" },
     { key: "ratesEmail", label: "Rates Email", type: "text", filterKey: "ratesEmail__icontains" },
@@ -197,7 +200,7 @@ const CompanyList: React.FC = () => {
       filterKey: "timeZone__name__icontains",
     },
     { key: "customerCreditLimit", label: "Cust. Credit", type: "number", filterKey: "customerCreditLimit" },
-    { key: "vendorCreditLimit", label: "Vend. Credit", type: "number", filterKey: "vendorCreditLimit" }, 
+    { key: "vendorCreditLimit", label: "Vend. Credit", type: "number", filterKey: "vendorCreditLimit" },
     { key: "balanceAlertAmount", label: "Bal. Alert", type: "number", filterKey: "balanceAlertAmount" },
     { key: "referencNumber", label: "Ref. Number", type: "text", filterKey: "referencNumber__icontains" },
     { key: "address", label: "Address", type: "text", filterKey: "address__icontains" },
@@ -358,11 +361,11 @@ const CompanyList: React.FC = () => {
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [routeName, currentPage, rowsPerPage, searchColumns]); 
+  }, [routeName, currentPage, rowsPerPage, searchColumns]);
 
   const handleSearch = () => {
     setCurrentPage(1);
-    fetchCompanies(); 
+    fetchCompanies();
   };
 
   const handleClearFilters = () => {
@@ -411,36 +414,36 @@ const CompanyList: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowCompany
     ? [
-        {
-          label: "View Details",
-          icon: <Eye size={16} />,
-          onClick: () => handleView(selectedRowCompany),
-        },
-        ...(canUpdate
-          ? [
-              {
-                label: "Edit Company",
-                icon: <Edit size={16} />,
-                onClick: () => handleEdit(selectedRowCompany),
-              },
-              // {
-              //   label: "Add Credit Limit",
-              //   icon: <Plus size={16} />,
-              //   onClick: () => setIsAddCreditOpen(true),
-              // },
-            ]
-          : []),
-        ...(canDelete
-          ? [
-              {
-                label: "Delete Company",
-                icon: <Trash size={16} />,
-                variant: "danger" as const,
-                onClick: () => setDeleteId(selectedRowCompany.id!),
-              },
-            ]
-          : []),
-      ]
+      {
+        label: "View Details",
+        icon: <Eye size={16} />,
+        onClick: () => handleView(selectedRowCompany),
+      },
+      ...(canUpdate
+        ? [
+          {
+            label: "Edit Company",
+            icon: <Edit size={16} />,
+            onClick: () => handleEdit(selectedRowCompany),
+          },
+          // {
+          //   label: "Add Credit Limit",
+          //   icon: <Plus size={16} />,
+          //   onClick: () => setIsAddCreditOpen(true),
+          // },
+        ]
+        : []),
+      ...(canDelete
+        ? [
+          {
+            label: "Delete Company",
+            icon: <Trash size={16} />,
+            variant: "danger" as const,
+            onClick: () => setDeleteId(selectedRowCompany.id!),
+          },
+        ]
+        : []),
+    ]
     : [];
 
   const handleExport = async () => {

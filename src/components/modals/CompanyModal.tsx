@@ -59,6 +59,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     customerCreditLimit: "",
     vendorCreditLimit: "",
     balanceAlertAmount: "",
+    usedCustomerCredit: "",
+    usedVendorCredit: "",
     referenceNumber: "",
     address: "",
     validityPeriod: "LTD",
@@ -130,6 +132,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         customerCreditLimit: editingCompany.customerCreditLimit != null ? String(editingCompany.customerCreditLimit) : "",
         vendorCreditLimit: editingCompany.vendorCreditLimit != null ? String(editingCompany.vendorCreditLimit) : "",
         balanceAlertAmount: editingCompany.balanceAlertAmount != null ? String(editingCompany.balanceAlertAmount) : "",
+        usedCustomerCredit: editingCompany.usedCustomerCredit != null ? String(editingCompany.usedCustomerCredit) : "",
+        usedVendorCredit: editingCompany.usedVendorCredit != null ? String(editingCompany.usedVendorCredit) : "",
         referenceNumber: editingCompany.referencNumber || "",
         address: editingCompany.address,
         validityPeriod: editingCompany.validityPeriod || "LTD",
@@ -161,6 +165,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         customerCreditLimit: "",
         vendorCreditLimit: "",
         balanceAlertAmount: "",
+        usedCustomerCredit: "",
+        usedVendorCredit: "",
         referenceNumber: "",
         address: "",
         validityPeriod: "LTD",
@@ -292,7 +298,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       <form
         onSubmit={handleSubmit}
         className="space-y-6 max-h-[80vh] overflow-y-auto px-1"
-        noValidate 
+        noValidate
       >
         {/* Identity & Contacts */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -382,7 +388,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               options={countries}
               placeholder="Select Country"
               disabled={isViewMode}
-              required 
+              required
             />
             <Select
               label="State Name"
@@ -407,7 +413,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               options={statuses}
               placeholder="Select Status"
               disabled={isViewMode}
-              required 
+              required
             />
           </div>
         </fieldset>
@@ -425,7 +431,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               options={currencies}
               placeholder="Select Currency"
               disabled={isViewMode}
-              required 
+              required
             />
             <Select
               label="Time Zone"
@@ -434,7 +440,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               options={timeZones}
               placeholder="Select Time Zone"
               disabled={isViewMode}
-              required 
+              required
             />
             <Input
               label="Customer Credit Limit"
@@ -444,19 +450,19 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={handleChange}
               placeholder="5000.00"
               disabled={isViewMode}
-              required 
+              required
             />
 
-              <Input
-                label="Vendor Credit Limit"
-                name="vendorCreditLimit"
-                type="number"
-                value={formData.vendorCreditLimit}
-                onChange={handleChange}
-                placeholder="10000.00"
-                disabled={isViewMode}
-                required
-              />
+            <Input
+              label="Vendor Credit Limit"
+              name="vendorCreditLimit"
+              type="number"
+              value={formData.vendorCreditLimit}
+              onChange={handleChange}
+              placeholder="10000.00"
+              disabled={isViewMode}
+              required
+            />
 
             <Input
               label="Balance Alert Amount"
@@ -466,7 +472,25 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               onChange={handleChange}
               placeholder="500.00"
               disabled={isViewMode}
-              required 
+              required
+            />
+            <Input
+              label="Used Customer Credit"
+              name="usedCustomerCredit"
+              type="number"
+              value={formData.usedCustomerCredit}
+              onChange={handleChange}
+              placeholder="500.00"
+              disabled
+            />
+            <Input
+              label="Used Vendor Credit"
+              name="usedVendorCredit"
+              type="number"
+              value={formData.usedVendorCredit}
+              onChange={handleChange}
+              placeholder="500.00"
+              disabled
             />
             <Input
               label="Reference Number"
@@ -493,7 +517,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             }
             placeholder="Koteshwor, Kathmandu, Nepal"
             disabled={isViewMode}
-            required 
+            required
           />
         </fieldset>
 

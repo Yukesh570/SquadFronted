@@ -24,6 +24,7 @@ const statusOptions: Option[] = [
   { label: "Attempting", value: "ATTEMPTING" },
   { label: "Submitted", value: "SUBMITTED" },
   { label: "Sent to Vendor", value: "SENT_TO_VENDOR" },
+  { label: "Uncertain", value: "UNCERTAIN" },
   { label: "Failed", value: "FAILED" },
   { label: "Delivered", value: "DELIVERED" },
   { label: "Rejected", value: "REJECTED" },

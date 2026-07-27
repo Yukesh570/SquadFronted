@@ -59,6 +59,7 @@ const statusOptions: Option[] = [
   { label: "Partially Delivered", value: "PARTIALLY_DELIVERED" },
   { label: "No Route", value: "NO_ROUTE" },
   { label: "Retry Pending", value: "RETRY_PENDING" },
+  { label: "Uncertain", value: "UNCERTAIN" },
 ];
 
 const encodingOptions: Option[] = [
