@@ -61,7 +61,7 @@ jobs:
             docker compose -f docker-compose-react.yml down || true
             docker compose -f docker-compose-react.yml up -d --build --remove-orphans
             docker image prune -f
-            echo "✅ Deployment complete!"
+            echo "✅ Deployment completed!"
             docker ps
           EOF
 
