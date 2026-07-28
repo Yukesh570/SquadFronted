@@ -31,8 +31,13 @@ const ServerInfo: React.FC = () => {
       if (newController.signal.aborted) return;
       if (response) setServerData(response);
     } catch (error: any) {
-      if (error.name !== "AbortError" && !isBackground) {
-        toast.error("Failed to fetch server information.");
+      if (!newController.signal.aborted) {
+        // Do not keep presenting an old HEALTHY snapshot after the backend
+        // reports that its collector/cache is stale or unavailable.
+        setServerData(null);
+        if (!isBackground) {
+          toast.error("Failed to fetch server information.");
+        }
       }
     } finally {
       if (abortControllerRef.current === newController) {

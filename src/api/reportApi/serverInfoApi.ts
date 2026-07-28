@@ -35,5 +35,5 @@ export const getServerInfoApi = async (
   signal?: AbortSignal
 ): Promise<ServerInfoData | null> => {
   const response = await api.get(`/server/metrics/`, { signal });
-  return response.status === 202 ? null : response.data;
+  return response.status === 202 ? null : response.data.data;
 };
