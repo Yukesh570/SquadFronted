@@ -41,18 +41,16 @@ const ServerInfo: React.FC = () => {
   const prevNetRef = useRef<{ sent: number; recv: number; t: number } | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
-  const requestRunningRef = useRef(false);
 
   const fetchServerInfo = async (isBackground = false) => {
-    if (requestRunningRef.current || document.visibilityState !== "visible") return;
-    requestRunningRef.current = true;
+    if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
 
     if (!isBackground) setIsLoading(true);
 
     try {
-      const response = await getServerInfoApi(newController.signal);
+      const response = await getServerInfoApi();
       if (newController.signal.aborted) return;
 
       if (response) {
@@ -87,39 +85,21 @@ const ServerInfo: React.FC = () => {
         });
       }
     } catch (error: any) {
-      if (!newController.signal.aborted) {
-        // Do not keep presenting an old HEALTHY snapshot after the backend
-        // reports that its collector/cache is stale or unavailable.
-        setServerData(null);
-        if (!isBackground) {
-          toast.error("Failed to fetch server information.");
-        }
+      if (error.name !== "AbortError" && !isBackground) {
+        toast.error("Failed to fetch server information.");
       }
     } finally {
       if (abortControllerRef.current === newController) {
-        requestRunningRef.current = false;
-        abortControllerRef.current = null;
         if (!isBackground) setIsLoading(false);
       }
     }
   };
 
   useEffect(() => {
-    fetchServerInfo(); // Initial Load
-
-    // Cached telemetry refreshes in the backend every 30 seconds.
-    const intervalId = setInterval(() => {
-      fetchServerInfo(true);
-    }, 30000);
-
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") fetchServerInfo(true);
-    };
-    document.addEventListener("visibilitychange", onVisibilityChange);
-
+    fetchServerInfo();
+    const intervalId = setInterval(() => { fetchServerInfo(true); }, 10000);
     return () => {
       clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, []);
