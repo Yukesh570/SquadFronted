@@ -12,6 +12,13 @@ export interface InfrastructureData {
 export interface HardwareData {
   server_uptime: string;
   cpu_usage_percent: number;
+  cpu_load: {
+    load_1m: number;
+    load_5m: number;
+    load_15m: number;
+    load_1m_per_cpu: number;
+    cpu_count: number;
+  };
   ram_usage_percent: number;
   ram_details: string;
   disk_usage_percent: number;
@@ -24,7 +31,9 @@ export interface ServerInfoData {
   hardware: HardwareData;
 }
 
-export const getServerInfoApi = async (): Promise<ServerInfoData> => {
-  const response = await api.get(`/serverInfo/`);
-  return response.data;
+export const getServerInfoApi = async (
+  signal?: AbortSignal
+): Promise<ServerInfoData | null> => {
+  const response = await api.get(`/server/metrics/`, { signal });
+  return response.status === 202 ? null : response.data;
 };

@@ -15,17 +15,19 @@ const ServerInfo: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const requestRunningRef = useRef(false);
 
   // Added isBackground flag so auto-refresh doesn't cause the screen to flicker
   const fetchServerInfo = async (isBackground = false) => {
-    if (abortControllerRef.current) abortControllerRef.current.abort();
+    if (requestRunningRef.current || document.visibilityState !== "visible") return;
+    requestRunningRef.current = true;
     const newController = new AbortController();
     abortControllerRef.current = newController;
     
     if (!isBackground) setIsLoading(true);
 
     try {
-      const response = await getServerInfoApi();
+      const response = await getServerInfoApi(newController.signal);
       if (newController.signal.aborted) return;
       if (response) setServerData(response);
     } catch (error: any) {
@@ -34,6 +36,8 @@ const ServerInfo: React.FC = () => {
       }
     } finally {
       if (abortControllerRef.current === newController) {
+        requestRunningRef.current = false;
+        abortControllerRef.current = null;
         if (!isBackground) setIsLoading(false);
       }
     }
@@ -42,13 +46,19 @@ const ServerInfo: React.FC = () => {
   useEffect(() => {
     fetchServerInfo(); // Initial Load
     
-    // Auto-refresh the telemetry every 10 seconds to keep it perfectly accurate
+    // Cached telemetry refreshes in the backend every 30 seconds.
     const intervalId = setInterval(() => {
       fetchServerInfo(true);
-    }, 10000);
+    }, 30000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") fetchServerInfo(true);
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, []);
