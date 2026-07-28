@@ -47,9 +47,9 @@ export interface HardwareData {
   disk_usage_percent: number;
   network_traffic: string;
   // ⚡️ NEW: Added raw bytes and partition arrays
-  network_bytes_sent?: number; 
-  network_bytes_recv?: number; 
-  disk_partitions?: DiskPartition[]; 
+  network_bytes_sent?: number;
+  network_bytes_recv?: number;
+  disk_partitions?: DiskPartition[];
 }
 
 export interface ServerInfoData {
@@ -59,7 +59,9 @@ export interface ServerInfoData {
   database_stats?: DatabaseStats; // ⚡️ NEW
 }
 
-export const getServerInfoApi = async (): Promise<ServerInfoData> => {
-  const response = await api.get(`/serverInfo/`);
-  return response.data;
+export const getServerInfoApi = async (
+  signal?: AbortSignal
+): Promise<ServerInfoData | null> => {
+  const response = await api.get(`/server/metrics/`, { signal });
+  return response.status === 202 ? null : response.data.data;
 };

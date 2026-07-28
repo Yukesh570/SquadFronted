@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  Home, RefreshCw, Server, Database, Cpu, HardDrive, 
+import {
+  Home, RefreshCw, Server, Database, Cpu, HardDrive,
   Activity, AlertTriangle, CheckCircle, Zap, Layers,
   Clock, Wifi, ListMinus, ActivitySquare
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
-import { 
-  AreaChart, Area, LineChart, Line, BarChart, Bar, 
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell 
+import {
+  AreaChart, Area, LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell
 } from "recharts";
 import { getServerInfoApi, type ServerInfoData } from "../../api/reportApi/serverInfoApi";
 import Button from "../../components/ui/Button";
@@ -35,27 +35,29 @@ const formatBytesPerSec = (bytes: number) => {
 const ServerInfo: React.FC = () => {
   const [serverData, setServerData] = useState<ServerInfoData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Rolling history state and refs
   const [history, setHistory] = useState<HistorySample[]>([]);
   const prevNetRef = useRef<{ sent: number; recv: number; t: number } | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const requestRunningRef = useRef(false);
 
   const fetchServerInfo = async (isBackground = false) => {
-    if (abortControllerRef.current) abortControllerRef.current.abort();
+    if (requestRunningRef.current || document.visibilityState !== "visible") return;
+    requestRunningRef.current = true;
     const newController = new AbortController();
     abortControllerRef.current = newController;
-    
+
     if (!isBackground) setIsLoading(true);
 
     try {
-      const response = await getServerInfoApi();
+      const response = await getServerInfoApi(newController.signal);
       if (newController.signal.aborted) return;
-      
+
       if (response) {
         setServerData(response);
-        
+
         // Compute Bps and append to history
         const now = Date.now();
         const hw = response.hardware;
@@ -78,28 +80,46 @@ const ServerInfo: React.FC = () => {
             time: new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
             cpu: hw.cpu_usage_percent || 0,
             ram: hw.ram_usage_percent || 0,
-            sentBps, 
+            sentBps,
             recvBps,
           }];
           return next.length > MAX_SAMPLES ? next.slice(-MAX_SAMPLES) : next;
         });
       }
     } catch (error: any) {
-      if (error.name !== "AbortError" && !isBackground) {
-        toast.error("Failed to fetch server information.");
+      if (!newController.signal.aborted) {
+        // Do not keep presenting an old HEALTHY snapshot after the backend
+        // reports that its collector/cache is stale or unavailable.
+        setServerData(null);
+        if (!isBackground) {
+          toast.error("Failed to fetch server information.");
+        }
       }
     } finally {
       if (abortControllerRef.current === newController) {
+        requestRunningRef.current = false;
+        abortControllerRef.current = null;
         if (!isBackground) setIsLoading(false);
       }
     }
   };
 
   useEffect(() => {
-    fetchServerInfo(); 
-    const intervalId = setInterval(() => { fetchServerInfo(true); }, 10000);
+    fetchServerInfo(); // Initial Load
+
+    // Cached telemetry refreshes in the backend every 30 seconds.
+    const intervalId = setInterval(() => {
+      fetchServerInfo(true);
+    }, 30000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") fetchServerInfo(true);
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
     return () => {
       clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, []);
@@ -107,7 +127,7 @@ const ServerInfo: React.FC = () => {
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      setTimeout(() => { actionHelper("Server Info", `Opened Server Info Dashboard`, false); }, 100); 
+      setTimeout(() => { actionHelper("Server Info", `Opened Server Info Dashboard`, false); }, 100);
       hasLoggedOpening.current = true;
     }
   }, []);
@@ -198,7 +218,7 @@ const ServerInfo: React.FC = () => {
             Real-time infrastructure health and resource utilization.
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <Button variant="secondary" onClick={() => fetchServerInfo(false)} leftIcon={<RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />}>
             Refresh
@@ -215,12 +235,12 @@ const ServerInfo: React.FC = () => {
       <div>
         <h2 className="text-sm font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider mb-4">Instantaneous Hardware</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <ResourceCard 
-            title="CPU Usage" 
-            percent={hardware.cpu_usage_percent} 
-            details={hardware.cpu_load?.load_1m !== undefined ? `Load (1m): ${hardware.cpu_load.load_1m} | ${hardware.cpu_load.cpu_count || 1} Cores` : "Real-time utilization"} 
-            icon={Cpu} 
-            colorClass="bg-blue-500 text-blue-500" 
+          <ResourceCard
+            title="CPU Usage"
+            percent={hardware.cpu_usage_percent}
+            details={hardware.cpu_load?.load_1m !== undefined ? `Load (1m): ${hardware.cpu_load.load_1m} | ${hardware.cpu_load.cpu_count || 1} Cores` : "Real-time utilization"}
+            icon={Cpu}
+            colorClass="bg-blue-500 text-blue-500"
           />
           <ResourceCard title="RAM Usage" percent={hardware.ram_usage_percent} details={hardware.ram_details} icon={Activity} colorClass="bg-purple-500 text-purple-500" />
           <ResourceCard title="Disk Usage (Root)" percent={hardware.disk_usage_percent} details="Primary storage consumption" icon={HardDrive} colorClass="bg-orange-500 text-orange-500" />
@@ -243,18 +263,18 @@ const ServerInfo: React.FC = () => {
                 <AreaChart data={history} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorRam" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.3} />
                   <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} minTickGap={30} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} domain={[0, 100]} tickFormatter={(val: number) => `${val}%`} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff', borderRadius: '8px' }}
                     itemStyle={{ color: '#e5e7eb' }}
                     formatter={(value: any, name: any) => [`${Number(value).toFixed(1)}%`, name]}
@@ -276,7 +296,7 @@ const ServerInfo: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.3} />
                   <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} minTickGap={30} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={(val: number) => formatBytesPerSec(val).split(' ')[0]} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff', borderRadius: '8px' }}
                     itemStyle={{ color: '#e5e7eb' }}
                     formatter={(value: any, name: any) => [formatBytesPerSec(Number(value)), name]}
@@ -302,7 +322,7 @@ const ServerInfo: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#374151" opacity={0.3} />
                   <XAxis type="number" domain={[0, 100]} hide />
                   <YAxis dataKey="mountpoint" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} width={120} />
-                  <Tooltip 
+                  <Tooltip
                     cursor={{ fill: 'transparent' }}
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff', borderRadius: '8px' }}
                     formatter={(value: any, _name: any, props: any) => [
@@ -350,11 +370,11 @@ const ServerInfo: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <MetricCard title="Database Size" value={db_stats.size} icon={Database} />
             <MetricCard title="Active Connections" value={`${db_stats.active_connections} / ${db_stats.max_connections}`} icon={ActivitySquare} />
-            <MetricCard 
-              title="Idle In Transaction" 
-              value={db_stats.idle_in_transaction} 
-              icon={AlertTriangle} 
-              textColor={db_stats.idle_in_transaction > 0 ? "text-red-500 font-bold" : "text-green-500"} 
+            <MetricCard
+              title="Idle In Transaction"
+              value={db_stats.idle_in_transaction}
+              icon={AlertTriangle}
+              textColor={db_stats.idle_in_transaction > 0 ? "text-red-500 font-bold" : "text-green-500"}
             />
             <MetricCard title="Cache Hit Ratio" value={db_stats.cache_hit_ratio_percent ? `${db_stats.cache_hit_ratio_percent}%` : "N/A"} icon={Zap} />
           </div>
