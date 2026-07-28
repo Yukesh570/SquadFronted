@@ -1,0 +1,70 @@
+name: CI/CD Deploy React Frontend
+
+on:
+  push:
+    branches:
+      - Production
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+
+    env:
+      REMOTE_DIR: ${{ secrets.XENON_REMOTE_PROD_DIR }}
+      SSH_USER: ${{ secrets.SSH_XENON_PROD_USER }}
+      SSH_HOST: ${{ secrets.SSH_XENON_PROD_HOST }}
+      SSH_PORT: ${{ secrets.SSH_XENON_PROD_PORT }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL_PROD }}
+          VITE_WS_BASE_URL: ${{ secrets.VITE_WS_BASE_URL_PROD }}
+          VITE_IMAGE_URL: ${{ secrets.VITE_IMAGE_URL_PROD }}
+
+        run: npm run build
+
+      - name: Prepare SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_XENON_PRIVATE_KEY_PROD }}" > ~/.ssh/id_rsa 
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ env.SSH_PORT }} ${{ env.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Sync built files (rsync dist/)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rsync
+          which rsync || ls -l /usr/bin/rsync
+          /usr/bin/rsync -avz --delete \
+            --exclude 'node_modules/' \
+            --exclude '.env' \
+            --exclude '.git/' \
+            ./ ${{ env.SSH_USER }}@${{ env.SSH_HOST }}:${{ env.REMOTE_DIR }}/
+
+      - name: SSH → Deploy Docker
+        run: |
+          ssh -p ${{ env.SSH_PORT }} ${{ env.SSH_USER }}@${{ env.SSH_HOST }} << EOF
+            cd "${REMOTE_DIR}"
+            echo "--- Deploying Squad Frontend ---"
+            docker compose -f docker-compose-react.yml down || true
+            docker compose -f docker-compose-react.yml up -d --build --remove-orphans
+            docker image prune -f
+            echo "✅ Deployment complete!"
+            docker ps
+          EOF
+
+
+      - name: Success
+        run: echo "Frontend CI/CD completed!"
