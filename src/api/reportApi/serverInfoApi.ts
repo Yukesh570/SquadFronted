@@ -74,6 +74,7 @@ export interface ReconciliationData {
   generated_at: string;
   sms_rows: number;
   sms_sent: number;
+  sms_failed: number;
   outbox_rows: number;
   outbox_processed: number;
   outbox_pending: number;

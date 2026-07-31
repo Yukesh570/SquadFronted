@@ -322,33 +322,30 @@ const ServerInfo: React.FC = () => {
         <nav className="flex gap-6">
           <button
             onClick={() => setActiveTab("telemetry")}
-            className={`pb-3 font-medium text-sm border-b-2 flex items-center gap-2 transition-colors ${
-              activeTab === "telemetry"
-                ? "border-primary text-primary"
-                : "border-transparent text-text-secondary dark:text-gray-400 hover:text-text-primary dark:hover:text-white"
-            }`}
+            className={`pb-3 font-medium text-sm border-b-2 flex items-center gap-2 transition-colors ${activeTab === "telemetry"
+              ? "border-primary text-primary"
+              : "border-transparent text-text-secondary dark:text-gray-400 hover:text-text-primary dark:hover:text-white"
+              }`}
           >
             <Activity size={18} />
             Hardware & Infrastructure
           </button>
           <button
             onClick={() => setActiveTab("database")}
-            className={`pb-3 font-medium text-sm border-b-2 flex items-center gap-2 transition-colors ${
-              activeTab === "database"
-                ? "border-primary text-primary"
-                : "border-transparent text-text-secondary dark:text-gray-400 hover:text-text-primary dark:hover:text-white"
-            }`}
+            className={`pb-3 font-medium text-sm border-b-2 flex items-center gap-2 transition-colors ${activeTab === "database"
+              ? "border-primary text-primary"
+              : "border-transparent text-text-secondary dark:text-gray-400 hover:text-text-primary dark:hover:text-white"
+              }`}
           >
             <Database size={18} />
             Database Deep Dive
           </button>
           <button
             onClick={() => setActiveTab("reconciliation")}
-            className={`pb-3 font-medium text-sm border-b-2 flex items-center gap-2 transition-colors ${
-              activeTab === "reconciliation"
-                ? "border-primary text-primary"
-                : "border-transparent text-text-secondary dark:text-gray-400 hover:text-text-primary dark:hover:text-white"
-            }`}
+            className={`pb-3 font-medium text-sm border-b-2 flex items-center gap-2 transition-colors ${activeTab === "reconciliation"
+              ? "border-primary text-primary"
+              : "border-transparent text-text-secondary dark:text-gray-400 hover:text-text-primary dark:hover:text-white"
+              }`}
           >
             <ShieldCheck size={18} />
             System Reconciliation
@@ -645,14 +642,21 @@ const ServerInfo: React.FC = () => {
                   <Send size={16} className="text-blue-500" />
                   SMS & Message Dispatch Totals
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <MetricCard title="Total SMS Records" value={(reconData.data.sms_rows || 0).toLocaleString()} icon={Send} subtitle="All SMS rows in database" />
-                  <MetricCard title="Terminated / Sent SMS" value={(reconData.data.sms_sent || 0).toLocaleString()} icon={CheckCircle} textColor="text-green-600 dark:text-green-400" subtitle="Delivered, Submitted or Resolved" />
+                  <MetricCard title="Terminated / Sent SMS" value={(reconData.data.sms_sent || 0).toLocaleString()} icon={CheckCircle} textColor="text-green-600 dark:text-green-400" subtitle="Transitioned out of pending or queued" />
+                  <MetricCard
+                    title="Failed SMS"
+                    value={(reconData.data.sms_failed || 0).toLocaleString()}
+                    icon={AlertTriangle}
+                    textColor={(reconData.data.sms_failed || 0) > 0 ? "text-red-500 font-bold" : "text-text-primary dark:text-white"}
+                    subtitle="Failed prior to termination"
+                  />
                   <MetricCard
                     title="In-Flight / Pending SMS"
-                    value={Math.max(0, (reconData.data.sms_rows || 0) - (reconData.data.sms_sent || 0)).toLocaleString()}
+                    value={Math.max(0, (reconData.data.sms_rows || 0) - (reconData.data.sms_sent || 0) - (reconData.data.sms_failed || 0)).toLocaleString()}
                     icon={Clock}
-                    textColor={((reconData.data.sms_rows || 0) - (reconData.data.sms_sent || 0)) > 0 ? "text-amber-500 font-bold" : "text-text-primary dark:text-white"}
+                    textColor={((reconData.data.sms_rows || 0) - (reconData.data.sms_sent || 0) - (reconData.data.sms_failed || 0)) > 0 ? "text-amber-500 font-bold" : "text-text-primary dark:text-white"}
                     subtitle="Currently queued or transmitting"
                   />
                 </div>

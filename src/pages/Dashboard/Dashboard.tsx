@@ -476,9 +476,11 @@ const Dashboard: React.FC = () => {
               ]);
               setIsDlrLoading(false);
             }
-            if (data.activeSessionsCount !== undefined) {
-              setActiveSessionsCount(data.activeSessionsCount);
-            }
+            // we commented it out because dashboard metric websocket also handles the active session.
+
+            // if (data.activeSessionsCount !== undefined) {
+            //   setActiveSessionsCount(data.activeSessionsCount);
+            // }            
             if (data.onlineClients !== undefined) {
               setOnlineClients(data.onlineClients);
             }
