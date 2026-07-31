@@ -9,7 +9,6 @@ export interface InfrastructureData {
   pending_tasks?: number;
 }
 
-// ⚡️ NEW: Added DiskPartition interface
 export interface DiskPartition {
   device: string;
   mountpoint: string;
@@ -19,15 +18,20 @@ export interface DiskPartition {
   total_gb: number;
 }
 
-// ⚡️ NEW: Added DatabaseStats interface
+export interface TableSizeInfo {
+  table: string;
+  size?: string;
+  total_bytes?: number;
+}
+
 export interface DatabaseStats {
-  size: string;
-  size_bytes: number;
-  active_connections: number;
-  max_connections: number;
-  idle_in_transaction: number;
-  cache_hit_ratio_percent: number | null;
-  largest_tables: { table: string; size: string }[];
+  size?: string;
+  size_bytes?: number;
+  active_connections?: number;
+  max_connections?: number;
+  idle_in_transaction?: number;
+  cache_hit_ratio_percent?: number | null;
+  largest_tables?: TableSizeInfo[];
 }
 
 export interface CpuLoad {
@@ -41,25 +45,99 @@ export interface CpuLoad {
 export interface HardwareData {
   server_uptime: string;
   cpu_usage_percent: number;
-  cpu_load?: CpuLoad; // ⚡️ NEW: Load average reported separately from actual CPU usage
+  cpu_load?: CpuLoad;
   ram_usage_percent: number;
   ram_details: string;
   disk_usage_percent: number;
-  network_traffic: string;
-  // ⚡️ NEW: Added raw bytes and partition arrays
+  network_traffic?: string;
   network_bytes_sent?: number;
   network_bytes_recv?: number;
   disk_partitions?: DiskPartition[];
 }
 
 export interface ServerInfoData {
-  system_status: string;
-  infrastructure: InfrastructureData;
-  hardware: HardwareData;
-  database_stats?: DatabaseStats; // ⚡️ NEW
+  system_status?: string;
+  infrastructure?: InfrastructureData;
+  hardware?: HardwareData;
+  database_stats?: DatabaseStats;
+  status?: string; // e.g. "warming" | "unavailable"
+  detail?: string;
 }
 
+export interface ServerHealthData {
+  status: string; // "ok" | "not_ready" | "error"
+  database: string;
+  redis: string;
+}
+
+export interface ReconciliationData {
+  generated_at: string;
+  sms_rows: number;
+  sms_sent: number;
+  outbox_rows: number;
+  outbox_processed: number;
+  outbox_pending: number;
+  deadlocks: number;
+  company_used_customer_credit: string | number;
+  company_used_vendor_credit: string | number;
+  generation_ms: number;
+}
+
+export interface ReconciliationResponse {
+  status: string; // "ok" | "warming" | "unavailable" | "unauthorized" | "error"
+  detail?: string;
+  data?: ReconciliationData;
+}
+
+
 export const getServerInfoApi = async (): Promise<ServerInfoData> => {
-  const response = await api.get(`/serverInfo/`);
-  return response.data;
+  try {
+    const response = await api.get(`/serverInfo/`);
+    return response.data;
+  } catch (err: unknown) {
+    const error = err as { response?: { data?: ServerInfoData & { status?: string } } };
+    if (error.response?.data?.status) {
+      return error.response.data;
+    }
+    throw err;
+  }
+};
+
+export const getServerHealthApi = async (): Promise<ServerHealthData> => {
+  try {
+    const response = await api.get(`/server/health/`);
+    return response.data;
+  } catch (err: unknown) {
+    const error = err as { response?: { data?: ServerHealthData & { database?: string } } };
+    if (error.response?.data?.database) {
+      return error.response.data;
+    }
+    return {
+      status: "error",
+      database: "DOWN",
+      redis: "DOWN",
+    };
+  }
+};
+
+export const getServerReconciliationApi = async (): Promise<ReconciliationResponse> => {
+  try {
+    const response = await api.get(`/server/reconciliation/`);
+    return response.data;
+  } catch (err: unknown) {
+    const error = err as { response?: { status?: number; data?: ReconciliationResponse } };
+    if (error.response?.status === 403) {
+      return {
+        status: "unauthorized",
+        detail: "Administrator privileges are required to view reconciliation metrics.",
+      };
+    }
+    if (error.response?.data?.status) {
+      return error.response.data;
+    }
+    return {
+      status: "error",
+      detail: "Failed to fetch reconciliation telemetry.",
+    };
+  }
 };

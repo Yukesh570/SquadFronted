@@ -20,6 +20,9 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    if (axios.isCancel(error)) {
+      return Promise.reject(error);
+    }
     if (!error.response) {
     if (error.code === "ECONNABORTED") {
   toast.error("Connection timed out. Backend is not responding.", {
