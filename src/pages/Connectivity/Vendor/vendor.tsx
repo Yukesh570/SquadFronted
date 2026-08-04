@@ -236,7 +236,7 @@ const Vendor: React.FC = () => {
   const allColumns: ColumnConfig[] = [
     {
       key: "profileName",
-      label: "Profile Name",
+      label: "Vendor Name",
       type: "text",
       filterKey: "profileName__icontains",
     },

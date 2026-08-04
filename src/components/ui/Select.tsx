@@ -23,7 +23,7 @@ interface SelectProps {
   className?: string;
 }
 
-const Select: React.FC<SelectProps> = ({
+const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
   label,
   value,
   onChange,
@@ -35,6 +35,7 @@ const Select: React.FC<SelectProps> = ({
   required = false,
   placement = "bottom",
   className = "",
+  open,
 }) => {
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(50);
@@ -43,6 +44,12 @@ const Select: React.FC<SelectProps> = ({
   const anchorRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const [resolvedPlacement, setResolvedPlacement] = useState<"top" | "bottom">(placement);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+    }
+  }, [open]);
 
   const filteredOptions =
     query === ""
@@ -100,172 +107,172 @@ const Select: React.FC<SelectProps> = ({
     };
   }, [coords, updateCoords]);
 
+  if (open && !coords) {
+    requestAnimationFrame(updateCoords);
+  }
+  if (!open && coords) {
+    setTimeout(() => setCoords(null), 0);
+  }
+
+  return (
+    <div
+      className={`flex flex-col ${
+        hasLabel ? "" : "justify-end"
+      } ${className}`}
+    >
+      {hasLabel && (
+        <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400 min-h-[32px] flex items-end">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      )}
+      <div className="relative w-full" ref={anchorRef}>
+        <div
+          className={`relative w-full rounded-lg border text-sm text-left shadow-input transition duration-150 ease-in-out focus-within:outline-none focus-within:ring-1 
+          ${
+            error
+              ? "border-red-500 focus-within:border-red-500 focus-within:ring-red-500"
+              : "border-gray-200 focus-within:border-primary focus-within:ring-primary"
+          } 
+          ${
+            disabled
+              ? "bg-gray-100 dark:bg-gray-800"
+              : "bg-white dark:bg-gray-800"
+          }
+          dark:border-gray-700`}
+        >
+          <Combobox.Input
+            autoComplete="off"
+            className={`w-full border-none bg-transparent px-3 pr-10 outline-none focus:outline-none focus:ring-0 focus:border-transparent text-text-primary dark:text-white ${
+              hasLabel ? "py-2.5" : "py-2"
+            } ${
+              disabled
+                ? "text-gray-400 cursor-not-allowed dark:text-gray-500"
+                : ""
+            }`}
+            displayValue={(val: string) =>
+              options.find((option) => option.value === val)?.label || ""
+            }
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={placeholder}
+          />
+
+          <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
+            <ChevronDown
+              size={18}
+              className={`${
+                disabled
+                  ? "text-gray-300"
+                  : "text-gray-500 dark:text-gray-400"
+              }`}
+              aria-hidden="true"
+            />
+          </Combobox.Button>
+
+          {value && clearable && !disabled && (
+            <span
+              onClick={handleClear}
+              className="absolute inset-y-0 right-8 flex items-center pr-2 cursor-pointer hover:text-red-500 group z-10"
+              title="Clear selection"
+            >
+              <X
+                size={16}
+                className="text-gray-400 group-hover:text-red-500"
+              />
+            </span>
+          )}
+        </div>
+
+        {!disabled &&
+          coords &&
+          createPortal(
+            <Transition
+              as={Fragment}
+              show={open}
+              leave="transition ease-in duration-100"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <Combobox.Options
+                onScroll={handleScroll}
+                style={{
+                  position: "fixed",
+                  top: resolvedPlacement === "bottom" ? coords.top : undefined,
+                  bottom:
+                    resolvedPlacement === "top"
+                      ? window.innerHeight - coords.top
+                      : undefined,
+                  left: coords.left,
+                  width: coords.width,
+                }}
+                className="z-[99999] overflow-auto rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700 custom-grid-scroll max-h-60"
+              >
+                {filteredOptions.length === 0 ? (
+                  <div className="relative cursor-default select-none py-2 px-4 text-text-secondary dark:text-gray-400">
+                    Nothing found.
+                  </div>
+                ) : (
+                  visibleOptions.map((option) => (
+                    <Combobox.Option
+                      key={option.value}
+                      disabled={option.disabled}
+                      className={({ active }) =>
+                        `relative cursor-default select-none py-2 pl-10 pr-4 ${
+                          option.disabled
+                            ? "opacity-40 cursor-not-allowed"
+                            : active
+                            ? "bg-primary/10 text-primary dark:text-primary dark:bg-primary/20"
+                            : "text-text-secondary dark:text-gray-300"
+                        }`
+                      }
+                      value={option.value}
+                    >
+                      {({ selected }) => (
+                        <>
+                          <span
+                            className={`block truncate ${
+                              selected
+                                ? "font-medium text-primary dark:text-primary"
+                                : "font-normal"
+                            }`}
+                          >
+                            {option.label}
+                          </span>
+                          {selected && (
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary dark:text-primary">
+                              <Check size={16} aria-hidden="true" />
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </Combobox.Option>
+                  ))
+                )}
+                {visibleCount < filteredOptions.length && (
+                  <div className="text-center py-2 text-xs text-gray-400">
+                    Scroll for more...
+                  </div>
+                )}
+              </Combobox.Options>
+            </Transition>,
+            document.body
+          )}
+      </div>
+      {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
+    </div>
+  );
+};
+
+const Select: React.FC<SelectProps> = (props) => {
   return (
     <Combobox
-      value={value}
+      value={props.value}
       onChange={(val: string | null) => {
-        onChange(val || "");
-        setQuery("");
+        props.onChange(val || "");
       }}
-      disabled={disabled}
+      disabled={props.disabled}
     >
-      {({ open }) => {
-        if (open && !coords) {
-          requestAnimationFrame(updateCoords);
-        }
-        if (!open && coords) {
-          setTimeout(() => setCoords(null), 0);
-        }
-
-        return (
-          <div
-            className={`flex flex-col ${
-              hasLabel ? "" : "justify-end"
-            } ${className}`}
-          >
-            {hasLabel && (
-              <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400 min-h-[32px] flex items-end">
-                {label}
-                {required && <span className="text-red-500 ml-1">*</span>}
-              </label>
-            )}
-            <div className="relative w-full" ref={anchorRef}>
-              <div
-                className={`relative w-full rounded-lg border text-sm text-left shadow-input transition duration-150 ease-in-out focus-within:outline-none focus-within:ring-1 
-                ${
-                  error
-                    ? "border-red-500 focus-within:border-red-500 focus-within:ring-red-500"
-                    : "border-gray-200 focus-within:border-primary focus-within:ring-primary"
-                } 
-                ${
-                  disabled
-                    ? "bg-gray-100 dark:bg-gray-800"
-                    : "bg-white dark:bg-gray-800"
-                }
-                dark:border-gray-700`}
-              >
-                <Combobox.Input
-                  autoComplete="off"
-                  className={`w-full border-none bg-transparent px-3 pr-10 outline-none focus:outline-none focus:ring-0 focus:border-transparent text-text-primary dark:text-white ${
-                    hasLabel ? "py-2.5" : "py-2"
-                  } ${
-                    disabled
-                      ? "text-gray-400 cursor-not-allowed dark:text-gray-500"
-                      : ""
-                  }`}
-                  displayValue={(val: string) =>
-                    options.find((option) => option.value === val)?.label || ""
-                  }
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder={placeholder}
-                />
-
-                <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                  <ChevronDown
-                    size={18}
-                    className={`${
-                      disabled
-                        ? "text-gray-300"
-                        : "text-gray-500 dark:text-gray-400"
-                    }`}
-                    aria-hidden="true"
-                  />
-                </Combobox.Button>
-
-                {value && clearable && !disabled && (
-                  <span
-                    onClick={handleClear}
-                    className="absolute inset-y-0 right-8 flex items-center pr-2 cursor-pointer hover:text-red-500 group z-10"
-                    title="Clear selection"
-                  >
-                    <X
-                      size={16}
-                      className="text-gray-400 group-hover:text-red-500"
-                    />
-                  </span>
-                )}
-              </div>
-
-              {!disabled &&
-                coords &&
-                createPortal(
-                  <Transition
-                    as={Fragment}
-                    show={open}
-                    leave="transition ease-in duration-100"
-                    leaveFrom="opacity-100"
-                    leaveTo="opacity-0"
-                    afterLeave={() => setQuery("")}
-                  >
-                    <Combobox.Options
-                      onScroll={handleScroll}
-                      style={{
-                        position: "fixed",
-                        top: resolvedPlacement === "bottom" ? coords.top : undefined,
-                        bottom:
-                          resolvedPlacement === "top"
-                            ? window.innerHeight - coords.top
-                            : undefined,
-                        left: coords.left,
-                        width: coords.width,
-                      }}
-                      className="z-[99999] overflow-auto rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700 custom-grid-scroll max-h-60"
-                    >
-                      {filteredOptions.length === 0 ? (
-                        <div className="relative cursor-default select-none py-2 px-4 text-text-secondary dark:text-gray-400">
-                          Nothing found.
-                        </div>
-                      ) : (
-                        visibleOptions.map((option) => (
-                          <Combobox.Option
-                            key={option.value}
-                            disabled={option.disabled}
-                            className={({ active }) =>
-                              `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                                option.disabled
-                                  ? "opacity-40 cursor-not-allowed"
-                                  : active
-                                  ? "bg-primary/10 text-primary dark:text-primary dark:bg-primary/20"
-                                  : "text-text-secondary dark:text-gray-300"
-                              }`
-                            }
-                            value={option.value}
-                          >
-                            {({ selected }) => (
-                              <>
-                                <span
-                                  className={`block truncate ${
-                                    selected
-                                      ? "font-medium text-primary dark:text-primary"
-                                      : "font-normal"
-                                  }`}
-                                >
-                                  {option.label}
-                                </span>
-                                {selected && (
-                                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary dark:text-primary">
-                                    <Check size={16} aria-hidden="true" />
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </Combobox.Option>
-                        ))
-                      )}
-                      {visibleCount < filteredOptions.length && (
-                        <div className="text-center py-2 text-xs text-gray-400">
-                          Scroll for more...
-                        </div>
-                      )}
-                    </Combobox.Options>
-                  </Transition>,
-                  document.body
-                )}
-            </div>
-            {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
-          </div>
-        );
-      }}
+      {({ open }) => <SelectContent {...props} open={open} />}
     </Combobox>
   );
 };
