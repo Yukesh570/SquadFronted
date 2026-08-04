@@ -1,30 +1,73 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, ChevronRight, ChevronDown, Plus, Minus, RefreshCw } from "lucide-react";
+import { Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import FilterCard from "../../components/ui/FilterCard";
 import DatePicker from "../../components/ui/DatePicker";
 import Select from "../../components/ui/Select";
-import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedFilter";
 import { actionHelper } from "../../helper/action";
 import {
-  getSmsDailyApi,
-  getSmsHourlyApi,
-  getVendorPerformanceApi,
-  getClientPerformanceApi,
-} from "../../api/reportApi/smsCountsApi";
+  getAnalyticsDatesApi,
+  getAnalyticsDataApi,
+} from "../../api/reportApi/analyticsReportApi";
+
+interface Option {
+  label: string;
+  value: string;
+}
+
+interface ColumnConfig extends FilterColumn {
+  filterKey?: string;
+  options?: Option[];
+}
 
 const formatLocalDate = (date: Date) => {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
   return `${year}-${month}-${day}`;
+};
+
+const normalizeDateStr = (dateStr: string) => {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return dateStr;
+  return `${parts[0]}-${parseInt(parts[1], 10)}-${parseInt(parts[2], 10)}`;
+};
+
+const rowsOptions = [
+  { value: "10", label: "10" },
+  { value: "25", label: "25" },
+  { value: "50", label: "50" },
+  { value: "100", label: "100" },
+];
+
+const DEFAULT_SEARCH_COLUMNS = ["client_company", "country_name", "vendor_company", "date_range"];
+
+const allColumns: ColumnConfig[] = [
+  { key: "client_company", label: "Client Company", type: "text" },
+  { key: "vendor_company", label: "Vendor Company", type: "text" },
+  { key: "country_name", label: "Country Name", type: "text" },
+  { key: "client_name", label: "Client Name", type: "text" },
+  { key: "vendor_name", label: "Vendor Name", type: "text" },
+  { key: "date_range", label: "Date Range", type: "date_range" },
+];
+
+// --- UNIFORM NEUTRAL EXPAND/COLLAPSE (+ / -) BUTTON ---
+
+const ExpandButton: React.FC<{ isExpanded: boolean }> = ({ isExpanded }) => {
+  return (
+    <span className="w-6 h-6 flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-bold leading-none shrink-0 border border-gray-200 dark:border-gray-600 group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+      {isExpanded ? "-" : "+"}
+    </span>
+  );
 };
 
 // --- UNIFORM SIZED SINGLE-BOX COMPONENTS (All strictly h-7) ---
 
-// 1. Volume & Currency Cells
 const DataBarCell: React.FC<{
   value: number;
   max: number;
@@ -48,14 +91,13 @@ const DataBarCell: React.FC<{
         className={`absolute right-0 top-0 bottom-0 ${fillStyle} transition-all duration-300 rounded-r border-l`}
         style={{ width: `${percentage}%` }}
       />
-      <span className="relative z-10 font-mono text-xs font-semibold text-text-primary dark:text-gray-100">
+      <span className="relative z-1 font-mono text-xs font-semibold text-text-primary dark:text-gray-100">
         {type === "currency" ? `$${Number(value || 0).toFixed(2)}` : Number(value || 0).toLocaleString()}
       </span>
     </div>
   );
 };
 
-// 2. DLR % Cell
 const DlrCell: React.FC<{ pct: number }> = ({ pct = 0 }) => {
   let boxStyle = "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700";
   if (pct < 85 && pct >= 60) {
@@ -71,7 +113,6 @@ const DlrCell: React.FC<{ pct: number }> = ({ pct = 0 }) => {
   );
 };
 
-// 3. Margin % Unified Single-Box Cell with Background Fill Bar
 const MarginPctCell: React.FC<{ pct: number }> = ({ pct = 0 }) => {
   const percentage = Math.min(Math.max((pct / 100) * 100, 4), 100);
 
@@ -91,25 +132,49 @@ const MarginPctCell: React.FC<{ pct: number }> = ({ pct = 0 }) => {
         className={`absolute right-0 top-0 bottom-0 ${fillStyle} transition-all duration-300 rounded-r border-l`}
         style={{ width: `${percentage}%` }}
       />
-      <span className="relative z-10 font-mono text-xs font-bold">
+      <span className="relative z-1 font-mono text-xs font-bold">
         {Number(pct || 0).toFixed(2)}%
       </span>
     </div>
   );
 };
 
-// --- MAIN ANALYTICS COMPONENT ---
+const tableHeaders = [
+  "Entity",
+  "Attempts",
+  "Successful",
+  "Submitted",
+  "DLR %",
+  "Delivered",
+  "Revenue ($)",
+  "Vendor Cost ($)",
+  "Margin ($)",
+  "Margin %",
+];
 
 const AnalyticsReport: React.FC = () => {
-  const [analyticsRows, setAnalyticsRows] = useState<any[]>([]);
+  const [dateRows, setDateRows] = useState<any[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Advanced search columns & filter values
+  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+
+  // Expanded tree node states
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
+  const [expandedCountries, setExpandedCountries] = useState<Record<string, boolean>>({});
 
-  const [fromDate, setFromDate] = useState<Date | null>(null);
-  const [toDate, setToDate] = useState<Date | null>(null);
-  const [groupBy, setGroupBy] = useState("DAY");
+  // Lazy loaded node data
+  const [clientData, setClientData] = useState<Record<string, any[]>>({});
+  const [countryData, setCountryData] = useState<Record<string, any[]>>({});
+  const [vendorData, setVendorData] = useState<Record<string, any[]>>({});
+
+  // Loading indicators for tree nodes
+  const [nodeLoading, setNodeLoading] = useState<Record<string, boolean>>({});
 
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
@@ -119,118 +184,246 @@ const AnalyticsReport: React.FC = () => {
       }, 100);
       hasLoggedOpening.current = true;
     }
-    fetchRealAnalytics();
   }, []);
 
-  const toggleDate = (dateId: string) => {
-    setExpandedDates((prev) => ({ ...prev, [dateId]: !prev[dateId] }));
+  useEffect(() => {
+    fetchDatesAndOverallData();
+  }, [currentPage, rowsPerPage]);
+
+  const getActiveFilterParams = () => {
+    const params: Record<string, any> = {};
+
+    searchColumns.forEach((key) => {
+      const val = filterValues[key];
+      if (!val) return;
+
+      if (key === "date_range") {
+        const [startRange, endRange] = val.split(",");
+        if (startRange) params.start_date = normalizeDateStr(startRange);
+        if (endRange) params.end_date = normalizeDateStr(endRange);
+      } else {
+        params[key] = val;
+      }
+    });
+
+    return params;
   };
 
-  const toggleClient = (compositeKey: string) => {
-    setExpandedClients((prev) => ({ ...prev, [compositeKey]: !prev[compositeKey] }));
-  };
-
-  const fetchRealAnalytics = async () => {
+  const fetchDatesAndOverallData = async () => {
     setIsLoading(true);
     try {
-      const searchParams: Record<string, any> = {};
-      if (fromDate) searchParams.startDate = formatLocalDate(fromDate);
-      if (toDate) searchParams.endDate = formatLocalDate(toDate);
+      const filterParams = getActiveFilterParams();
+      const searchParams: Record<string, any> = {
+        page: currentPage,
+        page_size: rowsPerPage,
+        ...filterParams,
+      };
 
-      const [dailyRes, vendorRes, clientRes] = await Promise.all([
-        groupBy === "HOUR" ? getSmsHourlyApi(searchParams) : getSmsDailyApi(searchParams),
-        getVendorPerformanceApi(searchParams),
-        getClientPerformanceApi(searchParams),
-      ]);
+      const datesRes = await getAnalyticsDatesApi(searchParams);
+      const rawDates: string[] = Array.isArray(datesRes)
+        ? datesRes
+        : datesRes.results || [];
+      const count = datesRes.count ?? rawDates.length;
+      setTotalItems(count);
 
-      const rawItems = Array.isArray(dailyRes) ? dailyRes : (dailyRes as any)?.results || [];
-      const vendors = Array.isArray(vendorRes) ? vendorRes : [];
-      const clients = Array.isArray(clientRes) ? clientRes : [];
+      const dailyMetricsRes = await getAnalyticsDataApi({
+        group_by: "day",
+        page_size: 1000,
+        ...filterParams,
+      });
 
-      const structured = rawItems.map((item: any, idx: number) => {
-        const dateKey = item.date || item.hour || `period_${idx}`;
-        const totalAttempts = item.count || 0;
+      const metricsList = Array.isArray(dailyMetricsRes)
+        ? dailyMetricsRes
+        : dailyMetricsRes.results || [];
 
-        const mappedClients = clients.map((c: any, cIdx: number) => ({
-          id: `client_${cIdx}`,
-          clientName: c.client || "Default Client",
-          attempts: c.total || 0,
-          successful: c.delivered || 0,
-          submitted: c.total || 0,
-          dlrPct: c.deliveryRate || 0,
-          revenueUsd: (c.total || 0) * 0.05,
-          vendorCost: (c.total || 0) * 0.04,
-          marginUsd: (c.total || 0) * 0.01,
-          marginPct: 20.0,
-          avgDeliveryTime: c.avgLatencySeconds || 0.5,
-          delivered: c.delivered || 0,
-          vendors: vendors.map((v: any, vIdx: number) => ({
-            id: `vendor_${vIdx}`,
-            vendorName: v.vendor || "Default Vendor",
-            attempts: v.total || 0,
-            successful: v.delivered || 0,
-            submitted: v.total || 0,
-            dlrPct: v.deliveryRate || 0,
-            revenueUsd: (v.total || 0) * 0.05,
-            vendorCost: (v.total || 0) * 0.04,
-            marginUsd: (v.total || 0) * 0.01,
-            marginPct: 20.0,
-            avgDeliveryTime: v.avgLatencySeconds || 0.5,
-            delivered: v.delivered || 0,
-          })),
-        }));
+      const metricsMap: Record<string, any> = {};
+      metricsList.forEach((m: any) => {
+        const key = m.period || m.date;
+        if (key) {
+          metricsMap[key] = m;
+          metricsMap[normalizeDateStr(key)] = m;
+        }
+      });
 
+      const dateRowsWithMetrics = rawDates.map((dateStr: string) => {
+        const m = metricsMap[dateStr] || metricsMap[normalizeDateStr(dateStr)] || {};
         return {
-          id: `date_row_${idx}`,
-          date: String(dateKey),
-          attempts: totalAttempts,
-          successful: Math.round(totalAttempts * 0.95),
-          submitted: totalAttempts,
-          dlrPct: 92.5,
-          revenueUsd: totalAttempts * 0.05,
-          vendorCost: totalAttempts * 0.04,
-          marginUsd: totalAttempts * 0.01,
-          marginPct: 15.0,
-          delivered: Math.round(totalAttempts * 0.90),
-          avgDeliveryTime: 0.65,
-          clients: mappedClients,
+          id: dateStr,
+          date: dateStr,
+          attempts: m.attempts || 0,
+          successful: m.successful || 0,
+          submitted: m.submitted || 0,
+          delivered: m.delivered || 0,
+          failed: m.failed || 0,
+          revenue: m.revenue || 0,
+          vendorCost: m.vendor_cost || 0,
+          marginUsd: m.margin_usd || 0,
+          dlrPct: m.dlr_percent || 0,
+          marginPct: m.margin_percent || 0,
         };
       });
 
-      setAnalyticsRows(structured);
+      setDateRows(dateRowsWithMetrics);
       toast.success("Analytics data loaded successfully");
     } catch (error) {
-      console.error("Failed to fetch analytics:", error);
+      console.error("Failed to fetch dates:", error);
       toast.error("Failed to retrieve analytics data from backend.");
-      setAnalyticsRows([]);
+      setDateRows([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSearch = () => {
-    fetchRealAnalytics();
+  // Level 1: Toggle Date -> Fetch Client Companies
+  const toggleDate = async (dateStr: string) => {
+    const isCurrentlyExpanded = !!expandedDates[dateStr];
+    setExpandedDates((prev) => ({ ...prev, [dateStr]: !isCurrentlyExpanded }));
+
+    if (!isCurrentlyExpanded && !clientData[dateStr]) {
+      setNodeLoading((prev) => ({ ...prev, [dateStr]: true }));
+      try {
+        const reqDate = normalizeDateStr(dateStr);
+        const filterParams = getActiveFilterParams();
+        const res = await getAnalyticsDataApi({
+          start_date: reqDate,
+          group_by: "client_company",
+          ...filterParams,
+        });
+        const items = Array.isArray(res) ? res : res.results || [];
+        setClientData((prev) => ({ ...prev, [dateStr]: items }));
+      } catch (err) {
+        console.error("Failed to load client companies", err);
+        toast.error(`Failed to load client companies for ${dateStr}`);
+      } finally {
+        setNodeLoading((prev) => ({ ...prev, [dateStr]: false }));
+      }
+    }
   };
 
-  const handleClear = () => {
-    setFromDate(null);
-    setToDate(null);
-    setGroupBy("DAY");
+  // Level 2: Toggle Client Company -> Fetch Countries
+  const toggleClientCompany = async (dateStr: string, clientCompany: string) => {
+    const compositeKey = `${dateStr}__${clientCompany}`;
+    const isCurrentlyExpanded = !!expandedClients[compositeKey];
+    setExpandedClients((prev) => ({ ...prev, [compositeKey]: !isCurrentlyExpanded }));
+
+    if (!isCurrentlyExpanded && !countryData[compositeKey]) {
+      setNodeLoading((prev) => ({ ...prev, [compositeKey]: true }));
+      try {
+        const reqDate = normalizeDateStr(dateStr);
+        const filterParams = getActiveFilterParams();
+        const res = await getAnalyticsDataApi({
+          start_date: reqDate,
+          group_by: "country",
+          client_company: clientCompany,
+          ...filterParams,
+        });
+        const items = Array.isArray(res) ? res : res.results || [];
+        setCountryData((prev) => ({ ...prev, [compositeKey]: items }));
+      } catch (err) {
+        console.error("Failed to load countries", err);
+        toast.error(`Failed to load countries for ${clientCompany}`);
+      } finally {
+        setNodeLoading((prev) => ({ ...prev, [compositeKey]: false }));
+      }
+    }
+  };
+
+  // Level 3: Toggle Country -> Fetch Vendor Companies
+  const toggleCountry = async (dateStr: string, clientCompany: string, countryName: string) => {
+    const compositeKey = `${dateStr}__${clientCompany}__${countryName}`;
+    const isCurrentlyExpanded = !!expandedCountries[compositeKey];
+    setExpandedCountries((prev) => ({ ...prev, [compositeKey]: !isCurrentlyExpanded }));
+
+    if (!isCurrentlyExpanded && !vendorData[compositeKey]) {
+      setNodeLoading((prev) => ({ ...prev, [compositeKey]: true }));
+      try {
+        const reqDate = normalizeDateStr(dateStr);
+        const filterParams = getActiveFilterParams();
+        const res = await getAnalyticsDataApi({
+          start_date: reqDate,
+          group_by: "vendor_company",
+          client_company: clientCompany,
+          country_name: countryName,
+          ...filterParams,
+        });
+        const items = Array.isArray(res) ? res : res.results || [];
+        setVendorData((prev) => ({ ...prev, [compositeKey]: items }));
+      } catch (err) {
+        console.error("Failed to load vendor companies", err);
+        toast.error(`Failed to load vendors for ${countryName}`);
+      } finally {
+        setNodeLoading((prev) => ({ ...prev, [compositeKey]: false }));
+      }
+    }
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilterValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1);
     setExpandedDates({});
     setExpandedClients({});
-    fetchRealAnalytics();
+    setExpandedCountries({});
+    setClientData({});
+    setCountryData({});
+    setVendorData({});
+    fetchDatesAndOverallData();
   };
 
-  const maxAttempts = Math.max(...analyticsRows.map((d) => d.attempts || 1), 100);
-  const maxRevenue = Math.max(...analyticsRows.map((d) => d.revenueUsd || 1), 10);
+  const handleClearFilters = () => {
+    setFilterValues({});
+    setCurrentPage(1);
+    setExpandedDates({});
+    setExpandedClients({});
+    setExpandedCountries({});
+    setClientData({});
+    setCountryData({});
+    setVendorData({});
+    fetchDatesAndOverallData();
+  };
+
+  const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const paginationLabel = `${
+    totalItems === 0 ? 0 : startIndex + 1
+  }-${Math.min(startIndex + dateRows.length, totalItems)} of ${totalItems}`;
+
+  const maxAttempts = Math.max(...dateRows.map((d) => d.attempts || 1), 100);
+  const maxRevenue = Math.max(...dateRows.map((d) => d.revenue || 1), 10);
+
+  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
+  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
 
   return (
     <div className="container mx-auto pb-12">
       {/* Page Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
-          Analytics Report
-        </h1>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
+            Analytics Report
+          </h1>
+          <div className="relative z-20">
+            <AdvancedFilter
+              columns={allColumns}
+              selectedColumns={searchColumns}
+              onFilter={(newCols) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
+            />
+          </div>
+        </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
           <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">
@@ -243,235 +436,316 @@ const AnalyticsReport: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Card */}
-      <FilterCard onSearch={handleSearch} onClear={handleClear}>
-        <DatePicker
-          label="From Date"
-          selected={fromDate}
-          onChange={(date) => setFromDate(date)}
-        />
-        <DatePicker
-          label="To Date"
-          selected={toDate}
-          onChange={(date) => setToDate(date)}
-        />
-        <Select
-          label="Group Period"
-          value={groupBy}
-          onChange={(val) => setGroupBy(val)}
-          options={[
-            { label: "Day", value: "DAY" },
-            { label: "Hour", value: "HOUR" },
-          ]}
-        />
+      {/* Dynamic Filter Card */}
+      <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
+        {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label);
+          if (col.options) {
+            return (
+              <Select
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                value={filterValues[col.key] || ""}
+                onChange={(val) => handleFilterChange(col.key, val)}
+                options={col.options}
+                placeholder={`Select ${baseLabel}`}
+              />
+            );
+          }
+          if (col.type === "date_range") {
+            const [startRange, endRange] = (filterValues[col.key] || "").split(",");
+            const startStr = startRange ? startRange.split("T")[0] : "";
+            const endStr = endRange ? endRange.split("T")[0] : "";
+
+            return (
+              <React.Fragment key={col.key}>
+                <DatePicker
+                  label={`Search ${baseLabel} (From)`}
+                  selected={startStr ? new Date(startStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newStart = val ? formatLocalDate(val) : "";
+                    const currentEnd = endStr || "";
+                    handleFilterChange(col.key, `${newStart},${currentEnd}`);
+                  }}
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (To)`}
+                  selected={endStr ? new Date(endStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newEnd = val ? formatLocalDate(val) : "";
+                    const currentStart = startStr || "";
+                    handleFilterChange(col.key, `${currentStart},${newEnd}`);
+                  }}
+                />
+              </React.Fragment>
+            );
+          }
+          return (
+            <Input
+              key={col.key}
+              type={col.type || "text"}
+              label={`Search ${baseLabel}`}
+              value={filterValues[col.key] || ""}
+              onChange={(e) => handleFilterChange(col.key, e.target.value)}
+              placeholder={`${baseLabel}`}
+            />
+          );
+        })}
       </FilterCard>
 
-      {/* Hierarchical Data Grid */}
-      <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-wrap justify-between items-center gap-3 bg-gray-50/50 dark:bg-gray-900/40">
-          <span className="text-sm font-semibold text-text-primary dark:text-white">
-            Traffic Analytics (Date &rarr; Client &rarr; Vendor)
-          </span>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="secondary"
-              onClick={handleSearch}
-              leftIcon={<RefreshCw size={14} />}
-            >
-              Refresh
-            </Button>
+      {/* DataTable-Matching Container */}
+      <div className="mt-6 rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0 app-data-table">
+        
+        {/* Exact DataTable Top Bar Layout */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 relative z-10">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
+                Rows per page:
+              </span>
+              <div className="w-24 shrink-0">
+                <Select
+                  value={String(rowsPerPage)}
+                  onChange={(val) => {
+                    setRowsPerPage(Number(val));
+                    setCurrentPage(1);
+                  }}
+                  options={rowsOptions}
+                  clearable={false}
+                />
+              </div>
+            </div>
+            <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
+              {paginationLabel}
+            </span>
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                disabled={currentPage === 1 || isLoading}
+                title="Previous Page"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                disabled={currentPage >= totalPages || totalItems === 0 || isLoading}
+                title="Next Page"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider bg-gray-100/90 dark:bg-gray-900/90">
-                <th className="px-4 py-3 min-w-[240px]">Entity</th>
-                <th className="px-2 py-3 text-right min-w-[100px]">Attempts</th>
-                <th className="px-2 py-3 text-right min-w-[100px]">Successful</th>
-                <th className="px-2 py-3 text-right min-w-[100px]">Submitted</th>
-                <th className="px-2 py-3 text-right min-w-[100px]">DLR %</th>
-                <th className="px-2 py-3 text-right min-w-[100px]">Delivered</th>
-                <th className="px-2 py-3 text-right min-w-[110px]">Revenue ($)</th>
-                <th className="px-2 py-3 text-right min-w-[110px]">Vendor Cost ($)</th>
-                <th className="px-2 py-3 text-right min-w-[110px]">Margin ($)</th>
-                <th className="px-2 py-3 text-right min-w-[120px]">Margin %</th>
-                <th className="px-3 py-3 text-right min-w-[90px]">Avg Deliv</th>
+        {/* Scrollable Data Table with High Z-Index Opaque Sticky Header */}
+        <div className="overflow-auto max-h-[65vh] min-h-[300px] relative z-0 custom-scrollbar">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
+            <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-30 shadow-xs">
+              <tr>
+                {tableHeaders.map((header, i) => (
+                  <th
+                    key={i}
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 whitespace-nowrap min-w-[120px]"
+                  >
+                    {header}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700/60 font-sans text-sm">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={11}
-                    className="px-4 py-8 text-center text-text-secondary dark:text-gray-400"
+                    colSpan={tableHeaders.length}
+                    className="px-4 py-12 text-center text-text-secondary dark:text-gray-400"
                   >
-                    Loading real analytics data from server...
+                    Loading analytics data...
                   </td>
                 </tr>
-              ) : analyticsRows.length === 0 ? (
+              ) : dateRows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={11}
-                    className="px-4 py-8 text-center text-text-secondary dark:text-gray-400"
+                    colSpan={tableHeaders.length}
+                    className="px-4 py-12 text-center text-text-secondary dark:text-gray-400"
                   >
                     No analytics records found.
                   </td>
                 </tr>
               ) : (
-                analyticsRows.map((dateRow) => {
-                  const isDateExpanded = !!expandedDates[dateRow.id];
+                dateRows.map((dateRow) => {
+                  const dateStr = dateRow.date;
+                  const isDateExpanded = !!expandedDates[dateStr];
+                  const isDateLoading = !!nodeLoading[dateStr];
+                  const clients = clientData[dateStr] || [];
 
                   return (
-                    <React.Fragment key={dateRow.id}>
+                    <React.Fragment key={dateStr}>
                       {/* LEVEL 0: DATE ROW */}
-                      <tr className="bg-gray-100/70 dark:bg-gray-800/90 font-semibold hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors">
-                        <td className="px-4 py-2.5 whitespace-nowrap">
+                      <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors font-semibold">
+                        <td className="px-4 py-2.5 whitespace-nowrap min-w-[260px]">
                           <button
                             type="button"
-                            onClick={() => toggleDate(dateRow.id)}
-                            className="inline-flex items-center space-x-2 text-primary hover:underline focus:outline-none"
+                            onClick={() => toggleDate(dateStr)}
+                            className="inline-flex items-center space-x-2 text-primary hover:underline focus:outline-none group"
                           >
-                            <span className="p-0.5 rounded bg-primary/10 text-primary">
-                              {isDateExpanded ? <Minus size={14} /> : <Plus size={14} />}
-                            </span>
-                            <span className="font-mono text-sm">{dateRow.date}</span>
+                            <ExpandButton isExpanded={isDateExpanded} />
+                            <span className="font-mono text-xs font-semibold">{dateStr}</span>
                           </button>
                         </td>
-                        <td className="px-2 py-2">
-                          <DataBarCell value={dateRow.attempts} max={maxAttempts} />
-                        </td>
-                        <td className="px-2 py-2">
-                          <DataBarCell value={dateRow.successful} max={maxAttempts} />
-                        </td>
-                        <td className="px-2 py-2">
-                          <DataBarCell value={dateRow.submitted} max={maxAttempts} />
-                        </td>
-                        <td className="px-2 py-2">
-                          <DlrCell pct={dateRow.dlrPct} />
-                        </td>
-                        <td className="px-2 py-2">
-                          <DataBarCell value={dateRow.delivered} max={maxAttempts} />
-                        </td>
-                        <td className="px-2 py-2">
-                          <DataBarCell value={dateRow.revenueUsd} max={maxRevenue} type="currency" />
-                        </td>
-                        <td className="px-2 py-2">
-                          <DataBarCell value={dateRow.vendorCost} max={maxRevenue} type="currency" />
-                        </td>
-                        <td className="px-2 py-2">
-                          <DataBarCell value={dateRow.marginUsd} max={maxRevenue} type="currency" />
-                        </td>
-                        <td className="px-2 py-2">
-                          <MarginPctCell pct={dateRow.marginPct} />
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono text-xs text-gray-500 whitespace-nowrap">
-                          {Number(dateRow.avgDeliveryTime || 0).toFixed(2)}s
-                        </td>
+                        <td className="px-2 py-2"><DataBarCell value={dateRow.attempts} max={maxAttempts} /></td>
+                        <td className="px-2 py-2"><DataBarCell value={dateRow.successful} max={maxAttempts} /></td>
+                        <td className="px-2 py-2"><DataBarCell value={dateRow.submitted} max={maxAttempts} /></td>
+                        <td className="px-2 py-2"><DlrCell pct={dateRow.dlrPct} /></td>
+                        <td className="px-2 py-2"><DataBarCell value={dateRow.delivered} max={maxAttempts} /></td>
+                        <td className="px-2 py-2"><DataBarCell value={dateRow.revenue} max={maxRevenue} type="currency" /></td>
+                        <td className="px-2 py-2"><DataBarCell value={dateRow.vendorCost} max={maxRevenue} type="currency" /></td>
+                        <td className="px-2 py-2"><DataBarCell value={dateRow.marginUsd} max={maxRevenue} type="currency" /></td>
+                        <td className="px-2 py-2"><MarginPctCell pct={dateRow.marginPct} /></td>
                       </tr>
 
-                      {/* LEVEL 1: CLIENT ROWS */}
-                      {isDateExpanded &&
-                        dateRow.clients?.map((clientRow: any) => {
-                          const clientCompositeKey = `${dateRow.id}_${clientRow.id}`;
-                          const isClientExpanded = !!expandedClients[clientCompositeKey];
+                      {/* LEVEL 1: CLIENT COMPANY ROWS */}
+                      {isDateExpanded && (
+                        isDateLoading ? (
+                          <tr>
+                            <td colSpan={10} className="py-3 pl-10 text-xs text-gray-500 italic">Loading client companies...</td>
+                          </tr>
+                        ) : clients.length === 0 ? (
+                          <tr>
+                            <td colSpan={10} className="py-3 pl-10 text-xs text-gray-400 italic">No client company traffic found for {dateStr}.</td>
+                          </tr>
+                        ) : (
+                          clients.map((clientRow: any, cIdx: number) => {
+                            const clientName = clientRow.client_company || clientRow.client || `Client ${cIdx + 1}`;
+                            const clientKey = `${dateStr}__${clientName}`;
+                            const isClientExpanded = !!expandedClients[clientKey];
+                            const isClientLoading = !!nodeLoading[clientKey];
+                            const countries = countryData[clientKey] || [];
 
-                          return (
-                            <React.Fragment key={clientCompositeKey}>
-                              <tr className="bg-blue-50/40 dark:bg-gray-800/40 hover:bg-blue-50/70 dark:hover:bg-gray-700/40 transition-colors">
-                                <td className="px-4 py-2 pl-8 whitespace-nowrap">
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleClient(clientCompositeKey)}
-                                    className="inline-flex items-center space-x-2 text-text-primary dark:text-gray-200 hover:text-primary focus:outline-none"
-                                  >
-                                    <span className="p-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                                      {isClientExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                    </span>
-                                    <span className="font-medium">{clientRow.clientName}</span>
-                                  </button>
-                                </td>
-                                <td className="px-2 py-1.5">
-                                  <DataBarCell value={clientRow.attempts} max={maxAttempts} />
-                                </td>
-                                <td className="px-2 py-1.5">
-                                  <DataBarCell value={clientRow.successful} max={maxAttempts} />
-                                </td>
-                                <td className="px-2 py-1.5">
-                                  <DataBarCell value={clientRow.submitted} max={maxAttempts} />
-                                </td>
-                                <td className="px-2 py-1.5">
-                                  <DlrCell pct={clientRow.dlrPct} />
-                                </td>
-                                <td className="px-2 py-1.5">
-                                  <DataBarCell value={clientRow.delivered} max={maxAttempts} />
-                                </td>
-                                <td className="px-2 py-1.5">
-                                  <DataBarCell value={clientRow.revenueUsd} max={maxRevenue} type="currency" />
-                                </td>
-                                <td className="px-2 py-1.5">
-                                  <DataBarCell value={clientRow.vendorCost} max={maxRevenue} type="currency" />
-                                </td>
-                                <td className="px-2 py-1.5">
-                                  <DataBarCell value={clientRow.marginUsd} max={maxRevenue} type="currency" />
-                                </td>
-                                <td className="px-2 py-1.5">
-                                  <MarginPctCell pct={clientRow.marginPct} />
-                                </td>
-                                <td className="px-3 py-1.5 text-right font-mono text-xs text-gray-500 whitespace-nowrap">
-                                  {Number(clientRow.avgDeliveryTime || 0).toFixed(2)}s
-                                </td>
-                              </tr>
-
-                              {/* LEVEL 2: VENDOR ROWS */}
-                              {isClientExpanded &&
-                                clientRow.vendors?.map((vendorRow: any) => (
-                                  <tr
-                                    key={vendorRow.id}
-                                    className="bg-white dark:bg-gray-900/60 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-xs text-text-secondary dark:text-gray-400"
-                                  >
-                                    <td className="px-4 py-2 pl-14 flex items-center space-x-2 whitespace-nowrap">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
-                                      <span className="font-mono text-gray-700 dark:text-gray-300">
-                                        {vendorRow.vendorName}
+                            return (
+                              <React.Fragment key={clientKey}>
+                                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                  <td className="px-4 py-2 pl-10 whitespace-nowrap min-w-[260px]">
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleClientCompany(dateStr, clientName)}
+                                      className="inline-flex items-center space-x-2 text-text-primary dark:text-gray-200 hover:text-primary focus:outline-none group"
+                                    >
+                                      <ExpandButton isExpanded={isClientExpanded} />
+                                      <span className="text-xs font-medium">{clientName}</span>
+                                      <span className="text-[10px] font-bold tracking-wider uppercase text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60 px-1.5 py-0.5 rounded ml-1">
+                                        CLIENT
                                       </span>
-                                    </td>
-                                    <td className="px-2 py-1">
-                                      <DataBarCell value={vendorRow.attempts} max={maxAttempts} />
-                                    </td>
-                                    <td className="px-2 py-1">
-                                      <DataBarCell value={vendorRow.successful} max={maxAttempts} />
-                                    </td>
-                                    <td className="px-2 py-1">
-                                      <DataBarCell value={vendorRow.submitted} max={maxAttempts} />
-                                    </td>
-                                    <td className="px-2 py-1">
-                                      <DlrCell pct={vendorRow.dlrPct} />
-                                    </td>
-                                    <td className="px-2 py-1">
-                                      <DataBarCell value={vendorRow.delivered} max={maxAttempts} />
-                                    </td>
-                                    <td className="px-2 py-1">
-                                      <DataBarCell value={vendorRow.revenueUsd} max={maxRevenue} type="currency" />
-                                    </td>
-                                    <td className="px-2 py-1">
-                                      <DataBarCell value={vendorRow.vendorCost} max={maxRevenue} type="currency" />
-                                    </td>
-                                    <td className="px-2 py-1">
-                                      <DataBarCell value={vendorRow.marginUsd} max={maxRevenue} type="currency" />
-                                    </td>
-                                    <td className="px-2 py-1">
-                                      <MarginPctCell pct={vendorRow.marginPct} />
-                                    </td>
-                                    <td className="px-3 py-1 text-right font-mono whitespace-nowrap">
-                                      {Number(vendorRow.avgDeliveryTime || 0).toFixed(2)}s
-                                    </td>
-                                  </tr>
-                                ))}
-                            </React.Fragment>
-                          );
-                        })}
+                                    </button>
+                                  </td>
+                                  <td className="px-2 py-1.5"><DataBarCell value={clientRow.attempts} max={maxAttempts} /></td>
+                                  <td className="px-2 py-1.5"><DataBarCell value={clientRow.successful} max={maxAttempts} /></td>
+                                  <td className="px-2 py-1.5"><DataBarCell value={clientRow.submitted} max={maxAttempts} /></td>
+                                  <td className="px-2 py-1.5"><DlrCell pct={clientRow.dlr_percent} /></td>
+                                  <td className="px-2 py-1.5"><DataBarCell value={clientRow.delivered} max={maxAttempts} /></td>
+                                  <td className="px-2 py-1.5"><DataBarCell value={clientRow.revenue} max={maxRevenue} type="currency" /></td>
+                                  <td className="px-2 py-1.5"><DataBarCell value={clientRow.vendor_cost} max={maxRevenue} type="currency" /></td>
+                                  <td className="px-2 py-1.5"><DataBarCell value={clientRow.margin_usd} max={maxRevenue} type="currency" /></td>
+                                  <td className="px-2 py-1.5"><MarginPctCell pct={clientRow.margin_percent} /></td>
+                                </tr>
+
+                                {/* LEVEL 2: COUNTRY ROWS */}
+                                {isClientExpanded && (
+                                  isClientLoading ? (
+                                    <tr>
+                                      <td colSpan={10} className="py-2 pl-16 text-xs text-gray-500 italic">Loading countries...</td>
+                                    </tr>
+                                  ) : countries.length === 0 ? (
+                                    <tr>
+                                      <td colSpan={10} className="py-2 pl-16 text-xs text-gray-400 italic">No country data found.</td>
+                                    </tr>
+                                  ) : (
+                                    countries.map((countryRow: any, coIdx: number) => {
+                                      const countryName = countryRow.country || countryRow.country_name || `Country ${coIdx + 1}`;
+                                      const countryKey = `${dateStr}__${clientName}__${countryName}`;
+                                      const isCountryExpanded = !!expandedCountries[countryKey];
+                                      const isCountryLoading = !!nodeLoading[countryKey];
+                                      const vendors = vendorData[countryKey] || [];
+
+                                      return (
+                                        <React.Fragment key={countryKey}>
+                                          <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                            <td className="px-4 py-2 pl-16 whitespace-nowrap min-w-[260px]">
+                                              <button
+                                                type="button"
+                                                onClick={() => toggleCountry(dateStr, clientName, countryName)}
+                                                className="inline-flex items-center space-x-2 text-text-primary dark:text-gray-300 hover:text-amber-600 focus:outline-none group"
+                                              >
+                                                <ExpandButton isExpanded={isCountryExpanded} />
+                                                <span className="text-xs font-medium">{countryName}</span>
+                                                <span className="text-[10px] font-bold tracking-wider uppercase text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 px-1.5 py-0.5 rounded ml-1">
+                                                  COUNTRY
+                                                </span>
+                                              </button>
+                                            </td>
+                                            <td className="px-2 py-1.5"><DataBarCell value={countryRow.attempts} max={maxAttempts} /></td>
+                                            <td className="px-2 py-1.5"><DataBarCell value={countryRow.successful} max={maxAttempts} /></td>
+                                            <td className="px-2 py-1.5"><DataBarCell value={countryRow.submitted} max={maxAttempts} /></td>
+                                            <td className="px-2 py-1.5"><DlrCell pct={countryRow.dlr_percent} /></td>
+                                            <td className="px-2 py-1.5"><DataBarCell value={countryRow.delivered} max={maxAttempts} /></td>
+                                            <td className="px-2 py-1.5"><DataBarCell value={countryRow.revenue} max={maxRevenue} type="currency" /></td>
+                                            <td className="px-2 py-1.5"><DataBarCell value={countryRow.vendor_cost} max={maxRevenue} type="currency" /></td>
+                                            <td className="px-2 py-1.5"><DataBarCell value={countryRow.margin_usd} max={maxRevenue} type="currency" /></td>
+                                            <td className="px-2 py-1.5"><MarginPctCell pct={countryRow.margin_percent} /></td>
+                                          </tr>
+
+                                          {/* LEVEL 3: VENDOR COMPANY ROWS */}
+                                          {isCountryExpanded && (
+                                            isCountryLoading ? (
+                                              <tr>
+                                                <td colSpan={10} className="py-2 pl-24 text-xs text-gray-500 italic">Loading vendor companies...</td>
+                                              </tr>
+                                            ) : vendors.length === 0 ? (
+                                              <tr>
+                                                <td colSpan={10} className="py-2 pl-24 text-xs text-gray-400 italic">No vendor company traffic found.</td>
+                                              </tr>
+                                            ) : (
+                                              vendors.map((vendorRow: any, vIdx: number) => {
+                                                const vendorName = vendorRow.vendor_company || vendorRow.vendor || `Vendor ${vIdx + 1}`;
+
+                                                return (
+                                                  <tr
+                                                    key={`${countryKey}__${vendorName}_${vIdx}`}
+                                                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-xs text-text-secondary dark:text-gray-400"
+                                                  >
+                                                    <td className="px-4 py-2 pl-24 flex items-center space-x-2 whitespace-nowrap min-w-[260px]">
+                                                      <span className="font-mono text-xs text-gray-700 dark:text-gray-300">
+                                                        {vendorName}
+                                                      </span>
+                                                      <span className="text-[10px] font-bold tracking-wider uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-1.5 py-0.5 rounded ml-1">
+                                                        VENDOR
+                                                      </span>
+                                                    </td>
+                                                    <td className="px-2 py-1"><DataBarCell value={vendorRow.attempts} max={maxAttempts} /></td>
+                                                    <td className="px-2 py-1"><DataBarCell value={vendorRow.successful} max={maxAttempts} /></td>
+                                                    <td className="px-2 py-1"><DataBarCell value={vendorRow.submitted} max={maxAttempts} /></td>
+                                                    <td className="px-2 py-1"><DlrCell pct={vendorRow.dlr_percent} /></td>
+                                                    <td className="px-2 py-1"><DataBarCell value={vendorRow.delivered} max={maxAttempts} /></td>
+                                                    <td className="px-2 py-1"><DataBarCell value={vendorRow.revenue} max={maxRevenue} type="currency" /></td>
+                                                    <td className="px-2 py-1"><DataBarCell value={vendorRow.vendor_cost} max={maxRevenue} type="currency" /></td>
+                                                    <td className="px-2 py-1"><DataBarCell value={vendorRow.margin_usd} max={maxRevenue} type="currency" /></td>
+                                                    <td className="px-2 py-1"><MarginPctCell pct={vendorRow.margin_percent} /></td>
+                                                  </tr>
+                                                );
+                                              })
+                                            )
+                                          )}
+                                        </React.Fragment>
+                                      );
+                                    })
+                                  )
+                                )}
+                              </React.Fragment>
+                            );
+                          })
+                        )
+                      )}
                     </React.Fragment>
                   );
                 })

@@ -25,19 +25,27 @@ const Portal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return ReactDOM.createPortal(children, document.body);
 };
 
-export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
+const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: boolean; close: () => void }> = ({
   label,
   options,
   selected,
   onChange,
   disabled = false,
   placeholder = "Select...",
+  open,
+  close,
 }) => {
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    if (!open) {
+      setSearchTerm("");
+    }
+  }, [open]);
 
   const updatePosition = () => {
     if (buttonRef.current) {
@@ -128,149 +136,150 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
     </button>
   );
 
+  if (open && !buttonRect) {
+      updatePosition();
+  }
+
   return (
-    <Popover className="relative flex flex-col w-full">
-      {({ open, close }) => {
-        if (open && !buttonRect) {
-            updatePosition();
-        }
+    <>
+      <label className="text-sm font-medium text-text-secondary dark:text-gray-400 mb-1">
+        {label}
+      </label>
 
-        return (
-          <>
-            <label className="text-sm font-medium text-text-secondary dark:text-gray-400 mb-1">
-              {label}
-            </label>
-
-            <Popover.Button
-              ref={buttonRef}
-              onClick={updatePosition}
-              disabled={disabled}
-              className={`w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 flex justify-between items-center transition-all focus:outline-none focus:ring-1 focus:ring-primary shadow-sm ${
-                disabled
-                  ? "bg-gray-100 dark:bg-gray-800 opacity-60 cursor-not-allowed"
-                  : "bg-white dark:bg-gray-900 cursor-pointer hover:border-primary"
-              } ${open ? "ring-1 ring-primary border-primary" : ""}`}
+      <Popover.Button
+        ref={buttonRef}
+        onClick={updatePosition}
+        disabled={disabled}
+        className={`w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 flex justify-between items-center transition-all focus:outline-none focus:ring-1 focus:ring-primary shadow-sm ${
+          disabled
+            ? "bg-gray-100 dark:bg-gray-800 opacity-60 cursor-not-allowed"
+            : "bg-white dark:bg-gray-900 cursor-pointer hover:border-primary"
+        } ${open ? "ring-1 ring-primary border-primary" : ""}`}
+      >
+        <span className="text-sm truncate text-text-primary dark:text-white">
+          {getDisplayText()}
+        </span>
+        
+        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+          {selected.length > 0 && !disabled && (
+            <div
+              onClick={handleClearAll}
+              className="text-gray-400 hover:text-red-500 p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none cursor-pointer"
+              title="Clear all"
             >
-              <span className="text-sm truncate text-text-primary dark:text-white">
-                {getDisplayText()}
-              </span>
-              
-              <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                {selected.length > 0 && !disabled && (
-                  <div
-                    onClick={handleClearAll}
-                    className="text-gray-400 hover:text-red-500 p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none cursor-pointer"
-                    title="Clear all"
-                  >
-                    <X size={14} strokeWidth={2.5} />
+              <X size={14} strokeWidth={2.5} />
+            </div>
+          )}
+          <ChevronDown
+            size={16}
+            className={`text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          />
+        </div>
+      </Popover.Button>
+
+      {open && buttonRect && !disabled && (
+        <Portal>
+          <div className="fixed inset-0 z-[9999]" onClick={() => { close(); }}>
+            <div
+              className="absolute flex flex-col"
+              style={{
+                top: topPosition,
+                left: leftPosition,
+                width: dropdownWidth,
+                maxHeight: maxDropdownHeight,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Transition
+                appear={true}
+                show={true}
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="opacity-0 translate-y-1"
+                enterTo="opacity-100 translate-y-0"
+                leave="transition ease-in duration-75"
+                leaveFrom="opacity-100 translate-y-0"
+                leaveTo="opacity-0 translate-y-1"
+              >
+                <div
+                  className="w-full rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
+                  style={{ maxHeight: "inherit" }}
+                >
+                  {/* Static Search Input Header */}
+                  <div className="p-2 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 z-20">
+                     <div className="relative">
+                        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          ref={searchInputRef}
+                          autoFocus
+                          type="text"
+                          autoComplete="off"
+                          className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-text-primary dark:text-white placeholder-gray-400"
+                          placeholder="Search options..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                     </div>
                   </div>
-                )}
-                <ChevronDown
-                  size={16}
-                  className={`text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-                />
-              </div>
-            </Popover.Button>
 
-            {open && buttonRect && !disabled && (
-              <Portal>
-                <div className="fixed inset-0 z-[9999]" onClick={() => { close(); setSearchTerm(""); }}>
-                  <div
-                    className="absolute flex flex-col"
-                    style={{
-                      top: topPosition,
-                      left: leftPosition,
-                      width: dropdownWidth,
-                      maxHeight: maxDropdownHeight,
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Transition
-                      appear={true}
-                      show={true}
-                      as={Fragment}
-                      enter="transition ease-out duration-100"
-                      enterFrom="opacity-0 translate-y-1"
-                      enterTo="opacity-100 translate-y-0"
-                      leave="transition ease-in duration-75"
-                      leaveFrom="opacity-100 translate-y-0"
-                      leaveTo="opacity-0 translate-y-1"
-                      afterLeave={() => setSearchTerm("")}
-                    >
-                      <div
-                        className="w-full rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
-                        style={{ maxHeight: "inherit" }}
-                      >
-                        {/* Static Search Input Header */}
-                        <div className="p-2 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 z-20">
-                           <div className="relative">
-                              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                              <input
-                                ref={searchInputRef}
-                                autoFocus
-                                type="text"
-                                autoComplete="off"
-                                className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-text-primary dark:text-white placeholder-gray-400"
-                                placeholder="Search options..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                              />
-                           </div>
-                        </div>
+                  {/* Scrolling List Container */}
+                  <div className="flex-1 overflow-y-auto min-h-0 relative py-1 custom-grid-scroll bg-white dark:bg-gray-800">
+                    
+                    {/* Selected Items Group */}
+                    {selectedOptions.length > 0 && (
+                      <div className="mb-2">
+                         <div className="px-3 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                            Selected ({selectedOptions.length})
+                         </div>
+                         {selectedOptions.map(opt => renderOptionBtn(opt, true, onChange))}
+                      </div>
+                    )}
 
-                        {/* Scrolling List Container */}
-                        <div className="flex-1 overflow-y-auto min-h-0 relative py-1 custom-grid-scroll bg-white dark:bg-gray-800">
-                          
-                          {/* Selected Items Group */}
+                    {/* Unselected / Available Items Group */}
+                    {unselectedOptions.length > 0 && (
+                       <div>
                           {selectedOptions.length > 0 && (
-                            <div className="mb-2">
-                               <div className="px-3 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                                  Selected ({selectedOptions.length})
-                               </div>
-                               {selectedOptions.map(opt => renderOptionBtn(opt, true, onChange))}
-                            </div>
-                          )}
-
-                          {/* Unselected / Available Items Group */}
-                          {unselectedOptions.length > 0 && (
-                             <div>
-                                {selectedOptions.length > 0 && (
-                                   <div className="px-3 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-100 dark:bg-gray-900 border-y border-gray-200 dark:border-gray-700">
-                                      Available Options
-                                   </div>
-                                )}
-                                {unselectedOptions.map(opt => {
-                                  let isSelected = false;
-                                  if (opt.isAll) {
-                                    if (opt.value === "ALL_MCC") {
-                                      const standardOpts = options.filter((o) => !o.isUiOnly);
-                                      isSelected = standardOpts.length > 0 && standardOpts.every((o) => selected.includes(o.value));
-                                    } else {
-                                      const mccPrefix = opt.value.split("(")[0];
-                                      const standardOpts = options.filter((o) => o.value.startsWith(`${mccPrefix}(`) && !o.isUiOnly);
-                                      isSelected = standardOpts.length > 0 && standardOpts.every((o) => selected.includes(o.value));
-                                    }
-                                  }
-                                  return renderOptionBtn(opt, isSelected, onChange);
-                                })}
+                             <div className="px-3 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-100 dark:bg-gray-900 border-y border-gray-200 dark:border-gray-700">
+                                Available Options
                              </div>
                           )}
+                          {unselectedOptions.map(opt => {
+                            let isSelected = false;
+                            if (opt.isAll) {
+                              if (opt.value === "ALL_MCC") {
+                                const standardOpts = options.filter((o) => !o.isUiOnly);
+                                isSelected = standardOpts.length > 0 && standardOpts.every((o) => selected.includes(o.value));
+                              } else {
+                                const mccPrefix = opt.value.split("(")[0];
+                                const standardOpts = options.filter((o) => o.value.startsWith(`${mccPrefix}(`) && !o.isUiOnly);
+                                isSelected = standardOpts.length > 0 && standardOpts.every((o) => selected.includes(o.value));
+                              }
+                            }
+                            return renderOptionBtn(opt, isSelected, onChange);
+                          })}
+                       </div>
+                    )}
 
-                          {filteredOptions.length === 0 && (
-                            <div className="py-6 px-4 text-center text-gray-500 text-sm">
-                              No matching options found
-                            </div>
-                          )}
-                        </div>
+                    {filteredOptions.length === 0 && (
+                      <div className="py-6 px-4 text-center text-gray-500 text-sm">
+                        No matching options found
                       </div>
-                    </Transition>
+                    )}
                   </div>
                 </div>
-              </Portal>
-            )}
-          </>
-        );
-      }}
+              </Transition>
+            </div>
+          </div>
+        </Portal>
+      )}
+    </>
+  );
+};
+
+export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = (props) => {
+  return (
+    <Popover className="relative flex flex-col w-full">
+      {({ open, close }) => <MultiSelectDropdownContent {...props} open={open} close={close} />}
     </Popover>
   );
 };
