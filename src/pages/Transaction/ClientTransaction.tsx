@@ -32,7 +32,6 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-// ⚡️ Choice options straight from backend model choices
 const chargePolicyOptions: Option[] = [
   { label: "On Attempt", value: "ON_ATTEMPT" },
   { label: "On Submit", value: "ON_SUBMIT" },
@@ -102,7 +101,6 @@ const ClientTransaction: React.FC = () => {
     { key: "amount", label: "Amount", type: "number", filterKey: "amount" },
     { key: "balanceSpent", label: "Balance Spent", type: "number", filterKey: "balanceSpent" },
 
-    // --- Filter keys explicitly point to createdAt__range for both single day and date span ---
     { key: "createdAt", label: "Created At (Single Day)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range", render: (log) => (<span>{log.createdAt ? new Date(log.createdAt).toLocaleString() : "-"}</span>) },
     { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt__range", isSearchOnly: true },
   ];
@@ -194,7 +192,6 @@ const ClientTransaction: React.FC = () => {
 
     scrollEl.addEventListener("scroll", handleScroll);
     return () => scrollEl.removeEventListener("scroll", handleScroll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, transactions.length]);
 
   const handleSearch = () => {
@@ -328,29 +325,7 @@ const ClientTransaction: React.FC = () => {
         })}
       </FilterCard>
 
-      <style>{`
-        .client-transaction-table > div > div:first-child > div:first-child > div:first-child {
-          display: none !important;
-        }
-        .client-transaction-table > div > div:first-child > div:first-child > div:last-child {
-          display: none !important;
-        }
-        .client-transaction-table td {
-          padding-top: 0.625rem !important;
-          padding-bottom: 0.625rem !important;
-        }
-        .client-transaction-table th {
-          padding-top: 0.5rem !important;
-          padding-bottom: 0.5rem !important;
-        }
-        .client-transaction-table th:first-child,
-        .client-transaction-table td:first-child {
-          min-width: 56px !important;
-          width: 56px !important;
-        }
-      `}</style>
-
-      <div ref={tableWrapperRef} className="client-transaction-table">
+      <div ref={tableWrapperRef}>
         <DataTable
           serverSide={true}
           data={transactions}
@@ -358,6 +333,8 @@ const ClientTransaction: React.FC = () => {
           rowsPerPage={BATCH_SIZE}
           headers={tableHeaders}
           isLoading={isLoading}
+          showCountOnly={true}
+          density="compact"
           renderRow={(log, index) => (
             <tr key={log.id || index} onContextMenu={(e) => handleContextMenu(e, log)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
               <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{index + 1}</td>

@@ -91,7 +91,7 @@ export const SubRouteEditableTable: React.FC<SubRouteEditableTableProps> = ({
   const [apiFilters, setApiFilters] = useState<Record<string, string>>({});
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
 
   const isDetailMode = !!selectedCountryId;
   const isPercentage = selectedRoutingType === "PERCENTAGE";

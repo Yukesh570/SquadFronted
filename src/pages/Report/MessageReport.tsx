@@ -6,7 +6,6 @@ import { toast } from "react-toastify";
 // --- API ---
 import {
   getMessageLogsApi,
-  /* exportMessageLogsApi, */
   type MessageLogData,
 } from "../../api/reportApi/messageReportApi";
 
@@ -16,7 +15,6 @@ import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
 import { getSmppApi } from "../../api/connectivityApi/smppApi";
 
 // --- Components ---
-// import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import DatePicker from "../../components/ui/DatePicker";
@@ -206,15 +204,11 @@ const MessageReport: React.FC = () => {
       { key: "segmentNumber", label: "Segment Number", type: "text", isSearchable: false },
       { key: "characterCount", label: "Character Count", type: "text", isSearchable: false },
 
-      // --- Date Filters explicitly mapped to __range ---
       { key: "createdAt", label: "Created At (Single Day)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range" },
       { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt__range", isSearchOnly: true },
 
       { key: "queued_at", label: "Queued At (Single Day)", tableLabel: "Queued At", type: "date", filterKey: "queued_at__range" },
       { key: "queued_at__range", label: "Queued At (Range)", type: "date_range", filterKey: "queued_at__range", isSearchOnly: true },
-
-      { key: "sent_at", label: "Sent At (Single Day)", tableLabel: "Sent At", type: "date", filterKey: "sent_at__range" },
-      { key: "sent_at__range", label: "Sent At (Range)", type: "date_range", filterKey: "sent_at__range", isSearchOnly: true },
 
       { key: "delivered_at", label: "Delivered At (Single Day)", tableLabel: "Delivered At", type: "date", filterKey: "delivered_at__range" },
       { key: "delivered_at__range", label: "Delivered At (Range)", type: "date_range", filterKey: "delivered_at__range", isSearchOnly: true },
@@ -298,16 +292,6 @@ const MessageReport: React.FC = () => {
         render: (log) => (
           <span>
             {log.queued_at ? new Date(log.queued_at).toLocaleString() : "-"}
-          </span>
-        ),
-      },
-      {
-        key: "sent_at",
-        label: "Sent At",
-        type: "date",
-        render: (log) => (
-          <span>
-            {log.sent_at ? new Date(log.sent_at).toLocaleString() : "-"}
           </span>
         ),
       },
@@ -420,22 +404,18 @@ const MessageReport: React.FC = () => {
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleName, searchColumns]);
 
   useEffect(() => {
     const liveUpdateTimer = setInterval(() => {
       const isFiltering = Object.values(filterValues).some(val => val !== "");
 
-      // Check our React Ref instead of querying the DOM
       if (isAtTopRef.current && !isFiltering) {
-        // params: overrideParams=undefined, page=1, append=false, silent=true
         fetchLogs(undefined, 1, false, true);
       }
     }, 5000);
 
     return () => clearInterval(liveUpdateTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterValues, isLoading, isFetchingMore]);
 
   useEffect(() => {
@@ -456,7 +436,6 @@ const MessageReport: React.FC = () => {
 
     scrollEl.addEventListener("scroll", handleScroll);
     return () => scrollEl.removeEventListener("scroll", handleScroll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, logs.length]);
 
   const handleFilterChange = (key: string, value: string) => {
@@ -471,20 +450,6 @@ const MessageReport: React.FC = () => {
     setFilterValues({});
     fetchLogs({}, 1, false);
   };
-
-  // const handleExport = async () => {
-  //   try {
-  //     const blob = await exportMessageLogsApi(moduleName, filterValues);
-  //     const url = window.URL.createObjectURL(blob);
-  //     const a = document.createElement("a");
-  //     a.href = url;
-  //     a.download = `message_report_${new Date().toISOString()}.csv`;
-  //     a.click();
-  //     toast.success("Export started successfully");
-  //   } catch (err) {
-  //     toast.error("Failed to export data");
-  //   }
-  // };
 
   const handleContextMenu = (e: React.MouseEvent, log: MessageLogData) => {
     e.preventDefault();
@@ -688,29 +653,7 @@ const MessageReport: React.FC = () => {
         })()}
       </FilterCard>
 
-      <style>{`
-        .message-report-table > div > div:first-child > div:first-child > div:first-child {
-          display: none !important;
-        }
-        .message-report-table > div > div:first-child > div:first-child > div:last-child {
-          display: none !important;
-        }
-        .message-report-table td {
-          padding-top: 0.625rem !important;
-          padding-bottom: 0.625rem !important;
-        }
-        .message-report-table th {
-          padding-top: 0.5rem !important;
-          padding-bottom: 0.5rem !important;
-        }
-        .message-report-table th:first-child,
-        .message-report-table td:first-child {
-          min-width: 56px !important;
-          width: 56px !important;
-        }
-      `}</style>
-
-      <div ref={tableWrapperRef} className="message-report-table">
+      <div ref={tableWrapperRef}>
         <DataTable
           serverSide={true}
           data={logs}
@@ -718,17 +661,8 @@ const MessageReport: React.FC = () => {
           rowsPerPage={BATCH_SIZE}
           headers={tableHeaders}
           isLoading={isLoading}
-          // headerActions={
-          //   <div className="flex gap-2">
-          //     <Button
-          //       variant="secondary"
-          //       onClick={handleExport}
-          //       leftIcon={<Download size={18} />}
-          //     >
-          //       Export
-          //     </Button>
-          //   </div>
-          // }
+          showCountOnly={true}
+          density="compact"
           renderRow={(log, index) => (
             <tr
               key={log.id || index}

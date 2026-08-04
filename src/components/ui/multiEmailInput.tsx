@@ -19,13 +19,11 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState("");
 
-  // Split the comma-separated string into an array of emails
   const emails = value ? value.split(",").filter((e) => e.trim() !== "") : [];
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    // If user presses Enter or Comma, add the email as a tag
     if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault(); // Prevent form submission
+      e.preventDefault();
 
       const newEmail = inputValue.trim();
       if (newEmail && !emails.includes(newEmail)) {
@@ -34,7 +32,6 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
         setInputValue("");
       }
     } else if (e.key === "Backspace" && !inputValue && emails.length > 0) {
-      // Optional: Delete the last email tag if the input is empty and user hits backspace
       const newEmails = [...emails];
       newEmails.pop();
       onChange(name, newEmails.join(","));
@@ -59,7 +56,6 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
   };
 
   const handleBlur = () => {
-    // Save any lingering typed text as an email when the user clicks away
     const newEmail = inputValue.trim();
     if (newEmail && !emails.includes(newEmail)) {
       const newValue = [...emails, newEmail].join(",");
@@ -106,6 +102,7 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
         ))}
         <input
           type="text"
+          autoComplete="off"
           className="flex-grow min-w-[120px] outline-none border-none focus:ring-0 p-0 text-sm bg-transparent dark:text-white disabled:cursor-not-allowed"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}

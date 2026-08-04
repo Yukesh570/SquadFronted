@@ -55,10 +55,6 @@ export const EditableCell: React.FC<EditableCellProps> = ({
     setCurrentVal(value || "");
   }, [value]);
 
-  // Close edit mode when clicking outside the cell. This does not change
-  // any of the existing Enter/Escape/onChange/onSave behavior below —
-  // it only ensures clicking away exits edit mode (without saving),
-  // matching how a normal inline-edit cell should behave.
   useEffect(() => {
     if (!isEditing) return;
 
@@ -157,6 +153,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
     <div ref={cellRef} className="w-full relative z-[9999]">
       <input
         ref={inputRef}
+        autoComplete="off"
         type="text" 
         inputMode={type === "number" ? "numeric" : undefined} 
         value={currentVal}
@@ -165,7 +162,6 @@ export const EditableCell: React.FC<EditableCellProps> = ({
            e.preventDefault();
         }}
         onBlur={(e) => {
-           // We do absolutely nothing on blur to prevent accidental saves from parent
            e.stopPropagation();
            e.preventDefault();
         }}
@@ -176,7 +172,6 @@ export const EditableCell: React.FC<EditableCellProps> = ({
           const val = e.target.value;
           
           if (type === "number") {
-            // Allow empty string OR digits
             if (val === "" || /^\d+$/.test(val)) {
               setCurrentVal(val);
             }

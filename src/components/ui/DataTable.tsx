@@ -7,16 +7,19 @@ interface DataTableProps<T> {
   headers: string[];
   renderRow: (item: T, index: number) => React.ReactNode;
   isLoading?: boolean;
-  headerActions?: React.ReactNode; 
+  headerActions?: React.ReactNode;
 
-  // Server-Side Pagination Props
+  hideTopBar?: boolean;
+  showCountOnly?: boolean; // 👈 NEW: Shows just the item count label (e.g. "1-100 of 2080761")
+  density?: "normal" | "compact";
+
   serverSide?: boolean;
   totalItems?: number;
   currentPage?: number;
   rowsPerPage?: number;
   onPageChange?: (page: number) => void;
   onRowsPerPageChange?: (rows: number) => void;
-  rowsPerPageOptions?: { value: string; label: string }[]; // NEW
+  rowsPerPageOptions?: { value: string; label: string }[];
 }
 
 const rowsOptions = [
@@ -32,17 +35,20 @@ export function DataTable<T extends { id?: number | string }>({
   renderRow,
   isLoading = false,
   headerActions,
+  hideTopBar = false,
+  showCountOnly = false, // 👈 Default false
+  density = "normal",
 
   serverSide = false,
   totalItems = 0,
   currentPage = 1,
-  rowsPerPage = 10,
+  rowsPerPage = 50,
   onPageChange,
   onRowsPerPageChange,
-  rowsPerPageOptions = rowsOptions, // NEW default
+  rowsPerPageOptions = rowsOptions,
 }: DataTableProps<T>) {
   const [clientPage, setClientPage] = useState(1);
-  const [clientRows, setClientRows] = useState(10);
+  const [clientRows, setClientRows] = useState(50);
 
   const activePage = serverSide ? currentPage : clientPage;
   const activeRows = serverSide ? rowsPerPage : clientRows;
@@ -90,59 +96,72 @@ export function DataTable<T extends { id?: number | string }>({
   )} of ${activeTotal}`;
 
   return (
-    <div className="rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0 app-data-table">
-      
-      {/* 1. TOP BAR (Controls + Action Buttons) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 relative z-10">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
+    <div
+      className={`rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0 app-data-table ${
+        density === "compact" ? "table-density-compact" : ""
+      }`}
+    >
+      {/* 1. FULL TOP BAR */}
+      {!hideTopBar && !showCountOnly && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 relative z-10">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
+                Rows per page:
+              </span>
+              <div className="w-24 shrink-0">
+                <Select
+                  value={String(activeRows)}
+                  onChange={(val) => handleRowsChange(Number(val))}
+                  options={rowsPerPageOptions}
+                  clearable={false}
+                />
+              </div>
+            </div>
             <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
-              Rows per page:
+              {paginationLabel}
             </span>
-            <div className="w-24 shrink-0">
-              <Select
-                value={String(activeRows)}
-                onChange={(val) => handleRowsChange(Number(val))}
-                options={rowsPerPageOptions}
-                clearable={false}
-              />
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={handlePrev}
+                disabled={activePage === 1 || isLoading}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={handleNext}
+                disabled={
+                  activePage >= totalPages || activeTotal === 0 || isLoading
+                }
+              >
+                <ChevronRight size={20} />
+              </button>
             </div>
           </div>
-          <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
+          {headerActions && <div className="shrink-0">{headerActions}</div>}
+        </div>
+      )}
+
+      {/* 1.5. COUNT ONLY TOP BAR */}
+      {showCountOnly && (
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3 bg-white dark:bg-gray-800 relative z-10">
+          <span className="text-sm text-text-secondary dark:text-gray-400">
             {paginationLabel}
           </span>
-          <div className="flex items-center space-x-2 shrink-0">
-            <button
-              className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              onClick={handlePrev}
-              disabled={activePage === 1 || isLoading}
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              onClick={handleNext}
-              disabled={
-                activePage >= totalPages || activeTotal === 0 || isLoading
-              }
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
+          {headerActions && <div className="shrink-0">{headerActions}</div>}
         </div>
-        {headerActions && <div className="shrink-0">{headerActions}</div>}
-      </div>
+      )}
 
       {/* 2. SCROLLABLE DATA TABLE */}
       <div className="overflow-auto max-h-[65vh] min-h-[300px] relative z-0 custom-scrollbar">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
-          
           <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10 shadow-sm">
             <tr>
               {headers.map((header, i) => (
                 <th
                   key={i}
-                  /* FIX: Added whitespace-nowrap to keep headers perfectly on 1 line. Added min-width for safe spacing. */
                   className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-secondary dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 whitespace-nowrap min-w-[120px]"
                 >
                   {header}
@@ -182,7 +201,7 @@ export function DataTable<T extends { id?: number | string }>({
         </table>
       </div>
 
-      {/* Added subtle custom scrollbar styling so it looks good when scrolling horizontally */}
+      {/* Styles */}
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -193,19 +212,21 @@ export function DataTable<T extends { id?: number | string }>({
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
-        /* Zebra striping: alternate row backgrounds so each row reads as visually separated. */
         .app-data-table tbody tr:nth-child(odd) { background-color: #ffffff; }
         .app-data-table tbody tr:nth-child(even) { background-color: #f9fafb; }
         .dark .app-data-table tbody tr:nth-child(odd) { background-color: #1f2937; }
         .dark .app-data-table tbody tr:nth-child(even) { background-color: rgba(17, 24, 39, 0.4); }
 
-        /* Keep hover feedback visible on top of the stripe (equal specificity, declared after = wins on hover). */
         .app-data-table tbody tr:hover { background-color: #f3f4f6; }
         .dark .app-data-table tbody tr:hover { background-color: #374151; }
+
+        .table-density-compact td { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+        .table-density-compact th { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+        .table-density-compact th:first-child,
+        .table-density-compact td:first-child { min-width: 56px !important; width: 56px !important; }
       `,
         }}
       />
-
     </div>
   );
 }

@@ -3,10 +3,9 @@ import { Home, Eye } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import { getDetailedReportsApi, /* exportDetailedReportsApi, */ type DetailedReportData } from "../../api/reportApi/detailedReportApi";
+import { getDetailedReportsApi, type DetailedReportData } from "../../api/reportApi/detailedReportApi";
 import { DetailedReportModal } from "../../components/modals/Report/DetailedReportModal";
 
-// import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import DatePicker from "../../components/ui/DatePicker";
@@ -120,7 +119,6 @@ const DetailedReport: React.FC = () => {
     { key: "vendor_charge", label: "Vendor Charge", type: "number", filterKey: "vendor_charge__icontains" },
     { key: "part_total", label: "Parts", type: "number", filterKey: "part_total__icontains" },
 
-    // --- Request Time: Single day picks 24-hour range, multi-day range is separate ---
     { key: "request_time", label: "Request Time (Single Day)", tableLabel: "Request Time", type: "date", filterKey: "request_time__range", render: (log) => (<span>{log.request_time ? new Date(log.request_time).toLocaleString() : "-"}</span>) },
     { key: "request_time__range", label: "Request Time (Range)", type: "date_range", filterKey: "request_time__range", isSearchOnly: true },
   ];
@@ -187,7 +185,6 @@ const DetailedReport: React.FC = () => {
   useEffect(() => {
     fetchReports(undefined, 1, false);
     return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchColumns]);
 
   useEffect(() => {
@@ -206,25 +203,10 @@ const DetailedReport: React.FC = () => {
 
     scrollEl.addEventListener("scroll", handleScroll);
     return () => scrollEl.removeEventListener("scroll", handleScroll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, reports.length]);
 
   const handleSearch = () => { fetchReports(undefined, 1, false); };
   const handleClearFilters = () => { setFilterValues({}); fetchReports({}, 1, false); };
-
-  // const handleExport = async () => {
-  //   try {
-  //     const blob = await exportDetailedReportsApi(filterValues);
-  //     const url = window.URL.createObjectURL(blob);
-  //     const a = document.createElement("a");
-  //     a.href = url;
-  //     a.download = `detailed_report_${new Date().toISOString()}.csv`;
-  //     a.click();
-  //     toast.success("Export started successfully");
-  //   } catch (err) {
-  //     toast.error("Failed to export data.");
-  //   }
-  // };
 
   const handleContextMenu = (e: React.MouseEvent, log: DetailedReportData) => {
     e.preventDefault();
@@ -326,31 +308,16 @@ const DetailedReport: React.FC = () => {
         })}
       </FilterCard>
 
-      <style>{`
-        .detailed-report-table > div > div:first-child > div:first-child > div:first-child {
-          display: none !important;
-        }
-        .detailed-report-table > div > div:first-child > div:first-child > div:last-child {
-          display: none !important;
-        }
-        .detailed-report-table td {
-          padding-top: 0.625rem !important;
-          padding-bottom: 0.625rem !important;
-        }
-        .detailed-report-table th {
-          padding-top: 0.5rem !important;
-          padding-bottom: 0.5rem !important;
-        }
-        .detailed-report-table th:first-child,
-        .detailed-report-table td:first-child {
-          min-width: 56px !important;
-          width: 56px !important;
-        }
-      `}</style>
-
-      <div ref={tableWrapperRef} className="detailed-report-table">
-        <DataTable serverSide={true} data={reports} totalItems={totalItems} rowsPerPage={BATCH_SIZE} headers={tableHeaders} isLoading={isLoading}
-          // headerActions={<Button variant="secondary" onClick={handleExport} leftIcon={<Download size={18} />}>Export</Button>}
+      <div ref={tableWrapperRef}>
+        <DataTable
+          serverSide={true}
+          data={reports}
+          totalItems={totalItems}
+          rowsPerPage={BATCH_SIZE}
+          headers={tableHeaders}
+          isLoading={isLoading}
+          showCountOnly={true}
+          density="compact"
           renderRow={(log, index) => (
             <tr key={log.id || index} onContextMenu={(e) => handleContextMenu(e, log)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
               <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">

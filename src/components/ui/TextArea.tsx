@@ -19,6 +19,7 @@ const TextArea: React.FC<TextAreaProps> = ({ label, id, disabled, required, ...p
       </label>
       <textarea
         {...props}
+        autoComplete="off"
         id={textAreaId}
         disabled={disabled}
         required={required}

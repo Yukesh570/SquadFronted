@@ -20,7 +20,6 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 interface Option { label: string; value: string; }
 interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; isSearchable?: boolean; isSearchOnly?: boolean; tableLabel?: string; }
 
-// ⚡️ Choice options matching backend EVENT_TYPE_CHOICES exactly
 const statusOptions: Option[] = [
   { label: "Submitted", value: "SUBMITTED" },
   { label: "Delivered", value: "DELIVERED" },
@@ -90,7 +89,6 @@ const DLREvent: React.FC = () => {
     { key: "status_code", label: "Status Code", type: "text", filterKey: "status_code__icontains" },
     { key: "status_description", label: "Status Description", type: "text", filterKey: "status_description__icontains", isSearchable: false },
     
-    // --- Filter keys explicitly point to received_at__range ---
     { key: "received_at", label: "Received At (Single Day)", tableLabel: "Received At", type: "date", filterKey: "received_at__range", render: (data: any) => data.received_at ? new Date(data.received_at).toLocaleString() : "-" },
     { key: "received_at__range", label: "Received At (Range)", type: "date_range", filterKey: "received_at__range", isSearchOnly: true },
     
@@ -165,7 +163,6 @@ const DLREvent: React.FC = () => {
 
     scrollEl.addEventListener("scroll", handleScroll);
     return () => scrollEl.removeEventListener("scroll", handleScroll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, events.length]);
 
   const handleContextMenu = (e: React.MouseEvent, item: DLREventData) => {
@@ -296,29 +293,7 @@ const DLREvent: React.FC = () => {
         })}
       </FilterCard>
 
-      <style>{`
-        .dlr-event-table > div > div:first-child > div:first-child > div:first-child {
-          display: none !important;
-        }
-        .dlr-event-table > div > div:first-child > div:first-child > div:last-child {
-          display: none !important;
-        }
-        .dlr-event-table td {
-          padding-top: 0.625rem !important;
-          padding-bottom: 0.625rem !important;
-        }
-        .dlr-event-table th {
-          padding-top: 0.5rem !important;
-          padding-bottom: 0.5rem !important;
-        }
-        .dlr-event-table th:first-child,
-        .dlr-event-table td:first-child {
-          min-width: 56px !important;
-          width: 56px !important;
-        }
-      `}</style>
-
-      <div ref={tableWrapperRef} className="dlr-event-table">
+      <div ref={tableWrapperRef}>
         <DataTable
           serverSide={true}
           data={events}
@@ -326,6 +301,8 @@ const DLREvent: React.FC = () => {
           rowsPerPage={BATCH_SIZE}
           headers={["S.N", ...visibleTableFields.map(c => c.tableLabel || c.label)]}
           isLoading={isLoading}
+          showCountOnly={true}
+          density="compact"
           renderRow={(event, index) => (
             <tr
               key={event.id || index}

@@ -15,6 +15,7 @@ import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedF
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { SmsMessagePartModal } from "../../components/modals/Report/SmsMessagePartModal";
 import { actionHelper } from "../../helper/action";
+import { StatusBadge } from "../../components/ui/StatusBadge";
 
 interface Option { label: string; value: string; }
 interface ColumnConfig extends FilterColumn {
@@ -41,7 +42,6 @@ const DLR_STATUS_COLORS: Record<string, { bg: string; text: string; border: stri
   UNKNOWN: { bg: "#E2E8F0", text: "#334155", border: "#475569", label: "Unknown" },
 };
 
-// ⚡️ Choice options matching backend STATUS_CHOICES exactly
 const statusOptions: Option[] = [
   { label: "Pending", value: "PENDING" },
   { label: "Queued", value: "QUEUED" },
@@ -54,6 +54,11 @@ const statusOptions: Option[] = [
   { label: "Rejected", value: "REJECTED" },
   { label: "Undelivered", value: "UNDELIVERED" },
   { label: "Expired", value: "EXPIRED" },
+];
+
+const booleanOptions: Option[] = [
+  { label: "Yes", value: "true" },
+  { label: "No", value: "false" },
 ];
 
 const renderStatusBadge = (status?: string) => {
@@ -74,6 +79,13 @@ const renderStatusBadge = (status?: string) => {
       {config.label || status}
     </span>
   );
+};
+
+const renderBooleanBadge = (value?: boolean) => {
+  if (value === undefined || value === null) return "-";
+  const statusKey = value ? "DELIVERED" : "PENDING";
+  const labelText = value ? "Yes" : "No";
+  return <StatusBadge status={statusKey} customText={labelText} />;
 };
 
 const formatLocalDate = (date: Date) => {
@@ -162,7 +174,32 @@ const SmsMessagePart: React.FC = () => {
     },
     { key: "submit_attempts", label: "Submit Attempts", type: "text", filterKey: "submit_attempts__icontains" },
 
-    // --- Date Filters explicitly mapped to __range ---
+    {
+      key: "clientDlrPushed",
+      label: "Client DLR Pushed",
+      type: "text",
+      options: booleanOptions,
+      filterKey: "clientDlrPushed",
+      render: (log) => renderBooleanBadge(log.clientDlrPushed)
+    },
+    {
+      key: "clientDlrSuppressed",
+      label: "Client DLR Suppressed",
+      type: "text",
+      options: booleanOptions,
+      filterKey: "clientDlrSuppressed",
+      render: (log) => renderBooleanBadge(log.clientDlrSuppressed)
+    },
+    {
+      key: "clientDlrSuppressionReason",
+      label: "Client DLR Suppression Reason",
+      type: "text",
+      filterKey: "clientDlrSuppressionReason__icontains"
+    },
+
+    { key: "clientDlrSuppressedAt", label: "Client DLR Suppressed At (Single Day)", tableLabel: "Client DLR Suppressed At", type: "date", filterKey: "clientDlrSuppressedAt__range", render: (data: any) => data.clientDlrSuppressedAt ? new Date(data.clientDlrSuppressedAt).toLocaleString() : "-" },
+    { key: "clientDlrSuppressedAt__range", label: "Client DLR Suppressed (Range)", type: "date_range", filterKey: "clientDlrSuppressedAt__range", isSearchOnly: true },
+
     { key: "submitted_at", label: "Submitted At (Single Day)", tableLabel: "Submitted At", type: "date", filterKey: "submitted_at__range", render: (data: any) => data.submitted_at ? new Date(data.submitted_at).toLocaleString() : "-" },
     { key: "submitted_at__range", label: "Submitted At (Range)", type: "date_range", filterKey: "submitted_at__range", isSearchOnly: true },
 
@@ -255,7 +292,6 @@ const SmsMessagePart: React.FC = () => {
 
     scrollEl.addEventListener("scroll", handleScroll);
     return () => scrollEl.removeEventListener("scroll", handleScroll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, segments.length]);
 
   const handleContextMenu = (e: React.MouseEvent, item: SmsMessagePartData) => {
@@ -386,29 +422,7 @@ const SmsMessagePart: React.FC = () => {
         })}
       </FilterCard>
 
-      <style>{`
-        .sms-message-part-table > div > div:first-child > div:first-child > div:first-child {
-          display: none !important;
-        }
-        .sms-message-part-table > div > div:first-child > div:first-child > div:last-child {
-          display: none !important;
-        }
-        .sms-message-part-table td {
-          padding-top: 0.625rem !important;
-          padding-bottom: 0.625rem !important;
-        }
-        .sms-message-part-table th {
-          padding-top: 0.5rem !important;
-          padding-bottom: 0.5rem !important;
-        }
-        .sms-message-part-table th:first-child,
-        .sms-message-part-table td:first-child {
-          min-width: 56px !important;
-          width: 56px !important;
-        }
-      `}</style>
-
-      <div ref={tableWrapperRef} className="sms-message-part-table">
+      <div ref={tableWrapperRef}>
         <DataTable
           serverSide={true}
           data={segments}
@@ -416,6 +430,8 @@ const SmsMessagePart: React.FC = () => {
           rowsPerPage={BATCH_SIZE}
           headers={["S.N", ...visibleTableFields.map(c => c.tableLabel || c.label)]}
           isLoading={isLoading}
+          showCountOnly={true}
+          density="compact"
           renderRow={(segment, index) => (
             <tr
               key={segment.id || index}

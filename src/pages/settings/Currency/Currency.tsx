@@ -40,7 +40,7 @@ const Currency: React.FC = () => {
 
   const [nameFilter, setNameFilter] = useState("");
 
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();

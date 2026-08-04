@@ -13,9 +13,10 @@ const Input: React.FC<InputProps> = ({
   id, 
   rightIcon, 
   disabled, 
-  required, // ⚡️ FIX: Extract required to use in label
+  required,
   isClearable = true, 
   value, 
+  autoComplete = "off", // Defaults to off to disable browser popups
   ...props 
 }) => {
   const inputId = id || label.replace(/\s+/g, "-").toLowerCase();
@@ -23,7 +24,6 @@ const Input: React.FC<InputProps> = ({
   const handleClear = (e: React.MouseEvent) => {
     e.preventDefault();
     if (props.onChange) {
-      // Simulate an onChange event to clear the input value seamlessly
       const event = {
         target: { value: "", name: props.name },
         currentTarget: { value: "", name: props.name },
@@ -33,25 +33,25 @@ const Input: React.FC<InputProps> = ({
   };
 
   const hasValue = value !== undefined && value !== null && value !== "";
-  // Show clear button only if clearable is true, input is not disabled/readonly, has value, and no custom rightIcon is blocking it
   const showClear = isClearable && !disabled && !props.readOnly && hasValue && !rightIcon;
 
   return (
     <div className="flex flex-col w-full">
       <label
         htmlFor={inputId}
-        className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400"
+        className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400 min-h-[32px] flex items-end"
       >
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>} {/* ⚡️ FIX: Added visual required asterisk */}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <div className="relative">
         <input
           {...props}
+          autoComplete={autoComplete}
           id={inputId}
           value={value}
           disabled={disabled}
-          required={required} // ⚡️ FIX: Pass down to standard HTML input
+          required={required}
           className={`w-full rounded-lg border px-3 py-2.5 text-sm shadow-input transition duration-150 ease-in-out focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary 
           ${
             disabled

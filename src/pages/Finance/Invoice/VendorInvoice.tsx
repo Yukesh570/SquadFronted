@@ -74,7 +74,7 @@ const VendorInvoice: React.FC = () => {
 
   useEffect(() => { localStorage.setItem("vendorInvoice_table_columns_v1", JSON.stringify(tableColumns)); }, [tableColumns]);
 
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
   const location = useLocation();
   const routeName = location.pathname.split("/").pop() || "vendorInvoice";

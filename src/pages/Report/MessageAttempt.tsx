@@ -168,7 +168,6 @@ const MessageAttempt: React.FC = () => {
 
     scrollEl.addEventListener("scroll", handleScroll);
     return () => scrollEl.removeEventListener("scroll", handleScroll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, attempts.length]);
 
   const handleContextMenu = (e: React.MouseEvent, item: MessageAttemptData) => {
@@ -299,29 +298,7 @@ const MessageAttempt: React.FC = () => {
         })}
       </FilterCard>
 
-      <style>{`
-        .message-attempt-table > div > div:first-child > div:first-child > div:first-child {
-          display: none !important;
-        }
-        .message-attempt-table > div > div:first-child > div:first-child > div:last-child {
-          display: none !important;
-        }
-        .message-attempt-table td {
-          padding-top: 0.625rem !important;
-          padding-bottom: 0.625rem !important;
-        }
-        .message-attempt-table th {
-          padding-top: 0.5rem !important;
-          padding-bottom: 0.5rem !important;
-        }
-        .message-attempt-table th:first-child,
-        .message-attempt-table td:first-child {
-          min-width: 56px !important;
-          width: 56px !important;
-        }
-      `}</style>
-
-      <div ref={tableWrapperRef} className="message-attempt-table">
+      <div ref={tableWrapperRef}>
         <DataTable
           serverSide={true}
           data={attempts}
@@ -329,6 +306,8 @@ const MessageAttempt: React.FC = () => {
           rowsPerPage={BATCH_SIZE}
           headers={["S.N", ...visibleTableFields.map(c => c.tableLabel || c.label)]}
           isLoading={isLoading}
+          showCountOnly={true}
+          density="compact"
           renderRow={(attempt, index) => (
             <tr
               key={attempt.id || index}

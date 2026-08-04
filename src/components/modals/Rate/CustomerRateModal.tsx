@@ -61,6 +61,9 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
   const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(new Date());
   const [effectiveToDate, setEffectiveToDate] = useState<Date | null>(null);
 
+  // Track whether user manually picked a custom date in the DatePicker
+  const [hasUserSelectedCustomDate, setHasUserSelectedCustomDate] = useState(false);
+
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [fullCountriesList, setFullCountriesList] = useState<CountryData[]>([]);
   const [mccOptions, setMccOptions] = useState<Option[]>([]);
@@ -118,49 +121,59 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
     }
   }, [formData.country, fullCountriesList]);
 
+  // Handle Date Initialization on Modal Open
   useEffect(() => {
-    if (isOpen && editingRate) {
-      setFormData({
-        country: String(editingRate.country || ""),
-        MCC: String(editingRate.MCC || ""),
-        MNC: String(editingRate.MNC || ""),
-        countryCode: String(editingRate.countryCode || ""),
-        rate: String(editingRate.rate || ""),
-        remark: editingRate.remark || "",
-        status: editingRate.status || "ACTIVE",
-        version: String(editingRate.version ?? "0"),
-      });
+    if (isOpen) {
+      setHasUserSelectedCustomDate(false);
 
-      if (editingRate.effectiveFrom) {
-        const d = new Date(editingRate.effectiveFrom);
-        if (!isNaN(d.getTime())) setEffectiveFromDate(d);
-        else setEffectiveFromDate(new Date());
+      if (editingRate) {
+        setFormData({
+          country: String(editingRate.country || ""),
+          MCC: String(editingRate.MCC || ""),
+          MNC: String(editingRate.MNC || ""),
+          countryCode: String(editingRate.countryCode || ""),
+          rate: String(editingRate.rate || ""),
+          remark: editingRate.remark || "",
+          status: editingRate.status || "ACTIVE",
+          version: String(editingRate.version ?? "0"),
+        });
+
+        if (isViewMode) {
+          // View Mode: Display the actual historical date
+          if (editingRate.effectiveFrom) {
+            const d = new Date(editingRate.effectiveFrom);
+            setEffectiveFromDate(!isNaN(d.getTime()) ? d : new Date());
+          } else {
+            setEffectiveFromDate(new Date());
+          }
+        } else {
+          // Edit/Upgrade Mode: Default to current live date/time
+          setEffectiveFromDate(new Date());
+        }
+
+        if (editingRate.effectiveTo) {
+          const d = new Date(editingRate.effectiveTo);
+          setEffectiveToDate(!isNaN(d.getTime()) ? d : null);
+        } else {
+          setEffectiveToDate(null);
+        }
       } else {
+        // Create Mode: Default to current date/time
+        setFormData({
+          country: "",
+          MCC: "",
+          MNC: "",
+          countryCode: "",
+          rate: "",
+          remark: "",
+          status: "ACTIVE",
+          version: "0",
+        });
         setEffectiveFromDate(new Date());
-      }
-
-      if (editingRate.effectiveTo) {
-        const d = new Date(editingRate.effectiveTo);
-        if (!isNaN(d.getTime())) setEffectiveToDate(d);
-        else setEffectiveToDate(null);
-      } else {
         setEffectiveToDate(null);
       }
-    } else if (isOpen) {
-      setFormData({
-        country: "",
-        MCC: "",
-        MNC: "",
-        countryCode: "",
-        rate: "",
-        remark: "",
-        status: "ACTIVE",
-        version: "0",
-      });
-      setEffectiveFromDate(new Date());
-      setEffectiveToDate(null);
     }
-  }, [isOpen, editingRate]);
+  }, [isOpen, editingRate, isViewMode]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -235,19 +248,27 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
 
     setIsSubmitting(true);
 
+    // Calculate live submission timestamp dynamically
+    const submissionTimestamp = new Date().toISOString();
+    const finalEffectiveFrom =
+      hasUserSelectedCustomDate && effectiveFromDate
+        ? effectiveFromDate.toISOString()
+        : submissionTimestamp;
+
     let payload: any;
 
     if (isEditMode) {
       payload = {
         rate: Number(formData.rate),
         status: formData.status,
+        effectiveFrom: finalEffectiveFrom,
       };
-      if (effectiveFromDate) payload.effectiveFrom = effectiveFromDate.toISOString();
     } else {
       payload = {
         country: Number(formData.country),
         MCC: Number(formData.MCC),
         rate: Number(formData.rate),
+        effectiveFrom: finalEffectiveFrom,
       };
 
       if (rateGroupId) {
@@ -263,7 +284,6 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       if (formData.countryCode) payload.countryCode = Number(formData.countryCode);
       if (formData.status) payload.status = formData.status;
       if (formData.remark) payload.remark = formData.remark;
-      if (effectiveFromDate) payload.effectiveFrom = effectiveFromDate.toISOString();
     }
 
     try {
@@ -400,7 +420,10 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
           <CustomDatePicker
             label="Effective From"
             selected={effectiveFromDate}
-            onChange={(date) => setEffectiveFromDate(date)}
+            onChange={(date) => {
+              setEffectiveFromDate(date);
+              setHasUserSelectedCustomDate(true);
+            }}
             showTimeSelect
             disabled={isViewMode}
             placeholder="Select Date & Time"

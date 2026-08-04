@@ -121,7 +121,7 @@ const Client: React.FC = () => {
     localStorage.setItem("client_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
 
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
@@ -816,6 +816,7 @@ const Client: React.FC = () => {
         onPageChange={setCurrentPage}
         onRowsPerPageChange={setRowsPerPage}
         headers={tableHeaders}
+        density="compact"
         isLoading={isLoading}
         headerActions={
           canCreate ? (

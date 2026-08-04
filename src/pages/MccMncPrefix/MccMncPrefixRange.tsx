@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Eye, Edit, Plus } from "lucide-react";
+import { Home, Eye, Edit, Plus, Trash } from "lucide-react";
 import Button from "../../components/ui/Button";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import { getMccMncPrefixRangesApi, type MccMncPrefixRangeData } from "../../api/mccMncPrefixApi/mccMncPrefixRangeApi";
+import { 
+  getMccMncPrefixRangesApi, 
+  deleteMccMncPrefixRangeApi, 
+  type MccMncPrefixRangeData 
+} from "../../api/mccMncPrefixApi/mccMncPrefixRangeApi";
 import { MccMncPrefixRangeModal } from "../../components/modals/MccMncPrefix/MccMncPrefixRangeModal";
+import { DeleteModal } from "../../components/modals/DeleteModal";
 
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -48,7 +53,7 @@ const DEFAULT_SEARCH_COLUMNS = ["countryName", "mccmnc", "status"];
 const DEFAULT_TABLE_COLUMNS = ["countryName", "mccmnc", "externalPrefixId", "operatorPrefixStartRange", "operatorPrefixEndRange", "status", "sourceFileName"];
 
 const MccMncPrefixRange: React.FC = () => {
-  const { canUpdate } = usePagePermissions();
+  const { canUpdate, canDelete } = usePagePermissions();
   const [data, setData] = useState<MccMncPrefixRangeData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,6 +62,7 @@ const MccMncPrefixRange: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingData, setEditingData] = useState<MccMncPrefixRangeData | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   // Context Menu
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
@@ -75,7 +81,7 @@ const MccMncPrefixRange: React.FC = () => {
     localStorage.setItem("mcc_mnc_range_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
 
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
@@ -94,25 +100,25 @@ const MccMncPrefixRange: React.FC = () => {
     { label: "Inactive", value: "INACTIVE" },
   ];
 
-const allColumns: ColumnConfig[] = [
-  { key: "countryName", label: "Country Name", type: "text", filterKey: "country__name__icontains" },
-  { key: "mccmnc", label: "MCC MNC", type: "text", filterKey: "mccmnc__icontains" },
-  {
-    key: "status",
-    label: "Status",
-    type: "text",
-    options: statusOptions,
-    filterKey: "status",
-    render: (c) => <StatusBadge status={c.status === "ACTIVE" ? "ACTIVE" : "EXPIRED"} customText={c.status === "ACTIVE" ? "Active" : "Inactive"} />
-  },
-  { key: "operatorPrefixStartRange", label: "Start Range", type: "number", filterKey: "operatorPrefixStartRange" },
-  { key: "operatorPrefixEndRange", label: "End Range", type: "number", filterKey: "operatorPrefixEndRange" },
-  { key: "externalPrefixId", label: "External Prefix ID", type: "number", filterKey: "externalPrefixId__icontains" },
-  { key: "sourceFileName", label: "Source File Name", type: "text", filterKey: "sourceFileName__icontains" },
-  { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
-  { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
-  { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", filterKey: "createdAt", isSearchOnly: true },
-];
+  const allColumns: ColumnConfig[] = [
+    { key: "countryName", label: "Country Name", type: "text", filterKey: "country__name__icontains" },
+    { key: "mccmnc", label: "MCC MNC", type: "text", filterKey: "mccmnc__icontains" },
+    {
+      key: "status",
+      label: "Status",
+      type: "text",
+      options: statusOptions,
+      filterKey: "status",
+      render: (c) => <StatusBadge status={c.status === "ACTIVE" ? "ACTIVE" : "EXPIRED"} customText={c.status === "ACTIVE" ? "Active" : "Inactive"} />
+    },
+    { key: "operatorPrefixStartRange", label: "Start Range", type: "number", filterKey: "operatorPrefixStartRange" },
+    { key: "operatorPrefixEndRange", label: "End Range", type: "number", filterKey: "operatorPrefixEndRange" },
+    { key: "externalPrefixId", label: "External Prefix ID", type: "number", filterKey: "externalPrefixId__icontains" },
+    { key: "sourceFileName", label: "Source File Name", type: "text", filterKey: "sourceFileName__icontains" },
+    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
+    { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
+    { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", filterKey: "createdAt", isSearchOnly: true },
+  ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
   const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
@@ -195,10 +201,23 @@ const allColumns: ColumnConfig[] = [
   const handleEdit = (item: MccMncPrefixRangeData) => { if (!canUpdate) return; setEditingData(item); setIsViewMode(false); setIsModalOpen(true); };
   const handleView = (item: MccMncPrefixRangeData) => { setEditingData(item); setIsViewMode(true); setIsModalOpen(true); };
   const handleAdd = () => {
-  setEditingData(null);
-  setIsViewMode(false);
-  setIsModalOpen(true);
-};
+    setEditingData(null);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (deleteId && canDelete) {
+      try {
+        await deleteMccMncPrefixRangeApi(deleteId, routeName);
+        toast.success("Prefix Range deleted successfully.");
+        fetchData();
+      } catch (error) {
+        toast.error("Failed to delete prefix range.");
+      }
+      setDeleteId(null);
+    }
+  };
 
   const handleContextMenu = (e: React.MouseEvent, item: MccMncPrefixRangeData) => {
     e.preventDefault();
@@ -209,6 +228,7 @@ const allColumns: ColumnConfig[] = [
   const menuItems: ContextMenuItem[] = selectedRowData ? [
     { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowData) },
     ...(canUpdate ? [{ label: "Edit Range", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowData) }] : []),
+    ...(canDelete ? [{ label: "Delete Range", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowData.id!) }] : []),
   ] : [];
 
   const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
@@ -260,20 +280,31 @@ const allColumns: ColumnConfig[] = [
         })}
       </FilterCard>
 
-      <DataTable serverSide={true} data={data} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} rowsPerPageOptions={[
-    { value: "10", label: "10" },
-    { value: "25", label: "25" },
-    { value: "50", label: "50" },
-    { value: "100", label: "100" },
-    { value: "500", label: "500" },
-    { value: "1000", label: "1000" },
-  ]} headers={tableHeaders} isLoading={isLoading} headerActions={
-    canUpdate && (
-      <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>
-        Add Prefix Range
-      </Button>
-    )
-  }
+      <DataTable 
+        serverSide={true} 
+        data={data} 
+        totalItems={totalItems} 
+        currentPage={currentPage} 
+        rowsPerPage={rowsPerPage} 
+        onPageChange={setCurrentPage} 
+        onRowsPerPageChange={setRowsPerPage} 
+        rowsPerPageOptions={[
+          { value: "10", label: "10" },
+          { value: "25", label: "25" },
+          { value: "50", label: "50" },
+          { value: "100", label: "100" },
+          { value: "500", label: "500" },
+          { value: "1000", label: "1000" },
+        ]} 
+        headers={tableHeaders} 
+        isLoading={isLoading} 
+        headerActions={
+          canUpdate && (
+            <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>
+              Add Prefix Range
+            </Button>
+          )
+        }
         renderRow={(item, index) => (
           <tr key={item.id || index} onContextMenu={(e) => handleContextMenu(e, item)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
@@ -290,6 +321,14 @@ const allColumns: ColumnConfig[] = [
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
 
       <MccMncPrefixRangeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchData} moduleName={routeName} editingData={editingData} isViewMode={isViewMode} />
+
+      <DeleteModal 
+        isOpen={!!deleteId} 
+        onClose={() => setDeleteId(null)} 
+        onConfirm={handleDelete} 
+        title="Delete Prefix Range" 
+        message="Are you sure you want to delete this prefix range? This action cannot be undone." 
+      />
     </div>
   );
 };

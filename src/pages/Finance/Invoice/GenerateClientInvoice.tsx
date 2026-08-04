@@ -7,7 +7,6 @@ import { NavItemsContext } from "../../../context/navItemsContext";
 // --- APIs ---
 import { generateClientInvoiceApi } from "../../../api/financeApi/clientInvoiceApi";
 import { getClientsApi } from "../../../api/clientApi/clientApi";
-// FIXED: Imported the new API
 import { getAllUserInformationApi } from "../../../api/userApi/userApi";
 
 // --- Components ---
@@ -90,13 +89,12 @@ const GenerateClientInvoice: React.FC = () => {
         let clientsData = clientsResponse?.results || (Array.isArray(clientsResponse) ? clientsResponse : []);
         setClientOptions(clientsData.map((c: any) => ({ label: c.name, value: String(c.id) })));
 
-        // 2. Fetch Users using the new endpoint
+        // 2. Fetch Users using the endpoint
         try {
           const userInfoRes = await getAllUserInformationApi();
           let mappedUsers: Option[] = [];
           let currentUserId = "";
 
-          // Case A: The backend returned a list of ALL users
           if (Array.isArray(userInfoRes) || userInfoRes?.results) {
             const usersArray = Array.isArray(userInfoRes) ? userInfoRes : userInfoRes.results;
             mappedUsers = usersArray.map((u: any) => ({
@@ -104,7 +102,6 @@ const GenerateClientInvoice: React.FC = () => {
               value: String(u.id)
             }));
           } 
-          // Case B: The backend returned a single user object (just a renamed endpoint)
           else if (userInfoRes && userInfoRes.id !== undefined) {
             currentUserId = String(userInfoRes.id);
             const currentUserName = userInfoRes.username || userInfoRes.name || `User ${userInfoRes.id}`;
@@ -113,7 +110,6 @@ const GenerateClientInvoice: React.FC = () => {
 
           setAmOptions([{ label: "None", value: "0" }, ...mappedUsers]);
 
-          // Only auto-select if it returned a single user object
           if (currentUserId) {
             setFormData((prev) => ({ ...prev, accountManager: currentUserId }));
           }
@@ -196,12 +192,12 @@ const GenerateClientInvoice: React.FC = () => {
       await generateClientInvoiceApi(payload, "GENERATE");
       handleCloseModal();
 
-const loadingToastId = toast("Generating invoice, please wait...", {
+      const loadingToastId = toast("Generating invoice, please wait...", {
         isLoading: true,
         type: "info",
         theme: "colored",
       });
-            await new Promise((resolve) => setTimeout(resolve, 4000));
+      await new Promise((resolve) => setTimeout(resolve, 4000));
       toast.dismiss(loadingToastId);
 
       toast.success("Client Invoice generated successfully!");
@@ -259,11 +255,13 @@ const loadingToastId = toast("Generating invoice, please wait...", {
               label="From Date *"
               selected={fromDate}
               onChange={(val) => setFromDate(val)}
+              showTimeSelect
             />
             <DatePicker
               label="To Date *"
               selected={toDate}
               onChange={(val) => setToDate(val)}
+              showTimeSelect
             />
           </div>
 
@@ -271,6 +269,7 @@ const loadingToastId = toast("Generating invoice, please wait...", {
             label="Invoice Date *"
             selected={invoiceDate}
             onChange={(val) => setInvoiceDate(val)}
+            showTimeSelect
           />
 
           <div className="pt-3 flex justify-end space-x-3">

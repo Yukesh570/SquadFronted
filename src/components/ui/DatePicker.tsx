@@ -162,6 +162,7 @@ const CustomInput = forwardRef<HTMLInputElement, any>(
     <div className={`relative group w-full`}>
       <div className="relative">
         <input
+          autoComplete="off"
           value={value}
           onClick={!disabled ? onClick : undefined}
           onChange={!disabled ? onChange : undefined}
@@ -234,7 +235,7 @@ const CustomDatePicker: React.FC<DatePickerProps> = ({
       <style>{customDatePickerStyles}</style>
 
       {label && (
-        <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400">
+        <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400 min-h-[32px] flex items-end">
           {label}
         </label>
       )}

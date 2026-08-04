@@ -30,7 +30,6 @@ export interface MessageLogData {
   systemId?: string;
   createdAt?: string;
   queued_at?: string | null;
-  sent_at?: string | null;
   delivered_at?: string | null;
   failed_at?: string | null;
 }

@@ -23,6 +23,10 @@ export interface SmsMessagePartData {
   created_at?: string;
   updated_at?: string;
   last_submit_at?: string | null;
+  clientDlrPushed?: boolean;
+  clientDlrSuppressed?: boolean;
+  clientDlrSuppressedAt?: string | null;
+  clientDlrSuppressionReason?: string | null;
 }
 
 export interface PaginatedResponse<T> {

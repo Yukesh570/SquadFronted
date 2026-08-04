@@ -72,7 +72,21 @@ export const SmsMessagePartModal: React.FC<SmsMessagePartModalProps> = ({
             <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.vendor_submit_status !== null ? viewLog.vendor_submit_status : "-"}</div>
           </div>
 
-          {/* Row 4 - Timestamps */}
+          {/* Row 4 - DLR Push & Suppression */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Client DLR Pushed</label>
+            <div className="text-sm font-medium text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.clientDlrPushed ? "Yes" : "No"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Client DLR Suppressed</label>
+            <div className="text-sm font-medium text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.clientDlrSuppressed ? "Yes" : "No"}</div>
+          </div>
+          <div className="lg:col-span-2">
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Client DLR Suppressed At</label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.clientDlrSuppressedAt ? new Date(viewLog.clientDlrSuppressedAt).toLocaleString() : "-"}</div>
+          </div>
+
+          {/* Row 5 - Timestamps */}
           <div>
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Submitted At</label>
             <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.submitted_at ? new Date(viewLog.submitted_at).toLocaleString() : "-"}</div>
@@ -90,7 +104,7 @@ export const SmsMessagePartModal: React.FC<SmsMessagePartModalProps> = ({
             <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.failed_at ? new Date(viewLog.failed_at).toLocaleString() : "-"}</div>
           </div>
           
-          {/* Row 5 - Timestamps */}
+          {/* Row 6 - Timestamps */}
           <div>
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Created At</label>
             <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.created_at ? new Date(viewLog.created_at).toLocaleString() : "-"}</div>
@@ -102,6 +116,16 @@ export const SmsMessagePartModal: React.FC<SmsMessagePartModalProps> = ({
           <div className="lg:col-span-2">
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Last Submit At</label>
             <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.last_submit_at ? new Date(viewLog.last_submit_at).toLocaleString() : "-"}</div>
+          </div>
+        </div>
+
+        {/* Client DLR Suppression Reason */}
+        <div className="mt-4">
+          <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
+            Client DLR Suppression Reason
+          </label>
+          <div className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[60px] text-sm text-text-primary dark:text-white whitespace-pre-wrap break-words">
+            {viewLog.clientDlrSuppressionReason || <span className="text-gray-400 italic">No suppression reason available.</span>}
           </div>
         </div>
 

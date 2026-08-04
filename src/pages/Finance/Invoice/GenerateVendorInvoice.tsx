@@ -4,7 +4,6 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { NavItemsContext } from "../../../context/navItemsContext";
 
-
 // --- APIs ---
 import { generateVendorInvoiceApi, getVendorsApi } from "../../../api/financeApi/vendorInvoiceApi";
 import { getAllUserInformationApi } from "../../../api/userApi/userApi";
@@ -46,9 +45,10 @@ const GenerateVendorInvoice: React.FC = () => {
       }
       return null;
     };
-const found = navItems?.results ? walk(navItems.results) : null;
-const url = found || "/finance/vendorInvoice";
-return url.startsWith("/") ? url : `/${url}`;  };
+    const found = navItems?.results ? walk(navItems.results) : null;
+    const url = found || "/finance/vendorInvoice";
+    return url.startsWith("/") ? url : `/${url}`;
+  };
 
   const [formData, setFormData] = useState({
     accountManager: "",
@@ -187,7 +187,7 @@ return url.startsWith("/") ? url : `/${url}`;  };
       return;
     }
 
-   setIsSubmitting(true);
+    setIsSubmitting(true);
     try {
       await generateVendorInvoiceApi(payload, "GENERATE");
       handleCloseModal();
@@ -255,11 +255,13 @@ return url.startsWith("/") ? url : `/${url}`;  };
               label="From Date *"
               selected={fromDate}
               onChange={(val) => setFromDate(val)}
+              showTimeSelect
             />
             <DatePicker
               label="To Date *"
               selected={toDate}
               onChange={(val) => setToDate(val)}
+              showTimeSelect
             />
           </div>
 
@@ -267,6 +269,7 @@ return url.startsWith("/") ? url : `/${url}`;  };
             label="Invoice Date *"
             selected={invoiceDate}
             onChange={(val) => setInvoiceDate(val)}
+            showTimeSelect
           />
 
           <div className="pt-3 flex justify-end space-x-3">

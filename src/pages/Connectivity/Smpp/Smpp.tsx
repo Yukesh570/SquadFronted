@@ -87,7 +87,7 @@ const Smpp: React.FC = () => {
     localStorage.setItem("smpp_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
 
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();

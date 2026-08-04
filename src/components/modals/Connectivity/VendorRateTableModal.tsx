@@ -46,7 +46,7 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [apiFilters, setApiFilters] = useState<Record<string, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
 
   useEffect(() => { setCurrentPage(1); }, [vendor]);
 

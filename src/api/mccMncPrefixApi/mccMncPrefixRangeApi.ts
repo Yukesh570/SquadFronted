@@ -57,3 +57,10 @@ export const createMccMncPrefixRangeApi = async (
   const response = await api.post(`/mccMncPrefixRange/${module}/`, data);
   return response.data;
 };
+
+export const deleteMccMncPrefixRangeApi = async (
+  id: number,
+  module: string
+): Promise<void> => {
+  await api.delete(`/mccMncPrefixRange/${module}/${id}/`);
+};

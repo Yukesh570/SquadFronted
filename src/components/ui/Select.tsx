@@ -40,7 +40,6 @@ const Select: React.FC<SelectProps> = ({
   const [visibleCount, setVisibleCount] = useState(50);
   const hasLabel = !!label;
 
-  // NEW: for portal positioning
   const anchorRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const [resolvedPlacement, setResolvedPlacement] = useState<"top" | "bottom">(placement);
@@ -74,11 +73,10 @@ const Select: React.FC<SelectProps> = ({
     setQuery("");
   };
 
-  // NEW: compute where the portal dropdown should render, based on the input's real position
   const updateCoords = useCallback(() => {
     if (!anchorRef.current) return;
     const rect = anchorRef.current.getBoundingClientRect();
-    const estimatedMenuHeight = 240; // matches max-h-60
+    const estimatedMenuHeight = 240;
     const spaceBelow = window.innerHeight - rect.bottom;
     const finalPlacement: "top" | "bottom" =
       placement === "top" || spaceBelow < estimatedMenuHeight ? "top" : "bottom";
@@ -91,7 +89,6 @@ const Select: React.FC<SelectProps> = ({
     });
   }, [placement]);
 
-  // NEW: keep dropdown glued to the input while open (scroll/resize)
   useEffect(() => {
     if (!coords) return;
     const handler = () => updateCoords();
@@ -110,13 +107,10 @@ const Select: React.FC<SelectProps> = ({
       disabled={disabled}
     >
       {({ open }) => {
-        // NEW: whenever the dropdown opens, snapshot the input's position
         if (open && !coords) {
-          // measure synchronously on next tick to ensure layout is ready
           requestAnimationFrame(updateCoords);
         }
         if (!open && coords) {
-          // reset so next open recalculates fresh
           setTimeout(() => setCoords(null), 0);
         }
 
@@ -127,7 +121,7 @@ const Select: React.FC<SelectProps> = ({
             } ${className}`}
           >
             {hasLabel && (
-              <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400">
+              <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400 min-h-[32px] flex items-end">
                 {label}
                 {required && <span className="text-red-500 ml-1">*</span>}
               </label>
@@ -148,6 +142,7 @@ const Select: React.FC<SelectProps> = ({
                 dark:border-gray-700`}
               >
                 <Combobox.Input
+                  autoComplete="off"
                   className={`w-full border-none bg-transparent px-3 pr-10 outline-none focus:outline-none focus:ring-0 focus:border-transparent text-text-primary dark:text-white ${
                     hasLabel ? "py-2.5" : "py-2"
                   } ${
@@ -188,7 +183,6 @@ const Select: React.FC<SelectProps> = ({
                 )}
               </div>
 
-              {/* NEW: dropdown is portaled to document.body so it can't be clipped by any scroll container */}
               {!disabled &&
                 coords &&
                 createPortal(

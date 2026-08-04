@@ -208,6 +208,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                                 ref={searchInputRef}
                                 autoFocus
                                 type="text"
+                                autoComplete="off"
                                 className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-text-primary dark:text-white placeholder-gray-400"
                                 placeholder="Search options..."
                                 value={searchTerm}
