@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  Home,
   MessageSquare,
   Activity,
   Monitor,
@@ -694,10 +693,10 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="flex items-center space-x-2 text-sm text-text-secondary">
+          {/* <div className="flex items-center space-x-2 text-sm text-text-secondary">
             <Home size={16} className="text-gray-400" />
             <span className="text-text-primary dark:text-white">Dashboard</span>
-          </div>
+          </div> */}
         </div>
       </div>
 

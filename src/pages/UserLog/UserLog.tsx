@@ -287,6 +287,7 @@ const hasLoggedOpening = useRef(false);
         rowsPerPage={rowsPerPage}
         onPageChange={setCurrentPage}
         onRowsPerPageChange={setRowsPerPage}
+        density="compact"
         headers={headers}
         isLoading={isLoading}
         renderRow={(log, index) => (

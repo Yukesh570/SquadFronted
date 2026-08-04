@@ -291,6 +291,7 @@ const MccMncPrefixImportBatch: React.FC = () => {
         onRowsPerPageChange={setRowsPerPage} 
         headers={tableHeaders} 
         isLoading={isLoading}
+        density="compact"
         headerActions={
           <div className="flex gap-2">
             {canCreate && (

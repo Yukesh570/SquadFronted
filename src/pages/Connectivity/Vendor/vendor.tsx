@@ -901,6 +901,7 @@ const Vendor: React.FC = () => {
         onPageChange={setCurrentPage}
         onRowsPerPageChange={setRowsPerPage}
         headers={tableHeaders}
+        density="compact"
         isLoading={isLoading}
         headerActions={
           canCreate ? (

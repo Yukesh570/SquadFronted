@@ -72,7 +72,7 @@ const ImportAttachment: React.FC = () => {
     localStorage.setItem("import_attachment_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
 
-  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
@@ -262,7 +262,7 @@ const ImportAttachment: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable serverSide={true} data={data} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} headers={tableHeaders} isLoading={isLoading}
+      <DataTable serverSide={true} data={data} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} density="compact" headers={tableHeaders} isLoading={isLoading}
         renderRow={(item, index) => (
           <tr key={item.id || index} onContextMenu={(e) => handleContextMenu(e, item)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>

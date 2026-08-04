@@ -530,6 +530,7 @@ const MappingSetup: React.FC = () => {
         rowsPerPage={rowsPerPage}
         onPageChange={setCurrentPage}
         onRowsPerPageChange={setRowsPerPage}
+        density="compact"
         headers={tableHeaders}
         isLoading={isLoading}
         headerActions={

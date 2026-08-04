@@ -32,8 +32,9 @@ const AllNotifications: React.FC = () => {
   const fetchNotifications = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
     try {
+      // ⚡️ Use title__icontains to match backend partial text filtering
       const currentSearchParams = overrideParams || {
-        title: titleFilter,
+        title__icontains: titleFilter,
       };
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
@@ -72,7 +73,7 @@ const AllNotifications: React.FC = () => {
   const handleClearFilters = () => {
     setTitleFilter("");
     setCurrentPage(1);
-    fetchNotifications({ title: "" });
+    fetchNotifications({ title__icontains: "" });
   };
 
   const handleDelete = async () => {
@@ -134,6 +135,7 @@ const AllNotifications: React.FC = () => {
         rowsPerPage={rowsPerPage}
         onPageChange={setCurrentPage}
         onRowsPerPageChange={setRowsPerPage}
+        density="compact"
         headers={headers}
         isLoading={isLoading}
         renderRow={(notification, index) => (

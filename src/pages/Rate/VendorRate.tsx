@@ -342,7 +342,7 @@ const VendorRate: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable serverSide={true} data={groupedRates} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} headers={tableHeaders} isLoading={isLoading} headerActions={canCreate ? <Button variant="primary" onClick={() => { setEditingGroup(null); setIsCreateModalOpen(true); }} leftIcon={<Plus size={18} />}>Create Group</Button> : null}
+      <DataTable serverSide={true} data={groupedRates} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} density="compact" headers={tableHeaders} isLoading={isLoading} headerActions={canCreate ? <Button variant="primary" onClick={() => { setEditingGroup(null); setIsCreateModalOpen(true); }} leftIcon={<Plus size={18} />}>Create Group</Button> : null}
         renderRow={(routeGroupObj: any, index: number) => (
           <tr key={index} onContextMenu={(e) => handleContextMenu(e, routeGroupObj)} className="hover:bg-gray-50 dark:hover:bg-gray-700/80 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>

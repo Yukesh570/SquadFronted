@@ -172,7 +172,7 @@ const AddCredit: React.FC = () => {
         ))}
       </FilterCard>
 
-      <DataTable serverSide={true} data={companies} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} headers={tableHeaders} isLoading={isLoading} 
+      <DataTable serverSide={true} data={companies} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} density="compact" headers={tableHeaders} isLoading={isLoading} 
         headerActions={
           canUpdate ? (
             <div className="flex gap-2">

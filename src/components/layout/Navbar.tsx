@@ -28,6 +28,7 @@ import {
 } from "@headlessui/react";
 import {
   getNotificationApi,
+  updateNotificationApi,
   type NotificationData,
 } from "../../api/userActionApi/notificationApi";
 
@@ -35,11 +36,15 @@ interface NavbarProps {
   onToggleSidebar: () => void;
 }
 
+interface LocalNotificationData extends NotificationData {
+  seen?: boolean;
+}
+
 const Navbar = ({ onToggleSidebar }: NavbarProps) => {
   const { payload, logout } = useAuth();
   const { theme, toggleTheme, primaryColor, changePrimaryColor } =
     useContext(ThemeContext);
-  const [notificationData, setNotificationData] = useState<NotificationData[]>(
+  const [notificationData, setNotificationData] = useState<LocalNotificationData[]>(
     [],
   );
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -76,6 +81,46 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
       console.error("Failed to fetch notifications:", error);
     }
   };
+
+  const handleNotificationClick = async (notification: LocalNotificationData) => {
+    if (notification.id === undefined) return;
+
+    // Optimistically update local state
+    setNotificationData((prev) =>
+      prev.map((notif) =>
+        notif.id === notification.id ? { ...notif, seen: true } : notif
+      )
+    );
+
+    // Call backend API to mark as seen using PATCH
+    try {
+      await updateNotificationApi(notification.id, { seen: true });
+    } catch (error) {
+      console.error("Failed to update notification seen status:", error);
+    }
+  };
+
+  const handleViewAllClick = async () => {
+    const unreadNotifications = notificationData.filter((n) => !n.seen);
+    
+    // Optimistically update all to seen locally
+    setNotificationData((prev) =>
+      prev.map((notif) => ({ ...notif, seen: true }))
+    );
+
+    // Call backend API for each unread notification
+    try {
+      await Promise.all(
+        unreadNotifications.map((n) =>
+          n.id !== undefined ? updateNotificationApi(n.id, { seen: true }) : Promise.resolve()
+        )
+      );
+    } catch (error) {
+      console.error("Failed to mark all notifications as seen:", error);
+    }
+  };
+
+  const unreadCount = notificationData.filter((n) => !n.seen).length;
 
   useEffect(() => {
     const savedRecents = localStorage.getItem("recentThemeColors");
@@ -139,6 +184,17 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
     setIsThemeModalOpen(false);
   };
 
+  // Helper to check if a hex color is too light (so we can adjust text/border color)
+  const isLightColor = (hex: string) => {
+    const cleanHex = hex.replace("#", "");
+    if (cleanHex.length !== 6) return false;
+    const r = parseInt(cleanHex.substring(0, 2), 16);
+    const g = parseInt(cleanHex.substring(2, 4), 16);
+    const b = parseInt(cleanHex.substring(4, 6), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 200;
+  };
+
   const ThemeToggle = () => (
     <Button
       variant="ghost"
@@ -155,7 +211,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
 
   return (
     <>
-      <header className="h-16 flex justify-between items-center px-6 z-10 bg-white dark:bg-gray-900 shadow-sm transition-colors duration-300">
+      <header className="h-16 flex justify-between items-center px-6 z-50 bg-white dark:bg-gray-900 shadow-sm transition-colors duration-300">
         <div className="flex items-center">
           <Button variant="ghost" onClick={onToggleSidebar} className="mr-2">
             <Menu className="text-gray-900 dark:text-white transition-colors duration-300" size={24} />
@@ -177,7 +233,6 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
 
           {/* Improved Notification Popover */}
           <Popover className="relative">
-            {/* FIX: Grabbed the `close` function explicitly from the Headless UI render prop */}
             {({ open, close }) => (
               <>
                 <Popover.Button
@@ -187,7 +242,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                   className={`relative transition-all duration-200 ${open ? "bg-gray-100 dark:bg-gray-700" : ""}`}
                 >
                   <Bell className="text-gray-900 dark:text-white" size={20} />
-                  {notificationData.length > 0 && (
+                  {unreadCount > 0 && (
                     <span className="absolute top-2 right-2 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-900 animate-pulse" />
                   )}
                 </Popover.Button>
@@ -201,18 +256,22 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                   leaveFrom="opacity-100 translate-y-0 scale-100"
                   leaveTo="opacity-0 translate-y-1 scale-95"
                 >
-                  <Popover.Panel className="absolute right-0 z-50 mt-3 w-80 sm:w-96 origin-top-right rounded-xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 focus:outline-none border border-gray-100 dark:border-gray-700 overflow-hidden">
+                  <Popover.Panel className="absolute right-0 z-[999] mt-3 w-80 sm:w-96 origin-top-right rounded-xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 focus:outline-none border border-gray-100 dark:border-gray-700 overflow-hidden">
                     <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
                       <h3 className="text-base font-bold text-gray-900 dark:text-white">Notifications</h3>
                       <span className="text-xs font-semibold px-2 py-1 bg-primary/10 text-primary rounded-full">
-                        {notificationData.length} New
+                        {unreadCount} New
                       </span>
                     </div>
 
                     <div className="max-h-[420px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700/50 custom-scrollbar">
                       {notificationData.length > 0 ? (
                         notificationData.map((notification) => (
-                          <div key={notification.id} className="group relative flex items-start p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all cursor-pointer">
+                          <div 
+                            key={notification.id} 
+                            onClick={() => handleNotificationClick(notification)}
+                            className={`group relative flex items-start p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all cursor-pointer ${notification.seen ? 'opacity-60' : ''}`}
+                          >
                             <div className="flex-shrink-0 mt-1">
                               <div className="bg-primary/10 p-2 rounded-lg group-hover:bg-primary/20 transition-colors">
                                 <Archive size={16} className="text-primary" />
@@ -223,7 +282,9 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                                 <p className="text-sm font-bold text-gray-900 dark:text-white truncate pr-4">
                                   {notification.title || "Module Update"}
                                 </p>
-                                <div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+                                {!notification.seen && (
+                                  <div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+                                )}
                               </div>
                               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                                 {notification.description}
@@ -247,10 +308,12 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                     </div>
 
                     <div className="p-3 border-t border-gray-100 dark:border-gray-700 text-center bg-white dark:bg-gray-800">
-                      {/* FIX: Executing the close() function explicitly when clicked */}
                       <Link 
                         to="/notifications" 
-                        onClick={() => close()} 
+                        onClick={() => {
+                          handleViewAllClick();
+                          close();
+                        }} 
                         className="text-xs font-bold text-primary hover:underline transition-all block py-1"
                       >
                         View All Notifications
@@ -371,7 +434,17 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                     )}
                   </div>
                   <div className="mt-8">
-                    <Button variant="primary" onClick={handleSaveAndClose} className="w-full justify-center transition-all shadow-md" style={{ backgroundColor: localColor, borderColor: localColor }}>
+                    <Button 
+                      variant="primary" 
+                      onClick={handleSaveAndClose} 
+                      className="w-full justify-center transition-all shadow-md border"
+                      style={{ 
+                        backgroundColor: localColor, 
+                        borderColor: isLightColor(localColor) ? "#9ca3af" : localColor,
+                        color: isLightColor(localColor) ? "#111827" : "#FFFFFF",
+                        boxShadow: isLightColor(localColor) ? "0 4px 12px rgba(0, 0, 0, 0.15)" : undefined
+                      }}
+                    >
                       Done
                     </Button>
                   </div>

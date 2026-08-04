@@ -296,6 +296,7 @@ const MccMncPrefixRange: React.FC = () => {
           { value: "500", label: "500" },
           { value: "1000", label: "1000" },
         ]} 
+        density="compact"
         headers={tableHeaders} 
         isLoading={isLoading} 
         headerActions={

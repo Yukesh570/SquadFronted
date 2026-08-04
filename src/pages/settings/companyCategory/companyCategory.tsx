@@ -181,6 +181,7 @@ const CompanyCategory: React.FC = () => {
         rowsPerPage={rowsPerPage}
         onPageChange={setCurrentPage}
         onRowsPerPageChange={setRowsPerPage}
+        density="compact"
         headers={headers}
         isLoading={isLoading}
         headerActions={

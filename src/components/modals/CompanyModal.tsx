@@ -243,7 +243,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
 
     setIsSubmitting(true);
 
-    // ⚡️ FIX: Removed explicit exclusion of vendorCreditLimit
     const payload = {
       ...formData,
       country: Number(formData.country) || null,
@@ -474,24 +473,30 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               disabled={isViewMode}
               required
             />
-            <Input
-              label="Used Customer Credit"
-              name="usedCustomerCredit"
-              type="number"
-              value={formData.usedCustomerCredit}
-              onChange={handleChange}
-              placeholder="500.00"
-              disabled
-            />
-            <Input
-              label="Used Vendor Credit"
-              name="usedVendorCredit"
-              type="number"
-              value={formData.usedVendorCredit}
-              onChange={handleChange}
-              placeholder="500.00"
-              disabled
-            />
+            
+            {(editingCompany || isViewMode) && (
+              <>
+                <Input
+                  label="Used Customer Credit"
+                  name="usedCustomerCredit"
+                  type="number"
+                  value={formData.usedCustomerCredit}
+                  onChange={handleChange}
+                  placeholder="500.00"
+                  disabled
+                />
+                <Input
+                  label="Used Vendor Credit"
+                  name="usedVendorCredit"
+                  type="number"
+                  value={formData.usedVendorCredit}
+                  onChange={handleChange}
+                  placeholder="500.00"
+                  disabled
+                />
+              </>
+            )}
+
             <Input
               label="Reference Number"
               name="referenceNumber"

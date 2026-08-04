@@ -277,7 +277,7 @@ const toastId = toast.loading("Downloading EDR...", { type: "info" });
 
       <DataTable
         serverSide={true} data={invoices} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage}
-        onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} headers={["S.N.", ...visibleTableFields.map(c => c.label)]} isLoading={isLoading}
+        onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} density="compact" headers={["S.N.", ...visibleTableFields.map(c => c.label)]} isLoading={isLoading}
         renderRow={(invoice, index) => (
           <tr key={invoice.id || index} onContextMenu={(e) => { e.preventDefault(); setContextMenuPos({ x: e.clientX, y: e.clientY }); setSelectedRow(invoice); }} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu">
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>

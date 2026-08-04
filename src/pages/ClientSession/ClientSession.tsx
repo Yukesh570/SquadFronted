@@ -598,6 +598,7 @@ const ClientSession: React.FC = () => {
         rowsPerPage={rowsPerPage}
         onPageChange={setCurrentPage}
         onRowsPerPageChange={setRowsPerPage}
+        density="compact"
         headers={tableHeaders}
         isLoading={isLoading}
         renderRow={(item, index) => (

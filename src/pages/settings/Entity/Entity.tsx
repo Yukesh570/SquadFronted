@@ -226,6 +226,7 @@ const Entity: React.FC = () => {
         onPageChange={setCurrentPage}
         onRowsPerPageChange={setRowsPerPage}
         headers={["S.N.", ...visibleTableFields.map(c => c.label)]}
+        density="compact"
         isLoading={isLoading}
         headerActions={
           canCreate ? (
