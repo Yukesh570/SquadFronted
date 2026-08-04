@@ -142,6 +142,10 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
       toast.error("Template Name is required.");
       return;
     }
+    if (!formData.emailServer) {
+      toast.error("Email Server is required.");
+      return;
+    }
     if (!formData.subject.trim()) {
       toast.error("Template Subject is required.");
       return;
@@ -208,7 +212,7 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
       }
       className="max-w-4xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         
         {/* Row 1: Template Name & Email Server */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -223,12 +227,13 @@ export const EmailTemplateModal: React.FC<EmailTemplateModalProps> = ({
             disabled={isViewMode}
           />
           <Select
-            label="Email Server (Optional)"
+            label="Email Server"
             value={formData.emailServer ? String(formData.emailServer) : ""}
             onChange={handleSelectChange}
             options={smtpOptions}
             placeholder="Select an Email Server"
             disabled={isViewMode}
+            required
           />
         </div>
         

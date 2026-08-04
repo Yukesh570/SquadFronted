@@ -68,10 +68,10 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
         const val = apiFilters[key];
         if (!val) return;
         
-        if      (key === "country_id") searchParams["country_id"] = val;
-        else if (key === "MCC")        searchParams["MCC"] = val;
-        else if (key === "MNC")        searchParams["MNC__icontains"] = val;
-        else if (key === "rate")       searchParams["rate"] = val;
+        if      (key === "country_name") searchParams["country__name__icontains"] = val;
+        else if (key === "MCC")          searchParams["MCC"] = val;
+        else if (key === "MNC")          searchParams["MNC__icontains"] = val;
+        else if (key === "rate")         searchParams["rate"] = val;
       });
       
       const res = await getVendorRateByVendorApi({
@@ -155,7 +155,7 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
                 ))}
               </tr>
               <tr className="bg-gray-50 dark:bg-gray-800/80">
-                <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput type="number" fieldKey="country_id" placeholder="Search ID..." value={columnFilters["country_id"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="100px" /></th>
+                <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput type="text" fieldKey="country_name" placeholder="Search Country..." value={columnFilters["country_name"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="100px" /></th>
                 <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MCC" placeholder="Search MCC..." value={columnFilters["MCC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="100px" /></th>
                 <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MNC" placeholder="Search MNC..." value={columnFilters["MNC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="100px" /></th>
                 <th className="p-1 border-b dark:border-gray-600 font-normal"><FilterInput type="number" fieldKey="rate" placeholder="Search Rate..." value={columnFilters["rate"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="100px" /></th>
@@ -172,8 +172,8 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
                     key={idx}
                     className="group border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
-<td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.country_name || "-"}</td>     
-               <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MCC || "-"}</td>
+                    <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.country_name || "-"}</td>     
+                    <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MCC || "-"}</td>
                     <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MNC || "-"}</td>
                     <td className="py-3 px-4 text-text-secondary dark:text-gray-300 font-medium whitespace-nowrap">{v.rate || "-"}</td>
                   </tr>
@@ -196,3 +196,5 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
     </Modal>
   );
 };
+
+export default VendorRateTableModal;

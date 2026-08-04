@@ -33,7 +33,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
   const [currentVal, setCurrentVal] = useState(value || "");
   const [dropdownPlacement, setDropdownPlacement] = useState<"top" | "bottom">("bottom");
   
-  const inputRef = useRef<any>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const cellRef = useRef<HTMLDivElement>(null);
 
   const isEditing = controlledIsEditing !== undefined ? controlledIsEditing : localIsEditing;
@@ -68,7 +68,6 @@ export const EditableCell: React.FC<EditableCellProps> = ({
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing]);
 
   useEffect(() => {
@@ -149,6 +148,20 @@ export const EditableCell: React.FC<EditableCellProps> = ({
     );
   }
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const val = e.target.value;
+    
+    if (type === "number") {
+      if (val === "" || /^\d+$/.test(val)) {
+        setCurrentVal(val);
+      }
+    } else {
+      setCurrentVal(val);
+    }
+  };
+
   return (
     <div ref={cellRef} className="w-full relative z-[9999]">
       <input
@@ -165,20 +178,8 @@ export const EditableCell: React.FC<EditableCellProps> = ({
            e.stopPropagation();
            e.preventDefault();
         }}
-        onChange={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          
-          const val = e.target.value;
-          
-          if (type === "number") {
-            if (val === "" || /^\d+$/.test(val)) {
-              setCurrentVal(val);
-            }
-          } else {
-            setCurrentVal(val);
-          }
-        }}
+        onChange={handleInputChange}
+        onInput={handleInputChange}
         onKeyDown={(e) => {
           e.stopPropagation(); 
           

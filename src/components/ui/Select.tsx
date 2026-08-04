@@ -103,7 +103,10 @@ const Select: React.FC<SelectProps> = ({
   return (
     <Combobox
       value={value}
-      onChange={(val: string | null) => onChange(val || "")}
+      onChange={(val: string | null) => {
+        onChange(val || "");
+        setQuery("");
+      }}
       disabled={disabled}
     >
       {({ open }) => {
@@ -208,7 +211,7 @@ const Select: React.FC<SelectProps> = ({
                       }}
                       className="z-[99999] overflow-auto rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm border border-gray-100 dark:border-gray-700 custom-grid-scroll max-h-60"
                     >
-                      {filteredOptions.length === 0 && query !== "" ? (
+                      {filteredOptions.length === 0 ? (
                         <div className="relative cursor-default select-none py-2 px-4 text-text-secondary dark:text-gray-400">
                           Nothing found.
                         </div>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import type { TextareaHTMLAttributes } from "react";
 
 interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -7,6 +7,13 @@ interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 
 const TextArea: React.FC<TextAreaProps> = ({ label, id, disabled, required, ...props }) => {
   const textAreaId = id || label.replace(/\s+/g, "-").toLowerCase();
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
+    if (props.onChange) {
+      props.onChange(e as unknown as React.ChangeEvent<HTMLTextAreaElement>);
+    }
+  };
 
   return (
     <div className="flex flex-col w-full">
@@ -19,10 +26,12 @@ const TextArea: React.FC<TextAreaProps> = ({ label, id, disabled, required, ...p
       </label>
       <textarea
         {...props}
+        ref={textAreaRef}
         autoComplete="off"
         id={textAreaId}
         disabled={disabled}
         required={required}
+        onInput={handleInput}
         className={`w-full rounded-lg border px-3 py-2.5 text-sm shadow-input transition duration-150 ease-in-out focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary 
         ${
           disabled

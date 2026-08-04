@@ -6,7 +6,6 @@ import {
   type CompanyData,
 } from "../../api/companyApi/companyApi";
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
-import { getStateApi } from "../../api/settingApi/stateApi/stateApi";
 import { getCompanyCategoryApi } from "../../api/settingApi/companyCategoryApi/companyCategoryApi";
 import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
 import { getCompanyStatusApi } from "../../api/settingApi/companyStatusApi/companyStatusApi";
@@ -77,7 +76,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [countries, setCountries] = useState<Option[]>([]);
-  const [states, setStates] = useState<Option[]>([]);
   const [categories, setCategories] = useState<Option[]>([]);
   const [statuses, setStatuses] = useState<Option[]>([]);
   const [currencies, setCurrencies] = useState<Option[]>([]);
@@ -101,7 +99,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       };
 
       loadOptions(getCountriesApi, "country", setCountries);
-      loadOptions(getStateApi, "state", setStates);
       loadOptions(getCompanyCategoryApi, "companyCategory", setCategories);
       loadOptions(getCurrenciesApi, "currency", setCurrencies);
       if (typeof getCompanyStatusApi === "function")
@@ -128,7 +125,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         status: String(editingCompany.status || ""),
         currency: String(editingCompany.currency || ""),
         timeZone: String(editingCompany.timeZone || ""),
-        // ⚡️ FIX: Use null checks so "0" or "0.0000" doesn't get wiped by || ""
         customerCreditLimit: editingCompany.customerCreditLimit != null ? String(editingCompany.customerCreditLimit) : "",
         vendorCreditLimit: editingCompany.vendorCreditLimit != null ? String(editingCompany.vendorCreditLimit) : "",
         balanceAlertAmount: editingCompany.balanceAlertAmount != null ? String(editingCompany.balanceAlertAmount) : "",
@@ -246,7 +242,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     const payload = {
       ...formData,
       country: Number(formData.country) || null,
-      state: Number(formData.state) || null,
+      state: formData.state ? formData.state : null, // Handled as text/string or number depending on backend requirements
       category: Number(formData.category) || null,
       status: Number(formData.status) || null,
       currency: Number(formData.currency) || null,
@@ -389,12 +385,12 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               disabled={isViewMode}
               required
             />
-            <Select
+            <Input
               label="State Name"
+              name="state"
               value={formData.state}
-              onChange={(v) => handleSelect("state", v)}
-              options={states}
-              placeholder="Select State"
+              onChange={handleChange}
+              placeholder="Enter State Name"
               disabled={isViewMode}
             />
             <Select
@@ -614,3 +610,5 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     </Modal>
   );
 };
+
+export default CompanyModal;

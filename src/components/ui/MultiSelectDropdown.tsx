@@ -174,7 +174,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
 
             {open && buttonRect && !disabled && (
               <Portal>
-                <div className="fixed inset-0 z-[9999]" onClick={() => close()}>
+                <div className="fixed inset-0 z-[9999]" onClick={() => { close(); setSearchTerm(""); }}>
                   <div
                     className="absolute flex flex-col"
                     style={{
@@ -195,6 +195,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                       leave="transition ease-in duration-75"
                       leaveFrom="opacity-100 translate-y-0"
                       leaveTo="opacity-0 translate-y-1"
+                      afterLeave={() => setSearchTerm("")}
                     >
                       <div
                         className="w-full rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
@@ -220,7 +221,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                         {/* Scrolling List Container */}
                         <div className="flex-1 overflow-y-auto min-h-0 relative py-1 custom-grid-scroll bg-white dark:bg-gray-800">
                           
-                          {/* Selected Items Group - NO STICKY */}
+                          {/* Selected Items Group */}
                           {selectedOptions.length > 0 && (
                             <div className="mb-2">
                                <div className="px-3 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
@@ -230,7 +231,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                             </div>
                           )}
 
-                          {/* Unselected / Available Items Group - NO STICKY */}
+                          {/* Unselected / Available Items Group */}
                           {unselectedOptions.length > 0 && (
                              <div>
                                 {selectedOptions.length > 0 && (
@@ -273,3 +274,5 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
     </Popover>
   );
 };
+
+export default MultiSelectDropdown;

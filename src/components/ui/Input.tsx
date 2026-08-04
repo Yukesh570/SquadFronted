@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { X } from "lucide-react";
 
@@ -16,10 +16,11 @@ const Input: React.FC<InputProps> = ({
   required,
   isClearable = true, 
   value, 
-  autoComplete = "off", // Defaults to off to disable browser popups
+  autoComplete = "off",
   ...props 
 }) => {
   const inputId = id || label.replace(/\s+/g, "-").toLowerCase();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleClear = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -29,6 +30,13 @@ const Input: React.FC<InputProps> = ({
         currentTarget: { value: "", name: props.name },
       } as unknown as React.ChangeEvent<HTMLInputElement>;
       props.onChange(event);
+    }
+  };
+
+  // Sync browser autofill and native input changes into React state
+  const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
+    if (props.onChange) {
+      props.onChange(e as unknown as React.ChangeEvent<HTMLInputElement>);
     }
   };
 
@@ -47,11 +55,13 @@ const Input: React.FC<InputProps> = ({
       <div className="relative">
         <input
           {...props}
+          ref={inputRef}
           autoComplete={autoComplete}
           id={inputId}
           value={value}
           disabled={disabled}
           required={required}
+          onInput={handleInput}
           className={`w-full rounded-lg border px-3 py-2.5 text-sm shadow-input transition duration-150 ease-in-out focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary 
           ${
             disabled
