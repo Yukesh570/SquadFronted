@@ -30,10 +30,11 @@ export interface VendorData {
   vendorRateGroup?: number;
   vendorRateGroupName?: string;
   connectionType: "SMPP" | "HTTP";
-  invoicePolicy: string; 
+  invoicePolicy: string;
   smpp?: number;
   smppName?: string;
   bindStatus?: string;
+  status?: "ACTIVE" | "TRIAL" | "SUSPENDED";
   active_session_count?: number;
   max_allowed_sessions?: number;
   maxSession?: number;

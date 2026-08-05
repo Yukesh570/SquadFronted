@@ -8,6 +8,7 @@ import {
   getClientsApi,
   deleteClientApi,
   sendClientDetailsEmailApi,
+  updateClientApi,
   type ClientData,
 } from "../../api/clientApi/clientApi";
 import { getCompaniesApi } from "../../api/companyApi/companyApi";
@@ -35,7 +36,7 @@ import { usePagePermissions } from "../../hooks/usePagePermissions";
 import { actionHelper } from "../../helper/action";
 import { formatDateTime } from "../../helper/dateFormatter";
 import { getGroupedCustomRoutesApi } from "../../api/routeManagerApi/customRouteApi";
-import { StatusBadge } from "../../components/ui/StatusBadge";
+import { StatusBadge, STATUS_COLORS } from "../../components/ui/StatusBadge";
 
 // --- Interfaces ---
 interface Option {
@@ -253,7 +254,31 @@ const Client: React.FC = () => {
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
     { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroupFilter, filterKey: "routeGroup__name" }, // ⚡️ FIX: Mapped to the specific search array
     { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, isSearchable: false }, 
-    { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status", render: (c) => <StatusBadge status={c.status} /> },
+    { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status", render: (c) => {
+        const statusConfig = STATUS_COLORS[c.status?.toUpperCase() || "UNKNOWN"] || STATUS_COLORS.UNKNOWN;
+        return (
+          <select
+            value={c.status || ""}
+            onChange={(e) => handleStatusChange(c, e.target.value as ClientData["status"])}
+            onClick={(e) => e.stopPropagation()}
+            disabled={!canUpdate}
+            className="border rounded px-2 py-0.5 text-xs font-medium focus:outline-none cursor-pointer disabled:cursor-not-allowed appearance-none pr-6 bg-no-repeat"
+            style={{
+              backgroundColor: statusConfig.bg,
+              color: statusConfig.text,
+              borderColor: statusConfig.border,
+              backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23${statusConfig.text.replace('#', '')}%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E")`,
+              backgroundSize: '16px 16px',
+              backgroundPosition: 'calc(100% - 4px) center',
+            }}
+          >
+            <option value="ACTIVE" className="bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100">Active</option>
+            <option value="TRIAL" className="bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100">Trial</option>
+            <option value="SUSPENDED" className="bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100">Suspended</option>
+          </select>
+        );
+      } 
+    },
     { key: "route", label: "Route Type", type: "text", options: routeOptions, filterKey: "route" },
     { key: "paymentTerms", label: "Payment Terms", type: "text", options: paymentTermOptions, filterKey: "paymentTerms" },
     { key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions, isSearchable: false, render: (c) => { 
@@ -516,6 +541,23 @@ const Client: React.FC = () => {
     e.preventDefault();
     setContextMenuPos({ x: e.clientX, y: e.clientY });
     setSelectedRowClient(client);
+  };
+
+  const handleStatusChange = async (client: ClientData, newStatus: ClientData["status"]) => {
+    if (!canUpdate) {
+      toast.error("You don't have permission to update clients.");
+      return;
+    }
+    try {
+      await updateClientApi(client.id!, { status: newStatus }, routeName);
+      setClients((prev) =>
+        prev.map((c) => (c.id === client.id ? { ...c, status: newStatus } : c))
+      );
+      toast.success("Status updated successfully");
+    } catch (error) {
+      console.error("Failed to update status", error);
+      toast.error("Failed to update status");
+    }
   };
 
   const menuItems: ContextMenuItem[] = selectedRowClient

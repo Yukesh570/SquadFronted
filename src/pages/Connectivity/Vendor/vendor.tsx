@@ -12,8 +12,8 @@ import {
 import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 
 import { VendorModal } from "../../../components/modals/Connectivity/VendorModal";
-import { VendorRateTableModal } from "../../../components/modals/Connectivity/VendorRateTableModal"; 
-import { VendorRateGroupModal } from "../../../components/modals/Connectivity/VendorRateGroupModal"; // ⚡️ ADDED
+import { VendorRateTableModal } from "../../../components/modals/Connectivity/VendorRateTableModal";
+import { VendorRateGroupModal } from "../../../components/modals/Connectivity/VendorRateGroupModal";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
@@ -30,7 +30,7 @@ import ContextMenu, {
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import { actionHelper } from "../../../helper/action";
 
-import { StatusBadge } from "../../../components/ui/StatusBadge";
+import { StatusBadge, STATUS_COLORS } from "../../../components/ui/StatusBadge";
 
 interface Option {
   label: string;
@@ -52,8 +52,9 @@ const DEFAULT_TABLE_COLUMNS = [
   "companyName",
   "vendorRateGroup",
   "connectionType",
-  "invoicePolicy",
   "bindStatus",
+  "status",
+  "invoicePolicy",
 ];
 
 const formatLocalDate = (date: Date) => {
@@ -168,10 +169,10 @@ const Vendor: React.FC = () => {
               prev.map((v) =>
                 String(v.id) === String(data.vendor.id)
                   ? {
-                      ...v,
-                      bindStatus: data.vendor.bindStatus,
-                      active_session_count: data.vendor.live_count,
-                    }
+                    ...v,
+                    bindStatus: data.vendor.bindStatus,
+                    active_session_count: data.vendor.live_count,
+                  }
                   : v,
               ),
             );
@@ -192,7 +193,7 @@ const Vendor: React.FC = () => {
     return () => {
       clearTimeout(reconnectTimeout);
       if (ws) {
-        ws.onclose = null; 
+        ws.onclose = null;
         ws.close();
       }
     };
@@ -213,6 +214,12 @@ const Vendor: React.FC = () => {
   const bindStatusOptions: Option[] = [
     { label: "online", value: "ONLINE" },
     { label: "offline", value: "OFFLINE" },
+  ];
+
+  const statusOptions: Option[] = [
+    { label: "active", value: "ACTIVE" },
+    { label: "trial", value: "TRIAL" },
+    { label: "suspended", value: "SUSPENDED" },
   ];
 
   const logLevelOptions: Option[] = [
@@ -245,14 +252,14 @@ const Vendor: React.FC = () => {
       label: "Company",
       type: "text",
       options: companies,
-      filterKey: "company__name__icontains", 
+      filterKey: "company__name__icontains",
     },
     {
       key: "vendorRateGroup",
       label: "Vendor Rate Group",
       type: "text",
       options: vendorRateGroupOptions,
-      filterKey: "vendorRateGroup", 
+      filterKey: "vendorRateGroup",
       isSearchable: false,
       render: (c: any) => c.vendorRateGroupName || c.vendorRateGroup || "-",
     },
@@ -295,6 +302,37 @@ const Vendor: React.FC = () => {
       render: (c) => <StatusBadge status={c.bindStatus} />,
     },
     {
+      key: "status",
+      label: "Status",
+      type: "text",
+      options: statusOptions,
+      filterKey: "status__icontains",
+      render: (c) => {
+        const statusConfig = STATUS_COLORS[c.status?.toUpperCase() || "UNKNOWN"] || STATUS_COLORS.UNKNOWN;
+        return (
+          <select
+            value={c.status || ""}
+            onChange={(e) => handleStatusChange(c, e.target.value as VendorData["status"])}
+            onClick={(e) => e.stopPropagation()}
+            disabled={!canUpdate}
+            className="border rounded px-2 py-0.5 text-xs font-medium focus:outline-none cursor-pointer disabled:cursor-not-allowed appearance-none pr-6 bg-no-repeat"
+            style={{
+              backgroundColor: statusConfig.bg,
+              color: statusConfig.text,
+              borderColor: statusConfig.border,
+              backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23${statusConfig.text.replace('#', '')}%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E")`,
+              backgroundSize: '16px 16px',
+              backgroundPosition: 'calc(100% - 4px) center',
+            }}
+          >
+            <option value="ACTIVE" className="bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100">Active</option>
+            <option value="TRIAL" className="bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100">Trial</option>
+            <option value="SUSPENDED" className="bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100">Suspended</option>
+          </select>
+        );
+      },
+    },
+    {
       key: "session",
       label: "Sessions (Current/Max)",
       tableLabel: "Sessions",
@@ -302,23 +340,23 @@ const Vendor: React.FC = () => {
       isSearchable: false,
       render: (c) => renderSessionBadge(c),
     },
-    { 
-      key: "maxSession", 
-      label: "Max Sessions", 
+    {
+      key: "maxSession",
+      label: "Max Sessions",
       type: "number",
       filterKey: "vendorPolicy__maxSession",
       render: (c) => c.vendorPolicy?.maxSession ?? "-"
-    }, 
-    { 
-      key: "rateTps", 
-      label: "Rate TPS", 
+    },
+    {
+      key: "rateTps",
+      label: "Rate TPS",
       type: "number",
       filterKey: "vendorPolicy__rateTps",
       render: (c) => c.vendorPolicy?.rateTps ?? "-"
     },
-    { 
-      key: "sendQueueLimit", 
-      label: "Queue Limit", 
+    {
+      key: "sendQueueLimit",
+      label: "Queue Limit",
       type: "number",
       filterKey: "vendorPolicy__sendQueueLimit",
       render: (c) => c.vendorPolicy?.sendQueueLimit ?? "-"
@@ -331,9 +369,9 @@ const Vendor: React.FC = () => {
       filterKey: "vendorPolicy__logLevel__icontains",
       render: (c) => c.vendorPolicy?.logLevel ?? "-"
     },
-    { 
-      key: "responseTimeout", 
-      label: "Response Timeout (s)", 
+    {
+      key: "responseTimeout",
+      label: "Response Timeout (s)",
       type: "number",
       filterKey: "vendorPolicy__responseTimeout",
       render: (c) => c.vendorPolicy?.responseTimeout ?? "-"
@@ -345,9 +383,9 @@ const Vendor: React.FC = () => {
       filterKey: "vendorPolicy__enquireLinkInterval",
       render: (c) => c.vendorPolicy?.enquireLinkInterval ?? "-"
     },
-    { 
-      key: "connectionTimeout", 
-      label: "Conn. Timeout (s)", 
+    {
+      key: "connectionTimeout",
+      label: "Conn. Timeout (s)",
       type: "number",
       filterKey: "vendorPolicy__connectionTimeout",
       render: (c) => c.vendorPolicy?.connectionTimeout ?? "-"
@@ -366,23 +404,23 @@ const Vendor: React.FC = () => {
       filterKey: "vendorPolicy__connectionRetryDelay",
       render: (c) => c.vendorPolicy?.connectionRetryDelay ?? "-"
     },
-    { 
-      key: "connectionRetryCount", 
-      label: "Conn Retry Count", 
+    {
+      key: "connectionRetryCount",
+      label: "Conn Retry Count",
       type: "number",
       filterKey: "vendorPolicy__connectionRetryCount",
       render: (c) => c.vendorPolicy?.connectionRetryCount ?? "-"
     },
-    { 
-      key: "bindRetryDelay", 
-      label: "Bind Retry Delay (s)", 
+    {
+      key: "bindRetryDelay",
+      label: "Bind Retry Delay (s)",
       type: "number",
       isSearchable: false,
       render: (c) => c.vendorPolicy?.bindRetryDelay ?? "-"
     },
-    { 
-      key: "bindRetryCount", 
-      label: "Bind Retry Count", 
+    {
+      key: "bindRetryCount",
+      label: "Bind Retry Count",
       type: "number",
       isSearchable: false,
       render: (c) => c.vendorPolicy?.bindRetryCount ?? "-"
@@ -394,16 +432,16 @@ const Vendor: React.FC = () => {
       filterKey: "vendorPolicy__connectionRecoveryDelay",
       render: (c) => c.vendorPolicy?.connectionRecoveryDelay ?? "-"
     },
-    { 
-      key: "tlvTag", 
-      label: "TLV Tag", 
+    {
+      key: "tlvTag",
+      label: "TLV Tag",
       type: "text",
       filterKey: "vendorPolicy__tlvTag__icontains",
       render: (c) => c.vendorPolicy?.tlvTag ?? "-"
     },
-    { 
-      key: "tlvValue", 
-      label: "TLV Value", 
+    {
+      key: "tlvValue",
+      label: "TLV Value",
       type: "text",
       filterKey: "vendorPolicy__tlvValue__icontains",
       render: (c) => c.vendorPolicy?.tlvValue ?? "-"
@@ -414,8 +452,8 @@ const Vendor: React.FC = () => {
 
 
   const visibleSearchFields = searchableColumns.filter((col) =>
-  searchColumns.includes(col.key),
-);
+    searchColumns.includes(col.key),
+  );
   const visibleTableFields = allColumns.filter((col) =>
     tableColumns.includes(col.key),
   );
@@ -484,7 +522,7 @@ const Vendor: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = lt; 
+            if (lt) currentSearchParams[`${baseKey}__lt`] = lt;
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -557,7 +595,7 @@ const Vendor: React.FC = () => {
     setIsViewMode(false);
     setIsModalOpen(true);
   };
-  
+
   const handleEditRateGroup = (vendor: VendorData) => {
     if (!canUpdate) return;
     setEditingVendor(vendor);
@@ -583,6 +621,23 @@ const Vendor: React.FC = () => {
     setSelectedRowVendor(vendor);
   };
 
+  const handleStatusChange = async (vendor: VendorData, newStatus: VendorData["status"]) => {
+    if (!canUpdate) {
+      toast.error("You don't have permission to update vendors.");
+      return;
+    }
+    try {
+      await updateVendorApi(vendor.id!, { status: newStatus }, routeName);
+      setVendors((prev) =>
+        prev.map((v) => (v.id === vendor.id ? { ...v, status: newStatus } : v))
+      );
+      toast.success("Status updated successfully");
+    } catch (error) {
+      console.error("Failed to update status", error);
+      toast.error("Failed to update status");
+    }
+  };
+
   const handleManualRetry = async (vendor: VendorData) => {
     try {
       const retryData = {
@@ -600,53 +655,53 @@ const Vendor: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowVendor
     ? [
-        {
-          label: "View Details",
-          icon: <Eye size={16} />,
-          onClick: () => handleView(selectedRowVendor),
-        },
-        {
-          label: "View Rate",
-          icon: <Layers size={16} />,
-          onClick: () => {
-            setRateModalVendor({ id: selectedRowVendor.id!, profileName: selectedRowVendor.profileName });
-            setIsRateModalOpen(true);
-          }
-        },
-        ...(selectedRowVendor.bindStatus === "OFFLINE"
-          ? [
-              {
-                label: "Retry Bind",
-                icon: <RefreshCw size={16} />,
-                onClick: () => handleManualRetry(selectedRowVendor),
-              },
-            ]
-          : []),
-        ...(canUpdate
-          ? [
-              {
-                label: "Edit Vendor",
-                icon: <Edit size={16} />,
-                onClick: () => handleEdit(selectedRowVendor),
-              },
-              {
-                label: !selectedRowVendor.vendorRateGroup ? "Add Rate Group" : "Edit Rate Group",
-                icon: !selectedRowVendor.vendorRateGroup ? <Plus size={16} /> : <Edit size={16} />,
-                onClick: () => handleEditRateGroup(selectedRowVendor),
-              },
-            ]
-          : []),
-        ...(canDelete
-          ? [
-              {
-                label: "Delete Vendor",
-                icon: <Trash size={16} />,
-                variant: "danger" as const,
-                onClick: () => setDeleteId(selectedRowVendor.id!),
-              },
-            ]
-          : []),
-      ]
+      {
+        label: "View Details",
+        icon: <Eye size={16} />,
+        onClick: () => handleView(selectedRowVendor),
+      },
+      {
+        label: "View Rate",
+        icon: <Layers size={16} />,
+        onClick: () => {
+          setRateModalVendor({ id: selectedRowVendor.id!, profileName: selectedRowVendor.profileName });
+          setIsRateModalOpen(true);
+        }
+      },
+      ...(selectedRowVendor.bindStatus === "OFFLINE"
+        ? [
+          {
+            label: "Retry Bind",
+            icon: <RefreshCw size={16} />,
+            onClick: () => handleManualRetry(selectedRowVendor),
+          },
+        ]
+        : []),
+      ...(canUpdate
+        ? [
+          {
+            label: "Edit Vendor",
+            icon: <Edit size={16} />,
+            onClick: () => handleEdit(selectedRowVendor),
+          },
+          {
+            label: !selectedRowVendor.vendorRateGroup ? "Add Rate Group" : "Edit Rate Group",
+            icon: !selectedRowVendor.vendorRateGroup ? <Plus size={16} /> : <Edit size={16} />,
+            onClick: () => handleEditRateGroup(selectedRowVendor),
+          },
+        ]
+        : []),
+      ...(canDelete
+        ? [
+          {
+            label: "Delete Vendor",
+            icon: <Trash size={16} />,
+            variant: "danger" as const,
+            onClick: () => setDeleteId(selectedRowVendor.id!),
+          },
+        ]
+        : []),
+    ]
     : [];
 
   const tableHeaders = [
@@ -707,7 +762,7 @@ const Vendor: React.FC = () => {
               buttonLabel="Search Fields"
             />
           </div>
-          
+
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
@@ -973,7 +1028,7 @@ const Vendor: React.FC = () => {
         editingVendor={editingVendor}
         isViewMode={isViewMode}
       />
-      
+
       <VendorRateGroupModal
         isOpen={isRateGroupModalOpen}
         onClose={() => setIsRateGroupModalOpen(false)}
@@ -982,7 +1037,7 @@ const Vendor: React.FC = () => {
         editingVendor={editingVendor}
         vendorRateGroupOptions={vendorRateGroupOptions}
       />
-      
+
       <VendorRateTableModal
         isOpen={isRateModalOpen}
         onClose={() => setIsRateModalOpen(false)}

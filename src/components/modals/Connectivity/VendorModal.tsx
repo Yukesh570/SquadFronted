@@ -60,6 +60,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     smppPort: "",
     systemID: "",
     password: "",
+    status: "",
     bindMode: "TRANSMITTER",
     sourceTON: "",
     sourceNPI: "",
@@ -107,6 +108,11 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     { label: "On Submit", value: "ON_SUBMIT" },
     { label: "On Delivered", value: "ON_DELIVERED" },
   ];
+  const status = [
+    { label: "Active", value: "ACTIVE" },
+    { label: "Trial", value: "TRIAL" },
+    { label: "Suspended", value: "SUSPENDED" },
+  ];
 
   const bindModeOptions = [
     { label: "Transmitter", value: "TRANSMITTER" },
@@ -144,7 +150,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     const loadData = async () => {
       if (isOpen && editingVendor) {
         const anyVendor = editingVendor as any;
-        
+
         // ⚡️ FIX: Instantly grab policy ID from the nested object if it exists
         setExistingPolicyId(anyVendor.vendorPolicy?.id || null);
 
@@ -164,7 +170,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           sourceNPI: "",
           destTON: "",
           destNPI: "",
-          
+
           // ⚡️ FIX: Read directly from nested vendorPolicy
           rateTps: anyVendor.vendorPolicy?.rateTps != null ? String(anyVendor.vendorPolicy.rateTps) : "",
           maxSession: anyVendor.vendorPolicy?.maxSession != null ? String(anyVendor.vendorPolicy.maxSession) : "",
@@ -182,7 +188,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           logLevel: anyVendor.vendorPolicy?.logLevel || "INFO",
           tlvTag: anyVendor.vendorPolicy?.tlvTag || "",
           tlvValue: anyVendor.vendorPolicy?.tlvValue || "",
-          
+          status: anyVendor.status || "",
           bindStatus: editingVendor.bindStatus || "OFFLINE",
           active_session_count: anyVendor.active_session_count || 0,
           max_allowed_sessions: anyVendor.vendorPolicy?.maxSession || 1, // Fallback to 1 if no policy set
@@ -221,6 +227,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           profileName: "",
           connectionType: "SMPP",
           invoicePolicy: "ON_ATTEMPT",
+          status: "",
           smppId: 0,
           smppHost: "",
           smppPort: "",
@@ -459,7 +466,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       <form
         onSubmit={handleSubmit}
         className="space-y-5 max-h-[80vh] overflow-y-auto px-1"
-        noValidate 
+        noValidate
       >
         {isLoadingDetails && (
           <div className="p-3 mb-2 text-sm text-blue-800 bg-blue-50 rounded border border-blue-200 flex items-center">
@@ -480,7 +487,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               options={companyOptions}
               placeholder="Select Company"
               disabled={isViewMode}
-              required 
+              required
             />
             <Input
               label="Profile Name"
@@ -488,7 +495,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               value={formData.profileName}
               onChange={handleChange}
               placeholder="Vendor A"
-              required 
+              required
               disabled={isViewMode}
             />
           </div>
@@ -500,7 +507,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               options={invoicePolicyOptions}
               placeholder="Select Invoice Policy"
               disabled={isViewMode}
-              required 
+              required
             />
             <Select
               label="Log Level"
@@ -508,6 +515,13 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={(v) => handleSelect("logLevel", v)}
               options={logLevelOptions}
               placeholder="Select Log Level"
+              disabled={isViewMode}
+            />
+            <Select
+              label="Status"
+              value={formData.status}
+              onChange={(v) => handleSelect("status", v)}
+              options={status}
               disabled={isViewMode}
             />
           </div>
@@ -545,9 +559,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
 
         {formData.connectionType === "SMPP" && (
           <div
-            className={`border border-gray-200 dark:border-gray-700 p-4 rounded-lg space-y-4 ${
-              isLoadingDetails ? "opacity-50 pointer-events-none" : ""
-            }`}
+            className={`border border-gray-200 dark:border-gray-700 p-4 rounded-lg space-y-4 ${isLoadingDetails ? "opacity-50 pointer-events-none" : ""
+              }`}
           >
             <h3 className="text-sm font-semibold text-primary">
               SMPP Configuration
@@ -560,7 +573,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
                 value={formData.smppHost}
                 onChange={handleChange}
                 placeholder="smpp.host.com"
-                required 
+                required
                 disabled={isViewMode || isLoadingDetails}
               />
               <Input
@@ -570,7 +583,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
                 value={formData.smppPort}
                 onChange={handleChange}
                 placeholder="2775"
-                required 
+                required
                 disabled={isViewMode || isLoadingDetails}
               />
             </div>
@@ -582,7 +595,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
                 value={formData.systemID}
                 onChange={handleChange}
                 placeholder="User ID"
-                required 
+                required
                 disabled={isViewMode || isLoadingDetails}
               />
               <Input
@@ -592,7 +605,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Secret"
-                required 
+                required
                 disabled={isViewMode || isLoadingDetails}
                 rightIcon={
                   <button
@@ -830,7 +843,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             />
           </div>
         </fieldset>
-        
+
         {editingVendor && (
           <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4 bg-gray-50/50 dark:bg-gray-800/30">
             <legend className="text-sm font-semibold text-primary px-2">
@@ -842,11 +855,10 @@ export const VendorModal: React.FC<VendorModalProps> = ({
                 name="bindStatus"
                 value={formData.bindStatus}
                 disabled={true}
-                className={`font-semibold ${
-                  formData.bindStatus === "ONLINE"
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-red-500 dark:text-red-400"
-                }`}
+                className={`font-semibold ${formData.bindStatus === "ONLINE"
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-red-500 dark:text-red-400"
+                  }`}
               />
               <Input
                 label="Active Sessions / Allowed"
