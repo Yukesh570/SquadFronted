@@ -8,11 +8,15 @@ export interface TerminatingVendor {
 }
 
 export interface RouteItem {
-  route_id: number;
+  route_id: string | number;
+  route_group?: string;
+  mcc?: string;
+  mnc?: string;
   client_cost: number;
   vendor_cost: number;
   traffic_percentage: number;
   terminating_vendor: TerminatingVendor;
+  client?: ClientInfo;
 }
 
 export interface CountryInfo {

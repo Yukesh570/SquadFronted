@@ -23,6 +23,7 @@ interface RouteLookupTableRow {
   mcc: string;
   mnc: string;
   clientName: string;
+  routeGroup: string;
   smppUsername: string;
   terminatingVendor: string;
   systemId: string;
@@ -92,10 +93,11 @@ const FindRoute: React.FC = () => {
         const formattedRows: RouteLookupTableRow[] = response.route.map((item, idx) => ({
           id: item.route_id || idx,
           countryName: response.country?.name || "-",
-          mcc: response.mcc || "-",
-          mnc: response.mnc || "-",
-          clientName: response.client?.name || "-",
-          smppUsername: response.client?.smpp_username || "-",
+          mcc: item.mcc || response.mcc || "-",
+          mnc: item.mnc || response.mnc || "-",
+          clientName: item.client?.name || response.client?.name || "-",
+          routeGroup: item.route_group || "-",
+          smppUsername: item.client?.smpp_username || response.client?.smpp_username || "-",
           terminatingVendor: item.terminating_vendor?.name || "-",
           systemId: item.terminating_vendor?.system_id || "-",
           companyName: item.terminating_vendor?.company_name || "-",
@@ -112,6 +114,7 @@ const FindRoute: React.FC = () => {
           mcc: response.mcc || "-",
           mnc: response.mnc || "-",
           clientName: response.client?.name || "-",
+          routeGroup: "-",
           smppUsername: response.client?.smpp_username || "-",
           terminatingVendor: "-",
           systemId: "-",
@@ -145,6 +148,7 @@ const FindRoute: React.FC = () => {
     "MCC",
     "MNC",
     "Client Name",
+    "Route Group",
     "SMPP Username",
     "Terminating Vendor",
     "System ID",
@@ -275,6 +279,9 @@ const FindRoute: React.FC = () => {
                       </td>
                       <td className="px-4 py-4 text-sm font-medium text-text-primary dark:text-white whitespace-nowrap">
                         {row.clientName}
+                      </td>
+                      <td className="px-4 py-4 text-sm font-medium text-text-primary dark:text-white whitespace-nowrap">
+                        {row.routeGroup}
                       </td>
                       <td className="px-4 py-4 text-sm font-mono text-text-secondary dark:text-gray-300 whitespace-nowrap">
                         {row.smppUsername}
