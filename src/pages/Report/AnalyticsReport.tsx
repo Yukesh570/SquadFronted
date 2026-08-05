@@ -1,33 +1,27 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import FilterCard from "../../components/ui/FilterCard";
 import DatePicker from "../../components/ui/DatePicker";
-import Select from "../../components/ui/Select";
 import Input from "../../components/ui/Input";
 import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedFilter";
 import { actionHelper } from "../../helper/action";
+
 import {
   getAnalyticsDatesApi,
   getAnalyticsDataApi,
 } from "../../api/reportApi/analyticsReportApi";
 
-interface Option {
-  label: string;
-  value: string;
-}
-
 interface ColumnConfig extends FilterColumn {
   filterKey?: string;
-  options?: Option[];
 }
 
 const formatLocalDate = (date: Date) => {
   const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -38,22 +32,17 @@ const normalizeDateStr = (dateStr: string) => {
   return `${parts[0]}-${parseInt(parts[1], 10)}-${parseInt(parts[2], 10)}`;
 };
 
-const rowsOptions = [
-  { value: "10", label: "10" },
-  { value: "25", label: "25" },
-  { value: "50", label: "50" },
-  { value: "100", label: "100" },
-];
-
-const DEFAULT_SEARCH_COLUMNS = ["client_company", "country_name", "vendor_company", "date_range"];
+const DEFAULT_SEARCH_COLUMNS = ["date__range", "date"];
+const BATCH_SIZE = 50;
+const LOAD_MORE_THRESHOLD_PX = 200;
 
 const allColumns: ColumnConfig[] = [
-  { key: "client_company", label: "Client Company", type: "text" },
-  { key: "vendor_company", label: "Vendor Company", type: "text" },
-  { key: "country_name", label: "Country Name", type: "text" },
-  { key: "client_name", label: "Client Name", type: "text" },
-  { key: "vendor_name", label: "Vendor Name", type: "text" },
-  { key: "date_range", label: "Date Range", type: "date_range" },
+  { key: "date", label: "Date Exact", type: "date" },
+  { key: "date__range", label: "Date Range", type: "date_range" },
+  { key: "date__gt", label: "Date After (>)", type: "date" },
+  { key: "date__gte", label: "Date From (>=)", type: "date" },
+  { key: "date__lt", label: "Date Before (<)", type: "date" },
+  { key: "date__lte", label: "Date To (<=)", type: "date" },
 ];
 
 // --- UNIFORM NEUTRAL EXPAND/COLLAPSE (+ / -) BUTTON ---
@@ -155,9 +144,10 @@ const tableHeaders = [
 const AnalyticsReport: React.FC = () => {
   const [dateRows, setDateRows] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [loadedPage, setLoadedPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   // Advanced search columns & filter values
   const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
@@ -176,6 +166,8 @@ const AnalyticsReport: React.FC = () => {
   // Loading indicators for tree nodes
   const [nodeLoading, setNodeLoading] = useState<Record<string, boolean>>({});
 
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
+
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
     if (!hasLoggedOpening.current) {
@@ -186,10 +178,6 @@ const AnalyticsReport: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchDatesAndOverallData();
-  }, [currentPage, rowsPerPage]);
-
   const getActiveFilterParams = () => {
     const params: Record<string, any> = {};
 
@@ -197,25 +185,38 @@ const AnalyticsReport: React.FC = () => {
       const val = filterValues[key];
       if (!val) return;
 
-      if (key === "date_range") {
+      if (key === "date_range" || key === "date__range") {
         const [startRange, endRange] = val.split(",");
-        if (startRange) params.start_date = normalizeDateStr(startRange);
-        if (endRange) params.end_date = normalizeDateStr(endRange);
+        const startStr = startRange ? startRange.split("T")[0] : "";
+        const endStr = endRange ? endRange.split("T")[0] : "";
+
+        if (startStr && endStr) {
+          params.date__range = `${startStr},${endStr}`;
+        } else if (startStr) {
+          params.date__gte = startStr;
+        } else if (endStr) {
+          params.date__lte = endStr;
+        }
       } else {
-        params[key] = val;
+        const datePart = val.split("T")[0];
+        if (datePart) {
+          params[key] = datePart;
+        }
       }
     });
 
     return params;
   };
 
-  const fetchDatesAndOverallData = async () => {
-    setIsLoading(true);
+  const fetchDatesAndOverallData = async (page: number = 1, append: boolean = false) => {
+    if (append) setIsFetchingMore(true);
+    else setIsLoading(true);
+
     try {
       const filterParams = getActiveFilterParams();
       const searchParams: Record<string, any> = {
-        page: currentPage,
-        page_size: rowsPerPage,
+        page: page,
+        page_size: BATCH_SIZE,
         ...filterParams,
       };
 
@@ -225,6 +226,8 @@ const AnalyticsReport: React.FC = () => {
         : datesRes.results || [];
       const count = datesRes.count ?? rawDates.length;
       setTotalItems(count);
+      setHasMore(Boolean(datesRes.next));
+      setLoadedPage(page);
 
       const dailyMetricsRes = await getAnalyticsDataApi({
         group_by: "day",
@@ -245,7 +248,7 @@ const AnalyticsReport: React.FC = () => {
         }
       });
 
-      const dateRowsWithMetrics = rawDates.map((dateStr: string) => {
+      const newDateRows = rawDates.map((dateStr: string) => {
         const m = metricsMap[dateStr] || metricsMap[normalizeDateStr(dateStr)] || {};
         return {
           id: dateStr,
@@ -263,16 +266,37 @@ const AnalyticsReport: React.FC = () => {
         };
       });
 
-      setDateRows(dateRowsWithMetrics);
-      toast.success("Analytics data loaded successfully");
+      setDateRows((prev) => (append ? [...prev, ...newDateRows] : newDateRows));
     } catch (error) {
       console.error("Failed to fetch dates:", error);
       toast.error("Failed to retrieve analytics data from backend.");
-      setDateRows([]);
+      if (!append) setDateRows([]);
     } finally {
       setIsLoading(false);
+      setIsFetchingMore(false);
     }
   };
+
+  useEffect(() => {
+    fetchDatesAndOverallData(1, false);
+  }, []);
+
+  // Infinite Scroll Event Listener
+  useEffect(() => {
+    const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(".custom-scrollbar");
+    if (!scrollEl) return;
+
+    const handleScroll = () => {
+      if (isLoading || isFetchingMore || !hasMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = scrollEl;
+      if (scrollHeight - scrollTop - clientHeight < LOAD_MORE_THRESHOLD_PX) {
+        fetchDatesAndOverallData(loadedPage + 1, true);
+      }
+    };
+
+    scrollEl.addEventListener("scroll", handleScroll);
+    return () => scrollEl.removeEventListener("scroll", handleScroll);
+  }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, dateRows.length]);
 
   // Level 1: Toggle Date -> Fetch Client Companies
   const toggleDate = async (dateStr: string) => {
@@ -286,6 +310,7 @@ const AnalyticsReport: React.FC = () => {
         const filterParams = getActiveFilterParams();
         const res = await getAnalyticsDataApi({
           start_date: reqDate,
+          end_date: reqDate,
           group_by: "client_company",
           ...filterParams,
         });
@@ -313,6 +338,7 @@ const AnalyticsReport: React.FC = () => {
         const filterParams = getActiveFilterParams();
         const res = await getAnalyticsDataApi({
           start_date: reqDate,
+          end_date: reqDate,
           group_by: "country",
           client_company: clientCompany,
           ...filterParams,
@@ -341,6 +367,7 @@ const AnalyticsReport: React.FC = () => {
         const filterParams = getActiveFilterParams();
         const res = await getAnalyticsDataApi({
           start_date: reqDate,
+          end_date: reqDate,
           group_by: "vendor_company",
           client_company: clientCompany,
           country_name: countryName,
@@ -362,33 +389,29 @@ const AnalyticsReport: React.FC = () => {
   };
 
   const handleSearch = () => {
-    setCurrentPage(1);
     setExpandedDates({});
     setExpandedClients({});
     setExpandedCountries({});
     setClientData({});
     setCountryData({});
     setVendorData({});
-    fetchDatesAndOverallData();
+    fetchDatesAndOverallData(1, false);
   };
 
   const handleClearFilters = () => {
     setFilterValues({});
-    setCurrentPage(1);
     setExpandedDates({});
     setExpandedClients({});
     setExpandedCountries({});
     setClientData({});
     setCountryData({});
     setVendorData({});
-    fetchDatesAndOverallData();
+    fetchDatesAndOverallData(1, false);
   };
 
-  const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
-  const startIndex = (currentPage - 1) * rowsPerPage;
   const paginationLabel = `${
-    totalItems === 0 ? 0 : startIndex + 1
-  }-${Math.min(startIndex + dateRows.length, totalItems)} of ${totalItems}`;
+    totalItems === 0 ? 0 : 1
+  }-${Math.min(dateRows.length, totalItems)} of ${totalItems}`;
 
   const maxAttempts = Math.max(...dateRows.map((d) => d.attempts || 1), 100);
   const maxRevenue = Math.max(...dateRows.map((d) => d.revenue || 1), 10);
@@ -430,8 +453,6 @@ const AnalyticsReport: React.FC = () => {
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary dark:text-white">Report</span>
-          <span>/</span>
           <span className="text-text-primary dark:text-white">Analytics</span>
         </div>
       </div>
@@ -440,15 +461,23 @@ const AnalyticsReport: React.FC = () => {
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
           const baseLabel = getBaseLabel(col.label);
-          if (col.options) {
+          if (col.type === "date") {
+            const rawVal = filterValues[col.key] || "";
+            const datePart = rawVal.split("T")[0];
+
             return (
-              <Select
+              <DatePicker
                 key={col.key}
                 label={`Search ${baseLabel}`}
-                value={filterValues[col.key] || ""}
-                onChange={(val) => handleFilterChange(col.key, val)}
-                options={col.options}
-                placeholder={`Select ${baseLabel}`}
+                selected={datePart ? new Date(datePart) : null}
+                onChange={(val: Date | null) => {
+                  if (val) {
+                    const formatted = formatLocalDate(val);
+                    handleFilterChange(col.key, formatted);
+                  } else {
+                    handleFilterChange(col.key, "");
+                  }
+                }}
               />
             );
           }
@@ -494,49 +523,15 @@ const AnalyticsReport: React.FC = () => {
       </FilterCard>
 
       {/* DataTable-Matching Container */}
-      <div className="mt-6 rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0 app-data-table">
-        
-        {/* Exact DataTable Top Bar Layout */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 relative z-10">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
-                Rows per page:
-              </span>
-              <div className="w-24 shrink-0">
-                <Select
-                  value={String(rowsPerPage)}
-                  onChange={(val) => {
-                    setRowsPerPage(Number(val));
-                    setCurrentPage(1);
-                  }}
-                  options={rowsOptions}
-                  clearable={false}
-                />
-              </div>
-            </div>
-            <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
-              {paginationLabel}
-            </span>
-            <div className="flex items-center space-x-2 shrink-0">
-              <button
-                className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                disabled={currentPage === 1 || isLoading}
-                title="Previous Page"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <button
-                className="rounded border border-transparent p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                disabled={currentPage >= totalPages || totalItems === 0 || isLoading}
-                title="Next Page"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          </div>
+      <div
+        ref={tableWrapperRef}
+        className="mt-6 rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0 app-data-table"
+      >
+        {/* Count Only Top Bar */}
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3 bg-white dark:bg-gray-800 relative z-10">
+          <span className="text-sm text-text-secondary dark:text-gray-400">
+            {paginationLabel}
+          </span>
         </div>
 
         {/* Scrollable Data Table with High Z-Index Opaque Sticky Header */}
@@ -753,6 +748,11 @@ const AnalyticsReport: React.FC = () => {
             </tbody>
           </table>
         </div>
+        {isFetchingMore && (
+          <div className="text-center text-xs text-text-secondary dark:text-gray-400 py-2 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
+            Loading more...
+          </div>
+        )}
       </div>
     </div>
   );
