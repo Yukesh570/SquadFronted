@@ -65,8 +65,7 @@ import {
   type FailureReasonCountsData,
 } from "../../api/reportApi/smsCountsApi";
 
-import { getGeneralSettingsApi } from "../../api/settingApi/generalSettingsApi/generalSettingsApi";
-import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
+
 
 // DLR colours — stable, not derived from API
 const DLR_COLORS: Record<string, string> = {
@@ -137,8 +136,7 @@ const Dashboard: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [revenue, setRevenue] = useState<RevenueData | null>(null);
 
-  // Dynamic Currency State
-  const [currencySymbol, setCurrencySymbol] = useState<string>("$");
+
 
   // --- Analytics: failure / vendor+route / client / geo / latency ---
   const [failureBreakdown, setFailureBreakdown] = useState<FailureBreakdownData[]>([]);
@@ -378,21 +376,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const fetchCurrencySymbol = async () => {
-    try {
-      const settings = await getGeneralSettingsApi("generalSettings");
-      if (settings?.baseCurrency) {
-        const currRes = await getCurrenciesApi("currency", 1, 1000);
-        const list = currRes?.results || (Array.isArray(currRes) ? currRes : []);
-        const matched = list.find((c: any) => String(c.id) === String(settings.baseCurrency));
-        if (matched && matched.symbol) {
-          setCurrencySymbol(matched.symbol);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to fetch dynamic currency symbol", e);
-    }
-  };
 
   // ─── Effects ─────────────────────────────────────────────────────────────────
 
@@ -423,8 +406,6 @@ const Dashboard: React.FC = () => {
     fetchOnlineVendors();
     fetchOnlineClients();
     fetchNotifications();
-    fetchCurrencySymbol();
-
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
     if (!wsBase) {
       console.error("WebSocket Error: VITE_WS_BASE_URL is missing in your .env file!");
@@ -923,7 +904,7 @@ const Dashboard: React.FC = () => {
           title="Total Revenue"
           value={
             revenue && revenue.total_revenue != null && !isNaN(Number(revenue.total_revenue))
-              ? `${currencySymbol}${Number(revenue.total_revenue).toFixed(4)}`
+              ? `${revenue.currencySymbol || "$"}${Number(revenue.total_revenue).toFixed(4)}`
               : "-"
           }
           icon={<Banknote size={24} />}
@@ -933,7 +914,7 @@ const Dashboard: React.FC = () => {
           title="Total Cost"
           value={
             revenue && revenue.total_cost != null && !isNaN(Number(revenue.total_cost))
-              ? `${currencySymbol}${Number(revenue.total_cost).toFixed(4)}`
+              ? `${revenue.currencySymbol || "$"}${Number(revenue.total_cost).toFixed(4)}`
               : "-"
           }
           icon={<Banknote size={24} />}
@@ -943,7 +924,7 @@ const Dashboard: React.FC = () => {
           title="Gross Margin"
           value={
             revenue && revenue.gross_margin != null && !isNaN(Number(revenue.gross_margin))
-              ? `${currencySymbol}${Number(revenue.gross_margin).toFixed(4)}`
+              ? `${revenue.currencySymbol || "$"}${Number(revenue.gross_margin).toFixed(4)}`
               : "-"
           }
           icon={<TrendingUp size={24} />}

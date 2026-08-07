@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react";
+import { Home, Plus, Edit, Trash, Eye, History } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -18,6 +18,7 @@ import AdvancedFilter, {
 } from "../../../components/ui/AdvancedFilter";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
 import { CurrencyExchangeRateModal } from "../../../components/modals/Settings/CurrencyExchangeRateModal";
+import { CurrencyExchangeRateHistoryModal } from "../../../components/modals/Settings/CurrencyExchangeRateHistoryModal";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import ContextMenu, {
   type ContextMenuItem,
@@ -44,13 +45,14 @@ interface ColumnConfig extends FilterColumn {
 const DEFAULT_SEARCH_COLUMNS = [
   "baseCurrency",
   "targetCurrency",
-  "isActive",
+  "status",
 ];
 const DEFAULT_TABLE_COLUMNS = [
   "baseCurrency",
   "targetCurrency",
   "exchangeRate",
-  "isActive",
+  "status",
+  "source",
   "createdAt",
 ];
 
@@ -68,7 +70,9 @@ const CurrencyExchangeRate: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [editingRate, setEditingRate] = useState<CurrencyExchangeRateData | null>(null);
+  const [historyRateId, setHistoryRateId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
@@ -106,39 +110,62 @@ const CurrencyExchangeRate: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const activeOptions: Option[] = [
-    { label: "Active", value: "true" },
-    { label: "Inactive", value: "false" },
+    { label: "Active", value: "ACTIVE" },
+    { label: "Inactive", value: "INACTIVE" },
+    { label: "Expired", value: "EXPIRED" },
   ];
-
-  // ⚡️ FIX: Implemented exact mapping using StatusBadge instead of inline hardcoded HTML
-  const renderBooleanBadge = (value: boolean) => {
-    return <StatusBadge status={value ? "ACTIVE" : "INACTIVE"} />;
-  };
 
   const allColumns: ColumnConfig[] = [
     {
       key: "baseCurrency",
       label: "Base Currency",
       type: "text",
-      filterKey: "baseCurrency__icontains",
+      filterKey: "baseCurrency__name__icontains",
+      render: (c) => (
+        <span>
+          {c.baseCurrency_name ? c.baseCurrency_name : c.baseCurrency}{" "}
+          {c.baseCurrency_name && (
+            <span className="text-gray-400">({c.baseCurrency})</span>
+          )}
+        </span>
+      ),
     },
     {
       key: "targetCurrency",
       label: "Target Currency",
       type: "text",
-      filterKey: "targetCurrency__icontains",
+      filterKey: "targetCurrency__name__icontains",
+      render: (c) => (
+        <span>
+          {c.targetCurrency_name ? c.targetCurrency_name : c.targetCurrency}{" "}
+          {c.targetCurrency_name && (
+            <span className="text-gray-400">({c.targetCurrency})</span>
+          )}
+        </span>
+      ),
     },
     {
       key: "exchangeRate",
       label: "Exchange Rate",
       type: "number",
+      render: (c) => c.targetCurrency_symbol ? `${c.targetCurrency_symbol} ${c.exchangeRate}` : c.exchangeRate,
     },
     {
-      key: "isActive",
+      key: "status",
       label: "Status",
-      type: "boolean",
+      type: "text",
       options: activeOptions,
-      render: (c) => renderBooleanBadge(c.isActive),
+      render: (c) => <StatusBadge status={c.status} />,
+    },
+    {
+      key: "source",
+      label: "Source",
+      type: "text",
+      render: (c) => (
+        <span>
+          {c.source ? c.source : "-"}
+        </span>
+      ),
     },
     {
       key: "createdAt",
@@ -312,31 +339,39 @@ const CurrencyExchangeRate: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowRate
     ? [
-        {
-          label: "View Details",
-          icon: <Eye size={16} />,
-          onClick: () => handleView(selectedRowRate),
+      {
+        label: "View Details",
+        icon: <Eye size={16} />,
+        onClick: () => handleView(selectedRowRate),
+      },
+      {
+        label: "Manage History",
+        icon: <History size={16} />,
+        onClick: () => {
+          setHistoryRateId(selectedRowRate.id as number);
+          setIsHistoryModalOpen(true);
         },
-        ...(canUpdate
-          ? [
-              {
-                label: "Edit Rate",
-                icon: <Edit size={16} />,
-                onClick: () => handleEdit(selectedRowRate),
-              },
-            ]
-          : []),
-        ...(canDelete
-          ? [
-              {
-                label: "Delete Rate",
-                icon: <Trash size={16} />,
-                variant: "danger" as const,
-                onClick: () => setDeleteId(selectedRowRate.id!),
-              },
-            ]
-          : []),
-      ]
+      },
+      ...(canUpdate
+        ? [
+          {
+            label: "Edit Rate",
+            icon: <Edit size={16} />,
+            onClick: () => handleEdit(selectedRowRate),
+          },
+        ]
+        : []),
+      ...(canDelete
+        ? [
+          {
+            label: "Delete Rate",
+            icon: <Trash size={16} />,
+            variant: "danger" as const,
+            onClick: () => setDeleteId(selectedRowRate.id!),
+          },
+        ]
+        : []),
+    ]
     : [];
 
   const headers = [
@@ -568,11 +603,10 @@ const CurrencyExchangeRate: React.FC = () => {
               return (
                 <td
                   key={col.key}
-                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${
-                    col.key === "baseCurrency" || col.key === "targetCurrency"
-                      ? "font-medium text-text-primary dark:text-white"
-                      : ""
-                  }`}
+                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "baseCurrency" || col.key === "targetCurrency"
+                    ? "font-medium text-text-primary dark:text-white"
+                    : ""
+                    }`}
                 >
                   {cellData || "-"}
                 </td>
@@ -597,12 +631,19 @@ const CurrencyExchangeRate: React.FC = () => {
         isViewMode={isViewMode}
       />
 
+      <CurrencyExchangeRateHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        rateId={historyRateId}
+        moduleName={routeName}
+      />
+
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Exchange Rate"
-        message="Are you sure you want to delete this exchange rate? This action cannot be undone."
+        title="Delete Currency Exchange Rate"
+        message="Are you sure you want to delete this currency exchange rate? This action cannot be undone."
       />
     </div>
   );

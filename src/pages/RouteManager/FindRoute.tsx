@@ -31,6 +31,8 @@ interface RouteLookupTableRow {
   routingType: string;
   clientCost?: number;
   vendorCost?: number;
+  clientCurrencyCode?: string;
+  vendorCurrencyCode?: string;
 }
 
 const FindRoute: React.FC = () => {
@@ -104,6 +106,8 @@ const FindRoute: React.FC = () => {
           routingType: response.routing_type || "-",
           clientCost: item.client_cost,
           vendorCost: item.vendor_cost,
+          clientCurrencyCode: item.client?.currencyCode || response.client?.currencyCode,
+          vendorCurrencyCode: item.terminating_vendor?.currencyCode,
         }));
         setTableData(formattedRows);
       } else if (response && (response.country || response.client || response.mcc)) {
@@ -122,6 +126,8 @@ const FindRoute: React.FC = () => {
           routingType: response.routing_type || "NO_ROUTE",
           clientCost: undefined,
           vendorCost: undefined,
+          clientCurrencyCode: response.client?.currencyCode,
+          vendorCurrencyCode: undefined,
         };
         setTableData([fallbackRow]);
       } else {
@@ -302,10 +308,10 @@ const FindRoute: React.FC = () => {
                         />
                       </td>
                       <td className="px-4 py-4 text-sm font-semibold text-text-primary dark:text-white whitespace-nowrap">
-                        {row.clientCost ?? "-"}
+                        {row.clientCost != null ? `${row.clientCost} ${row.clientCurrencyCode || ""}` : "-"}
                       </td>
                       <td className="px-4 py-4 text-sm font-semibold text-text-primary dark:text-white whitespace-nowrap">
-                        {row.vendorCost ?? "-"}
+                        {row.vendorCost != null ? `${row.vendorCost} ${row.vendorCurrencyCode || ""}` : "-"}
                       </td>
                     </tr>
                   ))

@@ -177,9 +177,11 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
     ...(canDelete ? [{ label: "Delete", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRate.id) }] : []),
   ] : [];
 
+  const currencyCode = latestRates.length > 0 ? latestRates[0].currencyCode : "";
+
   const headers = [
     "Country", "MCC", "MNC", "Country Code", "Network",
-    "Rate", "Version", "Status", "Effective From", "Effective To"
+    `Rate ${currencyCode ? `(${currencyCode})` : ""}`, "Version", "Status", "Effective From", "Effective To"
   ];
 
   const renderCountry = (rate: any) => {
@@ -306,7 +308,9 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MNC || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.countryCode || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.network || "-"}</td>
-                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 font-medium whitespace-nowrap">{v.rate || "-"}</td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 font-medium whitespace-nowrap">
+                        {v.rate || "-"}
+                      </td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">v{v.version || 0}</td>
                       <td className="py-3 px-4"><StatusBadge status={v.status} /></td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.effectiveFrom ? new Date(v.effectiveFrom).toLocaleString() : "-"}</td>

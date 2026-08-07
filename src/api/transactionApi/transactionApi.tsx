@@ -9,13 +9,18 @@ export interface VendorTransactionData {
   transactionType: string;
   segments: number;
   ratePerSegment: string | number;
+  exchangeRateToBase: string | number;
   amount: string | number;
+  baseAmount: string | number;
+
   balanceSpent: string | number;
   description: string;
   createdAt: string;
   chargePolicy?: string;
   status?: string;
   currency?: string;
+  currencyCode?: string;
+  baseCurrencyCode?: string;
 }
 
 export interface ClientTransactionData {
@@ -27,13 +32,18 @@ export interface ClientTransactionData {
   transactionType: string;
   segments: number;
   ratePerSegment: string | number;
+  exchangeRateToBase: string | number;
   amount: string | number;
+  baseAmount: string | number;
+
   balanceSpent: string | number;
   description: string;
   createdAt: string;
   chargePolicy?: string;
   status?: string;
   currency?: string;
+  currencyCode?: string;
+  baseCurrencyCode?: string;
 }
 
 export interface PaginatedResponse<T> {

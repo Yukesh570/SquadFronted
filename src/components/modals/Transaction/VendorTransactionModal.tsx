@@ -46,22 +46,30 @@ export const VendorTransactionModal: React.FC<VendorTransactionModalProps> = ({
           </div>
           <div>
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Currency</label>
-            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.currency || "-"}</div>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.currencyCode || "-"}</div>
           </div>
           <div>
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Segments</label>
             <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.segments || "0"}</div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Rate Per Segment</label>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Rate Per Segment {viewData.currencyCode ? `(${viewData.currencyCode})` : ""}</label>
             <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.ratePerSegment || "0"}</div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Amount</label>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1"> Exchange Rate to Base  {viewData.baseCurrencyCode ? `(${viewData.baseCurrencyCode})` : ""}</label>
+            <div className="text-sm font-semibold text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.exchangeRateToBase || "0"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Amount {viewData.currencyCode ? `(${viewData.currencyCode})` : ""}</label>
             <div className="text-sm font-semibold text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.amount || "0"}</div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Balance Spent</label>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Base Amount {viewData.baseCurrencyCode ? `(${viewData.baseCurrencyCode})` : ""}</label>
+            <div className="text-sm font-semibold text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.baseAmount || "0"}</div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Balance Spent {viewData.currencyCode ? `(${viewData.currencyCode})` : ""}</label>
             <div className="text-sm font-semibold text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewData.balanceSpent || "0"}</div>
           </div>
           <div>

@@ -212,9 +212,9 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
                     Nothing found.
                   </div>
                 ) : (
-                  visibleOptions.map((option) => (
+                  visibleOptions.map((option, index) => (
                     <Combobox.Option
-                      key={option.value}
+                      key={`${option.value}-${index}`}
                       disabled={option.disabled}
                       className={({ active }) =>
                         `relative cursor-default select-none py-2 pl-10 pr-4 ${

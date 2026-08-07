@@ -16,6 +16,7 @@ export interface VendorInvoiceData {
   invoicePdf?: string;
   downloadUrl?: string;
   createdAt?: string;
+  currencyCode?: string;
 }
 
 export interface PaginatedResponse<T> {

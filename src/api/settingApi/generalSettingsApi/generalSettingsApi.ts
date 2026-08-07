@@ -9,6 +9,7 @@ export interface GeneralSettingsData {
   datetimeFormat: string;
   baseCurrency: number | string; // ⚡️ FIX: Now accepts numeric ID
   baseCurrency_name?: string;    // ⚡️ FIX: Added response mapping
+  baseCurrency_code?: string;
   updatedBy?: number;
   updatedAt?: string;
 }
@@ -73,13 +74,13 @@ export const putDashboardImageApi = async (data: FormData): Promise<DashboardIma
 
 export const getPublicGeneralSettingsApi = async (): Promise<GeneralSettingsData> => {
   let baseURL = api.defaults.baseURL?.replace(/\/$/, "") || "";
-  
+
   if (baseURL.endsWith("/api")) {
     baseURL = baseURL.slice(0, -4);
   }
 
   const response = await fetch(`${baseURL}/displayGeneralSettings/`);
-  
+
   if (!response.ok) throw new Error("Backend returned " + response.status);
   return response.json();
 };
@@ -87,7 +88,7 @@ export const getPublicGeneralSettingsApi = async (): Promise<GeneralSettingsData
 export const getPublicDashboardImageApi = async (): Promise<DashboardImageData> => {
   const baseURL = api.defaults.baseURL?.replace(/\/$/, "") || "";
   const response = await fetch(`${baseURL}/dashboardImage/`);
-  
+
   if (!response.ok) throw new Error("Backend returned " + response.status);
   return response.json();
 };

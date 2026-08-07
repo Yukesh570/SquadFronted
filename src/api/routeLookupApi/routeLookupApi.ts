@@ -5,6 +5,7 @@ export interface TerminatingVendor {
   name: string;
   system_id: string;
   company_name: string;
+  currencyCode: string
 }
 
 export interface RouteItem {
@@ -29,6 +30,7 @@ export interface ClientInfo {
   id: number;
   name: string;
   smpp_username: string;
+  currencyCode: string
 }
 
 export interface RouteLookupResponse {

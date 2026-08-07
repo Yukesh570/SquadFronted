@@ -280,7 +280,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       if (formData.MNC) {
         payload.MNC = isNaN(Number(formData.MNC)) ? formData.MNC : Number(formData.MNC);
       }
-      
+
       if (formData.countryCode) payload.countryCode = Number(formData.countryCode);
       if (formData.status) payload.status = formData.status;
       if (formData.remark) payload.remark = formData.remark;
@@ -329,8 +329,8 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         isViewMode
           ? "View Customer Rate"
           : editingRate
-          ? "Edit/Upgrade Customer Rate"
-          : "Create Customer Rate"
+            ? "Edit/Upgrade Customer Rate"
+            : "Create Customer Rate"
       }
       className="max-w-4xl"
     >
@@ -433,7 +433,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
             <CustomDatePicker
               label="Effective To"
               selected={effectiveToDate}
-              onChange={() => {}}
+              onChange={() => { }}
               showTimeSelect
               disabled={true}
               placeholder="-"
@@ -462,8 +462,8 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
               {isSubmitting
                 ? "Saving"
                 : editingRate
-                ? "Upgrade/Save Details"
-                : "Create Rate"}
+                  ? "Upgrade/Save Details"
+                  : "Create Rate"}
             </Button>
           )}
         </div>

@@ -19,8 +19,8 @@ import { findVendorRateApi } from "../../../api/rateApi/vendorRateApi";
 import { toast } from "react-toastify";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
-import Input from "../../ui/Input"; 
-import { StatusBadge } from "../../ui/StatusBadge"; 
+import Input from "../../ui/Input";
+import { StatusBadge } from "../../ui/StatusBadge";
 import { EditableCell } from "../../ui/EditableCell";
 import ContextMenu, { type ContextMenuItem } from "../../ui/ContextMenu";
 import {
@@ -145,20 +145,20 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
   const routeMenuItems: ContextMenuItem[] = selectedRoute
     ? [
-        ...(canDelete
-          ? [
-              {
-                label: "Delete Route",
-                icon: <Trash size={16} />,
-                variant: "danger" as const,
-                onClick: () => {
-                  setDeleteRouteId(selectedRoute.id!);
-                  setDeleteRouteCountry(selectedRouteCountryId);
-                },
-              },
-            ]
-          : []),
-      ]
+      ...(canDelete
+        ? [
+          {
+            label: "Delete Route",
+            icon: <Trash size={16} />,
+            variant: "danger" as const,
+            onClick: () => {
+              setDeleteRouteId(selectedRoute.id!);
+              setDeleteRouteCountry(selectedRouteCountryId);
+            },
+          },
+        ]
+        : []),
+    ]
     : [];
 
   // ── Fetch configs ───────────────────────────────────────────────────────
@@ -176,13 +176,13 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           return existing
             ? { ...existing, config: cfg }
             : {
-                config: cfg,
-                routes: [],
-                loading: false,
-                newRows: [],
-                isOpen: false,
-                saving: false,
-              };
+              config: cfg,
+              routes: [],
+              loading: false,
+              newRows: [],
+              isOpen: false,
+              saving: false,
+            };
         });
       });
       if (results.length === 0) setConfigSectionOpen(true);
@@ -271,13 +271,13 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         const list = res.results || (Array.isArray(res) ? res : []);
         setCountryOptions(list.map((c: any) => ({ label: c.name, value: String(c.id) })));
       })
-      .catch(() => {});
+      .catch(() => { });
     getVendorsApi("vendor", 1, 1000)
       .then((res: any) => {
         const list = res.results || (Array.isArray(res) ? res : []);
         setVendorOptions(list.map((v: any) => ({ label: v.profileName || v.name, value: String(v.id) })));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [isOpen, routeGroupId]);
 
   // ── Toggle section open/closed ──────────────────────────────────────────
@@ -376,11 +376,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       prev.map((s) =>
         String(s.config.country) === countryId
           ? {
-              ...s,
-              routes: s.routes.map((r) =>
-                r.id === routeId ? { ...r, [field]: newValue } : r,
-              ),
-            }
+            ...s,
+            routes: s.routes.map((r) =>
+              r.id === routeId ? { ...r, [field]: newValue } : r,
+            ),
+          }
           : s,
       ),
     );
@@ -411,11 +411,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         prev.map((s) =>
           String(s.config.country) === countryId
             ? {
-                ...s,
-                routes: s.routes.map((r) =>
-                  r.id === routeId ? { ...r, [field]: (originalRoute as any)[field] } : r,
-                ),
-              }
+              ...s,
+              routes: s.routes.map((r) =>
+                r.id === routeId ? { ...r, [field]: (originalRoute as any)[field] } : r,
+              ),
+            }
             : s,
         ),
       );
@@ -429,11 +429,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         prev.map((s) =>
           String(s.config.country) === countryId
             ? {
-                ...s,
-                newRows: s.newRows.map((r) =>
-                  r._id === rowId ? { ...r, vendorRate: undefined } : r,
-                ),
-              }
+              ...s,
+              newRows: s.newRows.map((r) =>
+                r._id === rowId ? { ...r, vendorRate: undefined } : r,
+              ),
+            }
             : s,
         ),
       );
@@ -453,11 +453,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         prev.map((s) =>
           String(s.config.country) === countryId
             ? {
-                ...s,
-                newRows: s.newRows.map((r) =>
-                  r._id === rowId ? { ...r, vendorRate: matchedRate } : r,
-                ),
-              }
+              ...s,
+              newRows: s.newRows.map((r) =>
+                r._id === rowId ? { ...r, vendorRate: matchedRate } : r,
+              ),
+            }
             : s,
         ),
       );
@@ -467,11 +467,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         prev.map((s) =>
           String(s.config.country) === countryId
             ? {
-                ...s,
-                newRows: s.newRows.map((r) =>
-                  r._id === rowId ? { ...r, vendorRate: "Error" } : r,
-                ),
-              }
+              ...s,
+              newRows: s.newRows.map((r) =>
+                r._id === rowId ? { ...r, vendorRate: "Error" } : r,
+              ),
+            }
             : s,
         ),
       );
@@ -519,25 +519,25 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }
   };
 
-const addRow = (countryId: string) =>
-  setSections((prev) =>
-    prev.map((s) => {
-      if (String(s.config.country) !== countryId) return s;
+  const addRow = (countryId: string) =>
+    setSections((prev) =>
+      prev.map((s) => {
+        if (String(s.config.country) !== countryId) return s;
 
-      const codes = networkCodesByCountry[countryId];
-      const row = emptyRow();
-      if (codes?.mccOptions.length === 1) row.MCC = codes.mccOptions[0].value;
-      if (codes?.mncOptions.length === 1) row.MNC = codes.mncOptions[0].value;
+        const codes = networkCodesByCountry[countryId];
+        const row = emptyRow();
+        if (codes?.mccOptions.length === 1) row.MCC = codes.mccOptions[0].value;
+        if (codes?.mncOptions.length === 1) row.MNC = codes.mncOptions[0].value;
 
-      return { ...s, newRows: [...s.newRows, row] };
-    }),
-  );
+        return { ...s, newRows: [...s.newRows, row] };
+      }),
+    );
 
   const updateRow = (countryId: string, rowId: string, field: keyof NewRow, value: string) => {
     setSections((prev) =>
       prev.map((s) => {
         if (String(s.config.country) !== countryId) return s;
-        
+
         const updatedRows = s.newRows.map((r) => {
           if (r._id === rowId) {
             const updatedRow = { ...r, [field]: value };
@@ -673,7 +673,7 @@ const addRow = (countryId: string) =>
 
             {configSectionOpen && (
               <div className="p-4 space-y-5 bg-white dark:bg-gray-900 border-t border-primary/10 dark:border-primary/20 rounded-b-xl">
-                
+
                 {/* --- ADD NEW CONFIG AREA --- */}
                 {canUpdate && availableCountries.length > 0 && (
                   <div className="flex flex-col gap-2">
@@ -714,11 +714,10 @@ const addRow = (countryId: string) =>
                       {filteredSections.map((s) => (
                         <div
                           key={s.config.id}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium ${
-                            s.config.routingType === "PERCENTAGE"
-                              ? "bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/20 dark:border-purple-700 dark:text-purple-300"
-                              : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300"
-                          }`}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium ${s.config.routingType === "PERCENTAGE"
+                            ? "bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/20 dark:border-purple-700 dark:text-purple-300"
+                            : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300"
+                            }`}
                         >
                           <span>{s.config.countryName}</span>
                           <span className="text-xs opacity-60">({s.config.routingType})</span>
@@ -739,7 +738,7 @@ const addRow = (countryId: string) =>
                     </div>
                   ) : (
                     <div className="text-center py-6 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
-                       <p className="text-sm text-gray-400">No countries configured yet.</p>
+                      <p className="text-sm text-gray-400">No countries configured yet.</p>
                     </div>
                   )}
                 </div>
@@ -803,11 +802,10 @@ const addRow = (countryId: string) =>
                 >
                   {/* Section header */}
                   <div
-                    className={`flex items-center justify-between px-4 py-2.5 cursor-pointer select-none transition-colors ${
-                      section.isOpen
-                        ? "bg-gray-100 dark:bg-gray-700/60 rounded-t-lg"
-                        : "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                    }`}
+                    className={`flex items-center justify-between px-4 py-2.5 cursor-pointer select-none transition-colors ${section.isOpen
+                      ? "bg-gray-100 dark:bg-gray-700/60 rounded-t-lg"
+                      : "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                      }`}
                     onClick={() => toggleSection(countryId)}
                   >
                     <div className="flex items-center gap-2.5">
@@ -815,11 +813,10 @@ const addRow = (countryId: string) =>
                         {section.config.countryName}
                       </span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          isPercentage
-                            ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
-                            : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                        }`}
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${isPercentage
+                          ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+                          : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                          }`}
                       >
                         {isPercentage ? "Percentage" : "Priority"}
                       </span>
@@ -830,11 +827,10 @@ const addRow = (countryId: string) =>
                       )}
                       {isPercentage && section.isOpen && (
                         <span
-                          className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${
-                            totalValid
-                              ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-700 dark:text-green-400"
-                              : "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-400"
-                          }`}
+                          className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${totalValid
+                            ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-700 dark:text-green-400"
+                            : "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-400"
+                            }`}
                         >
                           {totalValid ? <CheckCircle2 size={11} /> : <AlertCircle size={11} />}
                           {grandTotal}%
@@ -878,7 +874,9 @@ const addRow = (countryId: string) =>
                               <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-28">
                                 {isPercentage ? "Traffic %" : "Priority"}
                               </th>
-                              <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-28">Vendor Rate</th>
+                              <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-28">
+                                Vendor Rate {section.routes.length > 0 && (section.routes[0] as any).currencyCode ? `(${(section.routes[0] as any).currencyCode})` : ""}
+                              </th>
                               <th className="px-3 py-2 font-bold text-left border-b dark:border-gray-600 w-32">Status</th>
                               {(canUpdate || canDelete) && (
                                 <th className="px-3 py-2 font-bold text-center border-b border-l dark:border-gray-600 w-16">Action</th>
@@ -900,7 +898,7 @@ const addRow = (countryId: string) =>
                                 <tr
                                   key={route.id}
                                   onContextMenu={canDelete ? (e) => handleRouteContextMenu(e, route, countryId) : undefined}
-  className={`relative focus-within:z-20 hover:bg-blue-50/40 dark:hover:bg-primary/5 transition-colors ${canDelete ? "cursor-context-menu" : ""}`}
+                                  className={`relative focus-within:z-20 hover:bg-blue-50/40 dark:hover:bg-primary/5 transition-colors ${canDelete ? "cursor-context-menu" : ""}`}
                                 >
                                   <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 text-gray-400 text-xs bg-gray-50/50 dark:bg-gray-800/20">{i + 1}</td>
                                   <td className="p-1.5 border-r border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w-24 max-w-[6rem]">
@@ -952,8 +950,12 @@ const addRow = (countryId: string) =>
                                       onEditEnd={() => setActiveCellId(null)}
                                     />
                                   </td>
-                                  <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 font-mono">
-                                    {(route as any).vendorRate ?? <span className="text-gray-400">—</span>}
+                                  <td className="p-1.5 border-b border-r dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w32 max-w-[rem]">
+                                    <div className="w-full min-h-[28px] px-2 py-1.5 rounded flex items-center bg-gray-50 dark:bg-gray-800/50 text-gray-500 font-mono text-xs cursor-not-allowed border border-transparent">
+                                      <span className="truncate">
+                                        {(route as any).vendorRate ? (route as any).vendorRate : "—"}
+                                      </span>
+                                    </div>
                                   </td>
                                   <td className="p-1.5 border-b dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w-32 max-w-[8rem]">
                                     {canUpdate ? (
@@ -993,7 +995,7 @@ const addRow = (countryId: string) =>
 
                             {/* New (unsaved) rows */}
                             {section.newRows.map((row, i) => (
-<tr key={row._id} className="relative focus-within:z-20 bg-blue-50/70 dark:bg-blue-900/10 border-l-[3px] border-l-blue-400">
+                              <tr key={row._id} className="relative focus-within:z-20 bg-blue-50/70 dark:bg-blue-900/10 border-l-[3px] border-l-blue-400">
                                 <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-blue-400 text-xs">
                                   {section.routes.length + i + 1}
                                 </td>
@@ -1135,7 +1137,8 @@ const addRow = (countryId: string) =>
       />
 
       {/* Scoped CSS for inline table form components */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .inline-table-field label { display: none !important; }
         .inline-table-field > div { margin-bottom: 0 !important; }
         .inline-table-field input, .inline-table-field select, .inline-table-field button {

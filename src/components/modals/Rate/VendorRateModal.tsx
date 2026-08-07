@@ -64,7 +64,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
 
   const [effectiveFromDate, setEffectiveFromDate] = useState<Date | null>(new Date());
   const [effectiveToDate, setEffectiveToDate] = useState<Date | null>(null);
-  
+
   // Track whether user manually picked a custom date in the DatePicker
   const [hasUserSelectedCustomDate, setHasUserSelectedCustomDate] = useState(false);
 
@@ -360,8 +360,8 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
         isViewMode
           ? "View Vendor Rate"
           : editingRate
-          ? "Edit/Upgrade Vendor Rate"
-          : "Create Vendor Rate"
+            ? "Edit/Upgrade Vendor Rate"
+            : "Create Vendor Rate"
       }
       className="max-w-4xl"
     >
@@ -468,7 +468,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
             <CustomDatePicker
               label="Effective To"
               selected={effectiveToDate}
-              onChange={() => {}}
+              onChange={() => { }}
               showTimeSelect
               disabled={true}
               placeholder="-"
@@ -497,8 +497,8 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
               {isSubmitting
                 ? "Saving"
                 : editingRate
-                ? "Upgrade/Update Rate"
-                : "Create Rate"}
+                  ? "Upgrade/Update Rate"
+                  : "Create Rate"}
             </Button>
           )}
         </div>

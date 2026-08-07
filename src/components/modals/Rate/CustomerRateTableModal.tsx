@@ -10,8 +10,8 @@ import { CustomerRateModal } from "./CustomerRateModal";
 import { RateVersionTableModal } from "./RateVersionTableModal";
 import { ImportCustomerRateModal } from "./ImportCustomerratemodal";
 import { toast } from "react-toastify";
-import Button from "../../ui/Button"; 
-import { Plus, Edit, Trash, Layers, Upload, ChevronLeft, ChevronRight } from "lucide-react"; 
+import Button from "../../ui/Button";
+import { Plus, Edit, Trash, Layers, Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import Select from "../../ui/Select";
 import Input from "../../ui/Input";
 import DatePicker from "../../ui/DatePicker";
@@ -104,17 +104,17 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
       Object.keys(apiFilters).forEach((key) => {
         const val = apiFilters[key];
         if (!val) return;
-        
-        if      (key === "countryName")   searchParams["country__name__icontains"] = val;
-        else if (key === "MCC")           searchParams["MCC__icontains"]           = val;
-        else if (key === "MNC")           searchParams["MNC__icontains"]           = val;
-        else if (key === "countryCode")   searchParams["countryCode__icontains"]   = val;
-        else if (key === "rate")          searchParams["rate"]                      = val;
-        else if (key === "version")       searchParams["version"]                   = val;
-        else if (key === "status")        searchParams["status__icontains"]         = val;
-        else if (key === "effectiveFrom") searchParams["effectiveFrom"]             = val;
+
+        if (key === "countryName") searchParams["country__name__icontains"] = val;
+        else if (key === "MCC") searchParams["MCC__icontains"] = val;
+        else if (key === "MNC") searchParams["MNC__icontains"] = val;
+        else if (key === "countryCode") searchParams["countryCode__icontains"] = val;
+        else if (key === "rate") searchParams["rate_icontains"] = val;
+        else if (key === "version") searchParams["version"] = val;
+        else if (key === "status") searchParams["status__icontains"] = val;
+        else if (key === "effectiveFrom") searchParams["effectiveFrom"] = val;
       });
-      
+
       const res = await getCustomerRatesApi(moduleName, currentPage, rowsPerPage, searchParams);
       const list = res.results || (Array.isArray(res) ? res : []);
       setLatestRates(list);
@@ -174,8 +174,10 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
     ...(canDelete ? [{ label: "Delete", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRate.id) }] : []),
   ] : [];
 
+  const currencyCode = latestRates.length > 0 ? latestRates[0].currencyCode : "";
+
   const headers = [
-    "Country", "MCC", "MNC", "Country Code", "Rate", "Version", "Status",
+    "Country", "MCC", "MNC", "Country Code", `Rate ${currencyCode ? `(${currencyCode})` : ""}`, "Version", "Status",
     "Effective From", "Effective To",
   ];
 
@@ -364,7 +366,8 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
         rateGroupId={rateGroupId ?? null}
       />
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .filter-crt-wrapper label { display: none !important; }
         .filter-crt-wrapper > div { margin-bottom: 0 !important; }
         .filter-crt-wrapper input, .filter-crt-wrapper select, .filter-crt-wrapper button {

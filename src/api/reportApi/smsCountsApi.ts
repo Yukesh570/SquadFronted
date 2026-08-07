@@ -48,6 +48,8 @@ export interface RevenueData {
   total_cost: number;
   gross_margin: number;
   margin_pct: number;
+  currencyCode?: string;
+  currencySymbol?: string;
 }
 
 export const getRevenueApi = async (

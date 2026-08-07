@@ -288,7 +288,7 @@ const toastId = toast.loading("Downloading EDR...", { type: "info" });
               if (col.render) {
                 cellContent = col.render(invoice);
               } else if (col.key === "totalAmount") {
-                cellContent = rawValue != null && !isNaN(Number(rawValue)) ? `$${Number(rawValue).toFixed(4)}` : "-";
+                cellContent = rawValue != null && !isNaN(Number(rawValue)) ? `${Number(rawValue).toFixed(4)} ${(invoice as any).currencyCode || ""}` : "-";
               } else {
                 cellContent = rawValue || "-";
               }

@@ -60,7 +60,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     smppPort: "",
     systemID: "",
     password: "",
-    status: "",
+    status: "ACTIVE",
     bindMode: "TRANSMITTER",
     sourceTON: "",
     sourceNPI: "",
@@ -188,7 +188,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           logLevel: anyVendor.vendorPolicy?.logLevel || "INFO",
           tlvTag: anyVendor.vendorPolicy?.tlvTag || "",
           tlvValue: anyVendor.vendorPolicy?.tlvValue || "",
-          status: anyVendor.status || "",
+          status: anyVendor.status || "ACTIVE",
           bindStatus: editingVendor.bindStatus || "OFFLINE",
           active_session_count: anyVendor.active_session_count || 0,
           max_allowed_sessions: anyVendor.vendorPolicy?.maxSession || 1, // Fallback to 1 if no policy set
@@ -227,7 +227,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           profileName: "",
           connectionType: "SMPP",
           invoicePolicy: "ON_ATTEMPT",
-          status: "",
+          status: "ACTIVE",
           smppId: 0,
           smppHost: "",
           smppPort: "",
@@ -272,24 +272,22 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     setFormData({ ...formData, [name]: value });
   };
 
-  // --- Auto-provision a Vendor Rate Group with the same name as the
-  // vendor's Profile Name, and link it back onto the newly created vendor.
-  // Only runs for brand new vendors (not on edit).
-  const handleAutoProvisionVendorRateGroup = async (
-    vendorId: number,
-    profileName: string,
-  ) => {
-    const rateGroup = await createVendorRateGroupApi(
-      { name: profileName, status: "ACTIVE" },
-      moduleName,
-    );
 
-    await updateVendorApi(
-      vendorId,
-      { vendorRateGroup: rateGroup.id },
-      moduleName,
-    );
-  };
+  // const handleAutoProvisionVendorRateGroup = async (
+  //   vendorId: number,
+  //   profileName: string,
+  // ) => {
+  //   const rateGroup = await createVendorRateGroupApi(
+  //     { name: profileName, status: "ACTIVE" },
+  //     moduleName,
+  //   );
+
+  //   await updateVendorApi(
+  //     vendorId,
+  //     { vendorRateGroup: rateGroup.id },
+  //     moduleName,
+  //   );
+  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -368,6 +366,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         profileName: formData.profileName,
         connectionType: formData.connectionType,
         smpp: finalSmppValue,
+        status: formData.status,
       };
 
       const validInvoicePolicies = ["ON_ATTEMPT", "ON_SUBMIT", "ON_DELIVERED"];
@@ -387,16 +386,16 @@ export const VendorModal: React.FC<VendorModalProps> = ({
 
       // On creation only, auto-create a linked Vendor Rate Group with the
       // same name as the Profile Name and attach it to the vendor.
-      if (isNewVendor && vendorId) {
-        try {
-          await handleAutoProvisionVendorRateGroup(vendorId, formData.profileName);
-        } catch (linkErr) {
-          console.error("Failed to auto-provision Vendor Rate Group:", linkErr);
-          toast.warning(
-            "Vendor saved, but auto-creating the linked Vendor Rate Group failed.",
-          );
-        }
-      }
+      // if (isNewVendor && vendorId) {
+      //   try {
+      //     await handleAutoProvisionVendorRateGroup(vendorId, formData.profileName);
+      //   } catch (linkErr) {
+      //     console.error("Failed to auto-provision Vendor Rate Group:", linkErr);
+      //     toast.warning(
+      //       "Vendor saved, but auto-creating the linked Vendor Rate Group failed.",
+      //     );
+      //   }
+      // }
 
       // --- 3. HANDLE POLICY ---
       if (vendorId) {

@@ -59,8 +59,8 @@ const LOAD_MORE_THRESHOLD_PX = 200;
 const VendorTransaction: React.FC = () => {
   const [transactions, setTransactions] = useState<VendorTransactionData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isFetchingMore, setIsFetchingMore] = useState<boolean>(false);
   const [loadedPage, setLoadedPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -89,6 +89,8 @@ const VendorTransaction: React.FC = () => {
 
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
+  const baseCurrencyCode = transactions.length > 0 ? transactions[0].baseCurrencyCode : "";
+
   const allColumns: ColumnConfig[] = [
     { key: "message_id", label: "Message ID", type: "text", filterKey: "message__message_id__icontains" },
     { key: "vendorProfileName", label: "Vendor Name", type: "text", filterKey: "vendorProfileName__icontains" },
@@ -97,9 +99,12 @@ const VendorTransaction: React.FC = () => {
     { key: "chargePolicy", label: "Charge Policy", type: "text", options: chargePolicyOptions, filterKey: "chargePolicy" },
     { key: "currency", label: "Currency", type: "text", filterKey: "currency__icontains" },
     { key: "segments", label: "Segments", type: "number", filterKey: "segments" },
-    { key: "ratePerSegment", label: "Rate Per Segment", type: "number", filterKey: "ratePerSegment" },
-    { key: "amount", label: "Amount", type: "number", filterKey: "amount" },
-    { key: "balanceSpent", label: "Balance Spent", type: "number", filterKey: "balanceSpent" },
+    { key: "ratePerSegment", label: "Rate Per Segment", type: "number", filterKey: "ratePerSegment", render: (log) => <span>{log.ratePerSegment} {log.currencyCode || log.currency}</span> },
+    { key: "amount", label: "Amount", type: "number", filterKey: "amount", render: (log) => <span>{log.amount} {log.currencyCode || log.currency}</span> },
+
+    { key: "balanceSpent", label: "Balance Spent", type: "number", filterKey: "balanceSpent", render: (log) => <span>{log.balanceSpent} {log.currencyCode || log.currency}</span> },
+    { key: "baseAmount", label: `Base Amount ${baseCurrencyCode ? `(${baseCurrencyCode})` : ""}`, type: "number", filterKey: "baseAmount" },
+    { key: "exchangeRateToBase", label: `Exchange Rate to Base ${baseCurrencyCode ? `(${baseCurrencyCode})` : ""}`, type: "number", filterKey: "exchangeRateToBase" },
 
     { key: "createdAt", label: "Created At (Single Day)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range", render: (log) => (<span>{log.createdAt ? new Date(log.createdAt).toLocaleString() : "-"}</span>) },
     { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt__range", isSearchOnly: true },
@@ -143,9 +148,9 @@ const VendorTransaction: React.FC = () => {
       });
 
       const response: any = await getVendorTransactionsApi(routeName, page, BATCH_SIZE, currentSearchParams);
-      
+
       if (newController.signal.aborted) return;
-      
+
       if (response && response.results) {
         setTransactions((prev) => (append ? [...prev, ...response.results] : response.results));
         setTotalItems(response.count);
@@ -226,10 +231,10 @@ const VendorTransaction: React.FC = () => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-        
+
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100);
-      
+
       hasLoggedOpening.current = true;
     }
   }, []);

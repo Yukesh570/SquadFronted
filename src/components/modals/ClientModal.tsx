@@ -64,7 +64,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     status: "ACTIVE",
     route: "DIRECT",
     paymentTerms: "PREPAID",
-    invoicePolicy: "ON_ATTEMPT", 
+    invoicePolicy: "ON_ATTEMPT",
     allowNetting: false,
     enableDlr: true,
     ipWhitelist: "",
@@ -157,7 +157,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           status: "ACTIVE",
           route: "DIRECT",
           paymentTerms: "PREPAID",
-          invoicePolicy: "ON_ATTEMPT", 
+          invoicePolicy: "ON_ATTEMPT",
           allowNetting: false,
           enableDlr: true,
           ipWhitelist: "",
@@ -188,7 +188,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           status: editingClient.status,
           route: editingClient.route,
           paymentTerms: editingClient.paymentTerms,
-          invoicePolicy: editingClient.invoicePolicy || "ON_ATTEMPT", 
+          invoicePolicy: editingClient.invoicePolicy || "ON_ATTEMPT",
           allowNetting: editingClient.allowNetting,
           enableDlr: editingClient.enableDlr,
           smppUsername: editingClient.smppUsername || "",
@@ -196,7 +196,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           internalNotes: editingClient.internalNotes || "",
           bindStatus: editingClient.bindStatus || "OFFLINE",
           session: editingClient.session || "0/2",
-          
+
           ipWhitelist: "",
           hostnameWhitelist: "",
 
@@ -220,9 +220,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               );
               const ips = myRecords.filter((r: any) => r.access_type === "IP").map((r: any) => r.ip).join(",");
               const hosts = myRecords.filter((r: any) => r.access_type === "HOST" || r.access_type === "HOSTNAME").map((r: any) => r.hostname).join(",");
-              
-              setFormData((prev) => ({ 
-                ...prev, 
+
+              setFormData((prev) => ({
+                ...prev,
                 ipWhitelist: ips,
                 hostnameWhitelist: hosts
               }));
@@ -305,27 +305,27 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   // --- Auto-provision a Route Group + Customer Rate Group with the same
   // name as the client, and link both back onto the newly created client.
   // Only runs for brand new clients (not on edit).
-  const handleAutoProvisionLinkedGroups = async (
-    clientId: number,
-    clientName: string,
-    clientStatus: string,
-  ) => {
-    const groupStatus = clientStatus === "ACTIVE" ? "ACTIVE" : "INACTIVE";
+  // const handleAutoProvisionLinkedGroups = async (
+  //   clientId: number,
+  //   clientName: string,
+  //   clientStatus: string,
+  // ) => {
+  //   const groupStatus = clientStatus === "ACTIVE" ? "ACTIVE" : "INACTIVE";
 
-    const [routeGroup, rateGroup] = await Promise.all([
-      createRouteGroupApi({ name: clientName, status: groupStatus }, moduleName),
-      createCustomerRateGroupApi({ name: clientName, status: groupStatus }, moduleName),
-    ]);
+  //   const [routeGroup, rateGroup] = await Promise.all([
+  //     createRouteGroupApi({ name: clientName, status: groupStatus }, moduleName),
+  //     createCustomerRateGroupApi({ name: clientName, status: groupStatus }, moduleName),
+  //   ]);
 
-    await updateClientApi(
-      clientId,
-      {
-        routeGroup: routeGroup.id,
-        customerRateGroup: rateGroup.id,
-      },
-      moduleName,
-    );
-  };
+  //   await updateClientApi(
+  //     clientId,
+  //     {
+  //       routeGroup: routeGroup.id,
+  //       customerRateGroup: rateGroup.id,
+  //     },
+  //     moduleName,
+  //   );
+  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -352,28 +352,28 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       return;
     }
 
-  const ipList = editingClient
-  ? formData.ipWhitelist
-      .split(/[\n,]+/)
-      .map((ip) => ip.trim())
-      .filter((ip) => ip !== "")
-  : [];
+    const ipList = editingClient
+      ? formData.ipWhitelist
+        .split(/[\n,]+/)
+        .map((ip) => ip.trim())
+        .filter((ip) => ip !== "")
+      : [];
 
-if (editingClient) {
-  for (const ip of ipList) {
-    if (!isValidIp(ip)) {
-      toast.error(`Invalid IP address format: "${ip}"`);
-      return;
+    if (editingClient) {
+      for (const ip of ipList) {
+        if (!isValidIp(ip)) {
+          toast.error(`Invalid IP address format: "${ip}"`);
+          return;
+        }
+      }
     }
-  }
-}
 
-const hostList = editingClient
-  ? formData.hostnameWhitelist
-      .split(/[\n,]+/)
-      .map((h) => h.trim())
-      .filter((h) => h !== "")
-  : [];
+    const hostList = editingClient
+      ? formData.hostnameWhitelist
+        .split(/[\n,]+/)
+        .map((h) => h.trim())
+        .filter((h) => h !== "")
+      : [];
 
     setIsSubmitting(true);
 
@@ -408,26 +408,26 @@ const hostList = editingClient
         savedClientId = newClient.id!;
       }
 
-if (editingClient) {
-  await handleAccessControlSync(savedClientId, ipList, hostList);
-}
+      if (editingClient) {
+        await handleAccessControlSync(savedClientId, ipList, hostList);
+      }
 
       // On creation only, auto-create linked Route Group / Customer Rate
       // Group with the same name and attach them to the client.
-      if (isNewClient && savedClientId) {
-        try {
-          await handleAutoProvisionLinkedGroups(
-            savedClientId,
-            formData.name,
-            formData.status,
-          );
-        } catch (linkErr) {
-          console.error("Failed to auto-provision Route/Rate groups:", linkErr);
-          toast.warning(
-            "Client saved, but auto-creating the linked Route Group / Customer Rate Group failed.",
-          );
-        }
-      }
+      // if (isNewClient && savedClientId) {
+      //   try {
+      //     await handleAutoProvisionLinkedGroups(
+      //       savedClientId,
+      //       formData.name,
+      //       formData.status,
+      //     );
+      //   } catch (linkErr) {
+      //     console.error("Failed to auto-provision Route/Rate groups:", linkErr);
+      //     toast.warning(
+      //       "Client saved, but auto-creating the linked Route Group / Customer Rate Group failed.",
+      //     );
+      //   }
+      // }
 
       if (savedClientId) {
         const policyPayload: any = {};
@@ -451,7 +451,7 @@ if (editingClient) {
         if (formData.submitTimeoutSec !== "")
           policyPayload.submitTimeoutSec = Number(formData.submitTimeoutSec);
 
-       try {
+        try {
           if (existingPolicyId) {
             await updateClientPolicyApi(existingPolicyId, policyPayload);
           } else {
@@ -513,7 +513,7 @@ if (editingClient) {
       <form
         onSubmit={handleSubmit}
         className="space-y-6 max-h-[80vh] overflow-y-auto px-1"
-        noValidate 
+        noValidate
       >
         {/* Identity */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -528,7 +528,7 @@ if (editingClient) {
               options={companyOptions}
               placeholder="Select Company"
               disabled={isViewMode}
-              required 
+              required
             />
             <Input
               label="Client Name"
@@ -536,7 +536,7 @@ if (editingClient) {
               value={formData.name}
               onChange={handleChange}
               placeholder="Unique Client Name"
-              required 
+              required
               disabled={isViewMode}
             />
             <Select
@@ -556,7 +556,7 @@ if (editingClient) {
           </div>
         </fieldset>
 
-         {isViewMode && (
+        {isViewMode && (
           <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <legend className="text-sm font-semibold text-primary px-2">
               Route & Rate Plan
@@ -598,7 +598,7 @@ if (editingClient) {
               options={invoicePolicyOptions}
               placeholder="Select Invoice Policy"
               disabled={isViewMode}
-              required 
+              required
             />
           </div>
         </fieldset>
@@ -608,7 +608,7 @@ if (editingClient) {
           <legend className="text-sm font-semibold text-primary px-2">
             Connectivity & Security
           </legend>
-          
+
           {!isViewMode && (
             <div className="flex justify-end -mt-2 -mb-2">
               <Button
@@ -629,7 +629,7 @@ if (editingClient) {
               value={formData.smppUsername}
               onChange={handleChange}
               disabled={isViewMode}
-              required 
+              required
             />
             <Input
               label="SMPP Password"
@@ -638,7 +638,7 @@ if (editingClient) {
               value={formData.smppPassword}
               onChange={handleChange}
               disabled={isViewMode}
-              required 
+              required
               rightIcon={
                 <button
                   type="button"
@@ -673,7 +673,7 @@ if (editingClient) {
             )}
 
             {/* Conditionally rendering Access Control fields based on view mode and existence */}
-{editingClient && (!isViewMode || formData.ipWhitelist) && (
+            {editingClient && (!isViewMode || formData.ipWhitelist) && (
               <div className="md:col-span-2">
                 <MultiEmailInput
                   label="IP Whitelist"
@@ -685,8 +685,8 @@ if (editingClient) {
                 />
               </div>
             )}
-            
-{editingClient && (!isViewMode || formData.hostnameWhitelist) && (
+
+            {editingClient && (!isViewMode || formData.hostnameWhitelist) && (
               <div className="md:col-span-2">
                 <MultiEmailInput
                   label="Hostname Whitelist"

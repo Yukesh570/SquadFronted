@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
+  leftIcon?: ReactNode;
   rightIcon?: ReactNode;
   isClearable?: boolean;
 }
@@ -11,6 +12,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 const Input: React.FC<InputProps> = ({ 
   label, 
   id, 
+  leftIcon,
   rightIcon, 
   disabled, 
   required,
@@ -52,7 +54,12 @@ const Input: React.FC<InputProps> = ({
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      <div className="relative">
+      <div className="relative flex items-center">
+        {leftIcon && (
+          <div className="absolute left-0 pl-3 flex items-center h-full text-gray-500 pointer-events-none">
+            {leftIcon}
+          </div>
+        )}
         <input
           {...props}
           ref={inputRef}
@@ -68,6 +75,7 @@ const Input: React.FC<InputProps> = ({
               ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500"
               : "bg-white border-gray-200 text-text-primary dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-500"
           }
+          ${leftIcon ? "pl-10" : ""}
           ${rightIcon || showClear ? "pr-10" : ""}`}
         />
         

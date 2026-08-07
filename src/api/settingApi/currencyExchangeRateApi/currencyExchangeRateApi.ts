@@ -3,9 +3,15 @@ import api from "../../axiosInstance";
 export interface CurrencyExchangeRateData {
   id?: number;
   baseCurrency: string;
+  baseCurrency_name?: string;
   targetCurrency: string;
+  targetCurrency_name?: string;
+  targetCurrency_symbol?: string;
+  effectiveFrom: string,
+  effectiveto: string,
+  source: string,
   exchangeRate: string | number;
-  isActive: boolean;
+  status: "ACTIVE" | "INACTIVE" | "EXPIRED";
   createdAt?: string;
 }
 
@@ -30,6 +36,19 @@ export const getCurrencyExchangeRatesApi = async (
   };
   const response = await api.get(`/currencyExchangeRate/${module}/`, {
     params,
+  });
+  return response.data;
+};
+
+// GET HISTORY
+export const getCurrencyExchangeRateHistoryApi = async (
+  module: string,
+  id: number,
+  page: number = 1,
+  pageSize: number = 50
+): Promise<PaginatedResponse<CurrencyExchangeRateData>> => {
+  const response = await api.get(`/currencyExchangeRateHistory/${module}/${id}`, {
+    params: { page, page_size: pageSize },
   });
   return response.data;
 };
@@ -80,11 +99,13 @@ export const deleteCurrencyExchangeRateApi = async (
 // ⚡️ NEW: Fetch Live Exchange Rates
 export const fetchExchangeRatesApi = async (
   baseCurrency: string,
-  targetCurrencies: string[]
+  targetCurrencies: string[],
+  exchangeRate: string | number
 ): Promise<any> => {
   const payload = {
     base_currency: baseCurrency,
     target_currencies: targetCurrencies,
+    exchangeRate: exchangeRate,
   };
   const response = await api.post(`/exchangeRates/fetch/`, payload);
   return response.data;
