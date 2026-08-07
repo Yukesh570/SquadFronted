@@ -239,8 +239,14 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
 
     setIsSubmitting(true);
 
+    const {
+      usedCustomerCredit,
+      usedVendorCredit,
+      ...restFormData
+    } = formData;
+
     const payload = {
-      ...formData,
+      ...restFormData,
       country: Number(formData.country) || null,
       state: formData.state ? formData.state : null, // Handled as text/string or number depending on backend requirements
       category: Number(formData.category) || null,
@@ -469,7 +475,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               disabled={isViewMode}
               required
             />
-            
+
             {(editingCompany || isViewMode) && (
               <>
                 <Input
