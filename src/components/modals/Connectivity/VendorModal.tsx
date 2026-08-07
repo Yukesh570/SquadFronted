@@ -19,8 +19,6 @@ import {
 } from "../../../api/policyApi/vendorPolicyApi";
 import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 
-// --- Linked Provisioning API (Vendor Rate Group) ---
-import { createVendorRateGroupApi } from "../../../api/rateApi/vendorRateApi";
 
 // UI Components
 import Input from "../../ui/Input";
@@ -375,7 +373,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       }
 
       let vendorId = editingVendor?.id;
-      const isNewVendor = !editingVendor;
 
       if (editingVendor) {
         await updateVendorApi(editingVendor.id!, vendorPayload, moduleName);

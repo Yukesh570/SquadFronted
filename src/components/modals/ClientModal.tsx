@@ -22,9 +22,7 @@ import {
   updateClientPolicyApi,
 } from "../../api/policyApi/clientPolicyApi";
 
-// --- Linked Provisioning APIs (Route Group / Customer Rate Group) ---
-import { createRouteGroupApi } from "../../api/routeManagerApi/customRouteApi";
-import { createCustomerRateGroupApi } from "../../api/rateApi/customerRateApi";
+
 
 // --- Components ---
 import Input from "../ui/Input";
@@ -398,7 +396,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       };
 
       let savedClientId: number;
-      const isNewClient = !editingClient;
 
       if (editingClient) {
         await updateClientApi(editingClient.id!, payload, moduleName);
