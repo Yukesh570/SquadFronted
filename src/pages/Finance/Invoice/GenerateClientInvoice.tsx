@@ -7,7 +7,7 @@ import { NavItemsContext } from "../../../context/navItemsContext";
 // --- APIs ---
 import { generateClientInvoiceApi } from "../../../api/financeApi/clientInvoiceApi";
 import { getClientsApi } from "../../../api/clientApi/clientApi";
-import { getAllUserInformationApi } from "../../../api/userApi/userApi";
+import { getallAMUserApi } from "../../../api/userApi/userApi";
 
 // --- Components ---
 import Button from "../../../components/ui/Button";
@@ -54,7 +54,7 @@ const GenerateClientInvoice: React.FC = () => {
     accountManager: "",
     client: "",
   });
-  
+
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
   const [invoiceDate, setInvoiceDate] = useState<Date | null>(new Date());
@@ -91,7 +91,7 @@ const GenerateClientInvoice: React.FC = () => {
 
         // 2. Fetch Users using the endpoint
         try {
-          const userInfoRes = await getAllUserInformationApi();
+          const userInfoRes = await getallAMUserApi();
           let mappedUsers: Option[] = [];
           let currentUserId = "";
 
@@ -101,7 +101,7 @@ const GenerateClientInvoice: React.FC = () => {
               label: u.username || u.name || `User ${u.id}`,
               value: String(u.id)
             }));
-          } 
+          }
           else if (userInfoRes && userInfoRes.id !== undefined) {
             currentUserId = String(userInfoRes.id);
             const currentUserName = userInfoRes.username || userInfoRes.name || `User ${userInfoRes.id}`;
@@ -129,7 +129,7 @@ const GenerateClientInvoice: React.FC = () => {
 
   const getPayload = () => {
     if (!formData.client || !fromDate || !toDate || !invoiceDate) return null;
-    
+
     return {
       accountManager: formData.accountManager && formData.accountManager !== "0" ? Number(formData.accountManager) : null,
       client: Number(formData.client),
@@ -150,9 +150,9 @@ const GenerateClientInvoice: React.FC = () => {
     try {
       const resBlob = await generateClientInvoiceApi(payload, "PREVIEW");
       const fileUrl = window.URL.createObjectURL(new Blob([resBlob], { type: 'application/pdf' }));
-      
+
       setPreviewPdfUrl(fileUrl);
-      setIsPreviewModalOpen(true); 
+      setIsPreviewModalOpen(true);
       toast.success("Preview generated!");
 
     } catch (error: any) {
@@ -231,7 +231,7 @@ const GenerateClientInvoice: React.FC = () => {
 
       <div className="max-w-xl mx-auto p-6 bg-white rounded-xl shadow-card dark:bg-gray-800">
         <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); handleGenerate(); }}>
-          
+
           <Select
             label="Account Manager"
             value={formData.accountManager}
@@ -281,7 +281,7 @@ const GenerateClientInvoice: React.FC = () => {
             >
               {isPreviewing ? "Calculating..." : "Preview"}
             </Button>
-            
+
             <Button
               type="submit"
               variant="primary"

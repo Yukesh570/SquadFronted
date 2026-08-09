@@ -26,7 +26,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getUsersApi = async (
-    module: string = "user", 
+    module: string = "user",
     page: number = 1,
     pageSize: number = 1000,
     searchParams?: Record<string, any>
@@ -44,8 +44,8 @@ export const getUsersApi = async (
     }
 };
 
-// FIXED: Updated endpoint to allUserInformation based on backend instructions
-export const getAllUserInformationApi = async () => {
-    const response = await api.get("/allUserInformation/");
+// FIXED: Updated endpoint to allAMUser based on backend instructions
+export const getallAMUserApi = async () => {
+    const response = await api.get("/allAMUser/");
     return response.data;
 };

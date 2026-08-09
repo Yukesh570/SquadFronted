@@ -9,6 +9,7 @@ export interface AnalyticsParams {
   client_company?: string;
   vendor_company?: string;
   country_name?: string;
+  account_manager?: string;
   page_size?: number;
   page?: number;
 }

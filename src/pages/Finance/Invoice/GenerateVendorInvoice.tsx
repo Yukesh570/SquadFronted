@@ -6,7 +6,7 @@ import { NavItemsContext } from "../../../context/navItemsContext";
 
 // --- APIs ---
 import { generateVendorInvoiceApi, getVendorsApi } from "../../../api/financeApi/vendorInvoiceApi";
-import { getAllUserInformationApi } from "../../../api/userApi/userApi";
+import { getallAMUserApi } from "../../../api/userApi/userApi";
 
 // --- Components ---
 import Button from "../../../components/ui/Button";
@@ -54,7 +54,7 @@ const GenerateVendorInvoice: React.FC = () => {
     accountManager: "",
     vendor: "",
   });
-  
+
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
   const [invoiceDate, setInvoiceDate] = useState<Date | null>(new Date());
@@ -92,7 +92,7 @@ const GenerateVendorInvoice: React.FC = () => {
 
         // 2. Fetch Users
         try {
-          const userInfoRes = await getAllUserInformationApi();
+          const userInfoRes = await getallAMUserApi();
           let mappedUsers: Option[] = [];
           let currentUserId = "";
 
@@ -129,7 +129,7 @@ const GenerateVendorInvoice: React.FC = () => {
 
   const getPayload = () => {
     if (!formData.vendor || !fromDate || !toDate || !invoiceDate) return null;
-    
+
     return {
       accountManager: formData.accountManager && formData.accountManager !== "0" ? Number(formData.accountManager) : null,
       vendor: Number(formData.vendor),
@@ -150,9 +150,9 @@ const GenerateVendorInvoice: React.FC = () => {
     try {
       const resBlob = await generateVendorInvoiceApi(payload, "PREVIEW");
       const fileUrl = window.URL.createObjectURL(new Blob([resBlob], { type: 'application/pdf' }));
-      
+
       setPreviewPdfUrl(fileUrl);
-      setIsPreviewModalOpen(true); 
+      setIsPreviewModalOpen(true);
       toast.success("Preview generated!");
 
     } catch (error: any) {
@@ -231,7 +231,7 @@ const GenerateVendorInvoice: React.FC = () => {
 
       <div className="max-w-xl mx-auto p-6 bg-white rounded-xl shadow-card dark:bg-gray-800">
         <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); handleGenerate(); }}>
-          
+
           <Select
             label="Account Manager"
             value={formData.accountManager}
@@ -281,7 +281,7 @@ const GenerateVendorInvoice: React.FC = () => {
             >
               {isPreviewing ? "Calculating..." : "Preview"}
             </Button>
-            
+
             <Button
               type="submit"
               variant="primary"

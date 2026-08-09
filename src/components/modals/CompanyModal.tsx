@@ -10,6 +10,7 @@ import { getCompanyCategoryApi } from "../../api/settingApi/companyCategoryApi/c
 import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
 import { getCompanyStatusApi } from "../../api/settingApi/companyStatusApi/companyStatusApi";
 import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
+import { getallAMUserApi } from "../../api/userApi/userApi";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import Select from "../ui/Select";
@@ -47,6 +48,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     companyEmail: "",
     supportEmail: "",
     billingEmail: "",
+    amEmail: "",
     ratesEmail: "",
     lowBalanceAlertEmail: "",
     country: "",
@@ -71,6 +73,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     allowNetting: false,
     showHlrApi: false,
     enableVendorPanel: false,
+    accountManager: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,16 +83,17 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   const [statuses, setStatuses] = useState<Option[]>([]);
   const [currencies, setCurrencies] = useState<Option[]>([]);
   const [timeZones, setTimeZones] = useState<Option[]>([]);
+  const [users, setUsers] = useState<Option[]>([]);
 
   useEffect(() => {
     if (isOpen) {
-      const loadOptions = async (apiCall: any, module: string, setter: any) => {
+      const loadOptions = async (apiCall: any, module: string, setter: any, searchParams: any = {}) => {
         try {
-          const res = await apiCall(module, 1, 1000);
+          const res = await apiCall(module, 1, 1000, searchParams);
           const list = res.results || (Array.isArray(res) ? res : []);
           setter(
             list.map((item: any) => ({
-              label: item.name || item.legalEntityName || item.companyName,
+              label: item.username || item.name || item.legalEntityName || item.companyName,
               value: String(item.id),
             })),
           );
@@ -105,6 +109,18 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         loadOptions(getCompanyStatusApi, "companyStatus", setStatuses);
       if (typeof getTimezoneApi === "function")
         loadOptions(getTimezoneApi, "timeZone", setTimeZones);
+
+      getallAMUserApi()
+        .then((res: any) => {
+          const list = res.results || (Array.isArray(res) ? res : []);
+          setUsers(
+            list.map((item: any) => ({
+              label: item.username || item.name || item.id,
+              value: String(item.id),
+            }))
+          );
+        })
+        .catch((err) => console.error("Failed to load AM users:", err));
     }
   }, [isOpen]);
 
@@ -117,6 +133,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         companyEmail: editingCompany.companyEmail,
         supportEmail: editingCompany.supportEmail,
         billingEmail: editingCompany.billingEmail,
+        amEmail: editingCompany.amEmail,
         ratesEmail: editingCompany.ratesEmail,
         lowBalanceAlertEmail: editingCompany.lowBalanceAlertEmail,
         country: String(editingCompany.country || ""),
@@ -141,6 +158,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         allowNetting: editingCompany.allowNetting,
         showHlrApi: editingCompany.showHlrApi,
         enableVendorPanel: editingCompany.enableVendorPanel,
+        accountManager: editingCompany.accountManager != null ? String(editingCompany.accountManager) : "",
       });
     } else if (isOpen) {
       setFormData({
@@ -150,6 +168,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         companyEmail: "",
         supportEmail: "",
         billingEmail: "",
+        amEmail: "",
         ratesEmail: "",
         lowBalanceAlertEmail: "",
         country: "",
@@ -174,6 +193,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         allowNetting: false,
         showHlrApi: false,
         enableVendorPanel: false,
+        accountManager: "",
       });
     }
   }, [isOpen, editingCompany]);
@@ -216,6 +236,10 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       toast.error("Currency is required.");
       return;
     }
+    if (!formData.accountManager.trim()) {
+      toast.error("Account Manager is required.");
+      return;
+    }
     if (!formData.timeZone.trim()) {
       toast.error("Time Zone is required.");
       return;
@@ -253,6 +277,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       status: Number(formData.status) || null,
       currency: Number(formData.currency) || null,
       timeZone: Number(formData.timeZone) || null,
+      accountManager: formData.accountManager ? Number(formData.accountManager) : null,
       referencNumber: formData.referenceNumber,
     };
 
@@ -333,6 +358,15 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               placeholder="+977 9800000000"
               disabled={isViewMode}
             />
+            <Select
+              label="Account Manager"
+              value={formData.accountManager}
+              onChange={(v) => handleSelect("accountManager", v)}
+              options={users}
+              placeholder="Select Account Manager"
+              required
+              disabled={isViewMode}
+            />
             <MultiEmailInput
               label="Company Email"
               name="companyEmail"
@@ -355,6 +389,14 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               value={formData.billingEmail}
               onChange={handleSelect}
               placeholder="billing@acme.com"
+              disabled={isViewMode}
+            />
+            <MultiEmailInput
+              label="AM Email"
+              name="amEmail"
+              value={formData.amEmail}
+              onChange={handleSelect}
+              placeholder="am@acme.com"
               disabled={isViewMode}
             />
             <MultiEmailInput
@@ -434,6 +476,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               disabled={isViewMode}
               required
             />
+
             <Select
               label="Time Zone"
               value={formData.timeZone}

@@ -8,8 +8,13 @@ export interface CompanyData {
   companyEmail: string;
   supportEmail: string;
   billingEmail: string;
+  amEmail: string;
   ratesEmail: string;
   lowBalanceAlertEmail: string;
+
+  // Account Manager
+  accountManager?: number | null;
+  accountManagerName?: string;
 
   // Foreign Keys (IDs)
   country: number;

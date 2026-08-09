@@ -148,6 +148,7 @@ const CompanyList: React.FC = () => {
   const allColumns: ColumnConfig[] = [
     { key: "name", label: "Company Name", type: "text", filterKey: "name__icontains" },
     { key: "shortName", label: "Short Name", type: "text", filterKey: "shortName__icontains" },
+    { key: "accountManagerName", label: "Account Manager", type: "text", filterKey: "accountManager__username__icontains" },
     { key: "phone", label: "Phone", type: "text", filterKey: "phone__icontains" },
     { key: "companyEmail", label: "Company Email", type: "text", filterKey: "companyEmail__icontains" },
     { key: "usedCustomerCredit", label: "Used Customer Credit", type: "text", filterKey: "usedCustomerCredit__icontains" },
@@ -155,6 +156,7 @@ const CompanyList: React.FC = () => {
 
     { key: "supportEmail", label: "Support Email", type: "text", filterKey: "supportEmail__icontains" },
     { key: "billingEmail", label: "Billing Email", type: "text", filterKey: "billingEmail__icontains" },
+    { key: "amEmail", label: "AM Email", type: "text", filterKey: "amEmail__icontains" },
     { key: "ratesEmail", label: "Rates Email", type: "text", filterKey: "ratesEmail__icontains" },
     { key: "lowBalanceAlertEmail", label: "Low Bal. Email", type: "text", filterKey: "lowBalanceAlertEmail__icontains" },
     {
