@@ -6,13 +6,13 @@ import { NavItemsContext } from "../../context/navItemsContext";
 import { getGeneralSettingsApi } from "../../api/settingApi/generalSettingsApi/generalSettingsApi";
 
 const Layout = () => {
-  // If no saved state found, default to 'false' (Expanded) as you requested.
+  // If no saved state found, default to 'false' (Expanded)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     const savedState = localStorage.getItem("sidebar_collapsed");
     return savedState ? JSON.parse(savedState) : false;
   });
 
-  // Mobile: Open/Closed (Drawer) state (No need to persist this usually)
+  // Mobile: Open/Closed (Drawer) state
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const location = useLocation();
@@ -25,7 +25,7 @@ const Layout = () => {
     );
   }, [isSidebarCollapsed]);
 
-  // NEW: Auto-fetch and cache the global timezone when the app loads
+  // Auto-fetch and cache the global timezone when the app loads
   useEffect(() => {
     const initializeTimezone = async () => {
       try {
@@ -44,15 +44,13 @@ const Layout = () => {
   // Intelligent Toggle: Works for both Mobile and Desktop
   const toggleSidebar = () => {
     if (window.innerWidth < 768) {
-      // Mobile: Toggle Drawer
       setIsMobileSidebarOpen(!isMobileSidebarOpen);
     } else {
-      // Desktop: Toggle Collapse
       setIsSidebarCollapsed(!isSidebarCollapsed);
     }
   };
 
-  // Close mobile sidebar when route changes (UX best practice)
+  // Close mobile sidebar when route changes
   useEffect(() => {
     setIsMobileSidebarOpen(false);
   }, [location.pathname]);
@@ -60,20 +58,20 @@ const Layout = () => {
   // Automatic Dynamic Title Logic
   useEffect(() => {
     const currentPath = location.pathname.replace(/^\//, "");
-    let title = "Squad";
+    let title = "Xenon SMS";
 
     let found = false;
     if (navItems?.results) {
       for (const parent of navItems.results) {
         if (parent.url === currentPath) {
-          title = `${parent.label} - Squad`;
+          title = `${parent.label} - Xenon SMS`;
           found = true;
           break;
         }
         if (parent.children) {
           const child = parent.children.find((c) => c.url === currentPath);
           if (child) {
-            title = `${child.label} - ${parent.label} - Squad`;
+            title = `${child.label} - ${parent.label} - Xenon SMS`;
             found = true;
             break;
           }
@@ -82,15 +80,14 @@ const Layout = () => {
     }
     if (!found) {
       if (currentPath.includes("change-password"))
-        title = "Change Password - Squad";
-      else if (currentPath.includes("login")) title = "Login - Squad";
+        title = "Change Password - Xenon SMS";
+      else if (currentPath.includes("login")) title = "Login - Xenon SMS";
     }
     document.title = title;
   }, [location, navItems]);
 
   return (
     <div className="flex h-screen bg-white dark:bg-gray-900 overflow-hidden">
-      {/* Sidebar handles its own mobile/desktop rendering logic now */}
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         isMobileOpen={isMobileSidebarOpen}

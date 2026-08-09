@@ -19,7 +19,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const [companyName, setCompanyName] = useState(() => localStorage.getItem("app_login_name") || "Squad");
+  const [companyName, setCompanyName] = useState(() => localStorage.getItem("app_login_name") || "Xenon SMS");
   const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem("app_login_logo") || FullLogo);
 
   const { login } = useAuth();
@@ -38,7 +38,6 @@ const Login = () => {
       link.href = url;
     };
 
-    // FIX: Listen for forced updates from General Settings
     const handleBrandingUpdate = () => {
        const cachedName = localStorage.getItem("app_login_name");
        const cachedLogo = localStorage.getItem("app_login_logo");
@@ -63,18 +62,18 @@ const Login = () => {
       });
 
     getPublicDashboardImageApi()
-  .then((res) => {
-    if (res && res.image) {
-      const imageBase = import.meta.env.VITE_IMAGE_URL || "";
-      const fullImageUrl = `${imageBase}${res.image}`;
-      if (fullImageUrl !== logoUrl) {
-        setLogoUrl(fullImageUrl);
-        localStorage.setItem("app_login_logo", fullImageUrl);
-        updateFavicon(fullImageUrl);
-      }
-    }
-  })
-  .catch(() => {});
+      .then((res) => {
+        if (res && res.image) {
+          const imageBase = import.meta.env.VITE_IMAGE_URL || "";
+          const fullImageUrl = `${imageBase}${res.image}`;
+          if (fullImageUrl !== logoUrl) {
+            setLogoUrl(fullImageUrl);
+            localStorage.setItem("app_login_logo", fullImageUrl);
+            updateFavicon(fullImageUrl);
+          }
+        }
+      })
+      .catch(() => {});
       
     return () => window.removeEventListener("BrandingUpdated", handleBrandingUpdate);
   }, [companyName, logoUrl]); 

@@ -277,7 +277,7 @@ const GeneralSettings: React.FC = () => {
           <div className="animate-in fade-in zoom-in-95 duration-200">
             {activeTab === "setup" && (
               <form className="space-y-6" onSubmit={handleSetupSubmit}>
-                <Input label="Company Name" name="companyName" value={formData.companyName} onChange={handleChange} placeholder="e.g. Squad SMS" required />
+                <Input label="Company Name" name="companyName" value={formData.companyName} onChange={handleChange} placeholder="e.g. Xenon SMS" required />
                 <Select label="Base Currency" value={String(formData.baseCurrency)} onChange={(v) => handleSelectChange("baseCurrency", v)} options={currencyOptions} placeholder="Select System Currency" />
                 <hr className="dark:border-gray-700" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

@@ -19,8 +19,8 @@ export const TestEmailModal: React.FC<TestEmailModalProps> = ({
   const [recipientEmail, setRecipientEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const staticSubject = "Test Email Configuration - Squad";
-  const staticContent = "This is an automated test email sent from the Squad system to verify your SMTP Host configuration is working correctly.";
+  const staticSubject = "Test Email Configuration - Xenon SMS";
+  const staticContent = "This is an automated test email sent from the Xenon SMS system to verify your SMTP Host configuration is working correctly.";
 
   useEffect(() => {
     if (isOpen) {
@@ -34,7 +34,6 @@ export const TestEmailModal: React.FC<TestEmailModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Build exactly what Postman sends (form-data with snake_case keys)
       const formData = new FormData();
       formData.append("email_host_id", String(server.id));
       formData.append("from_email", server.smtpUser);
