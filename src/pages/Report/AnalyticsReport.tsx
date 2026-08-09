@@ -647,7 +647,7 @@ const AnalyticsReport: React.FC = () => {
                             <td colSpan={10} className="py-3 pl-10 text-xs text-gray-400 italic">No traffic found for {dateStr}.</td>
                           </tr>
                         ) : (
-                          accountManagers.map((amRow: any, amIdx: number) => {
+                          accountManagers.map((amRow: any) => {
                             const amName = amRow.account_manager || `Unassigned`;
                             const amKey = `${dateStr}__${amName}`;
                             const isAmExpanded = !!expandedAccountManagers[amKey];
