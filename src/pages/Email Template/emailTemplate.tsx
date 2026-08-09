@@ -7,7 +7,7 @@ import {
   deleteEmailTemplateApi,
   type EmailTemplateData,
 } from "../../api/emailTemplateApi/emailTemplateApi";
-import { getSmtpServersApi } from "../../api/settingApi/smtpApi/smtpApi"; // Added API Import
+import { getSmtpServersApi } from "../../api/settingApi/smtpApi/smtpApi";
 import { EmailTemplateModal } from "../../components/modals/EmailTemplateModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -71,7 +71,7 @@ const EmailTemplatePage: React.FC = () => {
     setIsLoading(true);
     try {
       const currentSearchParams = overrideParams || {
-        name: nameFilter,
+        name__icontains: nameFilter,
       };
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
@@ -111,7 +111,7 @@ const EmailTemplatePage: React.FC = () => {
   const handleClearFilters = () => {
     setNameFilter("");
     setCurrentPage(1);
-    fetchTemplates({ name: "" });
+    fetchTemplates({ name__icontains: "" });
   };
 
   const handleDelete = async () => {
@@ -246,7 +246,6 @@ const EmailTemplatePage: React.FC = () => {
               {template.subject || "-"}
             </td>
             
-            {/* FIX: Translated Email Server ID to Name */}
             <td className="px-4 py-4 whitespace-nowrap text-sm text-text-secondary dark:text-gray-300">
               {template.emailServer ? serverMap[template.emailServer] || `ID: ${template.emailServer}` : "-"}
             </td>

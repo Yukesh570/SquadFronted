@@ -72,6 +72,7 @@ const Vendor: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // --- Dropdown States ---
+  const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
   const [companies, setCompanies] = useState<Option[]>([]);
   const [vendorRateGroupOptions, setVendorRateGroupOptions] = useState<Option[]>([]);
 
@@ -81,7 +82,7 @@ const Vendor: React.FC = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
 
-  // Modal State for Edit Rate Group ⚡️ ADDED
+  // Modal State for Edit Rate Group
   const [isRateGroupModalOpen, setIsRateGroupModalOpen] = useState(false);
 
   // Modal State for View Rate
@@ -123,10 +124,23 @@ const Vendor: React.FC = () => {
   useEffect(() => {
     const loadDropdowns = async () => {
       try {
+        const vRes: any = await getVendorsApi(routeName, 1, 1000);
+        const vList = vRes.results || (Array.isArray(vRes) ? vRes : []);
+        setVendorOptions(
+          vList.map((v: any) => ({
+            label: v.profileName,
+            value: v.profileName,
+          })),
+        );
+      } catch (err: any) {
+        console.error("Failed to load vendor names for filter", err);
+      }
+
+      try {
         const compRes: any = await getCompaniesApi("company", 1, 1000);
         const list = compRes.results || (Array.isArray(compRes) ? compRes : []);
         setCompanies(
-          list.map((c: any) => ({ label: c.name, value: String(c.id) })),
+          list.map((c: any) => ({ label: c.name, value: c.name })),
         );
       } catch (err: any) {
         console.error("Failed to load companies for filter", err);
@@ -139,7 +153,7 @@ const Vendor: React.FC = () => {
         setVendorRateGroupOptions(
           rateList.map((r: any) => ({
             label: r.name,
-            value: String(r.id),
+            value: r.name,
           })),
         );
       } catch (err: any) {
@@ -147,9 +161,9 @@ const Vendor: React.FC = () => {
       }
     };
     loadDropdowns();
-  }, []);
+  }, [routeName]);
 
-  // --- ⚡️ UNIFIED Live WebSockets for Vendor SMPP Status ---
+  // --- Live WebSockets for Vendor SMPP Status ---
   useEffect(() => {
     const wsBase = import.meta.env.VITE_WS_BASE_URL;
     let ws: WebSocket | null = null;
@@ -245,6 +259,7 @@ const Vendor: React.FC = () => {
       key: "profileName",
       label: "Vendor Name",
       type: "text",
+      options: vendorOptions,
       filterKey: "profileName__icontains",
     },
     {
@@ -259,8 +274,7 @@ const Vendor: React.FC = () => {
       label: "Vendor Rate Group",
       type: "text",
       options: vendorRateGroupOptions,
-      filterKey: "vendorRateGroup",
-      isSearchable: false,
+      filterKey: "vendorRateGroup__name__icontains",
       render: (c: any) => c.vendorRateGroupName || c.vendorRateGroup || "-",
     },
     {
@@ -449,7 +463,6 @@ const Vendor: React.FC = () => {
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
-
 
   const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),

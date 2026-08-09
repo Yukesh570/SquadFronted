@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -13,9 +13,7 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
-// ViewButton removed
 import { usePagePermissions } from "../../hooks/usePagePermissions";
-// NEW: Context Menu
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
@@ -50,7 +48,7 @@ const CampaignTemplatePage: React.FC = () => {
     setIsLoading(true);
     try {
       const currentSearchParams = overrideParams || {
-        name: nameFilter,
+        name__icontains: nameFilter,
       };
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
@@ -61,7 +59,6 @@ const CampaignTemplatePage: React.FC = () => {
         cleanParams
       );
 
-      // 1. FIX: Handle both Object and Array responses
       if ("results" in response) {
         setTemplates(response.results);
         setTotalItems(response.count);
@@ -91,7 +88,7 @@ const CampaignTemplatePage: React.FC = () => {
   const handleClearFilters = () => {
     setNameFilter("");
     setCurrentPage(1);
-    fetchTemplates({ name: "" });
+    fetchTemplates({ name__icontains: "" });
   };
 
   const handleDelete = async () => {
@@ -126,21 +123,19 @@ const CampaignTemplatePage: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Template", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowTemplate.id!) }] : []),
   ] : [];
 
-  // Removed "Actions" from headers
   const headers = ["S.N.", "Name", "Content"];
 
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100);
       
       hasLoggedOpening.current = true;
     }
@@ -199,7 +194,7 @@ const CampaignTemplatePage: React.FC = () => {
         renderRow={(template, index) => (
           <tr
             key={template.id || index}
-            onContextMenu={(e) => handleContextMenu(e, template)} // Right Click Handler
+            onContextMenu={(e) => handleContextMenu(e, template)}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
@@ -225,7 +220,6 @@ const CampaignTemplatePage: React.FC = () => {
                 {stripHtml(template.content)}
               </div>
             </td>
-            {/* ACTION COLUMN REMOVED */}
           </tr>
         )}
       />
