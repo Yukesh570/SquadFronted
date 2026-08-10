@@ -1,19 +1,19 @@
 import React, { Fragment, useState, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
 import { Popover, Transition } from "@headlessui/react";
-import { Filter, Search, Check, X } from "lucide-react";
+import { Filter, Search, Check, X, Lock, ChevronDown, ChevronRight } from "lucide-react";
 import Button from "./Button";
 
 export interface FilterColumn {
   key: string;
   label: string;
-  // ADDED the explicit gt_lt types
   type?: "text" | "number" | "date" | "boolean" | "date_range" | "number_range" | "date_gt_lt" | "number_gt_lt";
 }
 
 export interface AdvancedFilterProps {
   columns: FilterColumn[];
   selectedColumns: string[];
+  defaultColumns?: string[];
   onFilter: (selectedColumns: string[]) => void;
   onClear: () => void;
   isLoading?: boolean;
@@ -23,6 +23,7 @@ export interface AdvancedFilterProps {
 const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   columns,
   selectedColumns,
+  defaultColumns = [],
   onFilter,
   onClear,
   isLoading = false,
@@ -30,8 +31,19 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
 }) => {
   const [tempSelectedKeys, setTempSelectedKeys] = useState<string[]>([]);
   const [columnSearch, setColumnSearch] = useState("");
+  const [isDefaultOpen, setIsDefaultOpen] = useState(false);
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const initialDefaultColumnsRef = useRef<string[]>([]);
+  useEffect(() => {
+    if (initialDefaultColumnsRef.current.length === 0 && selectedColumns.length > 0) {
+      initialDefaultColumnsRef.current = [...selectedColumns];
+    }
+  }, [selectedColumns]);
+
+  const activeDefaultColumns =
+    defaultColumns.length > 0 ? defaultColumns : initialDefaultColumnsRef.current;
 
   const DROPDOWN_WIDTH = 280;
 
@@ -40,6 +52,10 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   }, [selectedColumns]);
 
   const handleToggleColumn = (key: string) => {
+    if (activeDefaultColumns.includes(key) && tempSelectedKeys.includes(key)) {
+      return;
+    }
+
     setTempSelectedKeys((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
     );
@@ -47,7 +63,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
 
   const handleSelectAll = () => {
     if (tempSelectedKeys.length === columns.length) {
-      setTempSelectedKeys([]);
+      setTempSelectedKeys(activeDefaultColumns);
     } else {
       setTempSelectedKeys(columns.map((c) => c.key));
     }
@@ -59,7 +75,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   };
 
   const handleClearAll = (close: () => void) => {
-    setTempSelectedKeys([]);
+    setTempSelectedKeys(activeDefaultColumns);
     onClear();
     close();
   };
@@ -80,8 +96,13 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
     };
   }, []);
 
-  const filteredColumns = columns.filter((c) =>
-    c.label.toLowerCase().includes(columnSearch.toLowerCase())
+  const searchLower = columnSearch.toLowerCase();
+  
+  const defaultList = columns.filter(
+    (c) => activeDefaultColumns.includes(c.key) && c.label.toLowerCase().includes(searchLower)
+  );
+  const otherList = columns.filter(
+    (c) => !activeDefaultColumns.includes(c.key) && c.label.toLowerCase().includes(searchLower)
   );
 
   let topPosition = 0;
@@ -211,31 +232,79 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
 
                       {/* List */}
                       <div className="flex-1 overflow-y-auto min-h-0 p-1">
-                        {filteredColumns.map((col) => {
-                          const isSelected = tempSelectedKeys.includes(col.key);
-                          return (
+                        {/* 1. Default Fields Category */}
+                        {defaultList.length > 0 && (
+                          <div className="mb-1">
                             <button
-                              key={col.key}
                               type="button"
-                              onClick={() => handleToggleColumn(col.key)}
-                              className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md transition-colors mb-0.5 group
-                                ${
-                                  isSelected
-                                    ? "bg-primary/10 text-primary dark:text-primary font-medium"
-                                    : "text-text-secondary dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                                }
-                              `}
+                              onClick={() => setIsDefaultOpen(!isDefaultOpen)}
+                              className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-semibold text-text-secondary dark:text-gray-300 bg-gray-100/80 dark:bg-gray-700/50 hover:bg-gray-200/60 rounded-md transition-colors"
                             >
-                              <div className="flex items-center justify-center w-4 h-4 flex-shrink-0">
-                                {isSelected && (
-                                  <Check size={16} className="text-primary" />
-                                )}
-                              </div>
-                              <span className="truncate">{col.label}</span>
+                              {isDefaultOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                              <span>Default {buttonLabel}</span>
+                              <span className="inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1.5 text-[10px] font-bold text-white bg-primary rounded-full">
+                                {defaultList.length}
+                              </span>
                             </button>
-                          );
-                        })}
-                        {filteredColumns.length === 0 && (
+
+                            {isDefaultOpen && (
+                              <div className="mt-1 space-y-0.5 pl-2">
+                                {defaultList.map((col) => (
+                                  <button
+                                    key={col.key}
+                                    type="button"
+                                    onClick={() => handleToggleColumn(col.key)}
+                                    disabled={true}
+                                    className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                                  >
+                                    <div className="flex items-center justify-center w-4 h-4 flex-shrink-0">
+                                      <Lock size={14} className="text-primary" />
+                                    </div>
+                                    <span className="truncate flex-1">{col.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 2. Other Fields Category */}
+                        {otherList.length > 0 && (
+                          <div className="space-y-0.5">
+                            {otherList.map((col) => {
+                              const isSelected = tempSelectedKeys.includes(col.key);
+
+                              return (
+                                <button
+                                  key={col.key}
+                                  type="button"
+                                  onClick={() => handleToggleColumn(col.key)}
+                                  className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md transition-colors cursor-pointer
+                                    ${
+                                      isSelected
+                                        ? "bg-primary/10 text-primary dark:text-primary font-medium"
+                                        : "text-text-secondary dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                    }
+                                  `}
+                                >
+                                  {/* Square Checkbox Box */}
+                                  <div
+                                    className={`flex items-center justify-center w-4 h-4 rounded border transition-colors flex-shrink-0 ${
+                                      isSelected
+                                        ? "bg-primary border-primary text-white"
+                                        : "border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-800"
+                                    }`}
+                                  >
+                                    {isSelected && <Check size={10} />}
+                                  </div>
+                                  <span className="truncate flex-1">{col.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {defaultList.length === 0 && otherList.length === 0 && (
                           <div className="py-4 px-4 text-center text-gray-400 text-xs">
                             No items found
                           </div>

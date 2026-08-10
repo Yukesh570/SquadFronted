@@ -68,7 +68,7 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
     <div className="flex flex-col">
       <label
         htmlFor={`${name}-input`}
-        className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400"
+        className="mb-1.5 block text-xs font-medium text-text-secondary dark:text-gray-400"
       >
         {label}
       </label>

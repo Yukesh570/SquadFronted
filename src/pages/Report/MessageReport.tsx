@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Home, Eye } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { Home, Eye, Route } from "lucide-react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 // --- API ---
@@ -95,6 +95,7 @@ const BATCH_SIZE = 100;
 const LOAD_MORE_THRESHOLD_PX = 200;
 
 const MessageReport: React.FC = () => {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState<MessageLogData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -457,6 +458,23 @@ const MessageReport: React.FC = () => {
     setSelectedRowLog(log);
   };
 
+  const handleGoToRoute = (log: MessageLogData) => {
+    const clientName = log.clientName || "";
+    const vendorName = log.vendorName || "";
+    const targetName = clientName || vendorName;
+
+    navigate(
+      `/routeManager/customRoute?client=${encodeURIComponent(clientName)}&vendor=${encodeURIComponent(vendorName)}&name=${encodeURIComponent(targetName)}&autoOpen=true`,
+      {
+        state: { clientName, vendorName, targetName, autoOpen: true },
+      }
+    );
+  };
+
+  const connectedRouteTarget = selectedRowLog
+    ? (selectedRowLog.clientName || selectedRowLog.vendorName)
+    : null;
+
   const menuItems: ContextMenuItem[] = selectedRowLog ? [
     {
       label: "View Full Message",
@@ -466,6 +484,13 @@ const MessageReport: React.FC = () => {
         setIsModalOpen(true);
       }
     },
+    ...(connectedRouteTarget ? [
+      {
+        label: `View Custom Route (${connectedRouteTarget})`,
+        icon: <Route size={16} />,
+        onClick: () => handleGoToRoute(selectedRowLog)
+      }
+    ] : []),
   ] : [];
 
   const hasLoggedOpening = useRef(false);

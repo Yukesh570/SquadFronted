@@ -35,7 +35,6 @@ const Input: React.FC<InputProps> = ({
     }
   };
 
-  // Sync browser autofill and native input changes into React state
   const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
     if (props.onChange) {
       props.onChange(e as unknown as React.ChangeEvent<HTMLInputElement>);
@@ -49,7 +48,7 @@ const Input: React.FC<InputProps> = ({
     <div className="flex flex-col w-full">
       <label
         htmlFor={inputId}
-        className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400 min-h-[32px] flex items-end"
+        className="mb-1.5 block text-xs font-medium text-text-secondary dark:text-gray-400"
       >
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}

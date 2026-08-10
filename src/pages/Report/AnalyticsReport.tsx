@@ -45,8 +45,6 @@ const allColumns: ColumnConfig[] = [
   { key: "date__lte", label: "Date To (<=)", type: "date" },
 ];
 
-// --- UNIFORM NEUTRAL EXPAND/COLLAPSE (+ / -) BUTTON ---
-
 const ExpandButton: React.FC<{ isExpanded: boolean }> = ({ isExpanded }) => {
   return (
     <span className="w-6 h-6 flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-bold leading-none shrink-0 border border-gray-200 dark:border-gray-600 group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
@@ -54,8 +52,6 @@ const ExpandButton: React.FC<{ isExpanded: boolean }> = ({ isExpanded }) => {
     </span>
   );
 };
-
-// --- UNIFORM SIZED SINGLE-BOX COMPONENTS (All strictly h-7) ---
 
 const DataBarCell: React.FC<{
   value: number;
@@ -141,6 +137,65 @@ const tableHeaders = [
   "Margin %",
 ];
 
+type DatePresetKey = "today" | "yesterday" | "last7" | "last30" | "thisMonth" | "lastMonth" | "custom";
+
+interface DatePresetOption {
+  key: DatePresetKey;
+  label: string;
+}
+
+const DATE_PRESETS: DatePresetOption[] = [
+  { key: "today", label: "Today" },
+  { key: "yesterday", label: "Yesterday" },
+  { key: "last7", label: "Last 7 Days" },
+  { key: "last30", label: "Last 30 Days" },
+  { key: "thisMonth", label: "This Month" },
+  { key: "lastMonth", label: "Last Month" },
+];
+
+const getPresetDateRange = (preset: DatePresetKey): { start: string; end: string } => {
+  const now = new Date();
+  const todayStr = formatLocalDate(now);
+
+  switch (preset) {
+    case "today":
+      return { start: todayStr, end: todayStr };
+
+    case "yesterday": {
+      const y = new Date(now);
+      y.setDate(now.getDate() - 1);
+      const yStr = formatLocalDate(y);
+      return { start: yStr, end: yStr };
+    }
+
+    case "last7": {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 6);
+      return { start: formatLocalDate(start), end: todayStr };
+    }
+
+    case "last30": {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 29);
+      return { start: formatLocalDate(start), end: todayStr };
+    }
+
+    case "thisMonth": {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { start: formatLocalDate(start), end: todayStr };
+    }
+
+    case "lastMonth": {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { start: formatLocalDate(start), end: formatLocalDate(end) };
+    }
+
+    default:
+      return { start: todayStr, end: todayStr };
+  }
+};
+
 const AnalyticsReport: React.FC = () => {
   const [dateRows, setDateRows] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -149,23 +204,26 @@ const AnalyticsReport: React.FC = () => {
   const [loadedPage, setLoadedPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  // Advanced search columns & filter values
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [activePreset, setActivePreset] = useState<DatePresetKey>("today");
 
-  // Expanded tree node states
+  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [filterValues, setFilterValues] = useState<Record<string, string>>(() => {
+    const todayRange = getPresetDateRange("today");
+    return {
+      date__range: `${todayRange.start},${todayRange.end}`,
+    };
+  });
+
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [expandedAccountManagers, setExpandedAccountManagers] = useState<Record<string, boolean>>({});
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
   const [expandedCountries, setExpandedCountries] = useState<Record<string, boolean>>({});
 
-  // Lazy loaded node data
   const [accountManagerData, setAccountManagerData] = useState<Record<string, any[]>>({});
   const [clientData, setClientData] = useState<Record<string, any[]>>({});
   const [countryData, setCountryData] = useState<Record<string, any[]>>({});
   const [vendorData, setVendorData] = useState<Record<string, any[]>>({});
 
-  // Loading indicators for tree nodes
   const [nodeLoading, setNodeLoading] = useState<Record<string, boolean>>({});
 
   const tableWrapperRef = useRef<HTMLDivElement>(null);
@@ -180,11 +238,23 @@ const AnalyticsReport: React.FC = () => {
     }
   }, []);
 
-  const getActiveFilterParams = () => {
+  const resetTreeState = () => {
+    setExpandedDates({});
+    setExpandedAccountManagers({});
+    setExpandedClients({});
+    setExpandedCountries({});
+    setAccountManagerData({});
+    setClientData({});
+    setCountryData({});
+    setVendorData({});
+  };
+
+  const getActiveFilterParams = (customFilters?: Record<string, string>) => {
     const params: Record<string, any> = {};
+    const activeFilters = customFilters || filterValues;
 
     searchColumns.forEach((key) => {
-      const val = filterValues[key];
+      const val = activeFilters[key];
       if (!val) return;
 
       if (key === "date_range" || key === "date__range") {
@@ -210,12 +280,16 @@ const AnalyticsReport: React.FC = () => {
     return params;
   };
 
-  const fetchDatesAndOverallData = async (page: number = 1, append: boolean = false) => {
+  const fetchDatesAndOverallData = async (
+    page: number = 1,
+    append: boolean = false,
+    customFilters?: Record<string, string>
+  ) => {
     if (append) setIsFetchingMore(true);
     else setIsLoading(true);
 
     try {
-      const filterParams = getActiveFilterParams();
+      const filterParams = getActiveFilterParams(customFilters);
       const searchParams: Record<string, any> = {
         page: page,
         page_size: BATCH_SIZE,
@@ -283,7 +357,6 @@ const AnalyticsReport: React.FC = () => {
     fetchDatesAndOverallData(1, false);
   }, []);
 
-  // Infinite Scroll Event Listener
   useEffect(() => {
     const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(".custom-scrollbar");
     if (!scrollEl) return;
@@ -300,7 +373,6 @@ const AnalyticsReport: React.FC = () => {
     return () => scrollEl.removeEventListener("scroll", handleScroll);
   }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, dateRows.length]);
 
-  // Level 1: Toggle Date -> Fetch Account Managers
   const toggleDate = async (dateStr: string) => {
     const isCurrentlyExpanded = !!expandedDates[dateStr];
     setExpandedDates((prev) => ({ ...prev, [dateStr]: !isCurrentlyExpanded }));
@@ -327,7 +399,6 @@ const AnalyticsReport: React.FC = () => {
     }
   };
 
-  // Level 2: Toggle Account Manager -> Fetch Client Companies
   const toggleAccountManager = async (dateStr: string, accountManager: string) => {
     const compositeKey = `${dateStr}__${accountManager}`;
     const isCurrentlyExpanded = !!expandedAccountManagers[compositeKey];
@@ -356,7 +427,6 @@ const AnalyticsReport: React.FC = () => {
     }
   };
 
-  // Level 3: Toggle Client Company -> Fetch Countries
   const toggleClientCompany = async (dateStr: string, accountManager: string, clientCompany: string) => {
     const compositeKey = `${dateStr}__${accountManager}__${clientCompany}`;
     const isCurrentlyExpanded = !!expandedClients[compositeKey];
@@ -386,7 +456,6 @@ const AnalyticsReport: React.FC = () => {
     }
   };
 
-  // Level 4: Toggle Country -> Fetch Vendor Companies
   const toggleCountry = async (dateStr: string, accountManager: string, clientCompany: string, countryName: string) => {
     const compositeKey = `${dateStr}__${accountManager}__${clientCompany}__${countryName}`;
     const isCurrentlyExpanded = !!expandedCountries[compositeKey];
@@ -417,33 +486,40 @@ const AnalyticsReport: React.FC = () => {
     }
   };
 
+  const handlePresetClick = (presetKey: DatePresetKey) => {
+    setActivePreset(presetKey);
+    const range = getPresetDateRange(presetKey);
+    const newDateRangeVal = `${range.start},${range.end}`;
+
+    const updatedFilters = {
+      ...filterValues,
+      date__range: newDateRangeVal,
+    };
+
+    setFilterValues(updatedFilters);
+    resetTreeState();
+    fetchDatesAndOverallData(1, false, updatedFilters);
+  };
+
   const handleFilterChange = (key: string, value: string) => {
+    setActivePreset("custom");
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSearch = () => {
-    setExpandedDates({});
-    setExpandedAccountManagers({});
-    setExpandedClients({});
-    setExpandedCountries({});
-    setAccountManagerData({});
-    setClientData({});
-    setCountryData({});
-    setVendorData({});
+    resetTreeState();
     fetchDatesAndOverallData(1, false);
   };
 
   const handleClearFilters = () => {
-    setFilterValues({});
-    setExpandedDates({});
-    setExpandedAccountManagers({});
-    setExpandedClients({});
-    setExpandedCountries({});
-    setAccountManagerData({});
-    setClientData({});
-    setCountryData({});
-    setVendorData({});
-    fetchDatesAndOverallData(1, false);
+    const defaultRange = getPresetDateRange("today");
+    const resetFilters = {
+      date__range: `${defaultRange.start},${defaultRange.end}`,
+    };
+    setActivePreset("today");
+    setFilterValues(resetFilters);
+    resetTreeState();
+    fetchDatesAndOverallData(1, false, resetFilters);
   };
 
   const paginationLabel = `${totalItems === 0 ? 0 : 1
@@ -563,11 +639,32 @@ const AnalyticsReport: React.FC = () => {
         ref={tableWrapperRef}
         className="mt-6 rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0 app-data-table"
       >
-        {/* Count Only Top Bar */}
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3 bg-white dark:bg-gray-800 relative z-10">
-          <span className="text-sm text-text-secondary dark:text-gray-400">
+        {/* Top Bar with Pagination Count on Left & Date Pills inside the Red Highlighted Area */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3 bg-white dark:bg-gray-800 relative z-10 gap-3">
+          <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
             {paginationLabel}
           </span>
+
+          {/* Date Quick Preset Pills (Cleanly placed in the empty top bar space) */}
+          <div className="flex flex-wrap gap-2 items-center">
+            {DATE_PRESETS.map((preset) => {
+              const isActive = activePreset === preset.key;
+              return (
+                <button
+                  key={preset.key}
+                  type="button"
+                  onClick={() => handlePresetClick(preset.key)}
+                  className={`px-3 py-1 text-xs font-medium rounded-lg border transition-all duration-200 focus:outline-none shadow-xs ${
+                    isActive
+                      ? "bg-primary text-white border-primary dark:bg-primary dark:border-primary"
+                      : "bg-white text-text-secondary border-gray-200 hover:border-primary hover:text-primary dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Scrollable Data Table with High Z-Index Opaque Sticky Header */}

@@ -224,6 +224,10 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       toast.error("Short Name is required.");
       return;
     }
+    if (!formData.accountManager.trim()) {
+      toast.error("Account Manager is required.");
+      return;
+    }
     if (!formData.country.trim()) {
       toast.error("Country Name is required.");
       return;
@@ -236,20 +240,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
       toast.error("Currency is required.");
       return;
     }
-    if (!formData.accountManager.trim()) {
-      toast.error("Account Manager is required.");
-      return;
-    }
     if (!formData.timeZone.trim()) {
       toast.error("Time Zone is required.");
-      return;
-    }
-    if (!formData.customerCreditLimit.trim()) {
-      toast.error("Customer Credit Limit is required.");
-      return;
-    }
-    if (!formData.vendorCreditLimit.trim()) {
-      toast.error("Vendor Credit Limit is required.");
       return;
     }
     if (!formData.balanceAlertAmount.trim()) {
@@ -266,13 +258,15 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     const {
       usedCustomerCredit,
       usedVendorCredit,
+      customerCreditLimit,
+      vendorCreditLimit,
       ...restFormData
     } = formData;
 
     const payload = {
       ...restFormData,
       country: Number(formData.country) || null,
-      state: formData.state ? formData.state : null, // Handled as text/string or number depending on backend requirements
+      state: formData.state ? formData.state : null,
       category: Number(formData.category) || null,
       status: Number(formData.status) || null,
       currency: Number(formData.currency) || null,
@@ -331,13 +325,14 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Identity & Contacts
           </legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* ⚡️ FIX: Added specific scoped label classes to force alignment baseline */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start [&_label]:min-h-[32px] [&_label]:flex [&_label]:items-end">
             <Input
               label="Company Name"
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="ACME TECHNOLOGIES"
+              placeholder="Xenon SMS"
               required
               disabled={isViewMode}
             />
@@ -346,7 +341,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               name="shortName"
               value={formData.shortName}
               onChange={handleChange}
-              placeholder="ACME"
+              placeholder="Xenon"
               required
               disabled={isViewMode}
             />
@@ -358,6 +353,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               placeholder="+977 9800000000"
               disabled={isViewMode}
             />
+
             <Select
               label="Account Manager"
               value={formData.accountManager}
@@ -372,7 +368,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               name="companyEmail"
               value={formData.companyEmail}
               onChange={handleSelect}
-              placeholder="contact@acme.com"
+              placeholder="contact@xenon.com"
               disabled={isViewMode}
             />
             <MultiEmailInput
@@ -380,15 +376,16 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               name="supportEmail"
               value={formData.supportEmail}
               onChange={handleSelect}
-              placeholder="support@acme.com"
+              placeholder="support@xenon.com"
               disabled={isViewMode}
             />
+
             <MultiEmailInput
               label="Billing Email"
               name="billingEmail"
               value={formData.billingEmail}
               onChange={handleSelect}
-              placeholder="billing@acme.com"
+              placeholder="billing@xenon.com"
               disabled={isViewMode}
             />
             <MultiEmailInput
@@ -396,7 +393,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               name="amEmail"
               value={formData.amEmail}
               onChange={handleSelect}
-              placeholder="am@acme.com"
+              placeholder="am@xenon.com"
               disabled={isViewMode}
             />
             <MultiEmailInput
@@ -404,15 +401,16 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               name="ratesEmail"
               value={formData.ratesEmail}
               onChange={handleSelect}
-              placeholder="rates@acme.com"
+              placeholder="rates@xenon.com"
               disabled={isViewMode}
             />
+
             <MultiEmailInput
               label="Low Balance Alert Email"
               name="lowBalanceAlertEmail"
               value={formData.lowBalanceAlertEmail}
               onChange={handleSelect}
-              placeholder="finance@acme.com"
+              placeholder="finance@xenon.com"
               disabled={isViewMode}
             />
           </div>
@@ -423,7 +421,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Classification & Location
           </legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* ⚡️ FIX: Added specific scoped label classes to force alignment baseline */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start [&_label]:min-h-[32px] [&_label]:flex [&_label]:items-end">
             <Select
               label="Country Name"
               value={formData.country}
@@ -449,6 +448,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               placeholder="Select Category"
               disabled={isViewMode}
             />
+
             <Select
               label="Company Status"
               value={formData.status}
@@ -466,7 +466,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Finance & System
           </legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* ⚡️ FIX: Added specific scoped label classes to force alignment baseline */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start [&_label]:min-h-[32px] [&_label]:flex [&_label]:items-end">
             <Select
               label="Currency"
               value={formData.currency}
@@ -476,7 +477,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               disabled={isViewMode}
               required
             />
-
             <Select
               label="Time Zone"
               value={formData.timeZone}
@@ -486,28 +486,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               disabled={isViewMode}
               required
             />
-            <Input
-              label="Customer Credit Limit"
-              name="customerCreditLimit"
-              type="number"
-              value={formData.customerCreditLimit}
-              onChange={handleChange}
-              placeholder="5000.00"
-              disabled={isViewMode}
-              required
-            />
-
-            <Input
-              label="Vendor Credit Limit"
-              name="vendorCreditLimit"
-              type="number"
-              value={formData.vendorCreditLimit}
-              onChange={handleChange}
-              placeholder="10000.00"
-              disabled={isViewMode}
-              required
-            />
-
             <Input
               label="Balance Alert Amount"
               name="balanceAlertAmount"
@@ -519,8 +497,35 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               required
             />
 
-            {(editingCompany || isViewMode) && (
+            <Input
+              label="Reference Number"
+              name="referenceNumber"
+              value={formData.referenceNumber}
+              onChange={handleChange}
+              placeholder="REF-2024-001"
+              disabled={isViewMode}
+            />
+
+            {isViewMode && (
               <>
+                <Input
+                  label="Customer Credit Limit"
+                  name="customerCreditLimit"
+                  type="number"
+                  value={formData.customerCreditLimit}
+                  onChange={handleChange}
+                  placeholder="5000.00"
+                  disabled
+                />
+                <Input
+                  label="Vendor Credit Limit"
+                  name="vendorCreditLimit"
+                  type="number"
+                  value={formData.vendorCreditLimit}
+                  onChange={handleChange}
+                  placeholder="10000.00"
+                  disabled
+                />
                 <Input
                   label="Used Customer Credit"
                   name="usedCustomerCredit"
@@ -541,15 +546,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                 />
               </>
             )}
-
-            <Input
-              label="Reference Number"
-              name="referenceNumber"
-              value={formData.referenceNumber}
-              onChange={handleChange}
-              placeholder="REF-2024-001"
-              disabled={isViewMode}
-            />
           </div>
         </fieldset>
 
@@ -565,7 +561,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             onChange={(e) =>
               setFormData({ ...formData, address: e.target.value })
             }
-            placeholder="Koteshwor, Kathmandu, Nepal"
+            placeholder=""
             disabled={isViewMode}
             required
           />
@@ -577,7 +573,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             Policies & Settings
           </legend>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {/* ⚡️ FIX: Added specific scoped label classes to force alignment baseline */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-start [&_label]:min-h-[32px] [&_label]:flex [&_label]:items-end">
             <Select
               label="Validity Period"
               value={formData.validityPeriod}

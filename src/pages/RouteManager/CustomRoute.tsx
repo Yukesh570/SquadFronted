@@ -2,7 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { Home, Plus, Layers, Edit } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
-import { getGroupedCustomRoutesApi } from "../../api/routeManagerApi/customRouteApi";
+import {
+  getGroupedCustomRoutesApi,
+  getCustomRoutesApi,
+} from "../../api/routeManagerApi/customRouteApi";
+import { getClientsApi } from "../../api/clientApi/clientApi";
 
 import { CustomRouteModal } from "../../components/modals/RouteManager/CustomRouteModal";
 import { SubRouteTableModal } from "../../components/modals/RouteManager/SubRouteTableModal";
@@ -169,8 +173,16 @@ const CustomRoute: React.FC = () => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
 
+  const openSubTableModal = (groupName: string, groupId?: number) => {
+    setActiveRouteGroup(groupName);
+    setActiveRouteGroupId(groupId ?? null);
+    setIsSubTableModalOpen(true);
+  };
+
   const fetchGroupedRoutes = async (
     filters: Record<string, string> | null = null,
+    autoOpenModal: boolean = false,
+    extraNavInfo?: { clientName?: string; vendorName?: string }
   ) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
@@ -220,7 +232,7 @@ const CustomRoute: React.FC = () => {
         }
       });
 
-      const response: any = await getGroupedCustomRoutesApi(
+      let response: any = await getGroupedCustomRoutesApi(
         routeName,
         currentPage,
         rowsPerPage,
@@ -228,15 +240,93 @@ const CustomRoute: React.FC = () => {
       );
 
       if (newController.signal.aborted) return;
-      if (response && response.results) {
-        setGroupedRoutes(response.results);
-        setTotalItems(response.count);
-      } else if (Array.isArray(response)) {
-        setGroupedRoutes(response);
-        setTotalItems(response.length);
-      } else {
-        setGroupedRoutes([]);
-        setTotalItems(0);
+
+      let routeList = response && response.results 
+        ? response.results 
+        : Array.isArray(response) 
+          ? response 
+          : [];
+
+      // --- FALLBACK LOOKUP: If searching by Name returned 0 results ---
+      const searchTarget = activeFilters.name;
+      const clientName = extraNavInfo?.clientName || searchTarget;
+      const vendorName = extraNavInfo?.vendorName || searchTarget;
+
+      if (routeList.length === 0 && searchTarget) {
+        let foundGroupId: number | null = null;
+        let foundGroupName: string | null = null;
+
+        // 1. Try vendor lookup in Sub-Routes (/customRoute/customRoute/)
+        if (vendorName) {
+          try {
+            const subRouteRes: any = await getCustomRoutesApi(
+              "customRoute",
+              1,
+              10,
+              { terminatingVendorProfileName__icontains: vendorName }
+            );
+            const subList = subRouteRes?.results || (Array.isArray(subRouteRes) ? subRouteRes : []);
+            if (subList.length > 0 && subList[0].routeGroup) {
+              foundGroupId = subList[0].routeGroup;
+              foundGroupName = subList[0].routeGroupName || null;
+            }
+          } catch (e) {
+            console.error("Vendor sub-route lookup failed", e);
+          }
+        }
+
+        // 2. Try client lookup in Client API (/client/client/)
+        if (!foundGroupId && clientName) {
+          try {
+            const clientRes: any = await getClientsApi("client", 1, 10, { name__icontains: clientName });
+            const clientList = clientRes?.results || (Array.isArray(clientRes) ? clientRes : []);
+            if (clientList.length > 0) {
+              const c = clientList[0];
+              const matchedRouteGroup = c.routeGroup || c.customRoute || c.routeGroupName || c.customRouteName;
+              if (typeof matchedRouteGroup === "number") {
+                foundGroupId = matchedRouteGroup;
+              } else if (typeof matchedRouteGroup === "string") {
+                foundGroupName = matchedRouteGroup;
+              }
+            }
+          } catch (e) {
+            console.error("Client route group lookup failed", e);
+          }
+        }
+
+        // 3. Fetch Route Group by found ID or Name
+        if (foundGroupId || foundGroupName) {
+          try {
+            const groupParams: Record<string, any> = {};
+            if (foundGroupId) groupParams.id = foundGroupId;
+            else if (foundGroupName) groupParams.name__icontains = foundGroupName;
+
+            const fallbackRes: any = await getGroupedCustomRoutesApi(
+              routeName,
+              1,
+              rowsPerPage,
+              groupParams
+            );
+            const fallbackList = fallbackRes?.results || (Array.isArray(fallbackRes) ? fallbackRes : []);
+            if (fallbackList.length > 0) {
+              routeList = fallbackList;
+              response = fallbackRes;
+            }
+          } catch (e) {
+            console.error("Fallback route group query failed", e);
+          }
+        }
+      }
+
+      setGroupedRoutes(routeList);
+      setTotalItems(response?.count ?? routeList.length);
+
+      // --- Automatically launch SubRouteTableModal if redirected with autoOpen ---
+      if (autoOpenModal && routeList.length > 0) {
+        const matchedGroup = routeList[0];
+        if (matchedGroup) {
+          openSubTableModal(matchedGroup.name, matchedGroup.id);
+        }
       }
     } catch (error: any) {
       if (error.name !== "AbortError") {
@@ -247,17 +337,32 @@ const CustomRoute: React.FC = () => {
     }
   };
 
+  // --- Read URL search params or navigation state on load ---
   useEffect(() => {
-    fetchGroupedRoutes();
+    const queryParams = new URLSearchParams(location.search);
+    const initialName = queryParams.get("name") || (location.state as any)?.searchName;
+    const clientName = queryParams.get("client") || (location.state as any)?.clientName;
+    const vendorName = queryParams.get("vendor") || (location.state as any)?.vendorName;
+    const autoOpen = queryParams.get("autoOpen") === "true" || Boolean((location.state as any)?.autoOpen);
+
+    if (initialName || clientName || vendorName) {
+      const nameVal = initialName || clientName || vendorName;
+      setFilterValues((prev) => ({ ...prev, name: nameVal }));
+      fetchGroupedRoutes({ name: nameVal }, autoOpen, { clientName, vendorName });
+    } else {
+      fetchGroupedRoutes();
+    }
+
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [routeName, currentPage, rowsPerPage, searchColumns]);
+  }, [routeName, currentPage, rowsPerPage, searchColumns, location.search]);
 
   const handleSearch = () => {
     setCurrentPage(1);
     fetchGroupedRoutes();
   };
+
   const handleClearFilters = () => {
     setFilterValues({});
     setCurrentPage(1);
@@ -273,12 +378,6 @@ const CustomRoute: React.FC = () => {
     e.preventDefault();
     setContextMenuPos({ x: e.clientX, y: e.clientY });
     setSelectedRowGroup(groupItem);
-  };
-
-  const openSubTableModal = (groupName: string, groupId?: number) => {
-    setActiveRouteGroup(groupName);
-    setActiveRouteGroupId(groupId ?? null);
-    setIsSubTableModalOpen(true);
   };
 
   const menuItems: ContextMenuItem[] = selectedRowGroup
@@ -514,7 +613,8 @@ const CustomRoute: React.FC = () => {
                 return (
                   <td
                     key={col.key}
-                    className="px-4 py-4 text-sm font-semibold text-primary"
+                    className="px-4 py-4 text-sm font-semibold text-primary cursor-pointer hover:underline"
+                    onClick={() => openSubTableModal(routeGroupObj.name, routeGroupObj.id)}
                   >
                     {cellData || "-"}
                   </td>
