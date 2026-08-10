@@ -137,7 +137,7 @@ const tableHeaders = [
   "Margin %",
 ];
 
-type DatePresetKey = "today" | "yesterday" | "last7" | "last30" | "thisMonth" | "lastMonth" | "custom";
+type DatePresetKey = "today" | "yesterday" | "last7" | "last30" | "last60" | "last90" | "lastMonth" | "custom";
 
 interface DatePresetOption {
   key: DatePresetKey;
@@ -149,7 +149,8 @@ const DATE_PRESETS: DatePresetOption[] = [
   { key: "yesterday", label: "Yesterday" },
   { key: "last7", label: "Last 7 Days" },
   { key: "last30", label: "Last 30 Days" },
-  { key: "thisMonth", label: "This Month" },
+  { key: "last60", label: "Last 60 Days" },
+  { key: "last90", label: "Last 90 Days" },
   { key: "lastMonth", label: "Last Month" },
 ];
 
@@ -164,8 +165,7 @@ const getPresetDateRange = (preset: DatePresetKey): { start: string; end: string
     case "yesterday": {
       const y = new Date(now);
       y.setDate(now.getDate() - 1);
-      const yStr = formatLocalDate(y);
-      return { start: yStr, end: yStr };
+      return { start: formatLocalDate(y), end: todayStr };
     }
 
     case "last7": {
@@ -180,8 +180,15 @@ const getPresetDateRange = (preset: DatePresetKey): { start: string; end: string
       return { start: formatLocalDate(start), end: todayStr };
     }
 
-    case "thisMonth": {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    case "last60": {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 59);
+      return { start: formatLocalDate(start), end: todayStr };
+    }
+
+    case "last90": {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 89);
       return { start: formatLocalDate(start), end: todayStr };
     }
 
@@ -207,12 +214,7 @@ const AnalyticsReport: React.FC = () => {
   const [activePreset, setActivePreset] = useState<DatePresetKey>("today");
 
   const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
-  const [filterValues, setFilterValues] = useState<Record<string, string>>(() => {
-    const todayRange = getPresetDateRange("today");
-    return {
-      date__range: `${todayRange.start},${todayRange.end}`,
-    };
-  });
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [expandedAccountManagers, setExpandedAccountManagers] = useState<Record<string, boolean>>({});
@@ -249,9 +251,13 @@ const AnalyticsReport: React.FC = () => {
     setVendorData({});
   };
 
-  const getActiveFilterParams = (customFilters?: Record<string, string>) => {
+  const getActiveFilterParams = (
+    customFilters?: Record<string, string>,
+    presetOverride?: DatePresetKey
+  ) => {
     const params: Record<string, any> = {};
     const activeFilters = customFilters || filterValues;
+    const currentPreset = presetOverride !== undefined ? presetOverride : activePreset;
 
     searchColumns.forEach((key) => {
       const val = activeFilters[key];
@@ -277,19 +283,28 @@ const AnalyticsReport: React.FC = () => {
       }
     });
 
+    const hasExplicitDateFilter =
+      params.date__range || params.date__gte || params.date__lte || params.date;
+
+    if (!hasExplicitDateFilter && currentPreset && currentPreset !== "custom") {
+      const range = getPresetDateRange(currentPreset);
+      params.date__range = `${range.start},${range.end}`;
+    }
+
     return params;
   };
 
   const fetchDatesAndOverallData = async (
     page: number = 1,
     append: boolean = false,
-    customFilters?: Record<string, string>
+    customFilters?: Record<string, string>,
+    presetOverride?: DatePresetKey
   ) => {
     if (append) setIsFetchingMore(true);
     else setIsLoading(true);
 
     try {
-      const filterParams = getActiveFilterParams(customFilters);
+      const filterParams = getActiveFilterParams(customFilters, presetOverride);
       const searchParams: Record<string, any> = {
         page: page,
         page_size: BATCH_SIZE,
@@ -488,21 +503,23 @@ const AnalyticsReport: React.FC = () => {
 
   const handlePresetClick = (presetKey: DatePresetKey) => {
     setActivePreset(presetKey);
-    const range = getPresetDateRange(presetKey);
-    const newDateRangeVal = `${range.start},${range.end}`;
+    let updatedFilters: Record<string, string> = {};
+    setFilterValues((prev) => {
+      const next = { ...prev };
+      delete next.date__range;
+      delete next.date;
+      updatedFilters = next;
+      return next;
+    });
 
-    const updatedFilters = {
-      ...filterValues,
-      date__range: newDateRangeVal,
-    };
-
-    setFilterValues(updatedFilters);
     resetTreeState();
-    fetchDatesAndOverallData(1, false, updatedFilters);
+    fetchDatesAndOverallData(1, false, updatedFilters, presetKey);
   };
 
   const handleFilterChange = (key: string, value: string) => {
-    setActivePreset("custom");
+    if (key === "date__range" || key === "date") {
+      setActivePreset("custom");
+    }
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -512,14 +529,10 @@ const AnalyticsReport: React.FC = () => {
   };
 
   const handleClearFilters = () => {
-    const defaultRange = getPresetDateRange("today");
-    const resetFilters = {
-      date__range: `${defaultRange.start},${defaultRange.end}`,
-    };
     setActivePreset("today");
-    setFilterValues(resetFilters);
+    setFilterValues({});
     resetTreeState();
-    fetchDatesAndOverallData(1, false, resetFilters);
+    fetchDatesAndOverallData(1, false, {}, "today");
   };
 
   const paginationLabel = `${totalItems === 0 ? 0 : 1
@@ -639,14 +652,13 @@ const AnalyticsReport: React.FC = () => {
         ref={tableWrapperRef}
         className="mt-6 rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0 app-data-table"
       >
-        {/* Top Bar with Pagination Count on Left & Date Pills inside the Red Highlighted Area */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3 bg-white dark:bg-gray-800 relative z-10 gap-3">
+        {/* Top Bar: Pagination Count on Left & Date Pills Aligned to the Right */}
+        <div className="flex flex-wrap items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3 bg-white dark:bg-gray-800 relative z-10 gap-3">
           <span className="text-sm text-text-secondary dark:text-gray-400 whitespace-nowrap">
             {paginationLabel}
           </span>
 
-          {/* Date Quick Preset Pills (Cleanly placed in the empty top bar space) */}
-          <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center justify-end ml-auto">
             {DATE_PRESETS.map((preset) => {
               const isActive = activePreset === preset.key;
               return (
@@ -667,7 +679,7 @@ const AnalyticsReport: React.FC = () => {
           </div>
         </div>
 
-        {/* Scrollable Data Table with High Z-Index Opaque Sticky Header */}
+        {/* Scrollable Data Table with Sticky Header */}
         <div className="overflow-auto max-h-[65vh] min-h-[300px] relative z-0 custom-scrollbar">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
             <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-30 shadow-xs">

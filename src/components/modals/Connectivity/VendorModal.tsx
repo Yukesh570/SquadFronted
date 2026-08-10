@@ -19,7 +19,6 @@ import {
 } from "../../../api/policyApi/vendorPolicyApi";
 import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 
-
 // UI Components
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
@@ -59,7 +58,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     systemID: "",
     password: "",
     status: "ACTIVE",
-    bindMode: "TRANSMITTER",
+    bindMode: "TRANSCEIVER", // Changed default to TRANSCEIVER
     sourceTON: "",
     sourceNPI: "",
     destTON: "",
@@ -163,7 +162,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           smppPort: "",
           systemID: "",
           password: "",
-          bindMode: "TRANSMITTER",
+          bindMode: "TRANSCEIVER", // Changed default to TRANSCEIVER
           sourceTON: "",
           sourceNPI: "",
           destTON: "",
@@ -204,7 +203,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               smppPort: String(smppData.smppPort) || "",
               systemID: smppData.systemID || "",
               password: smppData.password || "",
-              bindMode: smppData.bindMode || "TRANSMITTER",
+              bindMode: smppData.bindMode || "TRANSCEIVER", // Changed default to TRANSCEIVER
               sourceTON: String(smppData.sourceTON || ""),
               sourceNPI: String(smppData.sourceNPI || ""),
               destTON: String(smppData.destTON || ""),
@@ -231,7 +230,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           smppPort: "",
           systemID: "",
           password: "",
-          bindMode: "TRANSMITTER",
+          bindMode: "TRANSCEIVER", // Changed default to TRANSCEIVER
           sourceTON: "",
           sourceNPI: "",
           destTON: "",
@@ -269,23 +268,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   const handleSelect = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
   };
-
-
-  // const handleAutoProvisionVendorRateGroup = async (
-  //   vendorId: number,
-  //   profileName: string,
-  // ) => {
-  //   const rateGroup = await createVendorRateGroupApi(
-  //     { name: profileName, status: "ACTIVE" },
-  //     moduleName,
-  //   );
-
-  //   await updateVendorApi(
-  //     vendorId,
-  //     { vendorRateGroup: rateGroup.id },
-  //     moduleName,
-  //   );
-  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -380,19 +362,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         const vRes: any = await createVendorApi(vendorPayload, moduleName);
         vendorId = vRes?.id || vRes?.data?.id;
       }
-
-      // On creation only, auto-create a linked Vendor Rate Group with the
-      // same name as the Profile Name and attach it to the vendor.
-      // if (isNewVendor && vendorId) {
-      //   try {
-      //     await handleAutoProvisionVendorRateGroup(vendorId, formData.profileName);
-      //   } catch (linkErr) {
-      //     console.error("Failed to auto-provision Vendor Rate Group:", linkErr);
-      //     toast.warning(
-      //       "Vendor saved, but auto-creating the linked Vendor Rate Group failed.",
-      //     );
-      //   }
-      // }
 
       // --- 3. HANDLE POLICY ---
       if (vendorId) {

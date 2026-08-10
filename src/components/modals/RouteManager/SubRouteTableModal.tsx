@@ -34,8 +34,6 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 interface NewRow {
   _id: string;
   MCC: string;
@@ -66,8 +64,6 @@ interface SubRouteTableModalProps {
   canDelete: boolean;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 const routingTypeOptions = [
   { label: "Priority", value: "PRIORITY" },
   { label: "Percentage", value: "PERCENTAGE" },
@@ -93,8 +89,6 @@ const emptyRow = (): NewRow => ({
   status: "ACTIVE",
 });
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   isOpen,
   onClose,
@@ -104,11 +98,9 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   canUpdate,
   canDelete,
 }) => {
-  // ── Shared options ──────────────────────────────────────────────────────
   const [vendorOptions, setVendorOptions] = useState<{ label: string; value: string }[]>([]);
   const [countryOptions, setCountryOptions] = useState<{ label: string; value: string }[]>([]);
 
-  // ── MCC / MNC options per country (NEW) ─────────────────────────────────
   const [networkCodesByCountry, setNetworkCodesByCountry] = useState<
     Record<
       string,
@@ -116,7 +108,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     >
   >({});
 
-  // ── Country-config section ──────────────────────────────────────────────
   const [configSectionOpen, setConfigSectionOpen] = useState(false);
   const [configFilter, setConfigFilter] = useState("ALL");
   const [newCountry, setNewCountry] = useState("");
@@ -125,13 +116,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   const [isAddingConfig, setIsAddingConfig] = useState(false);
   const [deleteConfigId, setDeleteConfigId] = useState<number | null>(null);
 
-  // ── Per-country sections ────────────────────────────────────────────────
   const [sections, setSections] = useState<Section[]>([]);
   const [deleteRouteId, setDeleteRouteId] = useState<number | null>(null);
   const [deleteRouteCountry, setDeleteRouteCountry] = useState<string>("");
   const [activeCellId, setActiveCellId] = useState<string | null>(null);
 
-  // ── Route row context menu ──────────────────────────────────────────────
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<CustomRouteData | null>(null);
   const [selectedRouteCountryId, setSelectedRouteCountryId] = useState<string>("");
@@ -161,7 +150,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     ]
     : [];
 
-  // ── Fetch configs ───────────────────────────────────────────────────────
   const fetchConfigs = useCallback(async () => {
     if (!routeGroupId) return;
     try {
@@ -191,7 +179,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }
   }, [routeGroupId, moduleName]);
 
-  // ── Fetch routes for one section ────────────────────────────────────────
   const fetchSectionRoutes = useCallback(
     async (countryId: string) => {
       if (!routeGroup) return;
@@ -213,7 +200,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
               : s,
           ),
         );
-        // vendorRate is already included in the routes API response, no extra fetch needed
       } catch {
         toast.error("Failed to load routes.");
         setSections((prev) =>
@@ -226,14 +212,9 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     [routeGroup, moduleName],
   );
 
-  // ── Fetch MCC / MNC options for one country (NEW) ───────────────────────
   const fetchNetworkCodesForCountry = useCallback(
     async (countryId: string, countryName: string) => {
       if (!countryId || !countryName) return;
-      setNetworkCodesByCountry((prev) => {
-        if (prev[countryId]) return prev; // already loaded, skip refetch
-        return prev;
-      });
 
       try {
         const res = await getOperatorNetworkCodelookupApi(1, 1000, {
@@ -258,7 +239,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     [],
   );
 
-  // ── Init ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) {
       setSections([]);
@@ -280,7 +260,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       .catch(() => { });
   }, [isOpen, routeGroupId]);
 
-  // ── Toggle section open/closed ──────────────────────────────────────────
   const toggleSection = (countryId: string) => {
     setSections((prev) =>
       prev.map((s) => {
@@ -291,14 +270,12 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         return { ...s, isOpen: !s.isOpen };
       }),
     );
-    // NEW: lazily load MCC/MNC options for this country when its section is opened
     const section = sections.find((s) => String(s.config.country) === countryId);
     if (section && section.config.countryName) {
       fetchNetworkCodesForCountry(countryId, section.config.countryName);
     }
   };
 
-  // ── Config management ───────────────────────────────────────────────────
   const configuredIds = new Set(sections.map((s) => String(s.config.country)));
   const availableCountries = countryOptions.filter((o) => !configuredIds.has(o.value));
 
@@ -347,7 +324,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }
   };
 
-  // ── Route delete ────────────────────────────────────────────────────────
   const handleDeleteRoute = async () => {
     if (!deleteRouteId) return;
     try {
@@ -360,7 +336,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }
   };
 
-  // ── Generic inline cell edit (mirrors SubRouteEditableTable's handleInlineSave) ──
   const handleInlineSave = async (
     countryId: string,
     routeId: number,
@@ -370,7 +345,23 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     setActiveCellId(null);
     const section = sections.find((s) => String(s.config.country) === countryId);
     const originalRoute = section?.routes.find((r) => r.id === routeId);
-    if (!originalRoute || String((originalRoute as any)[field]) === newValue) return;
+    if (!originalRoute) return;
+
+    let resolvedValue: any = newValue;
+    if (field === "terminatingVendor") {
+      const match = vendorOptions.find(
+        (v) => v.value === newValue || v.label.toLowerCase() === newValue.toLowerCase()
+      );
+      if (match) {
+        resolvedValue = Number(match.value);
+      } else if (!isNaN(Number(newValue)) && newValue !== "") {
+        resolvedValue = Number(newValue);
+      }
+    } else if (field === "trafficPercentage" || field === "priority" || field === "country") {
+      resolvedValue = Number(newValue);
+    }
+
+    if (String((originalRoute as any)[field]) === String(resolvedValue)) return;
 
     setSections((prev) =>
       prev.map((s) =>
@@ -378,7 +369,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           ? {
             ...s,
             routes: s.routes.map((r) =>
-              r.id === routeId ? { ...r, [field]: newValue } : r,
+              r.id === routeId ? { ...r, [field]: resolvedValue } : r,
             ),
           }
           : s,
@@ -386,10 +377,10 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     );
 
     try {
-      await updateCustomRouteApi(routeId, { [field]: newValue }, moduleName);
+      await updateCustomRouteApi(routeId, { [field]: resolvedValue }, moduleName);
       toast.success(`Updated ${field}`);
       if (field === "MCC" || field === "MNC" || field === "terminatingVendor") {
-        const updatedRoute = { ...originalRoute, [field]: newValue } as any;
+        const updatedRoute = { ...originalRoute, [field]: resolvedValue } as any;
         fetchExistingRouteVendorRate(countryId, routeId, {
           MCC: updatedRoute.MCC,
           MNC: updatedRoute.MNC,
@@ -422,7 +413,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }
   };
 
-  // ── Fetch Vendor Rate Inline ────────────────────────────────────────────
   const fetchInlineVendorRate = async (countryId: string, rowId: string, rowData: NewRow) => {
     if (!rowData.MCC || !rowData.MNC || !rowData.terminatingVendor) {
       setSections((prev) =>
@@ -478,7 +468,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }
   };
 
-  // ── Fetch Vendor Rate for an existing (saved) route after inline edit ──────
   const fetchExistingRouteVendorRate = async (countryId: string, routeId: number, routeData: { MCC?: string; MNC?: string; terminatingVendor?: any }) => {
     if (!routeData.MCC || !routeData.MNC || !routeData.terminatingVendor) {
       setSections((prev) =>
@@ -563,7 +552,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       ),
     );
 
-  // ── Save new rows ───────────────────────────────────────────────────────
   const saveRows = async (countryId: string) => {
     const section = sections.find((s) => String(s.config.country) === countryId);
     if (!section || section.newRows.length === 0) return;
@@ -648,7 +636,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       >
         <div className="p-4 flex flex-col gap-5">
 
-          {/* ── Country Config (collapsible) ─────────────────────────────── */}
+          {/* Country Config (collapsible) */}
           <div className="border-2 border-primary/20 dark:border-primary/30 rounded-xl bg-primary/[0.03] dark:bg-primary/[0.06] shadow-sm relative">
             <button
               type="button"
@@ -674,7 +662,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
             {configSectionOpen && (
               <div className="p-4 space-y-5 bg-white dark:bg-gray-900 border-t border-primary/10 dark:border-primary/20 rounded-b-xl">
 
-                {/* --- ADD NEW CONFIG AREA --- */}
+                {/* ADD NEW CONFIG AREA */}
                 {canUpdate && availableCountries.length > 0 && (
                   <div className="flex flex-col gap-2">
                     <h4 className="text-sm font-semibold text-primary">Add Country Config</h4>
@@ -702,12 +690,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                   </div>
                 )}
 
-                {/* --- SEPARATOR --- */}
                 {canUpdate && availableCountries.length > 0 && (
                   <hr className="border-gray-200 dark:border-gray-700" />
                 )}
 
-                {/* --- CONFIGURED COUNTRIES CHIPS --- */}
+                {/* CONFIGURED COUNTRIES CHIPS */}
                 <div className="flex flex-col gap-3">
                   {sections.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
@@ -746,7 +733,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
             )}
           </div>
 
-          {/* ── Type filter (outside config panel) ──────────────────────────── */}
+          {/* Type filter */}
           <div className="flex justify-end -mt-2">
             <div className="w-40 config-filter-wrapper">
               <Select
@@ -759,7 +746,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
             </div>
           </div>
 
-          {/* ── Divider between config panel and country sections ──────────── */}
+          {/* Divider */}
           <div className="flex items-center gap-3 mt-1">
             <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
             <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
@@ -768,8 +755,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
             <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           </div>
 
-          {/* ── Per-country sections ───────────────────────────────────────── */}
-          {/* Reverted the pb-24 spacing hack */}
+          {/* Per-country sections */}
           <div className="flex flex-col gap-3 overflow-y-auto max-h-[65vh]">
             {sections.length === 0 && (
               <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm border border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
@@ -781,7 +767,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
               const countryId = String(section.config.country);
               const isPercentage = section.config.routingType === "PERCENTAGE";
 
-              // NEW: MCC/MNC options for this section's country
               const mccOptions = networkCodesByCountry[countryId]?.mccOptions || [];
               const mncOptions = networkCodesByCountry[countryId]?.mncOptions || [];
 
@@ -862,7 +847,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                   {/* Section body */}
                   {section.isOpen && (
                     <div className="rounded-b-lg">
-                      {/* FIXED: Removed the min-h/pb spacing hack entirely. Replaced overflow-x-auto with w-full overflow-visible to prevent clipping without stretching the layout. */}
                       <div className="w-full overflow-visible">
                         <table className="min-w-full text-left text-sm whitespace-nowrap border-separate border-spacing-0">
                           <thead className="bg-gray-100 dark:bg-gray-800 text-text-secondary dark:text-gray-300 shadow-sm">
@@ -999,7 +983,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                 <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-blue-400 text-xs">
                                   {section.routes.length + i + 1}
                                 </td>
-                                {/* FIXED: Removed relative positioning from all TDs. This prevents the dropdown's z-index from being trapped underneath sibling rows. */}
                                 <td className="px-2 py-1.5 border-b border-r dark:border-gray-700 min-w-[110px] overflow-visible">
                                   <div className="inline-table-field">
                                     <Select
@@ -1076,7 +1059,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                               </tr>
                             ))}
 
-                            {/* Empty state */}
                             {!section.loading && section.routes.length === 0 && section.newRows.length === 0 && (
                               <tr>
                                 <td colSpan={canUpdate ? 8 : 7} className="px-4 py-5 text-center text-gray-400 dark:text-gray-500 text-xs">
@@ -1088,7 +1070,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                         </table>
                       </div>
 
-                      {/* Save footer */}
                       {section.newRows.length > 0 && canUpdate && (
                         <div className="flex justify-end px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
                           <Button
@@ -1136,7 +1117,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         message="Remove this country's routing configuration? Its routes will no longer be active."
       />
 
-      {/* Scoped CSS for inline table form components */}
       <style dangerouslySetInnerHTML={{
         __html: `
         .inline-table-field label { display: none !important; }

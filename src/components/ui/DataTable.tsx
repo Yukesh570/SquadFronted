@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Select from "./Select";
-import { ChevronLeft, ChevronRight, Database } from "lucide-react";
+import { ChevronLeft, ChevronRight, Database, GripVertical } from "lucide-react";
 
 interface DataTableProps<T> {
   data: T[];
@@ -10,7 +10,7 @@ interface DataTableProps<T> {
   headerActions?: React.ReactNode;
 
   hideTopBar?: boolean;
-  showCountOnly?: boolean; // 👈 NEW: Shows just the item count label (e.g. "1-100 of 2080761")
+  showCountOnly?: boolean;
   density?: "normal" | "compact";
 
   serverSide?: boolean;
@@ -20,6 +20,9 @@ interface DataTableProps<T> {
   onPageChange?: (page: number) => void;
   onRowsPerPageChange?: (rows: number) => void;
   rowsPerPageOptions?: { value: string; label: string }[];
+
+  // ⚡️ NEW: Column Reordering Callback
+  onReorderColumns?: (fromIndex: number, toIndex: number) => void;
 }
 
 const rowsOptions = [
@@ -36,7 +39,7 @@ export function DataTable<T extends { id?: number | string }>({
   isLoading = false,
   headerActions,
   hideTopBar = false,
-  showCountOnly = false, // 👈 Default false
+  showCountOnly = false,
   density = "normal",
 
   serverSide = false,
@@ -46,9 +49,15 @@ export function DataTable<T extends { id?: number | string }>({
   onPageChange,
   onRowsPerPageChange,
   rowsPerPageOptions = rowsOptions,
+
+  onReorderColumns,
 }: DataTableProps<T>) {
   const [clientPage, setClientPage] = useState(1);
   const [clientRows, setClientRows] = useState(50);
+
+  // Drag-and-drop states
+  const [draggedHeaderIdx, setDraggedHeaderIdx] = useState<number | null>(null);
+  const [dragOverHeaderIdx, setDragOverHeaderIdx] = useState<number | null>(null);
 
   const activePage = serverSide ? currentPage : clientPage;
   const activeRows = serverSide ? rowsPerPage : clientRows;
@@ -95,13 +104,47 @@ export function DataTable<T extends { id?: number | string }>({
     activeTotal,
   )} of ${activeTotal}`;
 
+  // Drag Handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (index === 0) return; // Skip S.N. column
+    setDraggedHeaderIdx(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    if (index === 0 || draggedHeaderIdx === null || draggedHeaderIdx === index) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverHeaderIdx(index);
+  };
+
+  const handleDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (
+      draggedHeaderIdx !== null &&
+      index !== 0 &&
+      draggedHeaderIdx !== index &&
+      onReorderColumns
+    ) {
+      // Offset by -1 to account for S.N. column at index 0
+      onReorderColumns(draggedHeaderIdx - 1, index - 1);
+    }
+    setDraggedHeaderIdx(null);
+    setDragOverHeaderIdx(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedHeaderIdx(null);
+    setDragOverHeaderIdx(null);
+  };
+
   return (
     <div
       className={`rounded-xl bg-white shadow-card overflow-hidden dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-col relative z-0 app-data-table ${
         density === "compact" ? "table-density-compact" : ""
       }`}
     >
-      {/* 1. FULL TOP BAR */}
+      {/* FULL TOP BAR */}
       {!hideTopBar && !showCountOnly && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 gap-4 bg-white dark:bg-gray-800 relative z-10">
           <div className="flex items-center space-x-4">
@@ -144,7 +187,7 @@ export function DataTable<T extends { id?: number | string }>({
         </div>
       )}
 
-      {/* 1.5. COUNT ONLY TOP BAR */}
+      {/* COUNT ONLY TOP BAR */}
       {showCountOnly && (
         <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3 bg-white dark:bg-gray-800 relative z-10">
           <span className="text-sm text-text-secondary dark:text-gray-400">
@@ -154,19 +197,40 @@ export function DataTable<T extends { id?: number | string }>({
         </div>
       )}
 
-      {/* 2. SCROLLABLE DATA TABLE */}
+      {/* SCROLLABLE DATA TABLE */}
       <div className="overflow-auto max-h-[65vh] min-h-[300px] relative z-0 custom-scrollbar">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
           <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10 shadow-sm">
             <tr>
-              {headers.map((header, i) => (
-                <th
-                  key={i}
-                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-secondary dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 whitespace-nowrap min-w-[120px]"
-                >
-                  {header}
-                </th>
-              ))}
+              {headers.map((header, i) => {
+                const isDraggable = Boolean(onReorderColumns && i > 0);
+                const isBeingDragged = draggedHeaderIdx === i;
+                const isDragOver = dragOverHeaderIdx === i;
+
+                return (
+                  <th
+                    key={i}
+                    draggable={isDraggable}
+                    onDragStart={(e) => handleDragStart(e, i)}
+                    onDragOver={(e) => handleDragOver(e, i)}
+                    onDrop={(e) => handleDrop(e, i)}
+                    onDragLeave={() => setDragOverHeaderIdx(null)}
+                    onDragEnd={handleDragEnd}
+                    className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-secondary dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 whitespace-nowrap min-w-[120px] transition-all select-none ${
+                      isDraggable ? "cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-800" : ""
+                    } ${isBeingDragged ? "opacity-30 border-dashed border-primary" : ""} ${
+                      isDragOver ? "border-l-4 border-l-primary bg-primary/10 dark:bg-primary/20" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {isDraggable && (
+                        <GripVertical size={14} className="text-gray-400 shrink-0 opacity-40 hover:opacity-100" />
+                      )}
+                      <span>{header}</span>
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
@@ -201,7 +265,6 @@ export function DataTable<T extends { id?: number | string }>({
         </table>
       </div>
 
-      {/* Styles */}
       <style
         dangerouslySetInnerHTML={{
           __html: `

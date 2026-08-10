@@ -32,7 +32,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
   const [localIsEditing, setLocalIsEditing] = useState(false);
   const [currentVal, setCurrentVal] = useState(value || "");
   const [dropdownPlacement, setDropdownPlacement] = useState<"top" | "bottom">("bottom");
-  
+
   const inputRef = useRef<HTMLInputElement>(null);
   const cellRef = useRef<HTMLDivElement>(null);
 
@@ -52,8 +52,15 @@ export const EditableCell: React.FC<EditableCellProps> = ({
   };
 
   useEffect(() => {
-    setCurrentVal(value || "");
-  }, [value]);
+    if (type === "select" && value) {
+      const match = options.find(
+        (o) => o.value === String(value) || o.label.toLowerCase() === String(value).toLowerCase()
+      );
+      setCurrentVal(match ? match.value : String(value));
+    } else {
+      setCurrentVal(value || "");
+    }
+  }, [value, type, options]);
 
   useEffect(() => {
     if (!isEditing) return;
@@ -77,18 +84,23 @@ export const EditableCell: React.FC<EditableCellProps> = ({
       }
       if (type === "select" && cellRef.current) {
         const rect = cellRef.current.getBoundingClientRect();
-        const scrollContainer = cellRef.current.closest('.custom-grid-scroll');
-        
+        const scrollContainer = cellRef.current.closest(".custom-grid-scroll");
+
         let spaceBelow = window.innerHeight - rect.bottom;
 
         if (scrollContainer) {
           const style = window.getComputedStyle(scrollContainer);
-          if (style.overflow === 'auto' || style.overflowY === 'auto' || style.overflow === 'scroll' || style.overflowY === 'scroll') {
-             const containerRect = scrollContainer.getBoundingClientRect();
-             spaceBelow = containerRect.bottom - rect.bottom;
+          if (
+            style.overflow === "auto" ||
+            style.overflowY === "auto" ||
+            style.overflow === "scroll" ||
+            style.overflowY === "scroll"
+          ) {
+            const containerRect = scrollContainer.getBoundingClientRect();
+            spaceBelow = containerRect.bottom - rect.bottom;
           }
         }
-        
+
         if (spaceBelow < 180) {
           setDropdownPlacement("top");
         } else {
@@ -96,22 +108,41 @@ export const EditableCell: React.FC<EditableCellProps> = ({
         }
       }
     } else {
-      setCurrentVal(value || "");
+      if (type === "select" && value) {
+        const match = options.find(
+          (o) => o.value === String(value) || o.label.toLowerCase() === String(value).toLowerCase()
+        );
+        setCurrentVal(match ? match.value : String(value));
+      } else {
+        setCurrentVal(value || "");
+      }
     }
-  }, [isEditing, type, value]);
+  }, [isEditing, type, value, options]);
 
   const handleSelectChange = (newVal: string) => {
-    setCurrentVal(newVal);
+    if (!newVal) return;
+
+    let resolvedVal = newVal;
+    const match = options.find(
+      (o) => o.value === newVal || o.label.toLowerCase() === newVal.toLowerCase()
+    );
+    if (match) {
+      resolvedVal = match.value;
+    }
+
+    setCurrentVal(resolvedVal);
     endEdit();
-    if (newVal !== value) {
-      onSave(newVal);
+    if (resolvedVal !== String(value)) {
+      onSave(resolvedVal);
     }
   };
 
   if (!isEditing) {
     let displayVal = value;
     if (type === "select") {
-      const match = options.find((o) => o.value === value);
+      const match = options.find(
+        (o) => o.value === String(value) || o.label.toLowerCase() === String(value).toLowerCase()
+      );
       if (match) displayVal = match.label;
     }
 
@@ -119,7 +150,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
       <div
         className={`w-full min-h-[28px] px-2 py-1.5 rounded transition-all flex items-center justify-between group ${
           disabled
-            ? "cursor-not-allowed text-gray-500 opacity-80" 
+            ? "cursor-not-allowed text-gray-500 opacity-80"
             : "cursor-pointer bg-blue-50/40 dark:bg-blue-900/20 border border-transparent hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-600"
         }`}
         onClick={startEdit}
@@ -127,7 +158,10 @@ export const EditableCell: React.FC<EditableCellProps> = ({
       >
         <span className="truncate">{displayVal || <span className="text-gray-400 italic">Empty</span>}</span>
         {!disabled && (
-          <Edit2 size={14} className="opacity-0 group-hover:opacity-100 text-blue-500 transition-opacity ml-2 shrink-0" />
+          <Edit2
+            size={14}
+            className="opacity-0 group-hover:opacity-100 text-blue-500 transition-opacity ml-2 shrink-0"
+          />
         )}
       </div>
     );
@@ -142,7 +176,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
           onChange={handleSelectChange}
           options={options}
           placeholder="Select..."
-          placement={dropdownPlacement} 
+          placement={dropdownPlacement}
         />
       </div>
     );
@@ -152,7 +186,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
     e.stopPropagation();
     e.preventDefault();
     const val = e.target.value;
-    
+
     if (type === "number") {
       if (val === "" || /^\d+$/.test(val)) {
         setCurrentVal(val);
@@ -167,36 +201,36 @@ export const EditableCell: React.FC<EditableCellProps> = ({
       <input
         ref={inputRef}
         autoComplete="off"
-        type="text" 
-        inputMode={type === "number" ? "numeric" : undefined} 
+        type="text"
+        inputMode={type === "number" ? "numeric" : undefined}
         value={currentVal}
         onClick={(e) => {
-           e.stopPropagation();
-           e.preventDefault();
+          e.stopPropagation();
+          e.preventDefault();
         }}
         onBlur={(e) => {
-           e.stopPropagation();
-           e.preventDefault();
+          e.stopPropagation();
+          e.preventDefault();
         }}
         onChange={handleInputChange}
         onInput={handleInputChange}
         onKeyDown={(e) => {
-          e.stopPropagation(); 
-          
+          e.stopPropagation();
+
           if (e.key === "Enter") {
-             e.preventDefault();
-             if (currentVal !== "" && currentVal !== value) {
-                 onSave(currentVal);
-                 endEdit();
-             } else if (currentVal === "") {
-                 toast.error("Value cannot be empty");
-             } else {
-                 endEdit();
-             }
-          } else if (e.key === "Escape") { 
-             e.preventDefault();
-             setCurrentVal(value); 
-             endEdit(); 
+            e.preventDefault();
+            if (currentVal !== "" && currentVal !== value) {
+              onSave(currentVal);
+              endEdit();
+            } else if (currentVal === "") {
+              toast.error("Value cannot be empty");
+            } else {
+              endEdit();
+            }
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            setCurrentVal(value);
+            endEdit();
           }
         }}
         onKeyUp={(e) => e.stopPropagation()}

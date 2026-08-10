@@ -7,6 +7,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
   isClearable?: boolean;
+  labelClassName?: string;
 }
 
 const Input: React.FC<InputProps> = ({ 
@@ -19,6 +20,7 @@ const Input: React.FC<InputProps> = ({
   isClearable = true, 
   value, 
   autoComplete = "off",
+  labelClassName,
   ...props 
 }) => {
   const inputId = id || label.replace(/\s+/g, "-").toLowerCase();
@@ -48,7 +50,7 @@ const Input: React.FC<InputProps> = ({
     <div className="flex flex-col w-full">
       <label
         htmlFor={inputId}
-        className="mb-1.5 block text-xs font-medium text-text-secondary dark:text-gray-400"
+        className={`mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400 min-h-[32px] flex items-end ${labelClassName || ""}`}
       >
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}

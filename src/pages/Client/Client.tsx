@@ -79,9 +79,10 @@ const Client: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // --- Dropdown States ---
+  const [clientOptions, setClientOptions] = useState<Option[]>([]); // ⚡️ ADDED: Client Names for Search Dropdown
   const [companies, setCompanies] = useState<Option[]>([]);
   const [routeGroup, setrouteGroup] = useState<Option[]>([]);
-  const [routeGroupFilter, setRouteGroupFilter] = useState<Option[]>([]); // ⚡️ FIX: Dedicated state for search filter
+  const [routeGroupFilter, setRouteGroupFilter] = useState<Option[]>([]);
   const [customerRateGroupOptions, setCustomerRateGroupOptions] = useState<Option[]>([]);
 
   // --- Modal States ---
@@ -146,6 +147,20 @@ const Client: React.FC = () => {
   // --- Fetch Dropdowns for Search ---
   useEffect(() => {
     const loadDropdowns = async () => {
+      // ⚡️ ADDED: Fetch Client Names for Dropdown
+      try {
+        const clientRes: any = await getClientsApi(routeName, 1, 1000);
+        const clientList = clientRes.results || (Array.isArray(clientRes) ? clientRes : []);
+        setClientOptions(
+          clientList.map((c: any) => ({
+            label: c.name,
+            value: c.name,
+          }))
+        );
+      } catch (err) {
+        console.error("Client Dropdown load error:", err);
+      }
+
       try {
         const compRes: any = await getCompaniesApi("company", 1, 1000);
         const compList = compRes.results || (Array.isArray(compRes) ? compRes : []);
@@ -158,7 +173,6 @@ const Client: React.FC = () => {
         const rgRes: any = await getGroupedCustomRoutesApi("customRoute", 1, 1000);
         const rgList = rgRes.results || (Array.isArray(rgRes) ? rgRes : []);
         
-        // ⚡️ FIX: ID values specifically for the Edit Modal
         setrouteGroup(
           rgList.map((rg: any) => ({
             label: rg.name,
@@ -166,7 +180,6 @@ const Client: React.FC = () => {
           }))
         );
 
-        // ⚡️ FIX: Name values specifically for the Search Filter backend match
         setRouteGroupFilter(
           rgList.map((rg: any) => ({
             label: rg.name,
@@ -192,7 +205,7 @@ const Client: React.FC = () => {
     };
 
     loadDropdowns();
-  }, []);
+  }, [routeName]);
 
   // --- Column Configuration ---
   const statusOptions: Option[] = [
@@ -250,9 +263,9 @@ const Client: React.FC = () => {
   };
 
   const allColumns: ColumnConfig[] = [
-    { key: "name", label: "Client Name", type: "text", filterKey: "name__icontains" },
+    { key: "name", label: "Client Name", type: "text", options: clientOptions, filterKey: "name__icontains" }, // ⚡️ ADDED options: clientOptions
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
-    { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroupFilter, filterKey: "routeGroup__name" }, // ⚡️ FIX: Mapped to the specific search array
+    { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroupFilter, filterKey: "routeGroup__name" },
     { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, isSearchable: false }, 
     { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status", render: (c) => {
         const statusConfig = STATUS_COLORS[c.status?.toUpperCase() || "UNKNOWN"] || STATUS_COLORS.UNKNOWN;
@@ -948,7 +961,7 @@ const Client: React.FC = () => {
         onSuccess={fetchClients}
         moduleName={routeName}
         editingClient={editingClient}
-        routeGroupOptions={routeGroup} // ⚡️ FIXED: Passes IDs to modal
+        routeGroupOptions={routeGroup}
         customerRateGroupOptions={customerRateGroupOptions}
       />
 

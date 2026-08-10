@@ -7,6 +7,7 @@ import {
 } from "../../../../api/rateApi/ImportVendor/emailSourceApi";
 import { getVendorsApi } from "../../../../api/connectivityApi/vendorApi";
 import { getMappingSetupsApi } from "../../../../api/mappingSetupApi/mappingSetupApi"; 
+import { getCompaniesApi } from "../../../../api/companyApi/companyApi"; 
 import Input from "../../../ui/Input";
 import Button from "../../../ui/Button";
 import Select from "../../../ui/Select";
@@ -27,15 +28,17 @@ interface Option {
   value: string;
 }
 
-// ⚡️ FIX: Custom read-only field specifically mimicking MultiEmailInput without 'x' buttons
+// Custom read-only field specifically mimicking MultiEmailInput without 'x' buttons
 const ReadOnlyEmailField = ({ label, value }: { label: string; value: string | undefined }) => {
   // Support comma-separated emails if backend sends multiple
   const emails = value ? value.split(',').map(e => e.trim()).filter(e => e) : [];
 
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
-      <div className="min-h-[38px] px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md flex items-center flex-wrap gap-2 cursor-not-allowed opacity-80">
+    <div className="flex flex-col w-full">
+      <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400 min-h-[32px] flex items-end">
+        {label}
+      </label>
+      <div className="w-full rounded-lg border px-3 py-2 text-sm shadow-input transition duration-150 ease-in-out bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 min-h-[42px] flex items-center flex-wrap gap-1.5">
         {emails.length > 0 ? (
           emails.map((email, idx) => (
             <span
@@ -46,7 +49,7 @@ const ReadOnlyEmailField = ({ label, value }: { label: string; value: string | u
             </span>
           ))
         ) : (
-          <span className="text-sm text-gray-400 dark:text-gray-500 italic">Not set</span>
+          <span className="text-gray-400 dark:text-gray-500 italic">Select Vendor</span>
         )}
       </div>
     </div>
@@ -71,6 +74,10 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
 
   const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
   const [mappingOptions, setMappingOptions] = useState<Option[]>([]); 
+  
+  const [vendorsList, setVendorsList] = useState<any[]>([]);
+  const [companiesList, setCompaniesList] = useState<any[]>([]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -79,6 +86,7 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
       getVendorsApi("vendor", 1, 1000)
         .then((res: any) => {
           let list = res.results || (Array.isArray(res) ? res : []);
+          setVendorsList(list); 
           setVendorOptions(
             list.map((v: any) => ({
               label: v.profileName || v.name || `Vendor ${v.id}`,
@@ -87,6 +95,14 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
           );
         })
         .catch((err: any) => console.error("Failed to load vendors", err));
+
+      // Fetch Companies to cross-reference ratesEmail
+      getCompaniesApi("company", 1, 1000)
+        .then((res: any) => {
+          let list = res.results || (Array.isArray(res) ? res : []);
+          setCompaniesList(list); 
+        })
+        .catch((err: any) => console.error("Failed to load companies", err));
 
       // Fetch Mapping Setups
       getMappingSetupsApi("mappingSetup", 1, 1000)
@@ -137,8 +153,8 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault();
     if (isViewMode) return;
 
     setIsSubmitting(true);
@@ -179,6 +195,19 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
     }
   };
 
+  const displayEmail = (() => {
+    if (formData.vendor) {
+      const selectedVendor = vendorsList.find((v) => String(v.id) === String(formData.vendor));
+      if (selectedVendor && selectedVendor.company) {
+        const selectedCompany = companiesList.find((c) => String(c.id) === String(selectedVendor.company));
+        if (selectedCompany) {
+          return selectedCompany.ratesEmail || selectedCompany.companyEmail || editingData?.allowedEmail || "";
+        }
+      }
+    }
+    return editingData?.allowedEmail || "";
+  })();
+
   if (!isOpen) return null;
 
   return (
@@ -194,12 +223,13 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
       }
       className="max-w-xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-6 px-1 max-h-[80vh] overflow-y-auto custom-scrollbar">
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <div className="space-y-4 px-1 max-h-[80vh] overflow-y-auto custom-scrollbar">
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
           <legend className="text-sm font-semibold text-primary px-2">
             Configuration
           </legend>
-          <div className="grid grid-cols-1 gap-4">
+          {/* Decreased the gap to gap-2 (from gap-4) to match original compact design */}
+          <div className="grid grid-cols-1 gap-2">
             <Select
               label="Vendor"
               value={formData.vendor}
@@ -217,10 +247,7 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
               disabled={isViewMode}
             />
             
-            {/* ⚡️ Show read-only allowedEmail block ONLY when viewing/editing existing data */}
-            {editingData && (
-               <ReadOnlyEmailField label="Allowed Email" value={editingData.allowedEmail} />
-            )}
+            <ReadOnlyEmailField label="Allowed Email" value={displayEmail} />
 
             <Input
               label="Allowed Domain"
@@ -253,12 +280,12 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
             {isViewMode ? "Close" : "Cancel"}
           </Button>
           {!isViewMode && (
-            <Button type="submit" variant="primary" disabled={isSubmitting}>
+            <Button type="button" variant="primary" disabled={isSubmitting} onClick={handleSubmit}>
               {isSubmitting ? "Saving..." : editingData ? "Update" : "Add"}
             </Button>
           )}
         </div>
-      </form>
+      </div>
     </Modal>
   );
 };

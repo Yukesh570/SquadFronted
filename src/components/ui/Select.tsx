@@ -51,6 +51,12 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!value) {
+      setQuery("");
+    }
+  }, [value]);
+
   const filteredOptions =
     query === ""
       ? options
@@ -78,6 +84,37 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
     e.stopPropagation();
     onChange("");
     setQuery("");
+
+    setTimeout(() => {
+      const form = anchorRef.current?.closest("form");
+      if (form) {
+        form.requestSubmit();
+      }
+    }, 0);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const trimmedQuery = query.trim();
+      if (trimmedQuery !== "") {
+        const match = options.find(
+          (o) =>
+            o.value === trimmedQuery ||
+            o.label.toLowerCase() === trimmedQuery.toLowerCase()
+        );
+        onChange(match ? match.value : trimmedQuery);
+      }
+
+      const inputEl = e.currentTarget;
+      inputEl.blur();
+
+      setTimeout(() => {
+        const form = inputEl.closest("form");
+        if (form) {
+          form.requestSubmit();
+        }
+      }, 0);
+    }
   };
 
   const updateCoords = useCallback(() => {
@@ -115,11 +152,7 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
   }
 
   return (
-    <div
-      className={`flex flex-col ${
-        hasLabel ? "" : "justify-end"
-      } ${className}`}
-    >
+    <div className={`flex flex-col ${hasLabel ? "" : "justify-end"} ${className}`}>
       {hasLabel && (
         <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400 min-h-[32px] flex items-end">
           {label}
@@ -146,14 +179,13 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
             className={`w-full border-none bg-transparent px-3 pr-10 outline-none focus:outline-none focus:ring-0 focus:border-transparent text-text-primary dark:text-white ${
               hasLabel ? "py-2.5" : "py-2"
             } ${
-              disabled
-                ? "text-gray-400 cursor-not-allowed dark:text-gray-500"
-                : ""
+              disabled ? "text-gray-400 cursor-not-allowed dark:text-gray-500" : ""
             }`}
             displayValue={(val: string) =>
-              options.find((option) => option.value === val)?.label || ""
+              options.find((option) => option.value === val)?.label || val || ""
             }
             onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
           />
 
@@ -161,24 +193,19 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
             <ChevronDown
               size={18}
               className={`${
-                disabled
-                  ? "text-gray-300"
-                  : "text-gray-500 dark:text-gray-400"
+                disabled ? "text-gray-300" : "text-gray-500 dark:text-gray-400"
               }`}
               aria-hidden="true"
             />
           </Combobox.Button>
 
-          {value && clearable && !disabled && (
+          {(value || query) && clearable && !disabled && (
             <span
               onClick={handleClear}
               className="absolute inset-y-0 right-8 flex items-center pr-2 cursor-pointer hover:text-red-500 group z-10"
               title="Clear selection"
             >
-              <X
-                size={16}
-                className="text-gray-400 group-hover:text-red-500"
-              />
+              <X size={16} className="text-gray-400 group-hover:text-red-500" />
             </span>
           )}
         </div>
@@ -268,7 +295,9 @@ const Select: React.FC<SelectProps> = (props) => {
     <Combobox
       value={props.value}
       onChange={(val: string | null) => {
-        props.onChange(val || "");
+        if (val !== null) {
+          props.onChange(val);
+        }
       }}
       disabled={props.disabled}
     >
