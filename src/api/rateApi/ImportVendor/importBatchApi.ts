@@ -52,3 +52,10 @@ export const updateImportBatchApi = async (
   const response = await api.patch(`/vendorRateImportBatch/${module}/${id}/`, data);
   return response.data;
 };
+
+export const approveAndPublishBatchApi = async (
+  batch_id: number
+): Promise<any> => {
+  const response = await api.post(`/approveAndPublishBatch/${batch_id}/`);
+  return response.data;
+};

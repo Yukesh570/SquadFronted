@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Eye, Edit } from "lucide-react";
+import { Home, Eye, Edit, CheckCircle } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import { getImportBatchesApi, type ImportBatchData } from "../../../api/rateApi/ImportVendor/importBatchApi";
+import { getImportBatchesApi, approveAndPublishBatchApi, type ImportBatchData } from "../../../api/rateApi/ImportVendor/importBatchApi";
 import { getVendorsApi } from "../../../api/connectivityApi/vendorApi";
 import { ImportBatchModal } from "../../../components/modals/Rate/ImportVendor/ImportBatchModal";
 
@@ -44,7 +44,7 @@ const formatLocalDate = (date: Date) => {
 };
 
 const DEFAULT_SEARCH_COLUMNS = ["vendor", "batchStatus", "approvalStatus"];
-const DEFAULT_TABLE_COLUMNS = ["vendor", "batchStatus", "approvalStatus", "totalRows", "validRows", "currency"];
+const DEFAULT_TABLE_COLUMNS = ["vendor", "batchStatus", "approvalStatus", "totalRows", "validRows", "currency", "createdAt"];
 
 const ImportBatch: React.FC = () => {
   const [data, setData] = useState<ImportBatchData[]>([]);
@@ -67,7 +67,7 @@ const ImportBatch: React.FC = () => {
   // Filters & Pagination
   const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
-  
+
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("import_batch_table_columns");
     return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
@@ -81,7 +81,7 @@ const ImportBatch: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const routeName = location.pathname.split("/")[1] || "vendor"; 
+  const routeName = location.pathname.split("/")[1] || "vendor";
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -125,41 +125,41 @@ const ImportBatch: React.FC = () => {
   const allColumns: ColumnConfig[] = [
     { key: "vendor", label: "Vendor", type: "text", options: vendorOptions, filterKey: "vendor" },
     { key: "vendor__profileName__icontains", label: "Vendor Profile (Search)", type: "text", isSearchOnly: true },
-    { 
-      key: "batchStatus", 
-      label: "Batch Status", 
-      type: "text", 
-      options: batchStatusOptions, 
+    {
+      key: "batchStatus",
+      label: "Batch Status",
+      type: "text",
+      options: batchStatusOptions,
       filterKey: "batchStatus",
       render: (c) => {
-         const val = c.batchStatus || "PARSING";
-         const label = batchStatusOptions.find(o => o.value === val)?.label || val;
-         
-         // ⚡️ FIX: Map to PM's existing colors
-         let colorKey = "PENDING"; // Default Parsing -> Yellow
-         if (["PARSED", "AUTO_APPROVED", "MANUAL_APPROVED", "PUBLISHED"].includes(val)) colorKey = "ACTIVE"; // Green
-         if (val === "READY_FOR_REVIEW") colorKey = "SUBMITTING"; // Purple
-         if (["ROLLED_BACK"].includes(val)) colorKey = "EXPIRED"; // Orange
+        const val = c.batchStatus || "PARSING";
+        const label = batchStatusOptions.find(o => o.value === val)?.label || val;
 
-         return <StatusBadge status={colorKey} customText={label} />;
+        // ⚡️ FIX: Map to PM's existing colors
+        let colorKey = "PENDING"; // Default Parsing -> Yellow
+        if (["PARSED", "AUTO_APPROVED", "MANUAL_APPROVED", "PUBLISHED"].includes(val)) colorKey = "ACTIVE"; // Green
+        if (val === "READY_FOR_REVIEW") colorKey = "SUBMITTING"; // Purple
+        if (["ROLLED_BACK"].includes(val)) colorKey = "EXPIRED"; // Orange
+
+        return <StatusBadge status={colorKey} customText={label} />;
       }
     },
-    { 
-      key: "approvalStatus", 
-      label: "Approval Status", 
-      type: "text", 
-      options: approvalStatusOptions, 
+    {
+      key: "approvalStatus",
+      label: "Approval Status",
+      type: "text",
+      options: approvalStatusOptions,
       filterKey: "approvalStatus",
       render: (c) => {
-         const val = c.approvalStatus || "PENDING";
-         const label = approvalStatusOptions.find(o => o.value === val)?.label || val;
+        const val = c.approvalStatus || "PENDING";
+        const label = approvalStatusOptions.find(o => o.value === val)?.label || val;
 
-         // ⚡️ FIX: Map to PM's existing colors
-         let colorKey = "PENDING"; // Yellow
-         if (["AUTO_APPROVED", "MANUAL_APPROVED"].includes(val)) colorKey = "ACTIVE"; // Green
-         if (val === "REJECTED") colorKey = "REJECTED"; // Red
+        // ⚡️ FIX: Map to PM's existing colors
+        let colorKey = "PENDING"; // Yellow
+        if (["AUTO_APPROVED", "MANUAL_APPROVED"].includes(val)) colorKey = "ACTIVE"; // Green
+        if (val === "REJECTED") colorKey = "REJECTED"; // Red
 
-         return <StatusBadge status={colorKey} customText={label} />;
+        return <StatusBadge status={colorKey} customText={label} />;
       }
     },
     { key: "sourceType", label: "Source Type", type: "text", filterKey: "sourceType__icontains" },
@@ -170,9 +170,10 @@ const ImportBatch: React.FC = () => {
     { key: "unmappedRows", label: "Unmapped Rows", type: "number", filterKey: "unmappedRows" },
     { key: "updatedRows", label: "Updated Rows", type: "number", filterKey: "updatedRows" },
     { key: "newRows", label: "New Rows", type: "number", filterKey: "newRows" },
+    { key: "createdAt", label: "Created At (Exact)", tableLabel: "created At", type: "date", filterKey: "createdAt__date", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
+    { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
     { key: "effectiveDate", label: "Effective Date (Exact)", tableLabel: "Effective Date", type: "date", filterKey: "effectiveDate__date", render: (c) => (c.effectiveDate ? formatDateTime(c.effectiveDate) : "-") },
     { key: "effectiveDate__range", label: "Effective Date (Range)", type: "date_range", filterKey: "effectiveDate", isSearchOnly: true },
-    { key: "effectiveDate__gt_lt", label: "Effective Date (After / Before)", type: "date_gt_lt", filterKey: "effectiveDate", isSearchOnly: true },
   ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
@@ -262,9 +263,21 @@ const ImportBatch: React.FC = () => {
     setSelectedRowData(item);
   };
 
+  const handleApprove = async (item: ImportBatchData) => {
+    if (!item.id) return;
+    try {
+      await approveAndPublishBatchApi(item.id);
+      toast.success("Batch approved! Publishing in background...");
+      fetchData();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || "Failed to approve batch.");
+    }
+  };
+
   const menuItems: ContextMenuItem[] = selectedRowData ? [
     { label: "View Details", icon: <Eye size={16} />, onClick: () => handleView(selectedRowData) },
     { label: "Edit Status", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowData) },
+    ...(selectedRowData.batchStatus === "READY_FOR_REVIEW" ? [{ label: "Approve Batch", icon: <CheckCircle size={16} className="text-green-500" />, onClick: () => handleApprove(selectedRowData) }] : []),
   ] : [];
 
   const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
@@ -332,7 +345,7 @@ const ImportBatch: React.FC = () => {
       />
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
-      
+
       <ImportBatchModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchData} moduleName={routeName} editingData={editingData} isViewMode={isViewMode} />
     </div>
   );
