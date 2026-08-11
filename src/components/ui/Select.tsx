@@ -154,7 +154,7 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
   return (
     <div className={`flex flex-col ${hasLabel ? "" : "justify-end"} ${className}`}>
       {hasLabel && (
-        <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400 min-h-[32px] flex items-end">
+        <label title={label} className="mb-1.5 block text-xs font-medium text-text-secondary dark:text-gray-400 truncate">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -176,7 +176,7 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
         >
           <Combobox.Input
             autoComplete="off"
-            className={`w-full border-none bg-transparent px-3 pr-10 outline-none focus:outline-none focus:ring-0 focus:border-transparent text-text-primary dark:text-white ${
+            className={`w-full border-none bg-transparent px-3 pr-10 outline-none focus:outline-none focus:ring-0 focus:border-transparent text-text-primary dark:text-white text-sm ${
               hasLabel ? "py-2.5" : "py-2"
             } ${
               disabled ? "text-gray-400 cursor-not-allowed dark:text-gray-500" : ""
@@ -257,7 +257,7 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
                       {({ selected }) => (
                         <>
                           <span
-                            className={`block truncate ${
+                            className={`block whitespace-normal break-words leading-tight ${
                               selected
                                 ? "font-medium text-primary dark:text-primary"
                                 : "font-normal"

@@ -50,7 +50,8 @@ const Input: React.FC<InputProps> = ({
     <div className="flex flex-col w-full">
       <label
         htmlFor={inputId}
-        className={`mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400 min-h-[32px] flex items-end ${labelClassName || ""}`}
+        title={label}
+        className={`mb-1.5 block text-xs font-medium text-text-secondary dark:text-gray-400 truncate ${labelClassName || ""}`}
       >
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}

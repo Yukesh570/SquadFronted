@@ -7,6 +7,7 @@ import {
   getCustomRoutesApi,
 } from "../../api/routeManagerApi/customRouteApi";
 import { getClientsApi } from "../../api/clientApi/clientApi";
+import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 
 import { CustomRouteModal } from "../../components/modals/RouteManager/CustomRouteModal";
 import { SubRouteTableModal } from "../../components/modals/RouteManager/SubRouteTableModal";
@@ -57,9 +58,10 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["name","status"];
+const DEFAULT_SEARCH_COLUMNS = ["name", "status", "country"];
 const DEFAULT_TABLE_COLUMNS = [
   "name",
+  "country",
   "status",
   "createdAt",
 ];
@@ -69,6 +71,8 @@ const CustomRoute: React.FC = () => {
   const [groupedRoutes, setGroupedRoutes] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [countryOptions, setCountryOptions] = useState<Option[]>([]);
+  const [routeGroupOptions, setRouteGroupOptions] = useState<Option[]>([]);
 
   const [activeRouteGroup, setActiveRouteGroup] = useState<string | null>(null);
   const [activeRouteGroupId, setActiveRouteGroupId] = useState<number | null>(null);
@@ -117,6 +121,27 @@ const CustomRoute: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const loadDropdowns = async () => {
+      try {
+        const countryRes: any = await getCountriesApi("country", 1, 1000);
+        const countryList = countryRes.results || (Array.isArray(countryRes) ? countryRes : []);
+        setCountryOptions(countryList.map((c: any) => ({ label: c.name, value: c.name })));
+      } catch (err: any) {
+        console.error("Failed to load countries for filter", err);
+      }
+
+      try {
+        const routeRes: any = await getGroupedCustomRoutesApi(routeName, 1, 1000);
+        const routeList = routeRes.results || (Array.isArray(routeRes) ? routeRes : []);
+        setRouteGroupOptions(routeList.map((r: any) => ({ label: r.name, value: r.name })));
+      } catch (err: any) {
+        console.error("Failed to load route groups for filter", err);
+      }
+    };
+    loadDropdowns();
+  }, [routeName]);
+
   const statusOptions: Option[] = [
     { label: "Active", value: "ACTIVE" },
     { label: "Inactive", value: "INACTIVE" },
@@ -127,7 +152,21 @@ const CustomRoute: React.FC = () => {
       key: "name",
       label: "Route Group",
       type: "text",
+      options: routeGroupOptions,
       filterKey: "name__icontains",
+    },
+    {
+      key: "country",
+      label: "Country",
+      type: "text",
+      options: countryOptions,
+      filterKey: "routeGroupCountry__countryName__icontains",
+      render: (c: any) => {
+        if (c.routeGroupCountry && Array.isArray(c.routeGroupCountry) && c.routeGroupCountry.length > 0) {
+          return c.routeGroupCountry.map((item: any) => item.countryName).join(", ");
+        }
+        return "-";
+      },
     },
     {
       key: "status",
@@ -244,10 +283,10 @@ const CustomRoute: React.FC = () => {
 
       if (newController.signal.aborted) return;
 
-      let routeList = response && response.results 
-        ? response.results 
-        : Array.isArray(response) 
-          ? response 
+      let routeList = response && response.results
+        ? response.results
+        : Array.isArray(response)
+          ? response
           : [];
 
       // --- FALLBACK LOOKUP: If searching by Name returned 0 results ---
@@ -421,7 +460,7 @@ const CustomRoute: React.FC = () => {
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
             Custom Route Manager
           </h1>
-           <div className="relative z-20">
+          <div className="relative z-20">
             <AdvancedFilter
               columns={tableFilterColumns as any}
               selectedColumns={tableColumns}
