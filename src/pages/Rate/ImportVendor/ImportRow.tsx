@@ -154,7 +154,12 @@ const ImportRow: React.FC = () => {
   ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
-  const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+  
+  // ⚡️ Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
   const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type as FilterColumnType }));
 
   const handleFilterChange = (key: string, value: string) => {
@@ -192,7 +197,7 @@ const ImportRow: React.FC = () => {
           } else if (columnDef?.type === "date_gt_lt") {
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
           } else if (columnDef?.type === "text" || columnDef?.type === "boolean" || columnDef?.type === "number") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -254,7 +259,14 @@ const ImportRow: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Import Rows</h1>
           <div className="relative z-20">
-            <AdvancedFilter columns={tableFilterColumns as any} selectedColumns={tableColumns} onFilter={(cols: string[]) => setTableColumns(cols)} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+            <AdvancedFilter 
+              columns={tableFilterColumns as any} 
+              selectedColumns={tableColumns} 
+              onFilter={(cols: string[]) => setTableColumns(cols)} 
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
+              buttonLabel="Columns" 
+              enableReorder={true}
+            />
           </div>
           <div className="relative z-20">
             <AdvancedFilter columns={allColumns as any} selectedColumns={searchColumns} onFilter={(newCols: string[]) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
@@ -286,7 +298,7 @@ const ImportRow: React.FC = () => {
             return (
               <React.Fragment key={col.key}>
                 <DatePicker label={`Search ${baseLabel} (> After)`} selected={gtStr ? new Date(gtStr) : null} onChange={(val: Date | null) => { const newGt = val ? formatLocalDate(val) : ""; const currentLt = ltStr || ""; handleFilterChange(col.key, newGt || currentLt ? `${newGt},${currentLt}` : ""); }} />
-                <DatePicker label={`Search ${baseLabel} (< Before)`} selected={ltStr ? new Date(ltStr) : null} onChange={(val: Date | null) => { const newLt = val ? formatLocalDate(val) : ""; const currentGt = gtStr || ""; handleFilterChange(col.key, currentGt || newLt ? `${currentGt},${newLt}` : ""); }} />
+                <DatePicker label={`Search ${baseLabel} (< Before)`} selected={ltStr ? new Date(ltStr) : null} onChange={(val: Date | null) => { const newLt = val ? formatLocalDate(val) : ""; const currentGt = gtStr || ""; handleFilterChange(col.key, newLt || currentGt ? `${newLt},${currentGt}` : ""); }} />
               </React.Fragment>
             );
           }
@@ -294,7 +306,25 @@ const ImportRow: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable serverSide={true} data={data} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} density="compact" headers={tableHeaders} isLoading={isLoading}
+      <DataTable 
+        serverSide={true} 
+        data={data} 
+        totalItems={totalItems} 
+        currentPage={currentPage} 
+        rowsPerPage={rowsPerPage} 
+        onPageChange={setCurrentPage} 
+        onRowsPerPageChange={setRowsPerPage} 
+        density="compact" 
+        headers={tableHeaders} 
+        isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         renderRow={(item, index) => (
           <tr key={item.id || index} onContextMenu={(e) => handleContextMenu(e, item)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>

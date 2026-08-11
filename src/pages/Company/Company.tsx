@@ -287,9 +287,11 @@ const CompanyList: React.FC = () => {
   const visibleSearchFields = allColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
-  const visibleTableFields = allColumns.filter((col) =>
-    tableColumns.includes(col.key),
-  );
+
+  // ⚡️ Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
@@ -528,6 +530,7 @@ const CompanyList: React.FC = () => {
               onFilter={setTableColumns}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
+              enableReorder={true}
             />
           </div>
           <div className="relative z-20">
@@ -597,6 +600,14 @@ const CompanyList: React.FC = () => {
         headers={tableHeaders}
         density="compact"
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           <div className="flex gap-2">
             <Button

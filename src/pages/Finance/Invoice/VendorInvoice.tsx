@@ -118,7 +118,11 @@ const VendorInvoice: React.FC = () => {
   ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
-  const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+  
+  // ⚡️ Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
 
   const fetchInvoices = async (filters: Record<string, string> | null = null) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -154,7 +158,6 @@ const VendorInvoice: React.FC = () => {
     }
   };
   const VITE_IMAGE_URL = import.meta.env.VITE_IMAGE_URL;
-
 
   const handleViewPdf = (path?: string) => {
     if (!path) { toast.error("PDF not available yet."); return; }
@@ -224,8 +227,19 @@ const VendorInvoice: React.FC = () => {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Vendor Invoices</h1>
-          <div className="relative z-20"><AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" /></div>
-          <div className="relative z-20"><AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" /></div>
+          <div className="relative z-20">
+            <AdvancedFilter 
+              columns={allColumns} 
+              selectedColumns={tableColumns} 
+              onFilter={setTableColumns} 
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
+              buttonLabel="Columns" 
+              enableReorder={true}
+            />
+          </div>
+          <div className="relative z-20">
+            <AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+          </div>
         </div>
 
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
@@ -276,6 +290,14 @@ const VendorInvoice: React.FC = () => {
       <DataTable
         serverSide={true} data={invoices} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage}
         onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} density="compact" headers={["S.N.", ...visibleTableFields.map(c => c.label)]} isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         renderRow={(invoice, index) => (
           <tr key={invoice.id || index} onContextMenu={(e) => { e.preventDefault(); setContextMenuPos({ x: e.clientX, y: e.clientY }); setSelectedRow(invoice); }} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu">
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>

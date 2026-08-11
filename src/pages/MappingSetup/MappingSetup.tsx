@@ -191,9 +191,12 @@ const MappingSetup: React.FC = () => {
   const visibleSearchFields = allColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
-  const visibleTableFields = allColumns.filter((col) =>
-    tableColumns.includes(col.key),
-  );
+
+  // ⚡️ Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
   const tableFilterColumns = allColumns
     .filter((c) => !c.isSearchOnly)
     .map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
@@ -251,7 +254,7 @@ const MappingSetup: React.FC = () => {
           } else if (columnDef?.type === "date_gt_lt") {
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -386,6 +389,7 @@ const MappingSetup: React.FC = () => {
               onFilter={setTableColumns}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
+              enableReorder={true}
             />
           </div>
           <div className="relative z-20">
@@ -533,6 +537,14 @@ const MappingSetup: React.FC = () => {
         density="compact"
         headers={tableHeaders}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           canCreate ? (
             <Button

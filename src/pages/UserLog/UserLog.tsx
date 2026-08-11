@@ -28,6 +28,19 @@ interface LogItemWithId extends LoginHistoryItem {
   id: number;
 }
 
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (log: LogItemWithId) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = ["ipAddress", "browser", "device", "loggedAt"];
+
+const formatDate = (dateString?: string) => {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleString();
+};
+
 const UserLog: React.FC = () => {
   const [userData, setUserData] = useState<UserInformationData | null>(null);
   const [logs, setLogs] = useState<LogItemWithId[]>([]);
@@ -41,6 +54,70 @@ const UserLog: React.FC = () => {
   const [ipFilter, setIpFilter] = useState("");
   const [browserFilter, setBrowserFilter] = useState("");
   const [deviceFilter, setDeviceFilter] = useState("");
+
+  // --- Column Order State & Persistence ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("userlog_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("userlog_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "ipAddress",
+      label: "IP Address",
+      render: (log) => (
+        <span className="font-mono text-sm text-text-secondary dark:text-gray-300">
+          {log.ipAddress || "-"}
+        </span>
+      ),
+    },
+    {
+      key: "browser",
+      label: "Browser",
+      render: (log) => (
+        <div className="flex items-center gap-2">
+          <Globe size={14} className="text-blue-400" />
+          {log.browser || "-"}
+        </div>
+      ),
+    },
+    {
+      key: "device",
+      label: "Device",
+      render: (log) => (
+        <div className="flex items-center gap-2">
+          {log.device === "Desktop" ? (
+            <Monitor size={14} className="text-gray-500" />
+          ) : (
+            <Smartphone size={14} className="text-gray-500" />
+          )}
+          {log.device || "-"}
+        </div>
+      ),
+    },
+    {
+      key: "loggedAt",
+      label: "Logged At",
+      render: (log) => (
+        <div className="flex items-center gap-2">
+          <History size={14} className="text-orange-400" />
+          {formatDate(log.loggedAt)}
+        </div>
+      ),
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   // 1. Fetch User Profile
   useEffect(() => {
@@ -130,29 +207,21 @@ const UserLog: React.FC = () => {
     return userData?.last_login;
   };
 
-const hasLoggedOpening = useRef(false);
+  const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100);
       
       hasLoggedOpening.current = true;
     }
   }, []);
-
-  const headers = ["S.N.", "IP Address", "Browser", "Device", "Logged At"];
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleString();
-  };
 
   return (
     <div className="container mx-auto px-4 pb-6 sm:px-6 lg:px-8">
@@ -290,39 +359,30 @@ const hasLoggedOpening = useRef(false);
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         renderRow={(log, index) => (
           <tr
             key={log.id}
-            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 font-mono">
-              {log.ipAddress}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <div className="flex items-center gap-2">
-                <Globe size={14} className="text-blue-400" />
-                {log.browser}
-              </div>
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <div className="flex items-center gap-2">
-                {log.device === "Desktop" ? (
-                  <Monitor size={14} className="text-gray-500" />
-                ) : (
-                  <Smartphone size={14} className="text-gray-500" />
-                )}
-                {log.device}
-              </div>
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <div className="flex items-center gap-2">
-                <History size={14} className="text-orange-400" />
-                {formatDate(log.loggedAt)}
-              </div>
-            </td>
+            {visibleTableFields.map((col) => (
+              <td
+                key={col.key}
+                className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+              >
+                {col.render(log)}
+              </td>
+            ))}
           </tr>
         )}
       />

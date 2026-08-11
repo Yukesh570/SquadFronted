@@ -467,9 +467,11 @@ const Vendor: React.FC = () => {
   const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
-  const visibleTableFields = allColumns.filter((col) =>
-    tableColumns.includes(col.key),
-  );
+  
+  // ⚡️ Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
 
   const tableFilterColumns = allColumns
     .filter((c) => !c.isSearchOnly)
@@ -754,6 +756,7 @@ const Vendor: React.FC = () => {
               onFilter={setTableColumns}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
+              enableReorder={true}
             />
           </div>
           <div className="relative z-20">
@@ -971,6 +974,14 @@ const Vendor: React.FC = () => {
         headers={tableHeaders}
         density="compact"
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           canCreate ? (
             <Button

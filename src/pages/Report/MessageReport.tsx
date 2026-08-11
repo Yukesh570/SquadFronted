@@ -327,9 +327,11 @@ const MessageReport: React.FC = () => {
   const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
-  const visibleTableFields = tableColumnsConfig.filter((col) =>
-    tableColumns.includes(col.key),
-  );
+  
+  // ⚡️ Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => tableColumnsConfig.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
 
   const fetchLogs = async (
     overrideParams?: Record<string, any>,
@@ -526,6 +528,7 @@ const MessageReport: React.FC = () => {
               onFilter={setTableColumns}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
+              enableReorder={true}
             />
           </div>
 
@@ -688,6 +691,14 @@ const MessageReport: React.FC = () => {
           isLoading={isLoading}
           showCountOnly={true}
           density="compact"
+          onReorderColumns={(fromIdx, toIdx) => {
+            setTableColumns((prev) => {
+              const next = [...prev];
+              const [moved] = next.splice(fromIdx, 1);
+              next.splice(toIdx, 0, moved);
+              return next;
+            });
+          }}
           renderRow={(log, index) => (
             <tr
               key={log.id || index}

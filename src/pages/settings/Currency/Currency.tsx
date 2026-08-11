@@ -19,9 +19,22 @@ import { DeleteModal } from "../../../components/modals/DeleteModal";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
-
-// ⚡️ FIX: Import the StatusBadge component
 import { StatusBadge } from "../../../components/ui/StatusBadge";
+
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (currency: CurrencyData) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = [
+  "name",
+  "currencyCode",
+  "numericCode",
+  "symbol",
+  "decimalPlaces",
+  "isActive",
+];
 
 const Currency: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -43,10 +56,67 @@ const Currency: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // --- Column Order State & Persistence ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("currency_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("currency_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
   const location = useLocation();
 
   const pathParts = location.pathname.split("/").filter(Boolean);
   const routeName = pathParts[pathParts.length - 1] || "currency";
+
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "name",
+      label: "Currency Name",
+      render: (currency) => (
+        <span className="font-medium text-text-primary dark:text-white">
+          {currency.name || "-"}
+        </span>
+      ),
+    },
+    {
+      key: "currencyCode",
+      label: "Code",
+      render: (currency) => currency.currencyCode || "-",
+    },
+    {
+      key: "numericCode",
+      label: "Numeric Code",
+      render: (currency) => currency.numericCode || "-",
+    },
+    {
+      key: "symbol",
+      label: "Symbol",
+      render: (currency) => currency.symbol || "-",
+    },
+    {
+      key: "decimalPlaces",
+      label: "Decimals",
+      render: (currency) => currency.decimalPlaces ?? "-",
+    },
+    {
+      key: "isActive",
+      label: "Status",
+      render: (currency) => (
+        <StatusBadge status={currency.isActive ? "ACTIVE" : "INACTIVE"} />
+      ),
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   const fetchCurrencies = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
@@ -124,8 +194,6 @@ const Currency: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Currency", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowCurrency.id!) }] : []),
   ] : [];
 
-  const headers = ["S.N.", "Currency Name", "Code", "Numeric Code", "Symbol", "Decimals", "Status"];
-
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
@@ -179,6 +247,14 @@ const Currency: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           <div className="flex gap-2">
             {canCreate && (
@@ -210,25 +286,14 @@ const Currency: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {currency.name || "-"}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {currency.currencyCode || "-"}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {currency.numericCode || "-"}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {currency.symbol || "-"}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {currency.decimalPlaces ?? "-"}
-            </td>
-            <td className="px-4 py-4 text-sm">
-              {/* ⚡️ FIX: Replaced custom span with StatusBadge. Assuming INACTIVE matches a red/warning color if defined, otherwise defaults cleanly */}
-              <StatusBadge status={currency.isActive ? "ACTIVE" : "INACTIVE"} />
-            </td>
+            {visibleTableFields.map((col) => (
+              <td
+                key={col.key}
+                className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+              >
+                {col.render(currency)}
+              </td>
+            ))}
           </tr>
         )}
       />

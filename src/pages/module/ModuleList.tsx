@@ -23,6 +23,14 @@ import { actionHelper } from "../../helper/action";
 // ⚡️ FIX: Import the StatusBadge
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (module: SideBarApi) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = ["label", "url", "icon", "order", "is_active"];
+
 const ModuleList: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [modules, setModules] = useState<SideBarApi[]>([]);
@@ -44,14 +52,64 @@ const ModuleList: React.FC = () => {
     null,
   );
 
-  // --- Filters ---
+  // --- Filters & Column Persistence ---
   const [labelFilter, setLabelFilter] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("module_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("module_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
   const { refreshNavItems } = useContext(NavItemsContext);
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
+
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "label",
+      label: "Label",
+      render: (m) => <span className="font-medium">{m.label}</span>,
+    },
+    {
+      key: "url",
+      label: "URL",
+      render: (m) => `/${m.url}`,
+    },
+    {
+      key: "icon",
+      label: "Icon",
+      render: (m) => m.icon,
+    },
+    {
+      key: "order",
+      label: "Order",
+      render: (m) => m.order,
+    },
+    {
+      key: "is_active",
+      label: "Display",
+      render: (m) => (
+        <StatusBadge
+          status={m.is_active ? "DELIVERED" : "PENDING"}
+          customText={m.is_active ? "Yes" : "No"}
+        />
+      ),
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   const fetchModules = async (overrideParams?: Record<string, any>) => {
     setIsLoading(true);
@@ -166,8 +224,6 @@ const ModuleList: React.FC = () => {
       ]
     : [];
 
-  const headers = ["S.N.", "Label", "URL", "Icon", "Order", "Display"];
-
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
@@ -224,6 +280,14 @@ const ModuleList: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           canCreate ? (
             <Button
@@ -244,25 +308,11 @@ const ModuleList: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {module.label}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              /{module.url}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {module.icon}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {module.order}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {/* ⚡️ FIX: Applied StatusBadge matching "DELIVERED" (Green) for Yes, and "PENDING" (Orange) for No */}
-              <StatusBadge 
-                status={module.is_active ? "DELIVERED" : "PENDING"} 
-                customText={module.is_active ? "Yes" : "No"} 
-              />
-            </td>
+            {visibleTableFields.map((col) => (
+              <td key={col.key} className="px-4 py-4 text-sm text-text-primary dark:text-white whitespace-nowrap">
+                {col.render(module)}
+              </td>
+            ))}
           </tr>
         )}
       />

@@ -79,7 +79,7 @@ const Client: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // --- Dropdown States ---
-  const [clientOptions, setClientOptions] = useState<Option[]>([]); // ⚡️ ADDED: Client Names for Search Dropdown
+  const [clientOptions, setClientOptions] = useState<Option[]>([]);
   const [companies, setCompanies] = useState<Option[]>([]);
   const [routeGroup, setrouteGroup] = useState<Option[]>([]);
   const [routeGroupFilter, setRouteGroupFilter] = useState<Option[]>([]);
@@ -147,7 +147,6 @@ const Client: React.FC = () => {
   // --- Fetch Dropdowns for Search ---
   useEffect(() => {
     const loadDropdowns = async () => {
-      // ⚡️ ADDED: Fetch Client Names for Dropdown
       try {
         const clientRes: any = await getClientsApi(routeName, 1, 1000);
         const clientList = clientRes.results || (Array.isArray(clientRes) ? clientRes : []);
@@ -263,7 +262,7 @@ const Client: React.FC = () => {
   };
 
   const allColumns: ColumnConfig[] = [
-    { key: "name", label: "Client Name", type: "text", options: clientOptions, filterKey: "name__icontains" }, // ⚡️ ADDED options: clientOptions
+    { key: "name", label: "Client Name", type: "text", options: clientOptions, filterKey: "name__icontains" },
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
     { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroupFilter, filterKey: "routeGroup__name" },
     { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, isSearchable: false }, 
@@ -320,7 +319,11 @@ const Client: React.FC = () => {
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
-  const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+  
+  // ⚡️ Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
 
   const tableFilterColumns = allColumns
     .filter((c) => !c.isSearchOnly)
@@ -654,6 +657,7 @@ const Client: React.FC = () => {
               onFilter={setTableColumns}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
+              enableReorder={true}
             />
           </div>
 
@@ -873,6 +877,14 @@ const Client: React.FC = () => {
         headers={tableHeaders}
         density="compact"
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           canCreate ? (
             <Button

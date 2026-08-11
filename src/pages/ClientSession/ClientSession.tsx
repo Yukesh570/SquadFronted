@@ -29,7 +29,7 @@ interface ColumnConfig extends FilterColumn {
   render?: (data: ClientSessionData) => React.ReactNode;
   filterKey?: string;
   isSearchOnly?: boolean;
-  isSearchable?: boolean; // ⚡️ FIX: Added flag to disable unsupported backend searches
+  isSearchable?: boolean;
   tableLabel?: string;
 }
 
@@ -105,7 +105,6 @@ const ClientSession: React.FC = () => {
     }
   }, []);
 
-  // ⚡️ FIX: Removed statusConfig and renderStatusBadge, now mapping status to existing palette using StatusBadge
   const getBadgeStatus = (status: string) => {
     const s = status?.toUpperCase() || "DISCONNECTED";
     switch (s) {
@@ -130,14 +129,14 @@ const ClientSession: React.FC = () => {
       key: "clientUsername",
       label: "Client Username",
       type: "text",
-      filterKey: "client__smppUsername__icontains", // ⚡️ FIX: Mapped strictly to backend filter `client__smppUsername`
+      filterKey: "client__smppUsername__icontains",
     },
     { 
       key: "companyName", 
       label: "Company Name", 
       type: "text", 
       filterKey: "client__company__name__icontains",
-      isSearchable: false // ⚡️ UNAVAILABLE IN BACKEND
+      isSearchable: false
     }, 
     {
       key: "systemId",
@@ -161,24 +160,22 @@ const ClientSession: React.FC = () => {
       key: "remotePort",
       label: "Remote Port",
       type: "number",
-      filterKey: "remotePort__icontains", // ⚡️ FIX: Mapped to backend
+      filterKey: "remotePort__icontains",
     },
     {
       key: "status",
       label: "Status",
       type: "text",
       filterKey: "status__icontains",
-      // ⚡️ FIX: Apply unified StatusBadge
       render: (c) => <StatusBadge status={getBadgeStatus(c.status)} customText={c.status || "UNKNOWN"} />,
     },
 
-    // Date Fields mapped dynamically
     {
       key: "connectedAt",
       label: "Connected At (Exact)",
       tableLabel: "Connected At",
       type: "date",
-      filterKey: "connectedAt", // ⚡️ FIX: For exact date
+      filterKey: "connectedAt",
       render: (c) => (c.connectedAt ? formatDateTime(c.connectedAt) : "-"),
     },
     {
@@ -201,7 +198,7 @@ const ClientSession: React.FC = () => {
       label: "Bound At (Exact)",
       tableLabel: "Bound At",
       type: "date",
-      filterKey: "boundAt", // ⚡️ FIX: Exact date
+      filterKey: "boundAt",
       render: (c) => (c.boundAt ? formatDateTime(c.boundAt) : "-"),
     },
     {
@@ -224,7 +221,7 @@ const ClientSession: React.FC = () => {
       tableLabel: "Disconnected At",
       type: "date",
       filterKey: "disconnectedAt",
-      isSearchable: false, // ⚡️ UNAVAILABLE IN BACKEND
+      isSearchable: false,
       render: (c) =>
         c.disconnectedAt ? formatDateTime(c.disconnectedAt) : "-",
     },
@@ -233,14 +230,14 @@ const ClientSession: React.FC = () => {
       label: "Disconnect Reason",
       type: "text",
       filterKey: "disconnectReason__icontains",
-      isSearchable: false, // ⚡️ UNAVAILABLE IN BACKEND
+      isSearchable: false,
     },
     {
       key: "disconnectInitiatedBy",
       label: "Disconnect Initiated By",
       type: "text",
       filterKey: "disconnectInitiatedBy__icontains",
-      isSearchable: false, // ⚡️ UNAVAILABLE IN BACKEND
+      isSearchable: false,
     },
 
     {
@@ -248,7 +245,7 @@ const ClientSession: React.FC = () => {
       label: "Last Activity (Exact)",
       tableLabel: "Last Activity",
       type: "date",
-      filterKey: "last_activityAt", // ⚡️ FIX: Exact date
+      filterKey: "last_activityAt",
       render: (c) =>
         c.last_activityAt ? formatDateTime(c.last_activityAt) : "-",
     },
@@ -268,14 +265,16 @@ const ClientSession: React.FC = () => {
     },
   ];
 
-  // ⚡️ Only allow searchable columns to be populated in the "Search Fields" dropdown
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
-  const visibleTableFields = allColumns.filter((col) =>
-    tableColumns.includes(col.key),
-  );
+  
+  // ⚡️ Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
   const tableFilterColumns = allColumns
     .filter((c) => !c.isSearchOnly)
     .map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
@@ -302,7 +301,6 @@ const ClientSession: React.FC = () => {
           if (columnDef?.type === "date") {
             currentSearchParams[`${columnDef.filterKey || key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_range") {
-            // ⚡️ FIX: Safely parse keys preventing crashes when the field itself contains underscores
             const baseKey = key.replace("__range", "");
             const [start, end] = value.split(",");
             if (start && end) {
@@ -462,18 +460,19 @@ const ClientSession: React.FC = () => {
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
             Client Sessions
           </h1>
-           <div className="relative z-20">
+          <div className="relative z-20">
             <AdvancedFilter
               columns={tableFilterColumns}
               selectedColumns={tableColumns}
               onFilter={setTableColumns}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
+              enableReorder={true}
             />
           </div>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={searchableColumns} // ⚡️ FIX: Mapped to searchableColumns
+              columns={searchableColumns}
               selectedColumns={searchColumns}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
@@ -601,6 +600,14 @@ const ClientSession: React.FC = () => {
         density="compact"
         headers={tableHeaders}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         renderRow={(item, index) => (
           <tr
             key={item.sessionId || index}

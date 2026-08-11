@@ -84,7 +84,11 @@ const Entity: React.FC = () => {
   ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key) && col.key !== "companyLogo");
-  const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+  
+  // ⚡️ Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
 
   const fetchEntities = async (filters: Record<string, string> | null = null) => {
     setIsLoading(true);
@@ -176,7 +180,14 @@ const Entity: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Entity Settings</h1>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={tableColumns} onFilter={setTableColumns} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+            <AdvancedFilter 
+              columns={allColumns} 
+              selectedColumns={tableColumns} 
+              onFilter={setTableColumns} 
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
+              buttonLabel="Columns" 
+              enableReorder={true}
+            />
           </div>
           {/* FIXED: Advanced Filters Integrated */}
           <div className="relative z-20">
@@ -228,6 +239,14 @@ const Entity: React.FC = () => {
         headers={["S.N.", ...visibleTableFields.map(c => c.label)]}
         density="compact"
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           canCreate ? (
             <Button variant="primary" onClick={handleAdd} leftIcon={<Plus size={18} />}>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -12,12 +12,18 @@ import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
-// ViewButton removed
 import { CompanyStatusModal } from "../../../components/modals/Settings/companyStatusModal";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
-// NEW: Context Menu
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
+
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (data: CompanyStatusData) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = ["name"];
 
 const CompanyStatus: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -39,10 +45,40 @@ const CompanyStatus: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // --- Column Order State & Persistence ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("companystatus_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("companystatus_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
   const location = useLocation();
 
   const pathParts = location.pathname.split("/").filter(Boolean);
   const routeName = pathParts[pathParts.length - 1] || "CompanyStatus";
+
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "name",
+      label: "Company Status Name",
+      render: (CompanyStatus) => (
+        <span className="font-medium text-text-primary dark:text-white">
+          {CompanyStatus.name}
+        </span>
+      ),
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   const fetchCompanyStatus = async (
     overrideParams?: Record<string, string>
@@ -123,21 +159,17 @@ const CompanyStatus: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Company Status", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowStatus.id!) }] : []),
   ] : [];
 
-  // Removed "Actions" from headers
-  const headers = ["S.N.", "Company Status Name"];
-
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100);
       
       hasLoggedOpening.current = true;
     }
@@ -182,6 +214,14 @@ const CompanyStatus: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           canCreate ? (
             <Button
@@ -196,16 +236,20 @@ const CompanyStatus: React.FC = () => {
         renderRow={(CompanyStatus, index) => (
           <tr
             key={CompanyStatus.id || index}
-            onContextMenu={(e) => handleContextMenu(e, CompanyStatus)} // Right Click Handler
+            onContextMenu={(e) => handleContextMenu(e, CompanyStatus)}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {CompanyStatus.name}
-            </td>
-            {/* ACTION COLUMN REMOVED */}
+            {visibleTableFields.map((col) => (
+              <td
+                key={col.key}
+                className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+              >
+                {col.render(CompanyStatus)}
+              </td>
+            ))}
           </tr>
         )}
       />

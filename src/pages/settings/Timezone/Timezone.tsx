@@ -9,7 +9,7 @@ import {
 } from "../../../api/settingApi/timezoneApi/timezoneApi";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
-import Select from "../../../components/ui/Select"; // ⚡️ NEW: Import Select
+import Select from "../../../components/ui/Select";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
@@ -17,6 +17,14 @@ import { TimezoneModal } from "../../../components/modals/Settings/timezonemodal
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
+
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (timezone: TimezoneData) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = ["name", "utcOffset", "abbreviation"];
 
 const TimeZone: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -35,33 +43,70 @@ const TimeZone: React.FC = () => {
 
   // --- Filter States ---
   const [nameFilter, setNameFilter] = useState("");
-  const [abbreviationFilter, setAbbreviationFilter] = useState(""); // ⚡️ NEW: Filter state for Abbreviation
+  const [abbreviationFilter, setAbbreviationFilter] = useState("");
 
   // --- Dropdown Options ---
-  const [abbreviationOptions, setAbbreviationOptions] = useState<{ label: string; value: string }[]>([]); // ⚡️ NEW: Options state
+  const [abbreviationOptions, setAbbreviationOptions] = useState<{ label: string; value: string }[]>([]);
 
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // --- Column Order State & Persistence ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("timezone_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("timezone_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
 
   const location = useLocation();
 
   const pathParts = location.pathname.split("/").filter(Boolean);
   const routeName = pathParts[pathParts.length - 1] || "timezone";
 
-  // ⚡️ NEW: Fetch unique abbreviations on mount to populate the dropdown
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "name",
+      label: "Timezone Name",
+      render: (timezone) => (
+        <span className="font-medium text-text-primary dark:text-white">
+          {timezone.name}
+        </span>
+      ),
+    },
+    {
+      key: "utcOffset",
+      label: "UTC Offset",
+      render: (timezone) => timezone.utcOffset || "-",
+    },
+    {
+      key: "abbreviation",
+      label: "Abbreviation",
+      render: (timezone) => timezone.abbreviation || "-",
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
+
+  // Fetch unique abbreviations on mount to populate the dropdown
   useEffect(() => {
     const fetchAbbreviations = async () => {
       try {
-        // Fetch a large chunk to get unique abbreviations
         const res: any = await getTimezoneApi(routeName, 1, 1000);
         let list = res.results || (Array.isArray(res) ? res : []);
         
-        // Extract unique abbreviations
         const uniqueAbbreviations = Array.from(new Set(list.map((tz: TimezoneData) => tz.abbreviation)))
           .filter(Boolean)
           .sort();
 
-        // Format for Select component
         setAbbreviationOptions(uniqueAbbreviations.map((abbr) => ({
           label: String(abbr),
           value: String(abbr),
@@ -79,7 +124,7 @@ const TimeZone: React.FC = () => {
     try {
       const currentSearchParams = overrideParams || {
         name: nameFilter,
-        abbreviation: abbreviationFilter, // ⚡️ NEW: Include abbreviation in search
+        abbreviation: abbreviationFilter,
       };
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
@@ -119,7 +164,7 @@ const TimeZone: React.FC = () => {
   
   const handleClearFilters = () => {
     setNameFilter("");
-    setAbbreviationFilter(""); // ⚡️ NEW: Clear abbreviation filter
+    setAbbreviationFilter("");
     setCurrentPage(1);
     fetchTimezones({ name: "", abbreviation: "" });
   };
@@ -153,8 +198,6 @@ const TimeZone: React.FC = () => {
     ...(canUpdate ? [{ label: "Edit Timezone", icon: <Edit size={16} />, onClick: () => handleEdit(selectedRowTimezone) }] : []),
     ...(canDelete ? [{ label: "Delete Timezone", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowTimezone.id!) }] : []),
   ] : [];
-
-  const headers = ["S.N.", "Timezone Name", "UTC Offset", "Abbreviation"];
 
   const hasLoggedOpening = useRef(false);
 
@@ -195,7 +238,6 @@ const TimeZone: React.FC = () => {
           onChange={(e) => setNameFilter(e.target.value)}
           placeholder="Timezone Name"
         />
-        {/* ⚡️ NEW: Abbreviation Select Dropdown */}
         <Select
           label="Search Abbreviation"
           value={abbreviationFilter}
@@ -216,6 +258,14 @@ const TimeZone: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           canCreate ? (
             <Button
@@ -236,15 +286,14 @@ const TimeZone: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {timezone.name}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {timezone.utcOffset || "-"}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {timezone.abbreviation || "-"}
-            </td>
+            {visibleTableFields.map((col) => (
+              <td
+                key={col.key}
+                className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+              >
+                {col.render(timezone)}
+              </td>
+            ))}
           </tr>
         )}
       />

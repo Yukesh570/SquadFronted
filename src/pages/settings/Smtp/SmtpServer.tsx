@@ -17,8 +17,21 @@ import { DeleteModal } from "../../../components/modals/DeleteModal";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
-
 import { StatusBadge } from "../../../components/ui/StatusBadge";
+
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (server: SmtpServerData) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = [
+  "name",
+  "smtpHost",
+  "smtpPort",
+  "smtpUser",
+  "security",
+];
 
 const SmtpServer: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -42,8 +55,79 @@ const SmtpServer: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // --- Column Order State & Persistence ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("smtpserver_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("smtpserver_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
+
+  const getSecurityStatus = (sec?: string) => {
+    if (sec === "TLS") return "QUEUED"; 
+    if (sec === "SSL") return "DELIVERED";    
+    return "UNKNOWN";                      // Grey
+  };
+
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "name",
+      label: "Name",
+      render: (server) => (
+        <span className="font-medium text-text-primary dark:text-white">
+          {server.name}
+        </span>
+      ),
+    },
+    {
+      key: "smtpHost",
+      label: "Host",
+      render: (server) => (
+        <span className="text-text-primary dark:text-white">
+          {server.smtpHost}
+        </span>
+      ),
+    },
+    {
+      key: "smtpPort",
+      label: "Port",
+      render: (server) => (
+        <StatusBadge status="SUBMITTED" customText={String(server.smtpPort)} />
+      ),
+    },
+    {
+      key: "smtpUser",
+      label: "User",
+      render: (server) => (
+        <span className="text-text-primary dark:text-white">
+          {server.smtpUser}
+        </span>
+      ),
+    },
+    {
+      key: "security",
+      label: "Security",
+      render: (server) => (
+        <StatusBadge 
+          status={getSecurityStatus(server.security)} 
+          customText={server.security || "NONE"} 
+        />
+      ),
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   const fetchServers = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
@@ -123,15 +207,6 @@ const SmtpServer: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Server", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowServer.id!) }] : []),
   ] : [];
 
-  const headers = [
-    "S.N.",
-    "Name",
-    "Host",
-    "Port",
-    "User",
-    "Security",
-  ];
-
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
@@ -147,12 +222,6 @@ const SmtpServer: React.FC = () => {
       hasLoggedOpening.current = true;
     }
   }, []);
-
-  const getSecurityStatus = (sec?: string) => {
-    if (sec === "TLS") return "QUEUED"; 
-    if (sec === "SSL") return "DELIVERED";    
-    return "UNKNOWN";                      // Grey
-  };
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -198,6 +267,14 @@ const SmtpServer: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           canCreate ? (
             <Button
@@ -218,26 +295,14 @@ const SmtpServer: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.name}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.smtpHost}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {/* ⚡️ FIX: Used SUBMITTED (Blue) badge for Port */}
-              <StatusBadge status="SUBMITTED" customText={String(server.smtpPort)} />
-            </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
-              {server.smtpUser}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {/* ⚡️ FIX: Security differentiates between TLS and SSL */}
-              <StatusBadge 
-                status={getSecurityStatus(server.security)} 
-                customText={server.security || "NONE"} 
-              />
-            </td>
+            {visibleTableFields.map((col) => (
+              <td
+                key={col.key}
+                className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+              >
+                {col.render(server)}
+              </td>
+            ))}
           </tr>
         )}
       />

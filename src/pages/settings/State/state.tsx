@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Plus, Edit, Trash, Eye } from "lucide-react"; // Added Eye icon
+import { Home, Plus, Edit, Trash, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -13,11 +13,17 @@ import Input from "../../../components/ui/Input";
 import DataTable from "../../../components/ui/DataTable";
 import FilterCard from "../../../components/ui/FilterCard";
 import { DeleteModal } from "../../../components/modals/DeleteModal";
-// ViewButton removed
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
-// NEW: Context Menu
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
+
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (state: StateData) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = ["name", "country", "countryName"];
 
 const State: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -40,8 +46,48 @@ const State: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // --- Column Order State & Persistence ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("state_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("state_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
+
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "name",
+      label: "State Name",
+      render: (state) => (
+        <span className="font-medium text-text-primary dark:text-white">
+          {state.name}
+        </span>
+      ),
+    },
+    {
+      key: "country",
+      label: "Country ID",
+      render: (state) => state.country || "-",
+    },
+    {
+      key: "countryName",
+      label: "Country Name",
+      render: (state) => state.countryName || "-",
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   const fetchStates = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
@@ -118,26 +164,17 @@ const State: React.FC = () => {
     ...(canDelete ? [{ label: "Delete State", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowState.id!) }] : []),
   ] : [];
 
-  // Removed "Actions" from headers
-  const headers = [
-    "S.N.",
-    "State Name",
-    "Country ID",
-    "Country Name",
-  ];
-
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100);
       
       hasLoggedOpening.current = true;
     }
@@ -187,6 +224,14 @@ const State: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           canCreate ? (
             <Button
@@ -201,22 +246,20 @@ const State: React.FC = () => {
         renderRow={(state, index) => (
           <tr
             key={state.id || index}
-            onContextMenu={(e) => handleContextMenu(e, state)} // Right Click Handler
+            onContextMenu={(e) => handleContextMenu(e, state)}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {state.name}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {state.country}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {state.countryName || "-"}
-            </td>
-            {/* ACTION COLUMN REMOVED */}
+            {visibleTableFields.map((col) => (
+              <td
+                key={col.key}
+                className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+              >
+                {col.render(state)}
+              </td>
+            ))}
           </tr>
         )}
       />

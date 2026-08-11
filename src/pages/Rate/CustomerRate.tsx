@@ -114,7 +114,6 @@ const CustomerRate: React.FC = () => {
   const [countryMap, setCountryMap] = useState<Record<string, string>>({});
 
   const [activeRateGroup, setActiveRateGroup] = useState<string | null>(null);
-  // ⚡️ FIX: Added state to hold active group ID
   const [activeRateGroupId, setActiveRateGroupId] = useState<number | null>(null);
   const [isSubTableModalOpen, setIsSubTableModalOpen] = useState(false);
 
@@ -180,7 +179,12 @@ const CustomerRate: React.FC = () => {
   ];
 
   const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
-  const visibleTableFields = allColumns.filter((col) => tableColumns.includes(col.key));
+
+  // ⚡️ Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
   const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
 
   const handleFilterChange = (key: string, value: string) => { setFilterValues((prev) => ({ ...prev, [key]: value })); };
@@ -265,14 +269,12 @@ const CustomerRate: React.FC = () => {
   };
 
   const openSubTableModal = (groupItem: any) => {
-    // ⚡️ FIX: Pass both name and ID correctly from groupItem
     setActiveRateGroup(groupItem.name);
     setActiveRateGroupId(groupItem.id);
     setIsSubTableModalOpen(true);
   };
 
   const menuItems: ContextMenuItem[] = selectedRowGroup ? [
-    // ⚡️ FIX: Pass the entire object to openSubTableModal
     { label: "Manage Rates", icon: <Layers size={16} />, onClick: () => openSubTableModal(selectedRowGroup) },
     ...(canUpdate ? [{ label: "Edit Group", icon: <Edit size={16} />, onClick: () => { setEditingGroup(selectedRowGroup); setIsCreateModalOpen(true); } }] : []),
     ...(canDelete ? [{ label: "Delete Group", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowGroup.id!) }] : []),
@@ -287,7 +289,14 @@ const CustomerRate: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Customer Rates Manager</h1>
           <div className="relative z-20">
-            <AdvancedFilter columns={tableFilterColumns as any} selectedColumns={tableColumns} onFilter={(cols: any) => setTableColumns(cols)} onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} buttonLabel="Columns" />
+            <AdvancedFilter 
+              columns={tableFilterColumns as any} 
+              selectedColumns={tableColumns} 
+              onFilter={(cols: any) => setTableColumns(cols)} 
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
+              buttonLabel="Columns" 
+              enableReorder={true}
+            />
           </div>
           <div className="relative z-20">
             <AdvancedFilter columns={allColumns as any} selectedColumns={searchColumns} onFilter={(newCols: any) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
@@ -327,7 +336,26 @@ const CustomerRate: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable serverSide={true} data={groupedRates} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} density="compact" headers={tableHeaders} isLoading={isLoading} headerActions={canCreate ? <Button variant="primary" onClick={() => { setEditingGroup(null); setIsCreateModalOpen(true); }} leftIcon={<Plus size={18} />}>Create Group</Button> : null}
+      <DataTable 
+        serverSide={true} 
+        data={groupedRates} 
+        totalItems={totalItems} 
+        currentPage={currentPage} 
+        rowsPerPage={rowsPerPage} 
+        onPageChange={setCurrentPage} 
+        onRowsPerPageChange={setRowsPerPage} 
+        density="compact" 
+        headers={tableHeaders} 
+        isLoading={isLoading} 
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
+        headerActions={canCreate ? <Button variant="primary" onClick={() => { setEditingGroup(null); setIsCreateModalOpen(true); }} leftIcon={<Plus size={18} />}>Create Group</Button> : null}
         renderRow={(routeGroupObj: any, index: number) => (
           <tr key={index} onContextMenu={(e) => handleContextMenu(e, routeGroupObj)} className="hover:bg-gray-50 dark:hover:bg-gray-700/80 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">{(currentPage - 1) * rowsPerPage + index + 1}</td>
@@ -350,7 +378,7 @@ const CustomerRate: React.FC = () => {
         isOpen={isSubTableModalOpen}
         onClose={() => { setIsSubTableModalOpen(false); setActiveRateGroup(null); setActiveRateGroupId(null); fetchGroupedRates(); }}
         rateGroup={activeRateGroup}
-        rateGroupId={activeRateGroupId} // ⚡️ FIX: Pass ID down
+        rateGroupId={activeRateGroupId}
         moduleName={routeName}
         canUpdate={canUpdate}
         canDelete={canDelete}

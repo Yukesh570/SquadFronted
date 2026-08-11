@@ -18,6 +18,14 @@ import { usePagePermissions } from "../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (template: EmailTemplateData) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = ["name", "subject", "emailServer", "content"];
+
 const stripHtml = (html: string) => {
   const doc = new DOMParser().parseFromString(html, "text/html");
   return doc.body.textContent || "";
@@ -46,8 +54,69 @@ const EmailTemplatePage: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // --- Column Order State & Persistence ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("emailtemplate_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("emailtemplate_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "emailTemplate";
+
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "name",
+      label: "Name",
+      render: (template) => (
+        <span className="font-medium text-text-primary dark:text-white">
+          {template.name}
+        </span>
+      ),
+    },
+    {
+      key: "subject",
+      label: "Subject",
+      render: (template) => template.subject || "-",
+    },
+    {
+      key: "emailServer",
+      label: "Email Server",
+      render: (template) =>
+        template.emailServer ? serverMap[template.emailServer] || `ID: ${template.emailServer}` : "-",
+    },
+    {
+      key: "content",
+      label: "Content",
+      render: (template) => (
+        <div
+          className="block w-full max-w-xs overflow-hidden truncate"
+          style={{
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "normal",
+            maxHeight: "2.5rem",
+          }}
+        >
+          {stripHtml(template.content)}
+        </div>
+      ),
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   // --- Fetch SMTP Servers to build the translation dictionary ---
   useEffect(() => {
@@ -162,8 +231,6 @@ const EmailTemplatePage: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Template", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowTemplate.id!) }] : []),
   ] : [];
 
-  const headers = ["S.N.", "Name", "Subject", "Email Server", "Content"];
-
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
@@ -219,6 +286,14 @@ const EmailTemplatePage: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           canCreate ? (
             <Button
@@ -239,33 +314,11 @@ const EmailTemplatePage: React.FC = () => {
             <td className="px-4 py-4 whitespace-nowrap text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 whitespace-nowrap text-sm text-text-primary dark:text-white font-medium">
-              {template.name}
-            </td>
-            <td className="px-4 py-4 whitespace-nowrap text-sm text-text-secondary dark:text-gray-300">
-              {template.subject || "-"}
-            </td>
-            
-            <td className="px-4 py-4 whitespace-nowrap text-sm text-text-secondary dark:text-gray-300">
-              {template.emailServer ? serverMap[template.emailServer] || `ID: ${template.emailServer}` : "-"}
-            </td>
-
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <div
-                className="block w-full max-w-xs overflow-hidden truncate"
-                style={{
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "normal",
-                  maxHeight: "2.5rem",
-                }}
-              >
-                {stripHtml(template.content)}
-              </div>
-            </td>
+            {visibleTableFields.map((col) => (
+              <td key={col.key} className="px-4 py-4 whitespace-nowrap text-sm text-text-secondary dark:text-gray-300">
+                {col.render(template)}
+              </td>
+            ))}
           </tr>
         )}
       />

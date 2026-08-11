@@ -17,6 +17,14 @@ import { usePagePermissions } from "../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (template: templateData) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = ["name", "content"];
+
 const stripHtml = (html: string) => {
   const doc = new DOMParser().parseFromString(html, "text/html");
   return doc.body.textContent || "";
@@ -41,8 +49,58 @@ const CampaignTemplatePage: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // --- Column Order State & Persistence ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("campaigntemplate_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("campaigntemplate_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "";
+
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "name",
+      label: "Name",
+      render: (template) => (
+        <span className="font-medium text-text-primary dark:text-white">
+          {template.name}
+        </span>
+      ),
+    },
+    {
+      key: "content",
+      label: "Content",
+      render: (template) => (
+        <div
+          className="block w-full max-w-xs overflow-hidden truncate"
+          style={{
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "normal",
+            maxHeight: "2.5rem",
+          }}
+        >
+          {stripHtml(template.content)}
+        </div>
+      ),
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   const fetchTemplates = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
@@ -123,8 +181,6 @@ const CampaignTemplatePage: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Template", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowTemplate.id!) }] : []),
   ] : [];
 
-  const headers = ["S.N.", "Name", "Content"];
-
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
@@ -180,6 +236,14 @@ const CampaignTemplatePage: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           canCreate ? (
             <Button
@@ -197,29 +261,17 @@ const CampaignTemplatePage: React.FC = () => {
             onContextMenu={(e) => handleContextMenu(e, template)}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
+            <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {template.name}
-            </td>
-
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <div
-                className="block w-full max-w-xs overflow-hidden truncate"
-                style={{
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "normal",
-                  maxHeight: "2.5rem",
-                }}
+            {visibleTableFields.map((col) => (
+              <td
+                key={col.key}
+                className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
               >
-                {stripHtml(template.content)}
-              </div>
-            </td>
+                {col.render(template)}
+              </td>
+            ))}
           </tr>
         )}
       />

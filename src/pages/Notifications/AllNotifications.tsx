@@ -13,6 +13,14 @@ import FilterCard from "../../components/ui/FilterCard";
 import { DeleteModal } from "../../components/modals/DeleteModal";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (notification: NotificationData) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = ["title", "description", "createdAt"];
+
 const AllNotifications: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -28,6 +36,58 @@ const AllNotifications: React.FC = () => {
 
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // --- Column Order State & Persistence ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("allnotifications_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("allnotifications_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "title",
+      label: "Title",
+      render: (n) => (
+        <span className="font-medium text-text-primary dark:text-white">
+          {n.title || "-"}
+        </span>
+      ),
+    },
+    {
+      key: "description",
+      label: "Description",
+      render: (n) => (
+        <span className="max-w-xl truncate block">
+          {n.description || "-"}
+        </span>
+      ),
+    },
+    {
+      key: "createdAt",
+      label: "Date",
+      render: (n) =>
+        n.createdAt
+          ? new Date(n.createdAt).toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "-",
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   const fetchNotifications = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
@@ -99,8 +159,6 @@ const AllNotifications: React.FC = () => {
     { label: "Delete Notification", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRow.id!) },
   ] : [];
 
-  const headers = ["S.N.", "Title", "Description", "Date"];
-
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-8 flex items-center justify-between">
@@ -138,6 +196,14 @@ const AllNotifications: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         renderRow={(notification, index) => (
           <tr
             key={notification.id || index}
@@ -147,15 +213,14 @@ const AllNotifications: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm font-medium text-text-primary dark:text-white">
-              {notification.title || "-"}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 max-w-xl truncate">
-              {notification.description || "-"}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
-              {notification.createdAt ? new Date(notification.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "-"}
-            </td>
+            {visibleTableFields.map((col) => (
+              <td
+                key={col.key}
+                className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+              >
+                {col.render(notification)}
+              </td>
+            ))}
           </tr>
         )}
       />

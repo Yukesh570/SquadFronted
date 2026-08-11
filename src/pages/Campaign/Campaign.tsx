@@ -32,6 +32,20 @@ import ContextMenu, {
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 import { actionHelper } from "../../helper/action";
 
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (campaign: CampaignFormData) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = [
+  "name",
+  "clientName",
+  "objective",
+  "content",
+  "schedule",
+];
+
 const CampaignList: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [campaigns, setCampaigns] = useState<CampaignFormData[]>([]);
@@ -60,10 +74,20 @@ const CampaignList: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // --- Column Order State & Persistence ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("campaign_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("campaign_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "campaign";
 
-  const formatContent = (content: string) => {
+  const formatContent = (content?: string) => {
     if (!content) return "";
     const strippedContent = content.replace(/<[^>]*>/g, "");
     const limit = 30;
@@ -71,6 +95,58 @@ const CampaignList: React.FC = () => {
       ? `${strippedContent.substring(0, limit)}...`
       : strippedContent;
   };
+
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "name",
+      label: "Name",
+      render: (c) => (
+        <span className="font-medium text-text-primary dark:text-white">
+          {c.name}
+        </span>
+      ),
+    },
+    {
+      key: "clientName",
+      label: "Client",
+      render: (c) => c.clientName || "-",
+    },
+    {
+      key: "objective",
+      label: "Objective",
+      render: (c) => (
+        <span className="flex items-center gap-2">
+          <Megaphone size={14} /> {c.objective}
+        </span>
+      ),
+    },
+    {
+      key: "content",
+      label: "Content",
+      render: (c) => (
+        <span title={c.content?.replace(/<[^>]*>/g, "")}>
+          {formatContent(c.content)}
+        </span>
+      ),
+    },
+    {
+      key: "schedule",
+      label: "Schedule",
+      render: (c) => (
+        <span className="flex items-center gap-2">
+          <Calendar size={14} /> {c.schedule}
+        </span>
+      ),
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   const fetchCampaigns = async (overrideParams?: Record<string, string>) => {
     setIsLoading(true);
@@ -194,15 +270,6 @@ const CampaignList: React.FC = () => {
       ]
     : [];
 
-  const headers = [
-    "S.N.",
-    "Name",
-    "Client",
-    "Objective",
-    "Content",
-    "Schedule",
-  ];
-
   const objectiveOptions = [
     { label: "All", value: "" },
     { label: "Promotion", value: "Promotion" },
@@ -214,7 +281,6 @@ const CampaignList: React.FC = () => {
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      // The setTimeout is CRUCIAL here to wait for the sidebar to update
       setTimeout(() => {
         const activeLinks = document.querySelectorAll(
           "aside a.active, nav a.active",
@@ -224,7 +290,7 @@ const CampaignList: React.FC = () => {
           activeItem?.innerText?.split("\n")[0].trim() || "Module";
 
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); // Waits 0.1 seconds
+      }, 100);
 
       hasLoggedOpening.current = true;
     }
@@ -273,6 +339,14 @@ const CampaignList: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           canCreate ? (
             <Button
@@ -293,28 +367,14 @@ const CampaignList: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {campaign.name}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {campaign.clientName || "-"}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <span className="flex items-center gap-2">
-                <Megaphone size={14} /> {campaign.objective}
-              </span>
-            </td>
-            <td
-              className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300"
-              title={campaign.content?.replace(/<[^>]*>/g, "")}
-            >
-              {formatContent(campaign.content)}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              <span className="flex items-center gap-2">
-                <Calendar size={14} /> {campaign.schedule}
-              </span>
-            </td>
+            {visibleTableFields.map((col) => (
+              <td
+                key={col.key}
+                className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+              >
+                {col.render(campaign)}
+              </td>
+            ))}
           </tr>
         )}
       />

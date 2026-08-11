@@ -1,7 +1,7 @@
 import React, { Fragment, useState, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
 import { Popover, Transition } from "@headlessui/react";
-import { Filter, Search, Check, X, Lock, ChevronDown, ChevronRight, GripVertical } from "lucide-react";
+import { Filter, Search, Check, X, Lock, GripVertical } from "lucide-react";
 import Button from "./Button";
 
 export interface FilterColumn {
@@ -18,7 +18,7 @@ export interface AdvancedFilterProps {
   onClear: () => void;
   isLoading?: boolean;
   buttonLabel?: string;
-  enableReorder?: boolean; // 👈 NEW: Only enable drag handles when explicitly set to true
+  enableReorder?: boolean;
 }
 
 const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
@@ -29,11 +29,10 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   onClear,
   isLoading = false,
   buttonLabel = "Filters",
-  enableReorder = false, // 👈 Default to false so Search Fields isn't draggable
+  enableReorder = false,
 }) => {
   const [tempSelectedKeys, setTempSelectedKeys] = useState<string[]>([]);
   const [columnSearch, setColumnSearch] = useState("");
-  const [isDefaultOpen, setIsDefaultOpen] = useState(false);
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -104,26 +103,18 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
 
   const searchLower = columnSearch.toLowerCase();
 
-  const defaultList = columns.filter(
-    (c) => activeDefaultColumns.includes(c.key) && c.label.toLowerCase().includes(searchLower)
+  // Combine selected items (in tempSelectedKeys order) followed by unselected items
+  const orderedSelectedColumns = tempSelectedKeys
+    .map((key) => columns.find((c) => c.key === key))
+    .filter((c): c is FilterColumn => !!c);
+
+  const unselectedColumns = columns.filter(
+    (c) => !tempSelectedKeys.includes(c.key)
   );
 
-  // Map otherList in order of tempSelectedKeys if reordering is enabled
-  const orderedOtherColumns = enableReorder
-    ? tempSelectedKeys
-        .map((key) => columns.find((c) => c.key === key))
-        .filter((c): c is FilterColumn => !!c && !activeDefaultColumns.includes(c.key))
-    : columns.filter((c) => !activeDefaultColumns.includes(c.key));
-
-  const unselectedOtherColumns = enableReorder
-    ? columns.filter(
-        (c) => !activeDefaultColumns.includes(c.key) && !tempSelectedKeys.includes(c.key)
-      )
-    : [];
-
-  const otherList = [...orderedOtherColumns, ...unselectedOtherColumns].filter((c) =>
-    c.label.toLowerCase().includes(searchLower)
-  );
+  const displayColumns = (
+    enableReorder ? [...orderedSelectedColumns, ...unselectedColumns] : columns
+  ).filter((c) => c.label.toLowerCase().includes(searchLower));
 
   const handleItemDragStart = (idx: number) => {
     setDraggedItemIdx(idx);
@@ -272,49 +263,13 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                         </button>
                       </div>
 
-                      {/* List */}
+                      {/* Unified Single Column List */}
                       <div className="flex-1 overflow-y-auto min-h-0 p-1">
-                        {/* 1. Default Fields Category */}
-                        {defaultList.length > 0 && (
-                          <div className="mb-1">
-                            <button
-                              type="button"
-                              onClick={() => setIsDefaultOpen(!isDefaultOpen)}
-                              className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-semibold text-text-secondary dark:text-gray-300 bg-gray-100/80 dark:bg-gray-700/50 hover:bg-gray-200/60 rounded-md transition-colors"
-                            >
-                              {isDefaultOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                              <span>Default {buttonLabel}</span>
-                              <span className="inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1.5 text-[10px] font-bold text-white bg-primary rounded-full">
-                                {defaultList.length}
-                              </span>
-                            </button>
-
-                            {isDefaultOpen && (
-                              <div className="mt-1 space-y-0.5 pl-2">
-                                {defaultList.map((col) => (
-                                  <button
-                                    key={col.key}
-                                    type="button"
-                                    onClick={() => handleToggleColumn(col.key)}
-                                    disabled={true}
-                                    className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                                  >
-                                    <div className="flex items-center justify-center w-4 h-4 flex-shrink-0">
-                                      <Lock size={14} className="text-primary" />
-                                    </div>
-                                    <span className="truncate flex-1">{col.label}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* 2. Other Fields Category */}
-                        {otherList.length > 0 && (
+                        {displayColumns.length > 0 ? (
                           <div className="space-y-0.5">
-                            {otherList.map((col, idx) => {
+                            {displayColumns.map((col, idx) => {
                               const isSelected = tempSelectedKeys.includes(col.key);
+                              const isDefault = activeDefaultColumns.includes(col.key);
                               const isDraggable = enableReorder && isSelected;
 
                               return (
@@ -336,16 +291,25 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => handleToggleColumn(col.key)}
-                                    className="flex items-center gap-2 flex-1 text-left min-w-0"
+                                    disabled={isDefault && isSelected}
+                                    className={`flex items-center gap-2 flex-1 text-left min-w-0 ${
+                                      isDefault && isSelected ? "cursor-not-allowed opacity-90" : "cursor-pointer"
+                                    }`}
                                   >
                                     <div
                                       className={`flex items-center justify-center w-4 h-4 rounded border transition-colors flex-shrink-0 ${
-                                        isSelected
+                                        isDefault && isSelected
+                                          ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-primary"
+                                          : isSelected
                                           ? "bg-primary border-primary text-white"
                                           : "border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-800"
                                       }`}
                                     >
-                                      {isSelected && <Check size={10} />}
+                                      {isDefault && isSelected ? (
+                                        <Lock size={10} className="text-primary" />
+                                      ) : (
+                                        isSelected && <Check size={10} />
+                                      )}
                                     </div>
                                     <span className="truncate flex-1">{col.label}</span>
                                   </button>
@@ -353,9 +317,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                               );
                             })}
                           </div>
-                        )}
-
-                        {defaultList.length === 0 && otherList.length === 0 && (
+                        ) : (
                           <div className="py-4 px-4 text-center text-gray-400 text-xs">
                             No items found
                           </div>

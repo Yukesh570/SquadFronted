@@ -14,6 +14,19 @@ import {
 } from "../../api/userActionApi/LogApi";
 import { actionHelper } from "../../helper/action";
 
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (log: UserActionData) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = ["username", "title", "action", "createdAt"];
+
+const formatDate = (dateString?: string) => {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleString();
+};
+
 const UserAction: React.FC = () => {
   const [logs, setLogs] = useState<UserActionData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -28,6 +41,64 @@ const UserAction: React.FC = () => {
 
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRowLog, setSelectedRowLog] = useState<UserActionData | null>(null);
+
+  // --- Column Order State & Persistence ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("useraction_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("useraction_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "username",
+      label: "UserName",
+      render: (log) => (
+        <span className="font-mono text-sm text-text-secondary dark:text-gray-300">
+          {log.username}
+        </span>
+      ),
+    },
+    {
+      key: "title",
+      label: "Module",
+      render: (log) => (
+        <span className="text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
+          {log.title}
+        </span>
+      ),
+    },
+    {
+      key: "action",
+      label: "Action",
+      render: (log) => (
+        <div className="max-w-[150px] sm:max-w-[200px] md:max-w-[300px] truncate text-sm text-text-secondary dark:text-gray-300">
+          {log.action}
+        </div>
+      ),
+    },
+    {
+      key: "createdAt",
+      label: "Time",
+      render: (log) => (
+        <div className="flex items-center gap-2 text-xs text-text-secondary dark:text-gray-300 whitespace-nowrap">
+          <History size={14} className="text-orange-400" />
+          {formatDate(log.createdAt)}
+        </div>
+      ),
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -138,13 +209,6 @@ const UserAction: React.FC = () => {
     }
   }, []);
 
-  const headers = ["S.N.", "UserName", "Module", "Action", "Time"];
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleString();
-  };
-
   return (
     <div className="container mx-auto px-4 pb-6 sm:px-6 lg:px-8" onClick={() => setContextMenuPos(null)}>
       <div className="mb-8 flex items-center justify-between">
@@ -182,6 +246,14 @@ const UserAction: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         renderRow={(log, index) => (
           <tr
             key={log.id}
@@ -191,24 +263,14 @@ const UserAction: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 font-mono">
-              {log.username}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
-              {log.title}
-            </td>
-            {/* FIXED: Removed inline button, simplified to just a truncated container */}
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 max-w-[150px] sm:max-w-[200px] md:max-w-[300px]">
-              <div className="truncate">
-                {log.action}
-              </div>
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
-              <div className="flex items-center gap-2 text-xs">
-                <History size={14} className="text-orange-400" />
-                {formatDate(log.createdAt)}
-              </div>
-            </td>
+            {visibleTableFields.map((col) => (
+              <td
+                key={col.key}
+                className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+              >
+                {col.render(log)}
+              </td>
+            ))}
           </tr>
         )}
       />

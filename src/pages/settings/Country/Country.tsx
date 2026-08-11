@@ -24,6 +24,20 @@ import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
 
+interface ColumnConfig {
+  key: string;
+  label: string;
+  render: (country: CountryData) => React.ReactNode;
+}
+
+const DEFAULT_TABLE_COLUMNS = [
+  "name",
+  "countryCode",
+  "iso2",
+  "region",
+  "subRegion",
+];
+
 const Country: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
   const [countries, setCountries] = useState<CountryData[]>([]);
@@ -51,8 +65,58 @@ const Country: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // --- Column Order State & Persistence ---
+  const [tableColumns, setTableColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("country_table_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("country_table_columns", JSON.stringify(tableColumns));
+  }, [tableColumns]);
+
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "country";
+
+  // Column definitions for dynamic rendering & dragging
+  const allColumns: ColumnConfig[] = [
+    {
+      key: "name",
+      label: "Country",
+      render: (country) => (
+        <span className="font-medium text-text-primary dark:text-white">
+          {country.name}
+        </span>
+      ),
+    },
+    {
+      key: "countryCode",
+      label: "Country Code",
+      render: (country) => country.countryCode || "-",
+    },
+    {
+      key: "iso2",
+      label: "ISO2",
+      render: (country) => country.iso2 || "-",
+    },
+    {
+      key: "region",
+      label: "Region",
+      render: (country) => country.region || "-",
+    },
+    {
+      key: "subRegion",
+      label: "Sub Region",
+      render: (country) => country.subRegion || "-",
+    },
+  ];
+
+  // Map columns according to custom reordered user preference
+  const visibleTableFields = tableColumns
+    .map((key) => allColumns.find((col) => col.key === key))
+    .filter((col): col is ColumnConfig => Boolean(col));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
 
   const handleExport = async () => {
     try {
@@ -198,8 +262,6 @@ const Country: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Country", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowCountry.id!) }] : []),
   ] : [];
 
-  const headers = ["S.N.", "Country", "Country Code", "ISO2", "Region", "Sub Region"];
-
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
@@ -270,6 +332,14 @@ const Country: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onReorderColumns={(fromIdx, toIdx) => {
+          setTableColumns((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, moved);
+            return next;
+          });
+        }}
         headerActions={
           <div className="flex gap-2">
             <Button
@@ -308,21 +378,14 @@ const Country: React.FC = () => {
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            <td className="px-4 py-4 text-sm text-text-primary dark:text-white font-medium">
-              {country.name}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {country.countryCode}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {country.iso2 || "-"}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {country.region || "-"}
-            </td>
-            <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300">
-              {country.subRegion || "-"}
-            </td>
+            {visibleTableFields.map((col) => (
+              <td
+                key={col.key}
+                className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+              >
+                {col.render(country)}
+              </td>
+            ))}
           </tr>
         )}
       />
