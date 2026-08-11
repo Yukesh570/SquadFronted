@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { Plus, Edit, Trash, Home, Eye } from "lucide-react"; 
+import { Plus, Edit, Trash, Home, Eye } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -115,7 +115,8 @@ const ModuleList: React.FC = () => {
     setIsLoading(true);
     try {
       const currentSearchParams = overrideParams || {
-        label: labelFilter,
+        // Change "label" to "label__icontains" (or your backend's specific filter format)
+        label__icontains: labelFilter,
       };
       const cleanParams = Object.fromEntries(
         Object.entries(currentSearchParams).filter(([_, v]) => v !== ""),
@@ -197,31 +198,31 @@ const ModuleList: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowModule
     ? [
-        {
-          label: "View Details",
-          icon: <Eye size={16} />,
-          onClick: () => handleView(selectedRowModule),
-        },
-        ...(canUpdate
-          ? [
-              {
-                label: "Edit Module",
-                icon: <Edit size={16} />,
-                onClick: () => handleEdit(selectedRowModule),
-              },
-            ]
-          : []),
-        ...(canDelete
-          ? [
-              {
-                label: "Delete Module",
-                icon: <Trash size={16} />,
-                variant: "danger" as const,
-                onClick: () => setDeleteId(selectedRowModule.id!),
-              },
-            ]
-          : []),
-      ]
+      {
+        label: "View Details",
+        icon: <Eye size={16} />,
+        onClick: () => handleView(selectedRowModule),
+      },
+      ...(canUpdate
+        ? [
+          {
+            label: "Edit Module",
+            icon: <Edit size={16} />,
+            onClick: () => handleEdit(selectedRowModule),
+          },
+        ]
+        : []),
+      ...(canDelete
+        ? [
+          {
+            label: "Delete Module",
+            icon: <Trash size={16} />,
+            variant: "danger" as const,
+            onClick: () => setDeleteId(selectedRowModule.id!),
+          },
+        ]
+        : []),
+    ]
     : [];
 
   const hasLoggedOpening = useRef(false);
@@ -237,7 +238,7 @@ const ModuleList: React.FC = () => {
           activeItem?.innerText?.split("\n")[0].trim() || "Module";
 
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100); 
+      }, 100);
 
       hasLoggedOpening.current = true;
     }
@@ -302,7 +303,7 @@ const ModuleList: React.FC = () => {
         renderRow={(module, index) => (
           <tr
             key={module.id || index}
-            onContextMenu={(e) => handleContextMenu(e, module)} 
+            onContextMenu={(e) => handleContextMenu(e, module)}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
