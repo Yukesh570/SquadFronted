@@ -30,7 +30,6 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
     name: "",
     country: "",
     countryCode: "",
-    timeZone: "",
     network: "",
     MCC: "",
     MNC: "",
@@ -46,7 +45,6 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
           name: editingMapping.name || "",
           country: editingMapping.country,
           countryCode: editingMapping.countryCode,
-          timeZone: editingMapping.timeZone,
           network: editingMapping.network,
           MCC: editingMapping.MCC,
           MNC: editingMapping.MNC,
@@ -58,7 +56,6 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
           name: "",
           country: "",
           countryCode: "",
-          timeZone: "",
           network: "",
           MCC: "",
           MNC: "",
@@ -89,10 +86,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
       toast.error("Country Code is required");
       return;
     }
-    // if (!formData.timeZone.trim()) {
-    //   toast.error("TimeZone is required");
-    //   return;
-    // }
+
     if (!formData.network.trim()) {
       toast.error("Network is required");
       return;
@@ -157,20 +151,24 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
       className="max-w-4xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+        <div>
+          <Input
+            label="Mapping Setup Name"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+            disabled={isViewMode}
+            placeholder="e.g., Default Provider Mapping"
+          />
+        </div>
+
         <div className="p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300">
           Enter the specific <strong>Column Header Name</strong> from your file
           that corresponds to each system field below.
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <Input
-            label="Name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            disabled={isViewMode}
-          />
           <Input
             label="Country"
             name="country"
@@ -187,13 +185,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             required
             disabled={isViewMode}
           />
-          <Input
-            label="TimeZone"
-            name="timeZone"
-            value={formData.timeZone}
-            onChange={handleChange}
-            disabled={isViewMode}
-          />
+
           <Input
             label="Network"
             name="network"

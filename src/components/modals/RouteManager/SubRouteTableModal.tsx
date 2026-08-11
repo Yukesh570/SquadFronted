@@ -859,7 +859,16 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                 {isPercentage ? "Traffic %" : "Priority"}
                               </th>
                               <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-28">
-                                Vendor Rate {section.routes.length > 0 && (section.routes[0] as any).currencyCode ? `(${(section.routes[0] as any).currencyCode})` : ""}
+                                Customer Rate
+                              </th>
+                              <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-28">
+                                Vendor Rate
+                              </th>
+                              <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-28">
+                                Margin
+                              </th>
+                              <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-24">
+                                Margin %
                               </th>
                               <th className="px-3 py-2 font-bold text-left border-b dark:border-gray-600 w-32">Status</th>
                               {(canUpdate || canDelete) && (
@@ -870,7 +879,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                           <tbody>
                             {section.loading && (
                               <tr>
-                                <td colSpan={(canUpdate || canDelete) ? 8 : 7} className="px-4 py-6 text-center text-gray-400 animate-pulse bg-white dark:bg-gray-900">
+                                <td colSpan={(canUpdate || canDelete) ? 11 : 10} className="px-4 py-6 text-center text-gray-400 animate-pulse bg-white dark:bg-gray-900">
                                   Loading…
                                 </td>
                               </tr>
@@ -934,10 +943,31 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                       onEditEnd={() => setActiveCellId(null)}
                                     />
                                   </td>
-                                  <td className="p-1.5 border-b border-r dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w32 max-w-[rem]">
+                                  <td className="p-1.5 border-b border-r dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w-28">
                                     <div className="w-full min-h-[28px] px-2 py-1.5 rounded flex items-center bg-gray-50 dark:bg-gray-800/50 text-gray-500 font-mono text-xs cursor-not-allowed border border-transparent">
                                       <span className="truncate">
-                                        {(route as any).vendorRate ? (route as any).vendorRate : "—"}
+                                        {(route as any).customerRate ? `${(route as any).customerRate} ${(route as any).clientCurrencyCode || ''}` : "—"}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="p-1.5 border-b border-r dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w-28">
+                                    <div className="w-full min-h-[28px] px-2 py-1.5 rounded flex items-center bg-gray-50 dark:bg-gray-800/50 text-gray-500 font-mono text-xs cursor-not-allowed border border-transparent">
+                                      <span className="truncate">
+                                        {(route as any).vendorRate ? `${(route as any).vendorRate} ${(route as any).vendorCurrencyCode || ''}` : "—"}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="p-1.5 border-b border-r dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w-28">
+                                    <div className={`w-full min-h-[28px] px-2 py-1.5 rounded flex items-center bg-gray-50 dark:bg-gray-800/50 font-mono text-xs cursor-not-allowed border border-transparent ${(route as any).margin < 0 ? 'text-red-500 font-medium' : (route as any).margin > 0 ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
+                                      <span className="truncate">
+                                        {(route as any).margin !== undefined ? `${(route as any).margin} ${(route as any).baseCurrencyCode || ''}` : "—"}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="p-1.5 border-b border-r dark:border-gray-700 overflow-visible bg-white dark:bg-gray-900 w-24">
+                                    <div className={`w-full min-h-[28px] px-2 py-1.5 rounded flex items-center bg-gray-50 dark:bg-gray-800/50 font-mono text-xs cursor-not-allowed border border-transparent ${(route as any).marginPercentage < 0 ? 'text-red-500 font-medium' : (route as any).marginPercentage > 0 ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
+                                      <span className="truncate">
+                                        {(route as any).marginPercentage !== undefined ? `${(route as any).marginPercentage}%` : "—"}
                                       </span>
                                     </div>
                                   </td>
@@ -1032,8 +1062,17 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                     />
                                   </div>
                                 </td>
+                                <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-500 font-mono text-center">
+                                  —
+                                </td>
                                 <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-500 font-mono">
                                   {row.vendorRate ? (row.vendorRate === "N/A" || row.vendorRate === "Error" ? <span className="text-red-400">{row.vendorRate}</span> : <span>{row.vendorRate}</span>) : "—"}
+                                </td>
+                                <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-500 font-mono text-center">
+                                  —
+                                </td>
+                                <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-500 font-mono text-center">
+                                  —
                                 </td>
                                 <td className="px-2 py-1.5 border-b dark:border-gray-700 overflow-visible">
                                   <div className="inline-table-field min-w-[110px]">
@@ -1061,7 +1100,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
                             {!section.loading && section.routes.length === 0 && section.newRows.length === 0 && (
                               <tr>
-                                <td colSpan={canUpdate ? 8 : 7} className="px-4 py-5 text-center text-gray-400 dark:text-gray-500 text-xs">
+                                <td colSpan={canUpdate ? 11 : 10} className="px-4 py-5 text-center text-gray-400 dark:text-gray-500 text-xs">
                                   No routes yet.{canUpdate && " Click \"Add Route\" to create one."}
                                 </td>
                               </tr>

@@ -5,7 +5,6 @@ export interface MappingSetupData {
   name: string;
   country: string;
   countryCode: string;
-  timeZone: string;
   network: string;
   MCC: string;
   MNC: string;

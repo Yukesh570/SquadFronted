@@ -49,7 +49,6 @@ const DEFAULT_TABLE_COLUMNS = [
   "name",
   "country",
   "countryCode",
-  "timeZone",
   "network",
   "MCC",
   "MNC",
@@ -140,12 +139,7 @@ const MappingSetup: React.FC = () => {
       type: "text",
       filterKey: "countryCode__icontains",
     },
-    {
-      key: "timeZone",
-      label: "Time Zone",
-      type: "text",
-      filterKey: "timeZone__icontains",
-    },
+
     {
       key: "network",
       label: "Network",
@@ -342,31 +336,31 @@ const MappingSetup: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowMapping
     ? [
-        {
-          label: "View Details",
-          icon: <Eye size={16} />,
-          onClick: () => handleView(selectedRowMapping),
-        },
-        ...(canUpdate
-          ? [
-              {
-                label: "Edit Setup",
-                icon: <Edit size={16} />,
-                onClick: () => handleEdit(selectedRowMapping),
-              },
-            ]
-          : []),
-        ...(canDelete
-          ? [
-              {
-                label: "Delete Setup",
-                icon: <Trash size={16} />,
-                variant: "danger" as const,
-                onClick: () => setDeleteId(selectedRowMapping.id!),
-              },
-            ]
-          : []),
-      ]
+      {
+        label: "View Details",
+        icon: <Eye size={16} />,
+        onClick: () => handleView(selectedRowMapping),
+      },
+      ...(canUpdate
+        ? [
+          {
+            label: "Edit Setup",
+            icon: <Edit size={16} />,
+            onClick: () => handleEdit(selectedRowMapping),
+          },
+        ]
+        : []),
+      ...(canDelete
+        ? [
+          {
+            label: "Delete Setup",
+            icon: <Trash size={16} />,
+            variant: "danger" as const,
+            onClick: () => setDeleteId(selectedRowMapping.id!),
+          },
+        ]
+        : []),
+    ]
     : [];
 
   const getBaseLabel = (label: string) => label.split(" (")[0].trim();
