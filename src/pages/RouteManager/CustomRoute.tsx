@@ -202,7 +202,6 @@ const CustomRoute: React.FC = () => {
     searchColumns.includes(col.key),
   );
 
-  // ⚡️ Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -289,7 +288,6 @@ const CustomRoute: React.FC = () => {
           ? response
           : [];
 
-      // --- FALLBACK LOOKUP: If searching by Name returned 0 results ---
       const searchTarget = activeFilters.name;
       const clientName = extraNavInfo?.clientName || searchTarget;
       const vendorName = extraNavInfo?.vendorName || searchTarget;
@@ -298,7 +296,6 @@ const CustomRoute: React.FC = () => {
         let foundGroupId: number | null = null;
         let foundGroupName: string | null = null;
 
-        // 1. Try vendor lookup in Sub-Routes (/customRoute/customRoute/)
         if (vendorName) {
           try {
             const subRouteRes: any = await getCustomRoutesApi(
@@ -317,7 +314,6 @@ const CustomRoute: React.FC = () => {
           }
         }
 
-        // 2. Try client lookup in Client API (/client/client/)
         if (!foundGroupId && clientName) {
           try {
             const clientRes: any = await getClientsApi("client", 1, 10, { name__icontains: clientName });
@@ -336,7 +332,6 @@ const CustomRoute: React.FC = () => {
           }
         }
 
-        // 3. Fetch Route Group by found ID or Name
         if (foundGroupId || foundGroupName) {
           try {
             const groupParams: Record<string, any> = {};
@@ -363,7 +358,6 @@ const CustomRoute: React.FC = () => {
       setGroupedRoutes(routeList);
       setTotalItems(response?.count ?? routeList.length);
 
-      // --- Automatically launch SubRouteTableModal if redirected with autoOpen ---
       if (autoOpenModal && routeList.length > 0) {
         const matchedGroup = routeList[0];
         if (matchedGroup) {
@@ -379,7 +373,6 @@ const CustomRoute: React.FC = () => {
     }
   };
 
-  // --- Read URL search params or navigation state on load ---
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const initialName = queryParams.get("name") || (location.state as any)?.searchName;

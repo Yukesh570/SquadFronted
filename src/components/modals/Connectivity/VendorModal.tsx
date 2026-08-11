@@ -148,10 +148,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       if (isOpen && editingVendor) {
         const anyVendor = editingVendor as any;
 
-        // ⚡️ FIX: Instantly grab policy ID from the nested object if it exists
         setExistingPolicyId(anyVendor.vendorPolicy?.id || null);
 
-        // 1. Set top-level vendor data & immediately set policy data from the nested object
         setFormData({
           company: editingVendor.company ? String(editingVendor.company) : "",
           profileName: editingVendor.profileName,
@@ -162,13 +160,12 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           smppPort: "",
           systemID: "",
           password: "",
-          bindMode: "TRANSCEIVER", // Changed default to TRANSCEIVER
+          bindMode: "TRANSCEIVER",
           sourceTON: "",
           sourceNPI: "",
           destTON: "",
           destNPI: "",
 
-          // ⚡️ FIX: Read directly from nested vendorPolicy
           rateTps: anyVendor.vendorPolicy?.rateTps != null ? String(anyVendor.vendorPolicy.rateTps) : "",
           maxSession: anyVendor.vendorPolicy?.maxSession != null ? String(anyVendor.vendorPolicy.maxSession) : "",
           sendQueueLimit: anyVendor.vendorPolicy?.sendQueueLimit != null ? String(anyVendor.vendorPolicy.sendQueueLimit) : "",
@@ -188,13 +185,12 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           status: anyVendor.status || "ACTIVE",
           bindStatus: editingVendor.bindStatus || "OFFLINE",
           active_session_count: anyVendor.active_session_count || 0,
-          max_allowed_sessions: anyVendor.vendorPolicy?.maxSession || 1, // Fallback to 1 if no policy set
+          max_allowed_sessions: anyVendor.vendorPolicy?.maxSession || 1,
         });
 
         setIsLoadingDetails(true);
 
         try {
-          // 2. Fetch fresh SMPP details (we still need this because SMPP isn't nested)
           if (anyVendor.connectionType === "SMPP" && anyVendor.smpp) {
             const smppData = await getSmppByIdApi(anyVendor.smpp, "smpp");
             setFormData((prev) => ({
@@ -203,7 +199,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               smppPort: String(smppData.smppPort) || "",
               systemID: smppData.systemID || "",
               password: smppData.password || "",
-              bindMode: smppData.bindMode || "TRANSCEIVER", // Changed default to TRANSCEIVER
+              bindMode: smppData.bindMode || "TRANSCEIVER",
               sourceTON: String(smppData.sourceTON || ""),
               sourceNPI: String(smppData.sourceNPI || ""),
               destTON: String(smppData.destTON || ""),
@@ -217,7 +213,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           setIsLoadingDetails(false);
         }
       } else if (isOpen) {
-        // Reset form for "Add Vendor" mode
         setExistingPolicyId(null);
         setFormData({
           company: "",
@@ -230,7 +225,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           smppPort: "",
           systemID: "",
           password: "",
-          bindMode: "TRANSCEIVER", // Changed default to TRANSCEIVER
+          bindMode: "TRANSCEIVER",
           sourceTON: "",
           sourceNPI: "",
           destTON: "",
@@ -308,7 +303,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // --- 1. HANDLE SMPP ---
       let createdSmppId = formData.smppId;
 
       if (formData.connectionType === "SMPP") {
@@ -363,7 +357,6 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         vendorId = vRes?.id || vRes?.data?.id;
       }
 
-      // --- 3. HANDLE POLICY ---
       if (vendorId) {
         const policyPayload: any = {
           logLevel: formData.logLevel,
@@ -640,7 +633,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Input
-              label="Rate / TPS"
+              label="TPS"
               name="rateTps"
               type="number"
               value={formData.rateTps}
@@ -657,7 +650,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="2"
               disabled={isViewMode}
             />
-            <Input
+            {/* <Input
               label="Queue Limit"
               name="sendQueueLimit"
               type="number"
@@ -665,8 +658,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={handleChange}
               placeholder="10"
               disabled={isViewMode}
-            />
-            <Input
+            /> */}
+            {/* <Input
               label="Delay Time (Sec)"
               name="delayTime"
               type="number"
@@ -675,7 +668,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={handleChange}
               placeholder="0.0"
               disabled={isViewMode}
-            />
+            /> */}
           </div>
         </fieldset>
 
@@ -695,7 +688,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="30.0"
               disabled={isViewMode}
             />
-            <Input
+            {/* <Input
               label="Enquire Link Interval (s)"
               name="enquireLinkInterval"
               type="number"
@@ -704,8 +697,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={handleChange}
               placeholder="30.0"
               disabled={isViewMode}
-            />
-            <Input
+            /> */}
+            {/* <Input
               label="Connection Timeout (s)"
               name="connectionTimeout"
               type="number"
@@ -714,7 +707,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={handleChange}
               placeholder="10.0"
               disabled={isViewMode}
-            />
+            /> */}
           </div>
         </fieldset>
 
@@ -733,7 +726,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="3"
               disabled={isViewMode}
             />
-            <Input
+            {/* <Input
               label="Conn Retry Delay (s)"
               name="connectionRetryDelay"
               type="number"
@@ -742,8 +735,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={handleChange}
               placeholder="5.0"
               disabled={isViewMode}
-            />
-            <Input
+            /> */}
+            {/* <Input
               label="Conn Retry Count"
               name="connectionRetryCount"
               type="number"
@@ -751,8 +744,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={handleChange}
               placeholder="3"
               disabled={isViewMode}
-            />
-            <Input
+            /> */}
+            {/* <Input
               label="Conn Recovery Delay (s)"
               name="connectionRecoveryDelay"
               type="number"
@@ -761,8 +754,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={handleChange}
               placeholder="60.0"
               disabled={isViewMode}
-            />
-            <Input
+            /> */}
+            {/* <Input
               label="Bind Retry Delay (s)"
               name="bindRetryDelay"
               type="number"
@@ -771,8 +764,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={handleChange}
               placeholder="5.0"
               disabled={isViewMode}
-            />
-            <Input
+            /> */}
+            {/* <Input
               label="Bind Retry Count"
               name="bindRetryCount"
               type="number"
@@ -780,12 +773,12 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={handleChange}
               placeholder="3"
               disabled={isViewMode}
-            />
+            /> */}
           </div>
         </fieldset>
 
         {/* TLVs */}
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
+        {/* <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
           <legend className="text-sm font-semibold text-primary px-2">
             TLVs Configuration
           </legend>
@@ -807,7 +800,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               disabled={isViewMode}
             />
           </div>
-        </fieldset>
+        </fieldset> */}
 
         {editingVendor && (
           <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4 bg-gray-50/50 dark:bg-gray-800/30">

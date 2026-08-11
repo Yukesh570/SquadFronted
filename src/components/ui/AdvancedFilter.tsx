@@ -1,7 +1,7 @@
 import React, { Fragment, useState, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
 import { Popover, Transition } from "@headlessui/react";
-import { Filter, Search, Check, X, Lock, GripVertical } from "lucide-react";
+import { Filter, Search, Check, X, Lock, GripVertical, ChevronDown } from "lucide-react";
 import Button from "./Button";
 
 export interface FilterColumn {
@@ -36,8 +36,12 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const [draggedItemIdx, setDraggedItemIdx] = useState<number | null>(null);
-  const [dragOverItemIdx, setDragOverItemIdx] = useState<number | null>(null);
+  // Accordion state for Default Options
+  const [isDefaultExpanded, setIsDefaultExpanded] = useState(false);
+
+  // Key-based drag states
+  const [draggedKey, setDraggedKey] = useState<string | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
 
   const initialDefaultColumnsRef = useRef<string[]>([]);
   useEffect(() => {
@@ -103,39 +107,74 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
 
   const searchLower = columnSearch.toLowerCase();
 
-  // Combine selected items (in tempSelectedKeys order) followed by unselected items
-  const orderedSelectedColumns = tempSelectedKeys
-    .map((key) => columns.find((c) => c.key === key))
-    .filter((c): c is FilterColumn => !!c);
-
-  const unselectedColumns = columns.filter(
-    (c) => !tempSelectedKeys.includes(c.key)
+  // Filter columns based on search
+  const filteredColumns = columns.filter((c) =>
+    c.label.toLowerCase().includes(searchLower)
   );
 
-  const displayColumns = (
-    enableReorder ? [...orderedSelectedColumns, ...unselectedColumns] : columns
-  ).filter((c) => c.label.toLowerCase().includes(searchLower));
+  // Split columns into Default (locked) vs Custom (selectable/reorderable)
+  const defaultDisplayColumns = filteredColumns.filter((c) =>
+    activeDefaultColumns.includes(c.key)
+  );
 
-  const handleItemDragStart = (idx: number) => {
-    setDraggedItemIdx(idx);
+  const orderedSelectedCustomColumns = tempSelectedKeys
+    .filter((key) => !activeDefaultColumns.includes(key))
+    .map((key) => filteredColumns.find((c) => c.key === key))
+    .filter((c): c is FilterColumn => !!c);
+
+  const unselectedCustomColumns = filteredColumns.filter(
+    (c) =>
+      !tempSelectedKeys.includes(c.key) && !activeDefaultColumns.includes(c.key)
+  );
+
+  const customDisplayColumns = enableReorder
+    ? [...orderedSelectedCustomColumns, ...unselectedCustomColumns]
+    : filteredColumns.filter((c) => !activeDefaultColumns.includes(c.key));
+
+  // Drag Handlers
+  const handleItemDragStart = (e: React.DragEvent, key: string) => {
+    setDraggedKey(key);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", key);
   };
 
-  const handleItemDragOver = (e: React.DragEvent, idx: number) => {
+  const handleItemDragOver = (e: React.DragEvent, key: string) => {
+    if (!draggedKey || draggedKey === key || !tempSelectedKeys.includes(key)) return;
     e.preventDefault();
-    if (draggedItemIdx !== null && draggedItemIdx !== idx) {
-      setDragOverItemIdx(idx);
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverKey !== key) {
+      setDragOverKey(key);
     }
   };
 
-  const handleItemDrop = (idx: number) => {
-    if (draggedItemIdx !== null && draggedItemIdx !== idx) {
-      const newKeys = [...tempSelectedKeys];
-      const [draggedKey] = newKeys.splice(draggedItemIdx, 1);
-      newKeys.splice(idx, 0, draggedKey);
-      setTempSelectedKeys(newKeys);
+  const handleItemDragLeave = (e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverKey(null);
     }
-    setDraggedItemIdx(null);
-    setDragOverItemIdx(null);
+  };
+
+  const handleItemDrop = (e: React.DragEvent, targetKey: string) => {
+    e.preventDefault();
+    if (draggedKey && draggedKey !== targetKey) {
+      const fromIdx = tempSelectedKeys.indexOf(draggedKey);
+      const toIdx = tempSelectedKeys.indexOf(targetKey);
+
+      if (fromIdx !== -1 && toIdx !== -1) {
+        setTempSelectedKeys((prev) => {
+          const next = [...prev];
+          const [moved] = next.splice(fromIdx, 1);
+          next.splice(toIdx, 0, moved);
+          return next;
+        });
+      }
+    }
+    setDraggedKey(null);
+    setDragOverKey(null);
+  };
+
+  const handleItemDragEnd = () => {
+    setDraggedKey(null);
+    setDragOverKey(null);
   };
 
   let topPosition = 0;
@@ -152,6 +191,71 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
         ? buttonRect.right - DROPDOWN_WIDTH
         : buttonRect.left;
   }
+
+  // Unified Item Renderer ensuring exact identical font, size, and icons
+  const renderColumnItem = (col: FilterColumn) => {
+    const isSelected = tempSelectedKeys.includes(col.key);
+    const isDefault = activeDefaultColumns.includes(col.key);
+    const isDraggable = enableReorder && isSelected && !isDefault;
+    const isBeingDragged = draggedKey === col.key;
+    const isDragOver = dragOverKey === col.key;
+
+    return (
+      <div
+        key={col.key}
+        draggable={isDraggable}
+        onDragStart={(e) => isDraggable && handleItemDragStart(e, col.key)}
+        onDragOver={(e) => isDraggable && handleItemDragOver(e, col.key)}
+        onDragLeave={handleItemDragLeave}
+        onDrop={(e) => isDraggable && handleItemDrop(e, col.key)}
+        onDragEnd={handleItemDragEnd}
+        className={`w-full flex items-center gap-2 px-2 py-2 text-left text-sm rounded-md transition-all select-none ${
+          isSelected
+            ? `${
+                isDraggable ? "cursor-grab active:cursor-grabbing" : ""
+              } bg-primary/10 text-primary dark:text-primary font-medium`
+            : "text-text-secondary dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+        } ${
+          isBeingDragged ? "opacity-30 border border-dashed border-primary" : ""
+        } ${isDragOver ? "border-t-2 border-t-primary bg-primary/20" : ""}`}
+      >
+        <GripVertical
+          size={14}
+          className={`shrink-0 pointer-events-none ${
+            isDraggable ? "text-gray-400 opacity-60" : "text-gray-300 dark:text-gray-600 opacity-30"
+          }`}
+        />
+        <button
+          type="button"
+          onClick={() => handleToggleColumn(col.key)}
+          disabled={isDefault && isSelected}
+          className={`flex items-center gap-2 flex-1 text-left min-w-0 ${
+            isDefault && isSelected ? "cursor-not-allowed opacity-90" : "cursor-pointer"
+          }`}
+        >
+          <div
+            className={`flex items-center justify-center w-4 h-4 rounded border transition-colors flex-shrink-0 ${
+              isDefault && isSelected
+                ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-primary"
+                : isSelected
+                ? "bg-primary border-primary text-white"
+                : "border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-800"
+            }`}
+          >
+            {isDefault && isSelected ? (
+              <Lock size={10} className="text-primary" />
+            ) : (
+              isSelected && <Check size={10} />
+            )}
+          </div>
+          <span className="truncate flex-1 text-sm font-medium">{col.label}</span>
+        </button>
+      </div>
+    );
+  };
+
+  const showDefaultAccordion = defaultDisplayColumns.length > 0;
+  const shouldExpandDefaults = isDefaultExpanded || columnSearch.trim().length > 0;
 
   return (
     <Popover className="relative">
@@ -263,64 +367,47 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                         </button>
                       </div>
 
-                      {/* Unified Single Column List */}
+                      {/* List Area */}
                       <div className="flex-1 overflow-y-auto min-h-0 p-1">
-                        {displayColumns.length > 0 ? (
-                          <div className="space-y-0.5">
-                            {displayColumns.map((col, idx) => {
-                              const isSelected = tempSelectedKeys.includes(col.key);
-                              const isDefault = activeDefaultColumns.includes(col.key);
-                              const isDraggable = enableReorder && isSelected;
+                        {/* Expandable Default Options Section */}
+                        {showDefaultAccordion && (
+                          <div className="border-b border-gray-100 dark:border-gray-700/60 pb-1 mb-1">
+                            <button
+                              type="button"
+                              onClick={() => setIsDefaultExpanded((prev) => !prev)}
+                              className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-text-secondary hover:text-text-primary dark:text-gray-400 dark:hover:text-white rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                            >
+                              <span className="flex items-center gap-1.5">
+                                <Lock size={12} className="text-gray-400" />
+                                <span>Default Options ({defaultDisplayColumns.length})</span>
+                              </span>
+                              <ChevronDown
+                                size={14}
+                                className={`transition-transform duration-200 ${
+                                  shouldExpandDefaults ? "rotate-180" : ""
+                                }`}
+                              />
+                            </button>
 
-                              return (
-                                <div
-                                  key={col.key}
-                                  draggable={isDraggable}
-                                  onDragStart={() => isDraggable && handleItemDragStart(idx)}
-                                  onDragOver={(e) => isDraggable && handleItemDragOver(e, idx)}
-                                  onDrop={() => isDraggable && handleItemDrop(idx)}
-                                  className={`w-full flex items-center gap-2 px-2 py-2 text-left text-sm rounded-md transition-colors select-none ${
-                                    isSelected
-                                      ? `${isDraggable ? "cursor-grab active:cursor-grabbing" : ""} bg-primary/10 text-primary dark:text-primary font-medium`
-                                      : "text-text-secondary dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                                  } ${isDraggable && dragOverItemIdx === idx ? "border-t-2 border-t-primary" : ""}`}
-                                >
-                                  {isDraggable && (
-                                    <GripVertical size={14} className="text-gray-400 opacity-60 shrink-0" />
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleToggleColumn(col.key)}
-                                    disabled={isDefault && isSelected}
-                                    className={`flex items-center gap-2 flex-1 text-left min-w-0 ${
-                                      isDefault && isSelected ? "cursor-not-allowed opacity-90" : "cursor-pointer"
-                                    }`}
-                                  >
-                                    <div
-                                      className={`flex items-center justify-center w-4 h-4 rounded border transition-colors flex-shrink-0 ${
-                                        isDefault && isSelected
-                                          ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-primary"
-                                          : isSelected
-                                          ? "bg-primary border-primary text-white"
-                                          : "border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-800"
-                                      }`}
-                                    >
-                                      {isDefault && isSelected ? (
-                                        <Lock size={10} className="text-primary" />
-                                      ) : (
-                                        isSelected && <Check size={10} />
-                                      )}
-                                    </div>
-                                    <span className="truncate flex-1">{col.label}</span>
-                                  </button>
-                                </div>
-                              );
-                            })}
+                            {shouldExpandDefaults && (
+                              <div className="mt-1 space-y-0.5">
+                                {defaultDisplayColumns.map((col) => renderColumnItem(col))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Custom Selectable / Reorderable Columns */}
+                        {customDisplayColumns.length > 0 ? (
+                          <div className="space-y-0.5">
+                            {customDisplayColumns.map((col) => renderColumnItem(col))}
                           </div>
                         ) : (
-                          <div className="py-4 px-4 text-center text-gray-400 text-xs">
-                            No items found
-                          </div>
+                          !showDefaultAccordion && (
+                            <div className="py-4 px-4 text-center text-gray-400 text-xs">
+                              No items found
+                            </div>
+                          )
                         )}
                       </div>
 

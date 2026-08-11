@@ -21,7 +21,7 @@ interface DataTableProps<T> {
   onRowsPerPageChange?: (rows: number) => void;
   rowsPerPageOptions?: { value: string; label: string }[];
 
-  // ⚡️ NEW: Column Reordering Callback
+  // Column Reordering Callback
   onReorderColumns?: (fromIndex: number, toIndex: number) => void;
 }
 
@@ -55,9 +55,10 @@ export function DataTable<T extends { id?: number | string }>({
   const [clientPage, setClientPage] = useState(1);
   const [clientRows, setClientRows] = useState(50);
 
-  // Drag-and-drop states
+  // Drag-and-drop states with Left/Right positioning
   const [draggedHeaderIdx, setDraggedHeaderIdx] = useState<number | null>(null);
   const [dragOverHeaderIdx, setDragOverHeaderIdx] = useState<number | null>(null);
+  const [dropSide, setDropSide] = useState<"left" | "right" | null>(null);
 
   const activePage = serverSide ? currentPage : clientPage;
   const activeRows = serverSide ? rowsPerPage : clientRows;
@@ -109,13 +110,28 @@ export function DataTable<T extends { id?: number | string }>({
     if (index === 0) return; // Skip S.N. column
     setDraggedHeaderIdx(index);
     e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     if (index === 0 || draggedHeaderIdx === null || draggedHeaderIdx === index) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+
+    // Detect left vs right half of the target header
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midpoint = rect.left + rect.width / 2;
+    const side = e.clientX < midpoint ? "left" : "right";
+
     setDragOverHeaderIdx(index);
+    setDropSide(side);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverHeaderIdx(null);
+      setDropSide(null);
+    }
   };
 
   const handleDrop = (e: React.DragEvent, index: number) => {
@@ -126,16 +142,29 @@ export function DataTable<T extends { id?: number | string }>({
       draggedHeaderIdx !== index &&
       onReorderColumns
     ) {
-      // Offset by -1 to account for S.N. column at index 0
-      onReorderColumns(draggedHeaderIdx - 1, index - 1);
+      // Calculate target index offset by S.N. column (-1)
+      let targetIdx = index - 1;
+      let fromIdx = draggedHeaderIdx - 1;
+
+      // Adjust target position if dropped on right half
+      if (dropSide === "right" && targetIdx < fromIdx) {
+        targetIdx += 1;
+      } else if (dropSide === "left" && targetIdx > fromIdx) {
+        targetIdx -= 1;
+      }
+
+      onReorderColumns(fromIdx, targetIdx);
     }
+
     setDraggedHeaderIdx(null);
     setDragOverHeaderIdx(null);
+    setDropSide(null);
   };
 
   const handleDragEnd = () => {
     setDraggedHeaderIdx(null);
     setDragOverHeaderIdx(null);
+    setDropSide(null);
   };
 
   return (
@@ -213,18 +242,33 @@ export function DataTable<T extends { id?: number | string }>({
                     draggable={isDraggable}
                     onDragStart={(e) => handleDragStart(e, i)}
                     onDragOver={(e) => handleDragOver(e, i)}
+                    onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, i)}
-                    onDragLeave={() => setDragOverHeaderIdx(null)}
                     onDragEnd={handleDragEnd}
                     className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-secondary dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 whitespace-nowrap min-w-[120px] transition-all select-none ${
-                      isDraggable ? "cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-800" : ""
-                    } ${isBeingDragged ? "opacity-30 border-dashed border-primary" : ""} ${
-                      isDragOver ? "border-l-4 border-l-primary bg-primary/10 dark:bg-primary/20" : ""
+                      isDraggable
+                        ? "cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-800"
+                        : ""
+                    } ${
+                      isBeingDragged
+                        ? "opacity-30 border border-dashed border-primary bg-primary/5"
+                        : ""
+                    } ${
+                      isDragOver && dropSide === "left"
+                        ? "border-l-4 border-l-primary bg-primary/10 dark:bg-primary/20"
+                        : ""
+                    } ${
+                      isDragOver && dropSide === "right"
+                        ? "border-r-4 border-r-primary bg-primary/10 dark:bg-primary/20"
+                        : ""
                     }`}
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 pointer-events-none">
                       {isDraggable && (
-                        <GripVertical size={14} className="text-gray-400 shrink-0 opacity-40 hover:opacity-100" />
+                        <GripVertical
+                          size={14}
+                          className="text-gray-400 shrink-0 opacity-40 hover:opacity-100"
+                        />
                       )}
                       <span>{header}</span>
                     </div>

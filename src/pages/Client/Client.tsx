@@ -304,14 +304,14 @@ const Client: React.FC = () => {
     { key: "smppUsername", label: "SMPP Username", type: "text", filterKey: "smppUsername__icontains" },
     { key: "bindStatus", label: "Bind Status", type: "text", options: bindStatusOptions, filterKey: "bindStatus", render: (c) => <StatusBadge status={c.bindStatus} /> },
     { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", isSearchable: false, render: (c) => renderSessionBadge(c) }, 
-    { key: "maxTps", label: "Max TPS", type: "number", filterKey: "clientPolicy__maxTps", render: (c) => c.clientPolicy?.maxTps ?? "-" },
+    { key: "maxTps", label: "TPS", type: "number", filterKey: "clientPolicy__maxTps", render: (c) => c.clientPolicy?.maxTps ?? "-" },
     { key: "maxSessions", label: "Max Sessions", type: "number", filterKey: "clientPolicy__maxSessions", render: (c) => c.clientPolicy?.maxSessions ?? "-" },
-    { key: "maxQueueDepth", label: "Max Queue Depth", type: "number", isSearchable: false, render: (c) => c.clientPolicy?.maxQueueDepth ?? "-" }, 
+    // { key: "maxQueueDepth", label: "Max Queue Depth", type: "number", isSearchable: false, render: (c) => c.clientPolicy?.maxQueueDepth ?? "-" }, 
     { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number", filterKey: "clientPolicy__maxWindowGlobal", render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-" },
     { key: "maxWindowPerSession", label: "Max Window (Per Session)", type: "number", filterKey: "clientPolicy__maxWindowPerSession", render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-" },
     { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number", filterKey: "clientPolicy__idleTimeoutSec", render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-" },
-    { key: "submitTimeoutSec", label: "Submit Timeout (s)", type: "number", filterKey: "clientPolicy__submitTimeoutSec", render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-" },
-    { key: "senderIdPolicy", label: "Sender ID Policy", type: "text", filterKey: "clientPolicy__senderIdPolicy__icontains", render: (c) => c.clientPolicy?.senderIdPolicy ?? "-" },
+    // { key: "submitTimeoutSec", label: "Submit Timeout (s)", type: "number", filterKey: "clientPolicy__submitTimeoutSec", render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-" },
+    // { key: "senderIdPolicy", label: "Sender ID Policy", type: "text", filterKey: "clientPolicy__senderIdPolicy__icontains", render: (c) => c.clientPolicy?.senderIdPolicy ?? "-" },
     { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
     { key: "createdAt__range", label: "Created At (Range)", type: "date_range", isSearchOnly: true },
     { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
@@ -320,7 +320,6 @@ const Client: React.FC = () => {
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   
-  // ⚡️ Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));

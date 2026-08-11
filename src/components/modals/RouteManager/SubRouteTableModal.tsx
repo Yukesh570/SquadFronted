@@ -84,7 +84,7 @@ const emptyRow = (): NewRow => ({
   MCC: "",
   MNC: "",
   terminatingVendor: "",
-  priority: "",
+  priority: "1",
   trafficPercentage: "",
   status: "ACTIVE",
 });
@@ -114,11 +114,14 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   const [newRoutingType, setNewRoutingType] = useState("PRIORITY");
   const [newConfigStatus, setNewConfigStatus] = useState("ACTIVE");
   const [isAddingConfig, setIsAddingConfig] = useState(false);
-  const [deleteConfigId, setDeleteConfigId] = useState<number | null>(null);
+  
+  // Dynamic Deletion State
+  const [deleteConfigData, setDeleteConfigData] = useState<{ id: number; countryName: string } | null>(null);
 
   const [sections, setSections] = useState<Section[]>([]);
-  const [deleteRouteId, setDeleteRouteId] = useState<number | null>(null);
-  const [deleteRouteCountry, setDeleteRouteCountry] = useState<string>("");
+  
+  // Dynamic Deletion State for Routes
+  const [deleteRouteData, setDeleteRouteData] = useState<{ id: number; name: string; countryId: string } | null>(null);
   const [activeCellId, setActiveCellId] = useState<string | null>(null);
 
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
@@ -141,8 +144,13 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
             icon: <Trash size={16} />,
             variant: "danger" as const,
             onClick: () => {
-              setDeleteRouteId(selectedRoute.id!);
-              setDeleteRouteCountry(selectedRouteCountryId);
+              const vendorMatch = vendorOptions.find(v => String(v.value) === String(selectedRoute.terminatingVendor));
+              const displayName = selectedRoute.name || vendorMatch?.label || `Route #${selectedRoute.id}`;
+              setDeleteRouteData({
+                id: selectedRoute.id!,
+                name: displayName,
+                countryId: selectedRouteCountryId,
+              });
             },
           },
         ]
@@ -223,13 +231,27 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         const list = res.results || (Array.isArray(res) ? res : []);
 
         const uniqueMccs = Array.from(new Set(list.map((item: any) => item.MCC))).filter(Boolean);
-        const uniqueMncs = Array.from(new Set(list.map((item: any) => item.MNC))).filter(Boolean);
+        
+        // ⚡️ SHOW OPERATOR IN BRACKET FOR MNC OPTIONS
+        const mncMap = new Map<string, string>();
+        list.forEach((item: any) => {
+          if (item.MNC && !mncMap.has(String(item.MNC))) {
+            const opName = item.operator || item.operatorName || item.brandName;
+            const labelText = opName ? `${item.MNC} (${opName})` : String(item.MNC);
+            mncMap.set(String(item.MNC), labelText);
+          }
+        });
+
+        const mncOptionsFormatted = Array.from(mncMap.entries()).map(([value, label]) => ({
+          label,
+          value,
+        }));
 
         setNetworkCodesByCountry((prev) => ({
           ...prev,
           [countryId]: {
             mccOptions: uniqueMccs.map((mcc) => ({ label: String(mcc), value: String(mcc) })),
-            mncOptions: uniqueMncs.map((mnc) => ({ label: String(mnc), value: String(mnc) })),
+            mncOptions: mncOptionsFormatted,
           },
         }));
       } catch (err) {
@@ -293,7 +315,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         },
         moduleName,
       );
-      toast.success("Country added.");
+      toast.success("Country added successfully.");
       setNewCountry("");
       setNewRoutingType("PRIORITY");
       setNewConfigStatus("ACTIVE");
@@ -313,11 +335,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   };
 
   const handleDeleteConfig = async () => {
-    if (!deleteConfigId) return;
+    if (!deleteConfigData) return;
     try {
-      await deleteRouteGroupCountryApi(deleteConfigId, moduleName);
-      toast.success("Country removed.");
-      setDeleteConfigId(null);
+      await deleteRouteGroupCountryApi(deleteConfigData.id, moduleName);
+      toast.success(`Country ${deleteConfigData.countryName} removed successfully.`);
+      setDeleteConfigData(null);
       fetchConfigs();
     } catch {
       toast.error("Failed to remove country.");
@@ -325,12 +347,12 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   };
 
   const handleDeleteRoute = async () => {
-    if (!deleteRouteId) return;
+    if (!deleteRouteData) return;
     try {
-      await deleteCustomRouteApi(deleteRouteId, moduleName);
-      toast.success("Route deleted.");
-      fetchSectionRoutes(deleteRouteCountry);
-      setDeleteRouteId(null);
+      await deleteCustomRouteApi(deleteRouteData.id, moduleName);
+      toast.success("Route deleted successfully.");
+      fetchSectionRoutes(deleteRouteData.countryId);
+      setDeleteRouteData(null);
     } catch {
       toast.error("Failed to delete route.");
     }
@@ -378,7 +400,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
     try {
       await updateCustomRouteApi(routeId, { [field]: resolvedValue }, moduleName);
-      toast.success(`Updated ${field}`);
+      toast.success(`Updated ${String(field)} successfully.`);
       if (field === "MCC" || field === "MNC" || field === "terminatingVendor") {
         const updatedRoute = { ...originalRoute, [field]: resolvedValue } as any;
         fetchExistingRouteVendorRate(countryId, routeId, {
@@ -396,7 +418,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           toast.error(`${k}: ${Array.isArray(msgs) ? msgs[0] : String(msgs)}`),
         );
       } else {
-        toast.error(`Failed to update ${field}`);
+        toast.error(`Failed to update ${String(field)}`);
       }
       setSections((prev) =>
         prev.map((s) =>
@@ -559,11 +581,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     const isPercentage = section.config.routingType === "PERCENTAGE";
 
     for (const row of section.newRows) {
-      if (!row.MCC) return toast.error(`MCC required.`);
-      if (!row.MNC) return toast.error(`MNC required.`);
-      if (!row.terminatingVendor) return toast.error(`Vendor required.`);
-      if (isPercentage && !row.trafficPercentage) return toast.error(`Traffic % required.`);
-      if (!isPercentage && !row.priority) return toast.error(`Priority required.`);
+      if (!row.MCC) return toast.error(`MCC is required.`);
+      if (!row.MNC) return toast.error(`MNC is required.`);
+      if (!row.terminatingVendor) return toast.error(`Vendor is required.`);
+      if (isPercentage && !row.trafficPercentage) return toast.error(`Traffic % is required.`);
+      if (!isPercentage && !row.priority) return toast.error(`Priority is required.`);
     }
 
     if (isPercentage) {
@@ -573,7 +595,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       const newTotal = section.newRows.reduce((s, r) => s + Number(r.trafficPercentage || 0), 0);
       if (existingTotal + newTotal !== 100) {
         toast.error(
-          `Total must be 100%. Existing active: ${existingTotal}%, new: ${newTotal}% = ${existingTotal + newTotal}%.`,
+          `Total traffic percentage must be 100%. Existing active: ${existingTotal}%, new: ${newTotal}% = ${existingTotal + newTotal}%.`,
         );
         return;
       }
@@ -598,7 +620,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       }));
 
       await createCustomRouteApi(payloads.length === 1 ? payloads[0] : payloads, moduleName);
-      toast.success(`${payloads.length} route(s) saved.`);
+      toast.success(`${payloads.length} route(s) saved successfully.`);
       setSections((prev) =>
         prev.map((s) =>
           String(s.config.country) === countryId ? { ...s, newRows: [], saving: false } : s,
@@ -711,7 +733,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                           {canUpdate && (
                             <button
                               type="button"
-                              onClick={() => setDeleteConfigId(s.config.id!)}
+                              onClick={() => setDeleteConfigData({ id: s.config.id!, countryName: s.config.countryName || "this country" })}
                               className="ml-1 opacity-50 hover:opacity-100 transition-opacity"
                             >
                               <Trash2 size={12} />
@@ -823,13 +845,14 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                       )}
                     </div>
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      {/* HIGHLIGHTED ADD ROUTE BUTTON */}
                       {canUpdate && section.isOpen && (
                         <Button
                           type="button"
-                          variant="secondary"
+                          variant="primary"
                           onClick={() => addRow(countryId)}
-                          leftIcon={<Plus size={12} />}
-                          className="text-xs py-1 px-2 h-auto min-h-0 bg-transparent border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/60 hover:text-primary transition-colors"
+                          leftIcon={<Plus size={13} />}
+                          className="text-xs py-1.5 px-3 h-auto min-h-0 bg-primary text-white hover:opacity-90 shadow-sm transition-all"
                         >
                           Add Route
                         </Button>
@@ -993,8 +1016,13 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                         <button
                                           type="button"
                                           onClick={() => {
-                                            setDeleteRouteId(route.id!);
-                                            setDeleteRouteCountry(countryId);
+                                            const vendorMatch = vendorOptions.find(v => String(v.value) === String(route.terminatingVendor));
+                                            const displayName = route.name || vendorMatch?.label || `Route #${route.id}`;
+                                            setDeleteRouteData({
+                                              id: route.id!,
+                                              name: displayName,
+                                              countryId: countryId,
+                                            });
                                           }}
                                           className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"
                                           title="Delete Route"
@@ -1140,20 +1168,22 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         />
       </Modal>
 
+      {/* DYNAMIC DELETE ROUTE MODAL */}
       <DeleteModal
-        isOpen={!!deleteRouteId}
-        onClose={() => setDeleteRouteId(null)}
+        isOpen={!!deleteRouteData}
+        onClose={() => setDeleteRouteData(null)}
         onConfirm={handleDeleteRoute}
         title="Delete Route"
-        message="Are you sure you want to delete this route? This action cannot be undone."
+        message={deleteRouteData ? `Are you sure you want to delete route "${deleteRouteData.name}"? This action cannot be undone.` : "Are you sure you want to delete this route?"}
       />
 
+      {/* DYNAMIC DELETE COUNTRY CONFIG MODAL */}
       <DeleteModal
-        isOpen={!!deleteConfigId}
-        onClose={() => setDeleteConfigId(null)}
+        isOpen={!!deleteConfigData}
+        onClose={() => setDeleteConfigData(null)}
         onConfirm={handleDeleteConfig}
         title="Remove Country"
-        message="Remove this country's routing configuration? Its routes will no longer be active."
+        message={deleteConfigData ? `Are you sure you want to remove routing configuration for "${deleteConfigData.countryName}"? Its routes will no longer be active.` : "Remove this country's routing configuration?"}
       />
 
       <style dangerouslySetInnerHTML={{

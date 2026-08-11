@@ -363,18 +363,18 @@ const Vendor: React.FC = () => {
     },
     {
       key: "rateTps",
-      label: "Rate TPS",
+      label: "TPS",
       type: "number",
       filterKey: "vendorPolicy__rateTps",
       render: (c) => c.vendorPolicy?.rateTps ?? "-"
     },
-    {
-      key: "sendQueueLimit",
-      label: "Queue Limit",
-      type: "number",
-      filterKey: "vendorPolicy__sendQueueLimit",
-      render: (c) => c.vendorPolicy?.sendQueueLimit ?? "-"
-    },
+    // {
+    //   key: "sendQueueLimit",
+    //   label: "Queue Limit",
+    //   type: "number",
+    //   filterKey: "vendorPolicy__sendQueueLimit",
+    //   render: (c) => c.vendorPolicy?.sendQueueLimit ?? "-"
+    // },
     {
       key: "logLevel",
       label: "Log Level",
@@ -390,20 +390,20 @@ const Vendor: React.FC = () => {
       filterKey: "vendorPolicy__responseTimeout",
       render: (c) => c.vendorPolicy?.responseTimeout ?? "-"
     },
-    {
-      key: "enquireLinkInterval",
-      label: "Enquire Link Interval (s)",
-      type: "number",
-      filterKey: "vendorPolicy__enquireLinkInterval",
-      render: (c) => c.vendorPolicy?.enquireLinkInterval ?? "-"
-    },
-    {
-      key: "connectionTimeout",
-      label: "Conn. Timeout (s)",
-      type: "number",
-      filterKey: "vendorPolicy__connectionTimeout",
-      render: (c) => c.vendorPolicy?.connectionTimeout ?? "-"
-    },
+    // {
+    //   key: "enquireLinkInterval",
+    //   label: "Enquire Link Interval (s)",
+    //   type: "number",
+    //   filterKey: "vendorPolicy__enquireLinkInterval",
+    //   render: (c) => c.vendorPolicy?.enquireLinkInterval ?? "-"
+    // },
+    // {
+    //   key: "connectionTimeout",
+    //   label: "Conn. Timeout (s)",
+    //   type: "number",
+    //   filterKey: "vendorPolicy__connectionTimeout",
+    //   render: (c) => c.vendorPolicy?.connectionTimeout ?? "-"
+    // },
     {
       key: "maxMessageRetries",
       label: "Max Msg Retries",
@@ -411,55 +411,55 @@ const Vendor: React.FC = () => {
       filterKey: "vendorPolicy__maxMessageRetries",
       render: (c) => c.vendorPolicy?.maxMessageRetries ?? "-"
     },
-    {
-      key: "connectionRetryDelay",
-      label: "Conn Retry Delay (s)",
-      type: "number",
-      filterKey: "vendorPolicy__connectionRetryDelay",
-      render: (c) => c.vendorPolicy?.connectionRetryDelay ?? "-"
-    },
-    {
-      key: "connectionRetryCount",
-      label: "Conn Retry Count",
-      type: "number",
-      filterKey: "vendorPolicy__connectionRetryCount",
-      render: (c) => c.vendorPolicy?.connectionRetryCount ?? "-"
-    },
-    {
-      key: "bindRetryDelay",
-      label: "Bind Retry Delay (s)",
-      type: "number",
-      isSearchable: false,
-      render: (c) => c.vendorPolicy?.bindRetryDelay ?? "-"
-    },
-    {
-      key: "bindRetryCount",
-      label: "Bind Retry Count",
-      type: "number",
-      isSearchable: false,
-      render: (c) => c.vendorPolicy?.bindRetryCount ?? "-"
-    },
-    {
-      key: "connectionRecoveryDelay",
-      label: "Conn Recovery Delay (s)",
-      type: "number",
-      filterKey: "vendorPolicy__connectionRecoveryDelay",
-      render: (c) => c.vendorPolicy?.connectionRecoveryDelay ?? "-"
-    },
-    {
-      key: "tlvTag",
-      label: "TLV Tag",
-      type: "text",
-      filterKey: "vendorPolicy__tlvTag__icontains",
-      render: (c) => c.vendorPolicy?.tlvTag ?? "-"
-    },
-    {
-      key: "tlvValue",
-      label: "TLV Value",
-      type: "text",
-      filterKey: "vendorPolicy__tlvValue__icontains",
-      render: (c) => c.vendorPolicy?.tlvValue ?? "-"
-    },
+    // {
+    //   key: "connectionRetryDelay",
+    //   label: "Conn Retry Delay (s)",
+    //   type: "number",
+    //   filterKey: "vendorPolicy__connectionRetryDelay",
+    //   render: (c) => c.vendorPolicy?.connectionRetryDelay ?? "-"
+    // },
+    // {
+    //   key: "connectionRetryCount",
+    //   label: "Conn Retry Count",
+    //   type: "number",
+    //   filterKey: "vendorPolicy__connectionRetryCount",
+    //   render: (c) => c.vendorPolicy?.connectionRetryCount ?? "-"
+    // },
+    // {
+    //   key: "bindRetryDelay",
+    //   label: "Bind Retry Delay (s)",
+    //   type: "number",
+    //   isSearchable: false,
+    //   render: (c) => c.vendorPolicy?.bindRetryDelay ?? "-"
+    // },
+    // {
+    //   key: "bindRetryCount",
+    //   label: "Bind Retry Count",
+    //   type: "number",
+    //   isSearchable: false,
+    //   render: (c) => c.vendorPolicy?.bindRetryCount ?? "-"
+    // },
+    // {
+    //   key: "connectionRecoveryDelay",
+    //   label: "Conn Recovery Delay (s)",
+    //   type: "number",
+    //   filterKey: "vendorPolicy__connectionRecoveryDelay",
+    //   render: (c) => c.vendorPolicy?.connectionRecoveryDelay ?? "-"
+    // },
+    // {
+    //   key: "tlvTag",
+    //   label: "TLV Tag",
+    //   type: "text",
+    //   filterKey: "vendorPolicy__tlvTag__icontains",
+    //   render: (c) => c.vendorPolicy?.tlvTag ?? "-"
+    // },
+    // {
+    //   key: "tlvValue",
+    //   label: "TLV Value",
+    //   type: "text",
+    //   filterKey: "vendorPolicy__tlvValue__icontains",
+    //   render: (c) => c.vendorPolicy?.tlvValue ?? "-"
+    // },
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
@@ -468,7 +468,6 @@ const Vendor: React.FC = () => {
     searchColumns.includes(col.key),
   );
   
-  // ⚡️ Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));

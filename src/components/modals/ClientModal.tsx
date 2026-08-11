@@ -22,8 +22,6 @@ import {
   updateClientPolicyApi,
 } from "../../api/policyApi/clientPolicyApi";
 
-
-
 // --- Components ---
 import Input from "../ui/Input";
 import Button from "../ui/Button";
@@ -290,7 +288,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         createIpWhitelistApi({ ip, client: clientId, access_type: "IP" }, "ipWhitelist"),
       ),
       ...hostsToAdd.map((hostname) =>
-        // ⚡️ FIXED: Ensure we send HOST instead of HOSTNAME when syncing multiple records
         createIpWhitelistApi({ hostname, client: clientId, access_type: "HOST" }, "ipWhitelist"),
       ),
       ...ipsToDelete.map((r) => deleteIpWhitelistApi(r.id!, "ipWhitelist")),
@@ -408,8 +405,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       if (editingClient) {
         await handleAccessControlSync(savedClientId, ipList, hostList);
       }
-
-      // On creation only, auto-create linked Route Group / Customer Rate
+      
+          // On creation only, auto-create linked Route Group / Customer Rate
       // Group with the same name and attach them to the client.
       // if (isNewClient && savedClientId) {
       //   try {
@@ -669,7 +666,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               </>
             )}
 
-            {/* Conditionally rendering Access Control fields based on view mode and existence */}
             {editingClient && (!isViewMode || formData.ipWhitelist) && (
               <div className="md:col-span-2">
                 <MultiEmailInput
@@ -705,7 +701,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
-              label="Max TPS"
+              label="TPS"
               name="maxTps"
               type="number"
               value={formData.maxTps}
@@ -722,7 +718,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               placeholder="10"
               disabled={isViewMode}
             />
-            <Input
+            {/* <Input
               label="Max Queue Depth"
               name="maxQueueDepth"
               type="number"
@@ -730,7 +726,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               onChange={handleChange}
               placeholder="10000"
               disabled={isViewMode}
-            />
+            /> */}
             <Input
               label="Max Window (Global)"
               name="maxWindowGlobal"
@@ -767,7 +763,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               placeholder="60"
               disabled={isViewMode}
             />
-            <Input
+            {/* <Input
               label="Submit Timeout (Seconds)"
               name="submitTimeoutSec"
               type="number"
@@ -775,7 +771,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               onChange={handleChange}
               placeholder="60"
               disabled={isViewMode}
-            />
+            /> */}
           </div>
         </fieldset>
 
@@ -784,7 +780,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Settings & Rules
           </legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <Input
               label="Sender ID Policy"
               name="senderIdPolicy"
@@ -793,7 +789,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               placeholder="DEFAULT"
               disabled={isViewMode}
             />
-          </div>
+          </div> */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className={isViewMode ? "pointer-events-none opacity-50" : ""}>
               <ToggleSwitch

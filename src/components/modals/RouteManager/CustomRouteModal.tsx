@@ -257,10 +257,15 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
             });
           }
 
+          // ⚡️ SHOW OPERATOR NAME IN BRACKET
           uniqueMncs.forEach((mnc) => {
             if (mnc !== dbAllMnc) {
+              const matchItem = specificMncs.find((n) => String(n.MNC) === mnc);
+              const opName = matchItem?.operator || matchItem?.operatorName || matchItem?.brandName || "";
+              const labelText = opName ? `${mcc} ( ${mnc} - ${opName} )` : `${mcc} ( ${mnc} )`;
+
               newMncOptions.push({
-                label: `${mcc} ( ${mnc} )`,
+                label: labelText,
                 value: `${mcc}(${mnc})`,
                 isAll: false,
                 isUiOnly: false,
@@ -301,7 +306,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
          });
       } else if (isEditingGroupStatus && groupData) {
         setFormData({
-          // ⚡️ FIX: Use groupData.name to correctly populate the route group name from the payload
           name: groupData.name || groupData.routeGroup__name || "",
           priority: "",
           status: groupData.status || "ACTIVE",
@@ -389,50 +393,48 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   };
 
   const handleMccChange = (selectedValues: string[], clickedOption?: any) => {
-  if (clickedOption && clickedOption.value === "ALL_MCC") {
-    const allMccValues = mccOptions
-      .filter((o: MultiSelectOption) => !o.isUiOnly)
-      .map((o: MultiSelectOption) => o.value);
-    const isAllSelected =
-      allMccValues.length > 0 &&
-      allMccValues.every((v: string) => formData.MCC.includes(v));
+    if (clickedOption && clickedOption.value === "ALL_MCC") {
+      const allMccValues = mccOptions
+        .filter((o: MultiSelectOption) => !o.isUiOnly)
+        .map((o: MultiSelectOption) => o.value);
+      const isAllSelected =
+        allMccValues.length > 0 &&
+        allMccValues.every((v: string) => formData.MCC.includes(v));
 
-    if (isAllSelected) {
-      setFormData((prev: any) => ({ ...prev, MCC: [], MNC: [] }));
-    } else {
-      setFormData((prev: any) => ({ ...prev, MCC: allMccValues }));
-    }
-    return;
-  }
-
-  // Filter MNCs to only keep those belonging to still-selected MCCs
-  const filteredMnc = formData.MNC.filter((mnc: string) => {
-    const mccPrefix = mnc.split("(")[0].trim();
-    return selectedValues.includes(mccPrefix);
-  });
-
-  // For any newly added MCC, auto-restore its MNCs from fullNetworkList
-  const previousMccs: string[] = formData.MCC;
-  const newlyAddedMccs = selectedValues.filter((mcc: string) => !previousMccs.includes(mcc));
-
-  const restoredMncs: string[] = [];
-  newlyAddedMccs.forEach((mcc: string) => {
-    const specificMncs = fullNetworkList.filter((n) => String(n.MCC) === mcc);
-    const uniqueMncs = Array.from(
-      new Set(specificMncs.map((n) => String(n.MNC)))
-    ).filter(Boolean);
-
-    uniqueMncs.forEach((mnc) => {
-      const isDbAll = mnc.toLowerCase() === "all" || mnc.toLowerCase() === "in rest";
-      if (!isDbAll) {
-        restoredMncs.push(`${mcc}(${mnc})`);
+      if (isAllSelected) {
+        setFormData((prev: any) => ({ ...prev, MCC: [], MNC: [] }));
+      } else {
+        setFormData((prev: any) => ({ ...prev, MCC: allMccValues }));
       }
-    });
-  });
+      return;
+    }
 
-  const mergedMnc = Array.from(new Set([...filteredMnc, ...restoredMncs]));
-  setFormData((prev: any) => ({ ...prev, MCC: selectedValues, MNC: mergedMnc }));
-};
+    const filteredMnc = formData.MNC.filter((mnc: string) => {
+      const mccPrefix = mnc.split("(")[0].trim();
+      return selectedValues.includes(mccPrefix);
+    });
+
+    const previousMccs: string[] = formData.MCC;
+    const newlyAddedMccs = selectedValues.filter((mcc: string) => !previousMccs.includes(mcc));
+
+    const restoredMncs: string[] = [];
+    newlyAddedMccs.forEach((mcc: string) => {
+      const specificMncs = fullNetworkList.filter((n) => String(n.MCC) === mcc);
+      const uniqueMncs = Array.from(
+        new Set(specificMncs.map((n) => String(n.MNC)))
+      ).filter(Boolean);
+
+      uniqueMncs.forEach((mnc) => {
+        const isDbAll = mnc.toLowerCase() === "all" || mnc.toLowerCase() === "in rest";
+        if (!isDbAll) {
+          restoredMncs.push(`${mcc}(${mnc})`);
+        }
+      });
+    });
+
+    const mergedMnc = Array.from(new Set([...filteredMnc, ...restoredMncs]));
+    setFormData((prev: any) => ({ ...prev, MCC: selectedValues, MNC: mergedMnc }));
+  };
 
   const handleMncChange = (selectedValues: string[], clickedOption?: any) => {
     let baseMnc = selectedValues.filter((v: string) => v !== "All(All)");
@@ -484,38 +486,34 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   };
 
   const handleSelectAllMncExternal = () => {
-  // Select all non-UI-only MCCs
-  const allMccValues = mccOptions
-    .filter((o: MultiSelectOption) => !o.isUiOnly)
-    .map((o: MultiSelectOption) => o.value);
-  
-  // Compute all possible MNC values based on those MCCs and fullNetworkList
-  const allIndividualMncs: string[] = [];
-  
-  allMccValues.forEach((mcc: string) => {
-    const specificMncs = fullNetworkList.filter(
-      (n) => String(n.MCC) === mcc,
-    );
-    const uniqueMncs = Array.from(
-      new Set(specificMncs.map((n) => String(n.MNC))),
-    ).filter(Boolean);
+    const allMccValues = mccOptions
+      .filter((o: MultiSelectOption) => !o.isUiOnly)
+      .map((o: MultiSelectOption) => o.value);
     
-    uniqueMncs.forEach((mnc) => {
-      const dbAllMnc = mnc.toLowerCase() === "all" || mnc.toLowerCase() === "in rest";
-      if (!dbAllMnc) {
-        // Add individual MNCs in MCC(MNC) format
-        allIndividualMncs.push(`${mcc}(${mnc})`);
-      }
+    const allIndividualMncs: string[] = [];
+    
+    allMccValues.forEach((mcc: string) => {
+      const specificMncs = fullNetworkList.filter(
+        (n) => String(n.MCC) === mcc,
+      );
+      const uniqueMncs = Array.from(
+        new Set(specificMncs.map((n) => String(n.MNC))),
+      ).filter(Boolean);
+      
+      uniqueMncs.forEach((mnc) => {
+        const dbAllMnc = mnc.toLowerCase() === "all" || mnc.toLowerCase() === "in rest";
+        if (!dbAllMnc) {
+          allIndividualMncs.push(`${mcc}(${mnc})`);
+        }
+      });
     });
-  });
-  
-  // Set both MCCs and MNCs in one state update
-  setFormData((prev: any) => ({ 
-    ...prev, 
-    MCC: [...allMccValues], 
-    MNC: [...allIndividualMncs] 
-  }));
-};
+    
+    setFormData((prev: any) => ({ 
+      ...prev, 
+      MCC: [...allMccValues], 
+      MNC: [...allIndividualMncs] 
+    }));
+  };
 
   const handleClearMncExternal = () => {
     setFormData((prev: any) => ({ ...prev, MCC: [], MNC: [] }));
@@ -548,7 +546,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
     if (isCreatingGroup) {
       if (!formData.name) {
-        toast.error("Name is required.");
+        toast.error("Group Name is required.");
         return;
       }
       setIsSubmitting(true);
@@ -557,10 +555,10 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           { name: formData.name, status: formData.status },
           moduleName
         );
-        toast.success("Route Group created! Now configure countries and routes.");
+        toast.success("Route Group created successfully!");
         onSuccess(created);
         onClose();
-     } catch (err: any) {
+      } catch (err: any) {
         console.error(err);
         const serverError = err.response?.data;
         if (serverError?.error) {
@@ -627,24 +625,21 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
     const payload: any = { ...formData };
 
-    // Get all possible individual MNCs that SHOULD be selected
     const allIndividualMncsAvailable = mncOptions.filter(o => !o.isAll && !o.isUiOnly).map(o => o.value);
     
-    // Check if current form data includes ALL individual MNCs
     const isActuallyAllSelected = allIndividualMncsAvailable.length > 0 && 
                                   allIndividualMncsAvailable.every(mnc => formData.MNC.includes(mnc));
 
     if (isActuallyAllSelected) {
-  delete payload.MCC; 
-  payload.MNC = ["All(All)"];
-} else {
-  payload.MCC = Array.isArray(formData.MCC)
-    ? formData.MCC.filter((m: string) => m !== "ALL_MCC").join(",")
-    : formData.MCC || "";
-    
-  // ✅ CORRECT - keeps the MCC(MNC) format
-  payload.MNC = Array.from(new Set(formData.MNC));
-}
+      delete payload.MCC; 
+      payload.MNC = ["All(All)"];
+    } else {
+      payload.MCC = Array.isArray(formData.MCC)
+        ? formData.MCC.filter((m: string) => m !== "ALL_MCC").join(",")
+        : formData.MCC || "";
+        
+      payload.MNC = Array.from(new Set(formData.MNC));
+    }
 
     if (lockedName) {
       payload.routeGroup = lockedName;
@@ -876,7 +871,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           {!isViewMode && (
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting
-                ? "Saving"
+                ? "Saving..."
                 : isCreatingGroup
                   ? "Create Route Group"
                   : isEditingGroupStatus
