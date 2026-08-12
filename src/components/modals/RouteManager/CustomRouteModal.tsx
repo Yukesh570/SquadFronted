@@ -10,6 +10,7 @@ import {
 } from "../../ui/MultiSelectDropdown";
 import {
   createCustomRouteApi,
+  updateCustomRouteApi,
   updateRouteGroupApi,
   createRouteGroupApi,
   type CustomRouteData,
@@ -257,7 +258,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
             });
           }
 
-          // ⚡️ SHOW OPERATOR NAME IN BRACKET
           uniqueMncs.forEach((mnc) => {
             if (mnc !== dbAllMnc) {
               const matchItem = specificMncs.find((n) => String(n.MNC) === mnc);
@@ -540,6 +540,32 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     return Array.from(new Set(display));
   };
 
+  // Extract clean MNC string without `${MCC}(` prefix or array wrapping
+  const extractCleanMncString = (mncInput: any): string => {
+    if (!mncInput) return "";
+    let list: string[] = [];
+    if (Array.isArray(mncInput)) {
+      list = mncInput;
+    } else if (typeof mncInput === "string") {
+      list = [mncInput];
+    } else {
+      list = [String(mncInput)];
+    }
+
+    const cleaned = list.map((item) => {
+      const str = String(item).trim();
+      if (str.includes("(") && str.includes(")")) {
+        const match = str.match(/\(([^)]+)\)/);
+        if (match && match[1]) {
+          return match[1].trim();
+        }
+      }
+      return str;
+    });
+
+    return Array.from(new Set(cleaned.filter(Boolean))).join(",");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewMode) return;
@@ -630,24 +656,38 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     const isActuallyAllSelected = allIndividualMncsAvailable.length > 0 && 
                                   allIndividualMncsAvailable.every(mnc => formData.MNC.includes(mnc));
 
+    const cleanMnc = extractCleanMncString(formData.MNC);
+
     if (isActuallyAllSelected) {
       delete payload.MCC; 
-      payload.MNC = ["All(All)"];
+      payload.MNC = "ALL";
     } else {
       payload.MCC = Array.isArray(formData.MCC)
         ? formData.MCC.filter((m: string) => m !== "ALL_MCC").join(",")
         : formData.MCC || "";
         
-      payload.MNC = Array.from(new Set(formData.MNC));
+      payload.MNC = cleanMnc;
     }
 
     if (lockedName) {
-      payload.routeGroup = lockedName;
+      if (!isNaN(Number(lockedName))) {
+        payload.routeGroup = Number(lockedName);
+      } else {
+        delete payload.routeGroup;
+      }
+    }
+    if (typeof payload.routeGroup === "string" && isNaN(Number(payload.routeGroup))) {
+      delete payload.routeGroup;
     }
 
     try {
-      await createCustomRouteApi(payload, moduleName);
-      toast.success("Route created successfully!");
+      if (editingRoute?.id) {
+        await updateCustomRouteApi(editingRoute.id, payload, moduleName);
+        toast.success("Route updated successfully!");
+      } else {
+        await createCustomRouteApi(payload, moduleName);
+        toast.success("Route created successfully!");
+      }
       onSuccess();
       onClose();
     } catch (error: any) {

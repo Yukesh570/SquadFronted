@@ -15,10 +15,10 @@ import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
 import { getCompanyStatusApi } from "../../api/settingApi/companyStatusApi/companyStatusApi";
 import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
 import { CompanyModal } from "../../components/modals/CompanyModal";
-// import { AddCreditLimitModal } from "../../components/modals/Credit/AddCreditLimitModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
+import DatePicker from "../../components/ui/DatePicker";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import AdvancedFilter, {
@@ -31,11 +31,8 @@ import ContextMenu, {
   type ContextMenuItem,
 } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
-
-// ⚡️ FIX: Import the reusable StatusBadge
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
-// --- Interfaces ---
 interface Option {
   label: string;
   value: string;
@@ -45,11 +42,27 @@ interface ColumnConfig extends FilterColumn {
   render?: (data: CompanyData) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
+  isSearchOnly?: boolean;
+  isSearchable?: boolean;
+  tableLabel?: string;
 }
 
-// --- Default Configuration ---
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const DEFAULT_SEARCH_COLUMNS = ["name"];
-const DEFAULT_TABLE_COLUMNS = ["name", "shortName", "companyEmail", "phone", "usedCustomerCredit", "usedVendorCredit"];
+const DEFAULT_TABLE_COLUMNS = [
+  "name",
+  "shortName",
+  "companyEmail",
+  "phone",
+  "usedCustomerCredit",
+  "usedVendorCredit",
+];
 
 const CompanyList: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -59,20 +72,16 @@ const CompanyList: React.FC = () => {
 
   // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<CompanyData | null>(
-    null,
-  );
+  const [editingCompany, setEditingCompany] = useState<CompanyData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
-  // const [isAddCreditOpen, setIsAddCreditOpen] = useState(false);
 
   // --- Context Menu States ---
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
     y: number;
   } | null>(null);
-  const [selectedRowCompany, setSelectedRowCompany] =
-    useState<CompanyData | null>(null);
+  const [selectedRowCompany, setSelectedRowCompany] = useState<CompanyData | null>(null);
 
   // --- Dropdown Options ---
   const [countries, setCountries] = useState<Option[]>([]);
@@ -131,11 +140,10 @@ const CompanyList: React.FC = () => {
       loadOptions(getTimezoneApi, "timeZone", setTimeZones);
   }, []);
 
-  // --- badge renders ---
+  // --- Badge Renders ---
   const renderBooleanBadge = (value: boolean) => {
     const statusKey = value ? "DELIVERED" : "PENDING";
     const labelText = value ? "Yes" : "No";
-
     return <StatusBadge status={statusKey} customText={labelText} />;
   };
 
@@ -144,7 +152,6 @@ const CompanyList: React.FC = () => {
     { label: "No", value: "false" },
   ];
 
-  // ⚡️ FIX: Configured filterKeys strictly aligning with Allowed Backend Lookups inside CompanyFilter
   const allColumns: ColumnConfig[] = [
     { key: "name", label: "Company Name", type: "text", filterKey: "name__icontains" },
     { key: "shortName", label: "Short Name", type: "text", filterKey: "shortName__icontains" },
@@ -284,14 +291,18 @@ const CompanyList: React.FC = () => {
     },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) =>
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+  const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
 
-  // ⚡️ Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
+
+  const tableFilterColumns = allColumns
+    .filter((c) => !c.isSearchOnly)
+    .map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
@@ -318,7 +329,6 @@ const CompanyList: React.FC = () => {
               const selectedOption = columnDef.options.find(
                 (opt) => opt.value === value,
               );
-              // For choice relation items mapped by text icontains, resolve labels cleanly
               currentSearchParams[columnDef.filterKey] = selectedOption
                 ? (columnDef.type === "boolean" ? selectedOption.value : selectedOption.label)
                 : value;
@@ -430,11 +440,6 @@ const CompanyList: React.FC = () => {
             icon: <Edit size={16} />,
             onClick: () => handleEdit(selectedRowCompany),
           },
-          // {
-          //   label: "Add Credit Limit",
-          //   icon: <Plus size={16} />,
-          //   onClick: () => setIsAddCreditOpen(true),
-          // },
         ]
         : []),
       ...(canDelete
@@ -495,7 +500,12 @@ const CompanyList: React.FC = () => {
     }
   };
 
-  const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.label)];
+  const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
+
+  const getBaseLabel = (label: string) => {
+    if (!label) return "";
+    return label.split(" (")[0].trim();
+  };
 
   const hasLoggedOpening = useRef(false);
 
@@ -525,8 +535,9 @@ const CompanyList: React.FC = () => {
           </h1>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={allColumns}
+              columns={tableFilterColumns}
               selectedColumns={tableColumns}
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={setTableColumns}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
@@ -535,8 +546,9 @@ const CompanyList: React.FC = () => {
           </div>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={allColumns}
+              columns={searchableColumns}
               selectedColumns={searchColumns}
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
                 setFilterValues((prev) => {
@@ -565,25 +577,40 @@ const CompanyList: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label || "");
           if (col.options) {
             return (
               <Select
                 key={col.key}
-                label={col.label}
+                label={`Search ${baseLabel}`}
                 value={filterValues[col.key] || ""}
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
-                placeholder={`Select ${col.label}`}
+                placeholder={`Select ${baseLabel}`}
+              />
+            );
+          }
+          if (col.type === "date") {
+            return (
+              <DatePicker
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                selected={
+                  filterValues[col.key] ? new Date(filterValues[col.key]) : null
+                }
+                onChange={(val: Date | null) =>
+                  handleFilterChange(col.key, val ? formatLocalDate(val) : "")
+                }
               />
             );
           }
           return (
             <Input
               key={col.key}
-              label={col.label}
+              label={`Search ${baseLabel}`}
               value={filterValues[col.key] || ""}
               onChange={(e) => handleFilterChange(col.key, e.target.value)}
-              placeholder={`Search ${col.label}`}
+              placeholder={`Search ${baseLabel}`}
             />
           );
         })}
@@ -688,13 +715,6 @@ const CompanyList: React.FC = () => {
         title="Delete Company"
         message="Are you sure you want to delete this company? This action cannot be undone."
       />
-      {/* <AddCreditLimitModal
-        isOpen={isAddCreditOpen}
-        onClose={() => setIsAddCreditOpen(false)}
-        onSuccess={() => fetchCompanies()}
-        moduleName={routeName}
-        company={selectedRowCompany}
-      /> */}
     </div>
   );
 };

@@ -163,7 +163,12 @@ const CustomRoute: React.FC = () => {
       filterKey: "routeGroupCountry__countryName__icontains",
       render: (c: any) => {
         if (c.routeGroupCountry && Array.isArray(c.routeGroupCountry) && c.routeGroupCountry.length > 0) {
-          return c.routeGroupCountry.map((item: any) => item.countryName).join(", ");
+          const full = c.routeGroupCountry.map((item: any) => item.countryName).join(", ");
+          return (
+            <span title={full} className="block max-w-[240px] truncate">
+              {full}
+            </span>
+          );
         }
         return "-";
       },
