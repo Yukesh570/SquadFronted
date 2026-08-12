@@ -10,6 +10,7 @@ export interface CurrencyExchangeRateData {
   effectiveFrom: string,
   effectiveto: string,
   source: string,
+  version: string,
   exchangeRate: string | number;
   status: "ACTIVE" | "INACTIVE" | "EXPIRED";
   createdAt?: string;

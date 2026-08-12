@@ -57,6 +57,8 @@ const GeneralSettings: React.FC = () => {
     dateFormat: "YYYY-MM-DD",
     datetimeFormat: "YYYY-MM-DD HH:mm:ss",
     baseCurrency: "", // ⚡️ FIX: Reset to empty string initially
+    currencyApi: "",
+    apiKey: "",
   });
 
   const location = useLocation();
@@ -105,6 +107,8 @@ const GeneralSettings: React.FC = () => {
           datetimeFormat: response.datetimeFormat || "YYYY-MM-DD HH:mm:ss",
           // ⚡️ FIX: Pre-fill with stringified ID for the Select dropdown
           baseCurrency: response.baseCurrency ? String(response.baseCurrency) : "", 
+          currencyApi: response.currencyApi || "",
+          apiKey: response.apiKey || "",
         });
       }
 
@@ -288,6 +292,11 @@ const GeneralSettings: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <Input label="Date Format" name="dateFormat" value={formData.dateFormat} onChange={handleChange} placeholder="YYYY-MM-DD" required />
                   <Input label="Date Time Format" name="datetimeFormat" value={formData.datetimeFormat} onChange={handleChange} placeholder="YYYY-MM-DD HH:mm:ss" required />
+                </div>
+                <hr className="dark:border-gray-700" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <Input label="Currency API" name="currencyApi" value={formData.currencyApi || ""} onChange={handleChange} placeholder="Enter Currency API" autoComplete="new-password" />
+                  <Input label="API Key" name="apiKey" value={formData.apiKey || ""} onChange={handleChange} placeholder="Enter API Key" type="password" autoComplete="new-password" />
                 </div>
                 <div className="pt-3 flex justify-end gap-3">
                   <Button type="submit" variant="primary" className="w-full md:w-auto text-base py-2.5 px-8" leftIcon={<Save size={18} />} disabled={isSubmitting || !canUpdate}>

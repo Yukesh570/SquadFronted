@@ -151,6 +151,12 @@ const CurrencyExchangeRate: React.FC = () => {
       render: (c) => c.targetCurrency_symbol ? `${c.targetCurrency_symbol} ${c.exchangeRate}` : c.exchangeRate,
     },
     {
+      key: "version",
+      label: "Version",
+      type: "number",
+      render: (c) => c.version ? `${c.version}` : c.version,
+    },
+    {
       key: "status",
       label: "Status",
       type: "text",

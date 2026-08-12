@@ -80,6 +80,7 @@ export const CurrencyExchangeRateHistoryModal: React.FC<CurrencyExchangeRateHist
                 <th className="px-4 py-3 font-medium">Base Currency</th>
                 <th className="px-4 py-3 font-medium">Target Currency</th>
                 <th className="px-4 py-3 font-medium">Exchange Rate</th>
+                <th className="px-4 py-3 font-medium">Source</th>
                 <th className="px-4 py-3 font-medium">Effective From</th>
                 <th className="px-4 py-3 font-medium">Effective To</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -111,6 +112,9 @@ export const CurrencyExchangeRateHistoryModal: React.FC<CurrencyExchangeRateHist
                   <td className="px-4 py-3 text-text-primary dark:text-gray-100 font-medium">
                     {rate.targetCurrency_symbol ? `${rate.targetCurrency_symbol} ` : ""}
                     {rate.exchangeRate}
+                  </td>
+                  <td className="px-4 py-3 text-text-secondary dark:text-gray-400">
+                    {(rate as any).source || "-"}
                   </td>
                   <td className="px-4 py-3 text-text-secondary dark:text-gray-400">
                     {rate.effectiveFrom ? formatDateTime(rate.effectiveFrom) : "-"}

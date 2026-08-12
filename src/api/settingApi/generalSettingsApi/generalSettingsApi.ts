@@ -10,6 +10,8 @@ export interface GeneralSettingsData {
   baseCurrency: number | string; // ⚡️ FIX: Now accepts numeric ID
   baseCurrency_name?: string;    // ⚡️ FIX: Added response mapping
   baseCurrency_code?: string;
+  currencyApi?: string;
+  apiKey?: string;
   updatedBy?: number;
   updatedAt?: string;
 }
