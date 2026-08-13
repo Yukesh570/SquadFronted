@@ -697,13 +697,13 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       for (const [key, total] of groups.entries()) {
         const groupLabel = formatGroupKeyLabel(key);
         if (total > 100) {
-          const errorMsg = `${groupLabel}: Total percentage is ${total}% (Exceeds 100% limit by ${total - 100}%)`;
+          const errorMsg = `${groupLabel}: Total is ${total}% (${total - 100}% over limit)`;
           setSectionErrors((prev) => ({ ...prev, [countryId]: errorMsg }));
           toast.error(errorMsg);
           return;
         }
         if (total < 100) {
-          const errorMsg = `${groupLabel}: Total percentage is ${total}% (${100 - total}% remaining to reach 100%)`;
+          const errorMsg = `${groupLabel}: Total is ${total}% (${100 - total}% remaining)`;
           setSectionErrors((prev) => ({ ...prev, [countryId]: errorMsg }));
           toast.error(errorMsg);
           return;
@@ -1239,7 +1239,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                           <div className="flex items-center gap-2">
                                             <Layers size={13} className="text-primary" />
                                             <span className="text-gray-700 dark:text-gray-200">
-                                              Route Group: <strong>{formattedGroupHeaderLabel}</strong>
+                                              <strong>{formattedGroupHeaderLabel}</strong>
                                               {operatorName && (
                                                 <span className="ml-1.5 text-gray-500 font-normal">({operatorName})</span>
                                               )}
@@ -1493,15 +1493,15 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                                 <span>
                                                   {groupData.total === 100 ? (
                                                     <>
-                                                      <strong className="font-bold">{formattedGroupHeaderLabel}: 100% Allocated (Valid)</strong> — Ready to save.
+                                                      <strong className="font-bold">{formattedGroupHeaderLabel}: 100%</strong> (Ready to save)
                                                     </>
                                                   ) : groupData.total > 100 ? (
                                                     <>
-                                                      <strong className="font-bold">{formattedGroupHeaderLabel}: {groupData.total}% Allocated</strong> — Exceeds 100% limit by {groupData.total - 100}%. Please adjust percentages.
+                                                      <strong className="font-bold">{formattedGroupHeaderLabel}: {groupData.total}%</strong> ({groupData.total - 100}% over limit)
                                                     </>
                                                   ) : (
                                                     <>
-                                                      <strong className="font-bold">{formattedGroupHeaderLabel}: {groupData.total}% Allocated</strong> — {100 - groupData.total}% remaining to reach 100%.
+                                                      <strong className="font-bold">{formattedGroupHeaderLabel}: {groupData.total}%</strong> ({100 - groupData.total}% remaining)
                                                     </>
                                                   )}
                                                 </span>
