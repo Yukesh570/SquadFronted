@@ -58,7 +58,7 @@ const AddCredit: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const routeName = "company"; 
+  const routeName = "company";
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const hasLoggedOpening = useRef(false);
@@ -83,7 +83,7 @@ const AddCredit: React.FC = () => {
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
-  
+
   // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
@@ -114,7 +114,7 @@ const AddCredit: React.FC = () => {
       const response: any = await getCompaniesApi(routeName, currentPage, rowsPerPage, currentSearchParams);
 
       if (newController.signal.aborted) return;
-      if (response && response.results) { setCompanies(response.results); setTotalItems(response.count); } 
+      if (response && response.results) { setCompanies(response.results); setTotalItems(response.count); }
       else { setCompanies([]); setTotalItems(0); }
     } catch (error: any) {
       if (error.name !== "AbortError") toast.error("Failed to fetch companies.");
@@ -164,34 +164,34 @@ const AddCredit: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Credit Management</h1>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={tableFilterColumns} 
-              selectedColumns={tableColumns} 
+            <AdvancedFilter
+              columns={tableFilterColumns}
+              selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
-              onFilter={setTableColumns} 
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
-              buttonLabel="Columns" 
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
               enableReorder={true}
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={searchableColumns} 
-              selectedColumns={searchColumns} 
+            <AdvancedFilter
+              columns={searchableColumns}
+              selectedColumns={searchColumns}
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
-              onFilter={(newCols) => { 
-                setSearchColumns(newCols); 
-                setFilterValues((prev) => { 
-                  const next = { ...prev }; 
-                  Object.keys(next).forEach((k) => { 
-                    if (!newCols.includes(k)) delete next[k]; 
-                  }); 
-                  return next; 
-                }); 
-              }} 
-              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
-              isLoading={isLoading} 
-              buttonLabel="Search Fields" 
+              onFilter={(newCols) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
             />
           </div>
         </div>
@@ -218,29 +218,29 @@ const AddCredit: React.FC = () => {
             );
           }
           return (
-            <Input 
-              key={col.key} 
-              type={col.type || "text"} 
-              label={`Search ${baseLabel}`} 
-              value={filterValues[col.key] || ""} 
-              onChange={(e) => handleFilterChange(col.key, e.target.value)} 
-              placeholder={`Search ${baseLabel}`} 
+            <Input
+              key={col.key}
+              type={col.type || "text"}
+              label={`Search ${baseLabel}`}
+              value={filterValues[col.key] || ""}
+              onChange={(e) => handleFilterChange(col.key, e.target.value)}
+              placeholder={`Search ${baseLabel}`}
             />
           );
         })}
       </FilterCard>
 
-      <DataTable 
-        serverSide={true} 
-        data={companies} 
-        totalItems={totalItems} 
-        currentPage={currentPage} 
-        rowsPerPage={rowsPerPage} 
-        onPageChange={setCurrentPage} 
-        onRowsPerPageChange={setRowsPerPage} 
-        density="compact" 
-        headers={tableHeaders} 
-        isLoading={isLoading} 
+      <DataTable
+        serverSide={true}
+        data={companies}
+        totalItems={totalItems}
+        currentPage={currentPage}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={setRowsPerPage}
+        density="compact"
+        headers={tableHeaders}
+        isLoading={isLoading}
         onReorderColumns={(fromIdx, toIdx) => {
           setTableColumns((prev) => {
             const next = [...prev];
@@ -273,13 +273,13 @@ const AddCredit: React.FC = () => {
       />
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
-      
-      <CreditModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSuccess={fetchCompanies} 
-        editingCompany={editingCompany} 
-        creditType={creditType} 
+
+      <CreditModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchCompanies}
+        editingCompany={editingCompany}
+        creditType={creditType}
       />
     </div>
   );

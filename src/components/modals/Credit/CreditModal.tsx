@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { updateCompanyCreditApi, getCompaniesApi } from "../../../api/companyApi/companyApi";
+import { addCreditApi, getCompaniesApi } from "../../../api/companyApi/companyApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
@@ -11,7 +11,7 @@ interface CreditModalProps {
   onClose: () => void;
   onSuccess: () => void;
   moduleName?: string;
-  editingCompany: any | null; 
+  editingCompany: any | null;
   creditType: "customer" | "vendor"; // Tells the modal which field to update
 }
 
@@ -24,7 +24,7 @@ export const CreditModal: React.FC<CreditModalProps> = ({
     companyId: "",
     creditLimit: "",
   });
-  
+
   const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,7 +48,7 @@ export const CreditModal: React.FC<CreditModalProps> = ({
     if (isOpen && editingCompany) {
       // Pick the correct credit limit based on the type
       const existingLimit = isCustomer ? editingCompany.customerCreditLimit : editingCompany.vendorCreditLimit;
-      
+
       setFormData({
         companyId: String(editingCompany.id),
         creditLimit: existingLimit ? String(existingLimit) : "",
@@ -68,14 +68,16 @@ export const CreditModal: React.FC<CreditModalProps> = ({
     }
 
     setIsSubmitting(true);
-    
+
     // Dynamically build payload based on type
-    const payload = isCustomer 
-      ? { customerCreditLimit: Number(formData.creditLimit) }
-      : { vendorCreditLimit: Number(formData.creditLimit) };
+    const payload = {
+      company: Number(formData.companyId),
+      creditType: isCustomer ? "CLIENT" : "VENDOR",
+      creditAmount: Number(formData.creditLimit),
+    };
 
     try {
-      await updateCompanyCreditApi(Number(formData.companyId), payload, moduleName);
+      await addCreditApi(payload, moduleName);
       toast.success(`${labelPrefix} credit limit updated successfully!`);
       onSuccess();
       onClose();
@@ -110,7 +112,7 @@ export const CreditModal: React.FC<CreditModalProps> = ({
             name="creditLimit"
             type="number"
             step="0.01"
-            value={formData.creditLimit}
+            // value={formData.creditLimit}
             onChange={handleChange}
             placeholder="e.g. 5000.00"
             required

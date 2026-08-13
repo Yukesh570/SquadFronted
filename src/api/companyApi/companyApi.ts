@@ -101,11 +101,19 @@ export const deleteCompanyApi = async (
 
 // --- NEW: Add Credit API ---
 // PATCH
-export const updateCompanyCreditApi = async (
-  id: number,
-  data: { customerCreditLimit?: number },
+export const addCreditApi = async (
+  data: { company: number; creditType: string; creditAmount: number },
   module: string
 ) => {
-  const response = await api.patch(`/company/addCredit/${module}/${id}/`, data);
+  const response = await api.post(`/addCreditForCompnay/${module}/`, data);
+  return response.data;
+};
+
+// GET Credit History
+export const getCreditTransactionHistoryApi = async (
+  module: string,
+  companyId: number
+) => {
+  const response = await api.get(`/addCreditForCompnay/${module}/?company__id=${companyId}`);
   return response.data;
 };

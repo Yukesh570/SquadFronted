@@ -15,6 +15,7 @@ import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
 import { getCompanyStatusApi } from "../../api/settingApi/companyStatusApi/companyStatusApi";
 import { getTimezoneApi } from "../../api/settingApi/timezoneApi/timezoneApi";
 import { CompanyModal } from "../../components/modals/CompanyModal";
+import { CreditTransactionHistoryModal } from "../../components/modals/Credit/CreditTransactionHistoryModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -75,6 +76,8 @@ const CompanyList: React.FC = () => {
   const [editingCompany, setEditingCompany] = useState<CompanyData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [selectedHistoryCompanyId, setSelectedHistoryCompanyId] = useState<number | null>(null);
 
   // --- Context Menu States ---
   const [contextMenuPos, setContextMenuPos] = useState<{
@@ -442,6 +445,14 @@ const CompanyList: React.FC = () => {
           },
         ]
         : []),
+      {
+        label: "Credit History",
+        icon: <Eye size={16} />,
+        onClick: () => {
+          setSelectedHistoryCompanyId(selectedRowCompany.id ?? null);
+          setIsHistoryModalOpen(true);
+        },
+      },
       ...(canDelete
         ? [
           {
@@ -714,6 +725,12 @@ const CompanyList: React.FC = () => {
         onConfirm={handleDelete}
         title="Delete Company"
         message="Are you sure you want to delete this company? This action cannot be undone."
+      />
+      <CreditTransactionHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        companyId={selectedHistoryCompanyId}
+        moduleName={routeName}
       />
     </div>
   );
