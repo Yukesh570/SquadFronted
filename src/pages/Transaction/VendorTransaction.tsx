@@ -21,6 +21,7 @@ interface ColumnConfig extends FilterColumn {
   render?: (data: VendorTransactionData) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
+  isSearchable?: boolean;
   isSearchOnly?: boolean;
   tableLabel?: string;
 }
@@ -110,9 +111,10 @@ const VendorTransaction: React.FC = () => {
     { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt__range", isSearchOnly: true },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+  const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   
-  // ⚡️ Map columns according to custom reordered user preference
+  // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -226,7 +228,7 @@ const VendorTransaction: React.FC = () => {
   ] : [];
 
   const tableHeaders = ["S.N", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
-  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+  const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
 
   const hasLoggedOpening = useRef(false);
 
@@ -253,6 +255,7 @@ const VendorTransaction: React.FC = () => {
             <AdvancedFilter 
               columns={tableFilterColumns} 
               selectedColumns={tableColumns} 
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={setTableColumns} 
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
               buttonLabel="Columns" 
@@ -260,7 +263,24 @@ const VendorTransaction: React.FC = () => {
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={(newCols) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter 
+              columns={searchableColumns} 
+              selectedColumns={searchColumns} 
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
+              onFilter={(newCols) => { 
+                setSearchColumns(newCols); 
+                setFilterValues((prev) => { 
+                  const next = { ...prev }; 
+                  Object.keys(next).forEach((k) => { 
+                    if (!newCols.includes(k)) delete next[k]; 
+                  }); 
+                  return next; 
+                }); 
+              }} 
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
+              isLoading={isLoading} 
+              buttonLabel="Search Fields" 
+            />
           </div>
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
@@ -273,7 +293,7 @@ const VendorTransaction: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label);
+          const baseLabel = getBaseLabel(col.label || "");
 
           if (col.options) {
             return <Select key={col.key} label={baseLabel} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} />;

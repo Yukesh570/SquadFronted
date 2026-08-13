@@ -33,6 +33,7 @@ interface ColumnConfig extends Omit<FilterColumn, 'type' | 'key' | 'label'> {
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
+  isSearchable?: boolean;
   tableLabel?: string;
 }
 
@@ -129,7 +130,6 @@ const ImportMail: React.FC = () => {
         const val = c.status || "RECEIVED";
         const label = statusOptions.find(o => o.value === val)?.label || val;
         
-        // ⚡️ FIX: Map to PM's existing colors
         let colorKey = "SUBMITTED"; // Received -> Blue
         if (val === "IDENTIFIED") colorKey = "SUBMITTING"; // Identified -> Purple
         if (val === "DUPLICATE") colorKey = "PENDING"; // Duplicate -> Yellow
@@ -147,9 +147,10 @@ const ImportMail: React.FC = () => {
     { key: "receivedAt__gt_lt", label: "Received At (After / Before)", type: "date_gt_lt", filterKey: "receivedAt", isSearchOnly: true },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+  const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   
-  // ⚡️ Map columns according to custom reordered user preference
+  // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -245,7 +246,11 @@ const ImportMail: React.FC = () => {
   ] : [];
 
   const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
-  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+  
+  const getBaseLabel = (label: string) => {
+    if (!label) return "";
+    return label.split(" (")[0].trim();
+  };
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -256,6 +261,7 @@ const ImportMail: React.FC = () => {
             <AdvancedFilter 
               columns={tableFilterColumns as any} 
               selectedColumns={tableColumns} 
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={(cols: string[]) => setTableColumns(cols)} 
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
               buttonLabel="Columns" 
@@ -263,7 +269,24 @@ const ImportMail: React.FC = () => {
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns as any} selectedColumns={searchColumns} onFilter={(newCols: string[]) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter 
+              columns={searchableColumns as any} 
+              selectedColumns={searchColumns} 
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
+              onFilter={(newCols: string[]) => { 
+                setSearchColumns(newCols); 
+                setFilterValues((prev) => { 
+                  const next = { ...prev }; 
+                  Object.keys(next).forEach((k) => { 
+                    if (!newCols.includes(k)) delete next[k]; 
+                  }); 
+                  return next; 
+                }); 
+              }} 
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
+              isLoading={isLoading} 
+              buttonLabel="Search Fields" 
+            />
           </div>
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
@@ -275,7 +298,7 @@ const ImportMail: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label);
+          const baseLabel = getBaseLabel(col.label || "");
           if (col.options) return <Select key={col.key} label={`Search ${baseLabel}`} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} />;
           if (col.type === "date") return <DatePicker key={col.key} label={`Search ${baseLabel}`} selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null} onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")} />;
           if (col.type === "date_range") {
@@ -292,7 +315,7 @@ const ImportMail: React.FC = () => {
             return (
               <React.Fragment key={col.key}>
                 <DatePicker label={`Search ${baseLabel} (> After)`} selected={gtStr ? new Date(gtStr) : null} onChange={(val: Date | null) => { const newGt = val ? formatLocalDate(val) : ""; const currentLt = ltStr || ""; handleFilterChange(col.key, newGt || currentLt ? `${newGt},${currentLt}` : ""); }} />
-                <DatePicker label={`Search ${baseLabel} (< Before)`} selected={ltStr ? new Date(ltStr) : null} onChange={(val: Date | null) => { const newLt = val ? formatLocalDate(val) : ""; const currentGt = gtStr || ""; handleFilterChange(col.key, newLt || currentGt ? `${newLt},${currentGt}` : ""); }} />
+                <DatePicker label={`Search ${baseLabel} (< Before)`} selected={ltStr ? new Date(ltStr) : null} onChange={(val: Date | null) => { const newLt = val ? formatLocalDate(val) : ""; const currentGt = gtStr || ""; handleFilterChange(col.key, currentGt || newLt ? `${currentGt},${newLt}` : ""); }} />
               </React.Fragment>
             );
           }

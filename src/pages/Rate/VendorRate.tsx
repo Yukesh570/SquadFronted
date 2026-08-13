@@ -23,7 +23,7 @@ import Select from "../../components/ui/Select";
 import DatePicker from "../../components/ui/DatePicker";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
-import AdvancedFilter from "../../components/ui/AdvancedFilter";
+import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedFilter";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
@@ -37,14 +37,12 @@ interface Option {
   value: string;
 }
 
-interface ColumnConfig {
-  key: string;
-  label: string;
-  type?: "text" | "number" | "boolean" | "date" | "date_range" | "date_gt_lt" | "number_range" | "number_gt_lt";
+interface ColumnConfig extends FilterColumn {
   render?: (data: any) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
+  isSearchable?: boolean;
   tableLabel?: string;
 }
 
@@ -193,9 +191,10 @@ const VendorRate: React.FC = () => {
     { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+  const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
 
-  // ⚡️ Map columns according to custom reordered user preference
+  // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -235,7 +234,7 @@ const VendorRate: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -296,7 +295,7 @@ const VendorRate: React.FC = () => {
   ] : [];
 
   const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
-  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+  const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -307,6 +306,7 @@ const VendorRate: React.FC = () => {
             <AdvancedFilter 
               columns={tableFilterColumns as any} 
               selectedColumns={tableColumns} 
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={(cols: any) => setTableColumns(cols)} 
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
               buttonLabel="Columns" 
@@ -314,7 +314,24 @@ const VendorRate: React.FC = () => {
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns as any} selectedColumns={searchColumns} onFilter={(newCols: any) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter 
+              columns={searchableColumns as any} 
+              selectedColumns={searchColumns} 
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
+              onFilter={(newCols: any) => { 
+                setSearchColumns(newCols); 
+                setFilterValues((prev) => { 
+                  const next = { ...prev }; 
+                  Object.keys(next).forEach((k) => { 
+                    if (!newCols.includes(k)) delete next[k]; 
+                  }); 
+                  return next; 
+                }); 
+              }} 
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
+              isLoading={isLoading} 
+              buttonLabel="Search Fields" 
+            />
           </div>
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
@@ -326,7 +343,7 @@ const VendorRate: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label);
+          const baseLabel = getBaseLabel(col.label || "");
           if (col.options) return <Select key={col.key} label={`Search ${baseLabel}`} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} />;
           if (col.type === "date") return <DatePicker key={col.key} label={`Search ${baseLabel}`} selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null} onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")} />;
           if (col.type === "date_range") {

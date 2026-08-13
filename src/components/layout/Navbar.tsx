@@ -14,12 +14,16 @@ import {
   Archive,
   Palette,
   RefreshCcw,
+  Search,
+  X,
 } from "lucide-react";
 import Button from "../ui/Button";
-import { Link } from "react-router-dom";
-import { useContext, Fragment, useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useContext, Fragment, useState, useEffect, useRef, useMemo } from "react";
 import { ThemeContext } from "../../context/themeContext";
 import { useAuth } from "../../context/AuthContext";
+import { NavItemsContext } from "../../context/navItemsContext";
+import type { navUserData } from "../../api/navUserRelationApi/navUserRelationApi";
 import {
   Menu as HeadlessMenu,
   Popover,
@@ -41,9 +45,12 @@ interface LocalNotificationData extends NotificationData {
 }
 
 const Navbar = ({ onToggleSidebar }: NavbarProps) => {
+  const navigate = useNavigate();
   const { payload, logout } = useAuth();
   const { theme, toggleTheme, primaryColor, changePrimaryColor } =
     useContext(ThemeContext);
+  const { navItems } = useContext(NavItemsContext);
+
   const [notificationData, setNotificationData] = useState<LocalNotificationData[]>(
     [],
   );
@@ -51,15 +58,93 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [localColor, setLocalColor] = useState(primaryColor);
-
   const [recentColors, setRecentColors] = useState<string[]>([]);
 
-  // ---> NEW: Make timezone a state so it can re-render instantly <---
+  // Module Search state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   const [appTimezone, setAppTimezone] = useState(
     localStorage.getItem("app_timezone") || "UTC"
   );
 
-  // ---> NEW: Listen for the custom event from GeneralSettings <---
+  // Extract all searchable readable module pages dynamically from navItems context
+  const searchableModules = useMemo(() => {
+    if (!navItems?.results) return [];
+    const list: { title: string; path: string; category?: string }[] = [];
+    const walk = (items: navUserData[], parentLabel?: string) => {
+      items.forEach((item) => {
+        if (item.permission?.read && item.url && item.label) {
+          if (!item.children || item.children.length === 0) {
+            list.push({
+              title: item.label,
+              path: `/${item.url}`,
+              category: parentLabel,
+            });
+          }
+        }
+        if (item.children && item.children.length > 0) {
+          walk(item.children, item.label);
+        }
+      });
+    };
+    walk(navItems.results);
+    return list;
+  }, [navItems]);
+
+  // Filter modules based on search input
+  const filteredModules = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+    return searchableModules.filter((item) =>
+      item.title.toLowerCase().includes(searchTerm.toLowerCase().trim())
+    );
+  }, [searchableModules, searchTerm]);
+
+  // Close search dropdown and shrink to icon on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setIsSearchOpen(false);
+        if (!searchTerm) {
+          setIsSearchExpanded(false);
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [searchTerm]);
+
+  const handleSelectPage = (path: string) => {
+    navigate(path);
+    setSearchTerm("");
+    setIsSearchOpen(false);
+    setIsSearchExpanded(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isSearchOpen || filteredModules.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % filteredModules.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev - 1 + filteredModules.length) % filteredModules.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (filteredModules[selectedIndex]) {
+        handleSelectPage(filteredModules[selectedIndex].path);
+      }
+    } else if (e.key === "Escape") {
+      setIsSearchOpen(false);
+      setIsSearchExpanded(false);
+    }
+  };
+
   useEffect(() => {
     const handleTimezoneChange = () => {
       setAppTimezone(localStorage.getItem("app_timezone") || "UTC");
@@ -85,14 +170,12 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
   const handleNotificationClick = async (notification: LocalNotificationData) => {
     if (notification.id === undefined) return;
 
-    // Optimistically update local state
     setNotificationData((prev) =>
       prev.map((notif) =>
         notif.id === notification.id ? { ...notif, seen: true } : notif
       )
     );
 
-    // Call backend API to mark as seen using PATCH
     try {
       await updateNotificationApi(notification.id, { seen: true });
     } catch (error) {
@@ -103,12 +186,10 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
   const handleViewAllClick = async () => {
     const unreadNotifications = notificationData.filter((n) => !n.seen);
     
-    // Optimistically update all to seen locally
     setNotificationData((prev) =>
       prev.map((notif) => ({ ...notif, seen: true }))
     );
 
-    // Call backend API for each unread notification
     try {
       await Promise.all(
         unreadNotifications.map((n) =>
@@ -131,7 +212,6 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
         console.error("Failed to parse recent colors");
       }
     }
-    // Initial fetch
     fetchNotifications();
   }, []);
 
@@ -184,7 +264,6 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
     setIsThemeModalOpen(false);
   };
 
-  // Helper to check if a hex color is too light (so we can adjust text/border color)
   const isLightColor = (hex: string) => {
     const cleanHex = hex.replace("#", "");
     if (cleanHex.length !== 6) return false;
@@ -224,6 +303,82 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
             {new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: appTimezone }).format(currentTime)} | {new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", timeZone: appTimezone }).format(currentTime)}
           </div>
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2 hidden md:block" />
+
+          {/* Expandable Module Search Bar */}
+          {!isSearchExpanded ? (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setIsSearchExpanded(true);
+                setIsSearchOpen(true);
+                setTimeout(() => searchInputRef.current?.focus(), 50);
+              }}
+              title="Search module"
+            >
+              <Search className="text-gray-900 dark:text-white" size={20} />
+            </Button>
+          ) : (
+            <div ref={searchRef} className="relative w-48 sm:w-60 transition-all duration-200">
+              <div className="relative flex items-center">
+                <Search className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setIsSearchOpen(true);
+                    setSelectedIndex(0);
+                  }}
+                  onFocus={() => setIsSearchOpen(true)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Search module..."
+                  className="w-full py-1.5 pl-9 pr-8 text-xs md:text-sm bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-transparent rounded-lg focus:outline-none focus:bg-white focus:border-primary dark:focus:bg-gray-900 transition-all"
+                />
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setIsSearchOpen(false);
+                    setIsSearchExpanded(false);
+                  }}
+                  className="absolute right-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Search Dropdown Results */}
+              {isSearchOpen && searchTerm.trim() !== "" && (
+                <div className="absolute left-0 right-0 z-[100] mt-1 max-h-60 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl py-1 custom-scrollbar">
+                  {filteredModules.length > 0 ? (
+                    filteredModules.map((item, index) => (
+                      <div
+                        key={item.path}
+                        onClick={() => handleSelectPage(item.path)}
+                        onMouseEnter={() => setSelectedIndex(index)}
+                        className={`flex items-center justify-between px-3 py-2 text-xs md:text-sm cursor-pointer transition-colors ${
+                          index === selectedIndex
+                            ? "bg-primary/10 text-primary font-medium dark:bg-primary/20"
+                            : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                        }`}
+                      >
+                        <span className="truncate pr-2">{item.title}</span>
+                        {item.category && (
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-normal shrink-0">
+                            {item.category}
+                          </span>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-3 py-3 text-xs text-gray-400 dark:text-gray-500 text-center font-medium">
+                      No modules found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <Button variant="ghost" onClick={handleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"} className="hidden md:flex">
             {isFullscreen ? <Minimize className="text-gray-900 dark:text-white" size={20} /> : <Maximize className="text-gray-900 dark:text-white" size={20} />}

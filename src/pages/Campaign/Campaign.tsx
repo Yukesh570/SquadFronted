@@ -404,6 +404,7 @@ const CampaignList: React.FC = () => {
             <AdvancedFilter
               columns={tableFilterColumns}
               selectedColumns={tableColumns}
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={(cols) => setTableColumns(cols)}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
@@ -414,6 +415,7 @@ const CampaignList: React.FC = () => {
             <AdvancedFilter
               columns={searchableColumns}
               selectedColumns={searchColumns}
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
                 setFilterValues((prev) => {

@@ -209,6 +209,8 @@ const UserAction: React.FC = () => {
     }
   }, []);
 
+  const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
+
   return (
     <div className="container mx-auto px-4 pb-6 sm:px-6 lg:px-8" onClick={() => setContextMenuPos(null)}>
       <div className="mb-8 flex items-center justify-between">
@@ -227,7 +229,7 @@ const UserAction: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
-          label="Search Module"
+          label={`Search ${getBaseLabel("Module")}`}
           value={titleFilter}
           onChange={(e) => setTitleFilter(e.target.value)}
           placeholder="Client"

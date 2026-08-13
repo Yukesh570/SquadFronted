@@ -39,6 +39,7 @@ interface ColumnConfig extends FilterColumn {
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
+  isSearchable?: boolean;
   tableLabel?: string;
 }
 
@@ -195,11 +196,14 @@ const CurrencyExchangeRate: React.FC = () => {
     },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) =>
+  const searchableColumns = allColumns.filter(
+    (col) => col.isSearchable !== false,
+  );
+  const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
 
-  // ⚡️ Map columns according to custom reordered user preference
+  // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -249,7 +253,7 @@ const CurrencyExchangeRate: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -388,7 +392,10 @@ const CurrencyExchangeRate: React.FC = () => {
     ...visibleTableFields.map((col) => col.tableLabel || col.label),
   ];
 
-  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+  const getBaseLabel = (label: string) => {
+    if (!label) return "";
+    return label.split(" (")[0].trim();
+  };
 
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
@@ -417,6 +424,7 @@ const CurrencyExchangeRate: React.FC = () => {
             <AdvancedFilter
               columns={tableFilterColumns}
               selectedColumns={tableColumns}
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={setTableColumns}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
@@ -425,8 +433,9 @@ const CurrencyExchangeRate: React.FC = () => {
           </div>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={allColumns}
+              columns={searchableColumns}
               selectedColumns={searchColumns}
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
                 setFilterValues((prev) => {
@@ -457,7 +466,7 @@ const CurrencyExchangeRate: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label);
+          const baseLabel = getBaseLabel(col.label || "");
 
           if (col.options) {
             return (

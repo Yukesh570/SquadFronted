@@ -34,6 +34,7 @@ interface ColumnConfig extends FilterColumn {
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
+  isSearchable?: boolean;
   tableLabel?: string;
 }
 
@@ -182,11 +183,14 @@ const MappingSetup: React.FC = () => {
     },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) =>
+  const searchableColumns = allColumns.filter(
+    (col) => col.isSearchable !== false,
+  );
+  const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
 
-  // ⚡️ Map columns according to custom reordered user preference
+  // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -363,7 +367,11 @@ const MappingSetup: React.FC = () => {
     ]
     : [];
 
-  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+  const getBaseLabel = (label: string) => {
+    if (!label) return "";
+    return label.split(" (")[0].trim();
+  };
+
   const tableHeaders = [
     "S.N.",
     ...visibleTableFields.map((col) => col.tableLabel || col.label),
@@ -380,6 +388,7 @@ const MappingSetup: React.FC = () => {
             <AdvancedFilter
               columns={tableFilterColumns}
               selectedColumns={tableColumns}
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={setTableColumns}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
@@ -388,8 +397,9 @@ const MappingSetup: React.FC = () => {
           </div>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={allColumns}
+              columns={searchableColumns}
               selectedColumns={searchColumns}
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
                 setFilterValues((prev) => {
@@ -420,7 +430,7 @@ const MappingSetup: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label);
+          const baseLabel = getBaseLabel(col.label || "");
           if (col.options)
             return (
               <Select

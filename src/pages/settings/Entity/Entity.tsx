@@ -20,9 +20,15 @@ import ContextMenu, { type ContextMenuItem } from "../../../components/ui/Contex
 import { actionHelper } from "../../../helper/action";
 
 interface Option { label: string; value: string; }
-interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; }
+interface ColumnConfig extends FilterColumn {
+  render?: (data: any) => React.ReactNode;
+  options?: Option[];
+  filterKey?: string;
+  isSearchable?: boolean;
+  isSearchOnly?: boolean;
+  tableLabel?: string;
+}
 
-// FIXED: Defined all Advanced Columns
 const DEFAULT_SEARCH_COLUMNS = ["companyName"];
 const DEFAULT_TABLE_COLUMNS = ["companyLogo", "companyName", "legalEntityName", "weekCommencing", "emailAddress", "phone"];
 
@@ -59,36 +65,42 @@ const Entity: React.FC = () => {
   const pathParts = location.pathname.split("/").filter(Boolean);
   const routeName = pathParts[pathParts.length - 1] || "entity";
 
-  // FIXED: Define all available columns for the entity table
+  // Available columns for the entity table
   const allColumns: ColumnConfig[] = [
-
     {
       key: "companyLogo",
       label: "Logo",
       type: "text",
+      isSearchable: false,
       render: (data: any) => data.companyLogoPath ? (
-
         <img src={`${imageBase}${data.companyLogoPath}`} alt="logo" className="h-8 w-8 rounded-full object-cover bg-gray-100 border border-gray-200" />
       ) : (
         <div className="h-8 w-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-xs text-gray-400">N/A</div>
       )
     },
-    { key: "companyName", label: "Company Name", type: "text" },
-    { key: "legalEntityName", label: "Legal Entity", type: "text" },
-    { key: "weekCommencing", label: "Week Commencing", type: "text", options: [{ label: "Sunday", value: "SUNDAY" }, { label: "Monday", value: "MONDAY" }] },
-    { key: "vatRegistrationNumber", label: "VAT Registration", type: "text" },
-    { key: "phone", label: "Phone", type: "text" },
-    { key: "emailAddress", label: "Email Address", type: "text" },
-    { key: "businessAddress", label: "Business Address", type: "text" },
-    { key: "bankAccountDetail", label: "Bank Details", type: "text" },
+    { key: "companyName", label: "Company Name", type: "text", filterKey: "companyName__icontains" },
+    { key: "legalEntityName", label: "Legal Entity", type: "text", filterKey: "legalEntityName__icontains" },
+    { key: "weekCommencing", label: "Week Commencing", type: "text", options: [{ label: "Sunday", value: "SUNDAY" }, { label: "Monday", value: "MONDAY" }], filterKey: "weekCommencing" },
+    { key: "vatRegistrationNumber", label: "VAT Registration", type: "text", filterKey: "vatRegistrationNumber__icontains" },
+    { key: "phone", label: "Phone", type: "text", filterKey: "phone__icontains" },
+    { key: "emailAddress", label: "Email Address", type: "text", filterKey: "emailAddress__icontains" },
+    { key: "businessAddress", label: "Business Address", type: "text", filterKey: "businessAddress__icontains" },
+    { key: "bankAccountDetail", label: "Bank Details", type: "text", filterKey: "bankAccountDetail__icontains" },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key) && col.key !== "companyLogo");
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false && col.key !== "companyLogo");
+  const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   
-  // ⚡️ Map columns according to custom reordered user preference
+  // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
+
+  const tableFilterColumns = allColumns
+    .filter((c) => !c.isSearchOnly)
+    .map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
+
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
 
   const fetchEntities = async (filters: Record<string, string> | null = null) => {
     setIsLoading(true);
@@ -160,6 +172,7 @@ const Entity: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Entity", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowEntity.id!) }] : []),
   ] : [];
 
+  const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
@@ -181,17 +194,34 @@ const Entity: React.FC = () => {
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Entity Settings</h1>
           <div className="relative z-20">
             <AdvancedFilter 
-              columns={allColumns} 
+              columns={tableFilterColumns} 
               selectedColumns={tableColumns} 
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={setTableColumns} 
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
               buttonLabel="Columns" 
               enableReorder={true}
             />
           </div>
-          {/* FIXED: Advanced Filters Integrated */}
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns.filter(c => c.key !== 'companyLogo')} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter 
+              columns={searchableColumns} 
+              selectedColumns={searchColumns} 
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
+              onFilter={(newCols) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }} 
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
+              isLoading={isLoading} 
+              buttonLabel="Search Fields" 
+            />
           </div>
         </div>
 
@@ -204,25 +234,27 @@ const Entity: React.FC = () => {
 
       <FilterCard onSearch={() => { setCurrentPage(1); fetchEntities(); }} onClear={() => { setFilterValues({}); setCurrentPage(1); fetchEntities({}); }}>
         {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label || "");
           if (col.options) {
             return (
               <Select
                 key={col.key}
-                label={`Search ${col.label}`}
+                label={`Search ${baseLabel}`}
                 value={filterValues[col.key] || ""}
                 onChange={(val) => setFilterValues(p => ({ ...p, [col.key]: val }))}
                 options={col.options}
-                placeholder={`Select ${col.label}`}
+                placeholder={`Select ${baseLabel}`}
               />
             );
           }
           return (
             <Input
               key={col.key}
-              label={`Search ${col.label}`}
+              type={col.type || "text"}
+              label={`Search ${baseLabel}`}
               value={filterValues[col.key] || ""}
               onChange={(e) => setFilterValues(p => ({ ...p, [col.key]: e.target.value }))}
-              placeholder={`Search ${col.label}`}
+              placeholder={`${baseLabel}`}
             />
           );
         })}
@@ -236,7 +268,7 @@ const Entity: React.FC = () => {
         rowsPerPage={rowsPerPage}
         onPageChange={setCurrentPage}
         onRowsPerPageChange={setRowsPerPage}
-        headers={["S.N.", ...visibleTableFields.map(c => c.label)]}
+        headers={headers}
         density="compact"
         isLoading={isLoading}
         onReorderColumns={(fromIdx, toIdx) => {

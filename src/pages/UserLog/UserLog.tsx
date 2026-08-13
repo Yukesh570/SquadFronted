@@ -41,6 +41,8 @@ const formatDate = (dateString?: string) => {
   return new Date(dateString).toLocaleString();
 };
 
+const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
+
 const UserLog: React.FC = () => {
   const [userData, setUserData] = useState<UserInformationData | null>(null);
   const [logs, setLogs] = useState<LogItemWithId[]>([]);
@@ -329,19 +331,19 @@ const UserLog: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         <Input
-          label="Search IP"
+          label={`Search ${getBaseLabel("IP Address")}`}
           value={ipFilter}
           onChange={(e) => setIpFilter(e.target.value)}
           placeholder="IP Address"
         />
         <Input
-          label="Search Browser"
+          label={`Search ${getBaseLabel("Browser")}`}
           value={browserFilter}
           onChange={(e) => setBrowserFilter(e.target.value)}
           placeholder="Chrome"
         />
         <Input
-          label="Search Device"
+          label={`Search ${getBaseLabel("Device")}`}
           value={deviceFilter}
           onChange={(e) => setDeviceFilter(e.target.value)}
           placeholder="Mobile"

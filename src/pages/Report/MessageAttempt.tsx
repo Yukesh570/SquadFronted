@@ -103,7 +103,7 @@ const MessageAttempt: React.FC = () => {
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   
-  // ⚡️ Map columns according to custom reordered user preference
+  // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -185,7 +185,7 @@ const MessageAttempt: React.FC = () => {
     { label: "View Payloads", icon: <Eye size={16} />, onClick: () => { setViewLog(selectedRow); setIsModalOpen(true); } },
   ] : [];
 
-  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+  const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
 
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
@@ -204,6 +204,7 @@ const MessageAttempt: React.FC = () => {
             <AdvancedFilter 
               columns={tableFilterColumns} 
               selectedColumns={tableColumns} 
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={setTableColumns} 
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
               buttonLabel="Columns" 
@@ -211,7 +212,24 @@ const MessageAttempt: React.FC = () => {
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={searchableColumns} selectedColumns={searchColumns} onFilter={setSearchColumns} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter 
+              columns={searchableColumns} 
+              selectedColumns={searchColumns} 
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
+              onFilter={(newCols) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
+              isLoading={isLoading} 
+              buttonLabel="Search Fields" 
+            />
           </div>
         </div>
 
@@ -224,7 +242,7 @@ const MessageAttempt: React.FC = () => {
 
       <FilterCard onSearch={() => { fetchAttempts(undefined, 1, false); }} onClear={() => { setFilterValues({}); fetchAttempts({}, 1, false); }}>
         {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label);
+          const baseLabel = getBaseLabel(col.label || "");
 
           if (col.options) {
             return (

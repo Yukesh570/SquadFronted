@@ -10,8 +10,7 @@ import {
   type OperatorNetworkCodeData,
 } from "../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
-// ⚡️ FIX: Commented out operator API import
-// import { getOperatorsApi } from "../../api/operatorApi/operatorApi";
+
 import { OperatorNetworkCodeModal } from "../../components/modals/Operator/OperatorNetworkCodeModal";
 import { ImportModal } from "../../components/modals/ImportModal";
 import Button from "../../components/ui/Button";
@@ -42,6 +41,7 @@ interface ColumnConfig extends FilterColumn {
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
+  isSearchable?: boolean;
   tableLabel?: string;
 }
 
@@ -71,8 +71,6 @@ const OperatorNetworkCode: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
-  // ⚡️ FIX: Commented out operator state
-  // const [operatorOptions, setOperatorOptions] = useState<Option[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -125,22 +123,6 @@ const OperatorNetworkCode: React.FC = () => {
         );
       })
       .catch(console.error);
-
-    // ⚡️ FIX: Commented out operator API call
-    /*
-    getOperatorsApi("operator", 1, 1000)
-      .then((res: any) => {
-        const list = res.results || (Array.isArray(res) ? res : []);
-        const options: Option[] = list.map((o: any) => ({
-          label: o.name || o.operator_name,
-          value: String(o.id),
-        }));
-        setOperatorOptions(
-          options.sort((a, b) => a.label.localeCompare(b.label)),
-        );
-      })
-      .catch(console.error);
-    */
   }, []);
 
   const hasLoggedOpening = useRef(false);
@@ -195,8 +177,6 @@ const OperatorNetworkCode: React.FC = () => {
       key: "operator_name",
       label: "Operator",
       type: "text",
-      // ⚡️ FIX: Commented out operator options so it renders as a regular text input filter
-      // options: operatorOptions, 
       filterKey: "operator__icontains",
     },
     {
@@ -269,11 +249,13 @@ const OperatorNetworkCode: React.FC = () => {
     },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) =>
+  const searchableColumns = allColumns.filter((col) =>
+    col.isSearchable !== false,
+  );
+  const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
   
-  // ⚡️ Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -374,6 +356,7 @@ const OperatorNetworkCode: React.FC = () => {
     setCurrentPage(1);
     fetchData();
   };
+
   const handleClearFilters = () => {
     setFilterValues({});
     setCurrentPage(1);
@@ -399,12 +382,14 @@ const OperatorNetworkCode: React.FC = () => {
     setIsViewMode(false);
     setIsModalOpen(true);
   };
+
   const handleAdd = () => {
     if (!canCreate) return;
     setEditingData(null);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
+
   const handleView = (item: OperatorNetworkCodeData) => {
     setEditingData(item);
     setIsViewMode(true);
@@ -453,7 +438,11 @@ const OperatorNetworkCode: React.FC = () => {
     "S.N.",
     ...visibleTableFields.map((col) => col.tableLabel || col.label),
   ];
-  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+
+  const getBaseLabel = (label: string) => {
+    if (!label) return "";
+    return label.split(" (")[0].trim();
+  };
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -466,6 +455,7 @@ const OperatorNetworkCode: React.FC = () => {
             <AdvancedFilter
               columns={tableFilterColumns}
               selectedColumns={tableColumns}
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={setTableColumns}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
@@ -474,8 +464,9 @@ const OperatorNetworkCode: React.FC = () => {
           </div>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={allColumns}
+              columns={searchableColumns}
               selectedColumns={searchColumns}
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
                 setFilterValues((prev) => {
@@ -491,7 +482,6 @@ const OperatorNetworkCode: React.FC = () => {
               buttonLabel="Search Fields"
             />
           </div>
-          
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
@@ -507,7 +497,7 @@ const OperatorNetworkCode: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label);
+          const baseLabel = getBaseLabel(col.label || "");
           if (col.options)
             return (
               <Select

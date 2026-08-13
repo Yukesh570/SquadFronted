@@ -18,7 +18,9 @@ import Select from "../../components/ui/Select";
 import DatePicker from "../../components/ui/DatePicker";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
-import AdvancedFilter from "../../components/ui/AdvancedFilter";
+import AdvancedFilter, {
+  type FilterColumn,
+} from "../../components/ui/AdvancedFilter";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
 import ContextMenu, {
   type ContextMenuItem,
@@ -32,22 +34,12 @@ interface Option {
   value: string;
 }
 
-interface ColumnConfig {
-  key: string;
-  label: string;
-  type?:
-  | "text"
-  | "number"
-  | "boolean"
-  | "date"
-  | "date_range"
-  | "date_gt_lt"
-  | "number_range"
-  | "number_gt_lt";
+interface ColumnConfig extends FilterColumn {
   render?: (data: any) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
+  isSearchable?: boolean;
   tableLabel?: string;
 }
 
@@ -203,7 +195,10 @@ const CustomRoute: React.FC = () => {
     },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) =>
+  const searchableColumns = allColumns.filter(
+    (col) => col.isSearchable !== false,
+  );
+  const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
 
@@ -445,7 +440,7 @@ const CustomRoute: React.FC = () => {
     "S.N.",
     ...visibleTableFields.map((col) => col.tableLabel || col.label),
   ];
-  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+  const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
 
   const handlePageClick = () => {
     setContextMenuPos(null);
@@ -462,6 +457,7 @@ const CustomRoute: React.FC = () => {
             <AdvancedFilter
               columns={tableFilterColumns as any}
               selectedColumns={tableColumns}
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={(cols: any) => setTableColumns(cols)}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
@@ -470,8 +466,9 @@ const CustomRoute: React.FC = () => {
           </div>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={allColumns as any}
+              columns={searchableColumns as any}
               selectedColumns={searchColumns}
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols: any) => {
                 setSearchColumns(newCols);
                 setFilterValues((prev) => {
@@ -502,7 +499,7 @@ const CustomRoute: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label);
+          const baseLabel = getBaseLabel(col.label || "");
           if (col.options)
             return (
               <Select

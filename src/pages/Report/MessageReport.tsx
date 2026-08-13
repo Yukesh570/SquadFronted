@@ -328,7 +328,7 @@ const MessageReport: React.FC = () => {
     searchColumns.includes(col.key),
   );
   
-  // ⚡️ Map columns according to custom reordered user preference
+  // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => tableColumnsConfig.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -512,7 +512,7 @@ const MessageReport: React.FC = () => {
   }, []);
 
   const tableHeaders = ["S.N", ...visibleTableFields.map((col) => col.label)];
-  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+  const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -525,6 +525,7 @@ const MessageReport: React.FC = () => {
             <AdvancedFilter
               columns={tableColumnsConfig}
               selectedColumns={tableColumns}
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={setTableColumns}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
@@ -536,6 +537,7 @@ const MessageReport: React.FC = () => {
             <AdvancedFilter
               columns={searchableColumns}
               selectedColumns={searchColumns}
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
                 setFilterValues((prev) => {
@@ -569,7 +571,7 @@ const MessageReport: React.FC = () => {
           const dateFields = visibleSearchFields.filter(c => c.type === "date" || c.type === "date_range");
 
           const renderField = (col: typeof visibleSearchFields[0]) => {
-            const baseLabel = getBaseLabel(col.label);
+            const baseLabel = getBaseLabel(col.label || "");
 
             if (col.options) {
               return (

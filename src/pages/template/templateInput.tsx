@@ -265,7 +265,7 @@ const CampaignTemplatePage: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Template", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowTemplate.id!) }] : []),
   ] : [];
 
-  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+  const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
@@ -293,6 +293,7 @@ const CampaignTemplatePage: React.FC = () => {
             <AdvancedFilter
               columns={tableFilterColumns}
               selectedColumns={tableColumns}
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={(cols) => setTableColumns(cols)}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
@@ -303,6 +304,7 @@ const CampaignTemplatePage: React.FC = () => {
             <AdvancedFilter
               columns={searchableColumns}
               selectedColumns={searchColumns}
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
                 setFilterValues((prev) => {
@@ -333,7 +335,7 @@ const CampaignTemplatePage: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label);
+          const baseLabel = getBaseLabel(col.label || "");
           if (col.options)
             return (
               <Select

@@ -7,6 +7,7 @@ import { getCompaniesApi } from "../../api/companyApi/companyApi";
 import { CreditModal } from "../../components/modals/Credit/CreditModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import Select from "../../components/ui/Select";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedFilter";
@@ -21,6 +22,7 @@ interface ColumnConfig extends FilterColumn {
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
+  isSearchable?: boolean;
   tableLabel?: string;
 }
 
@@ -77,12 +79,12 @@ const AddCredit: React.FC = () => {
     { key: "companyEmail", label: "Email", type: "text", filterKey: "companyEmail__icontains" },
     { key: "customerCreditLimit", label: "Customer Limit", type: "number", filterKey: "customerCreditLimit" },
     { key: "vendorCreditLimit", label: "Vendor Limit", type: "number", filterKey: "vendorCreditLimit" },
-    // { key: "status", label: "Status", type: "text", filterKey: "status" },
   ];
 
-  const visibleSearchFields = allColumns.filter((col) => searchColumns.includes(col.key));
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+  const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
   
-  // ⚡️ Map columns according to custom reordered user preference
+  // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -151,6 +153,11 @@ const AddCredit: React.FC = () => {
 
   const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
 
+  const getBaseLabel = (label: string) => {
+    if (!label) return "";
+    return label.split(" (")[0].trim();
+  };
+
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -160,6 +167,7 @@ const AddCredit: React.FC = () => {
             <AdvancedFilter 
               columns={tableFilterColumns} 
               selectedColumns={tableColumns} 
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={setTableColumns} 
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
               buttonLabel="Columns" 
@@ -167,9 +175,25 @@ const AddCredit: React.FC = () => {
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter columns={allColumns} selectedColumns={searchColumns} onFilter={(newCols) => { setSearchColumns(newCols); setFilterValues((prev) => { const next = { ...prev }; Object.keys(next).forEach((k) => { if (!newCols.includes(k)) delete next[k]; }); return next; }); }} onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} isLoading={isLoading} buttonLabel="Search Fields" />
+            <AdvancedFilter 
+              columns={searchableColumns} 
+              selectedColumns={searchColumns} 
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
+              onFilter={(newCols) => { 
+                setSearchColumns(newCols); 
+                setFilterValues((prev) => { 
+                  const next = { ...prev }; 
+                  Object.keys(next).forEach((k) => { 
+                    if (!newCols.includes(k)) delete next[k]; 
+                  }); 
+                  return next; 
+                }); 
+              }} 
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
+              isLoading={isLoading} 
+              buttonLabel="Search Fields" 
+            />
           </div>
-          
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
@@ -179,12 +203,44 @@ const AddCredit: React.FC = () => {
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
-        {visibleSearchFields.map((col) => (
-          <Input key={col.key} type={col.type || "text"} label={`Search ${col.label}`} value={filterValues[col.key] || ""} onChange={(e) => handleFilterChange(col.key, e.target.value)} placeholder={`Search ${col.label}`} />
-        ))}
+        {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label || "");
+          if (col.options) {
+            return (
+              <Select
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                value={filterValues[col.key] || ""}
+                onChange={(val) => handleFilterChange(col.key, val)}
+                options={col.options}
+                placeholder={`Select ${baseLabel}`}
+              />
+            );
+          }
+          return (
+            <Input 
+              key={col.key} 
+              type={col.type || "text"} 
+              label={`Search ${baseLabel}`} 
+              value={filterValues[col.key] || ""} 
+              onChange={(e) => handleFilterChange(col.key, e.target.value)} 
+              placeholder={`Search ${baseLabel}`} 
+            />
+          );
+        })}
       </FilterCard>
 
-      <DataTable serverSide={true} data={companies} totalItems={totalItems} currentPage={currentPage} rowsPerPage={rowsPerPage} onPageChange={setCurrentPage} onRowsPerPageChange={setRowsPerPage} density="compact" headers={tableHeaders} isLoading={isLoading} 
+      <DataTable 
+        serverSide={true} 
+        data={companies} 
+        totalItems={totalItems} 
+        currentPage={currentPage} 
+        rowsPerPage={rowsPerPage} 
+        onPageChange={setCurrentPage} 
+        onRowsPerPageChange={setRowsPerPage} 
+        density="compact" 
+        headers={tableHeaders} 
+        isLoading={isLoading} 
         onReorderColumns={(fromIdx, toIdx) => {
           setTableColumns((prev) => {
             const next = [...prev];

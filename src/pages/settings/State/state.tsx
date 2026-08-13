@@ -247,7 +247,7 @@ const State: React.FC = () => {
     ...(canDelete ? [{ label: "Delete State", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowState.id!) }] : []),
   ] : [];
 
-  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+  const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
@@ -258,7 +258,7 @@ const State: React.FC = () => {
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
-      }, 100);
+      }, 100); 
       
       hasLoggedOpening.current = true;
     }
@@ -275,6 +275,7 @@ const State: React.FC = () => {
             <AdvancedFilter
               columns={tableFilterColumns}
               selectedColumns={tableColumns}
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={(cols) => setTableColumns(cols)}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
@@ -285,6 +286,7 @@ const State: React.FC = () => {
             <AdvancedFilter
               columns={searchableColumns}
               selectedColumns={searchColumns}
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
                 setFilterValues((prev) => {
@@ -313,7 +315,7 @@ const State: React.FC = () => {
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label);
+          const baseLabel = getBaseLabel(col.label || "");
           if (col.options)
             return (
               <Select
