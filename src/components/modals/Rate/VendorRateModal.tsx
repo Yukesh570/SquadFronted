@@ -430,6 +430,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
                 onChange={handleChange}
                 placeholder="NTC"
                 disabled={isViewMode}
+                isClearable={false}
               />
             </>
           )}

@@ -18,7 +18,10 @@ import {
 import { getClientsApi } from "../../../api/clientApi/clientApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
 import { getVendorsApi } from "../../../api/connectivityApi/vendorApi";
-import { getOperatorNetworkCodelookupApi } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
+import {
+  getOperatorNetworkCodelookupApi,
+  getOperatorNetworkCodesApi,
+} from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 
 interface CustomRouteModalProps {
   isOpen: boolean;
@@ -66,6 +69,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     country: 0,
     MCC: [],
     MNC: [],
+    network: "",
     terminatingVendor: 0,
   });
 
@@ -242,7 +246,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
           if (dbAllMnc) {
             newMncOptions.push({
-              label: `${mcc} ( ${dbAllMnc} )`,
+              label: dbAllMnc,
               value: `${mcc}(${dbAllMnc})`,
               isAll: true,
               isUiOnly: false,
@@ -250,7 +254,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
             });
           } else if (uniqueMncs.length > 1) {
             newMncOptions.push({
-              label: `${mcc} ( All )`,
+              label: "All",
               value: `${mcc}(All)`,
               isAll: true,
               isUiOnly: true,
@@ -262,7 +266,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
             if (mnc !== dbAllMnc) {
               const matchItem = specificMncs.find((n) => String(n.MNC) === mnc);
               const opName = matchItem?.operator || matchItem?.operatorName || matchItem?.brandName || "";
-              const labelText = opName ? `${mcc} ( ${mnc} - ${opName} )` : `${mcc} ( ${mnc} )`;
+              const labelText = opName ? `${mnc} - ${opName}` : `${mnc}`;
 
               newMncOptions.push({
                 label: labelText,
@@ -280,11 +284,11 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       setMncOptions(newMncOptions);
     } else if (!isEditingGroupStatus) {
       if (mncOptions.length > 0) {
-         setMncOptions([]);
+        setMncOptions([]);
       }
       if (!editingRoute && !isViewMode) {
         if (formData.MNC && formData.MNC.length > 0) {
-           setFormData((prev: any) => ({ ...prev, MNC: [] }));
+          setFormData((prev: any) => ({ ...prev, MNC: [] }));
         }
       }
     }
@@ -300,10 +304,10 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (isCreatingGroup) {
-         setFormData({
-            name: "",
-            status: "ACTIVE"
-         });
+        setFormData({
+          name: "",
+          status: "ACTIVE"
+        });
       } else if (isEditingGroupStatus && groupData) {
         setFormData({
           name: groupData.name || groupData.routeGroup__name || "",
@@ -312,6 +316,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           country: 0,
           MCC: [],
           MNC: [],
+          network: "",
           terminatingVendor: 0,
         });
       } else if (editingRoute) {
@@ -354,6 +359,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           country: editingRoute.country || 0,
           MCC: parsedMcc,
           MNC: parsedMnc,
+          network: editingRoute.network || "",
           terminatingVendor: editingRoute.terminatingVendor || 0,
         });
       } else {
@@ -364,6 +370,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
           country: 0,
           MCC: [],
           MNC: [],
+          network: "",
           terminatingVendor: 0,
         });
       }
@@ -386,6 +393,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       if (name === "country") {
         nextData.MCC = [];
         nextData.MNC = [];
+        nextData.network = "";
       }
 
       return nextData;
@@ -402,7 +410,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
         allMccValues.every((v: string) => formData.MCC.includes(v));
 
       if (isAllSelected) {
-        setFormData((prev: any) => ({ ...prev, MCC: [], MNC: [] }));
+        setFormData((prev: any) => ({ ...prev, MCC: [], MNC: [], network: "" }));
       } else {
         setFormData((prev: any) => ({ ...prev, MCC: allMccValues }));
       }
@@ -433,7 +441,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     });
 
     const mergedMnc = Array.from(new Set([...filteredMnc, ...restoredMncs]));
-    setFormData((prev: any) => ({ ...prev, MCC: selectedValues, MNC: mergedMnc }));
+    setFormData((prev: any) => ({ ...prev, MCC: selectedValues, MNC: mergedMnc, network: "" }));
   };
 
   const handleMncChange = (selectedValues: string[], clickedOption?: any) => {
@@ -489,9 +497,9 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     const allMccValues = mccOptions
       .filter((o: MultiSelectOption) => !o.isUiOnly)
       .map((o: MultiSelectOption) => o.value);
-    
+
     const allIndividualMncs: string[] = [];
-    
+
     allMccValues.forEach((mcc: string) => {
       const specificMncs = fullNetworkList.filter(
         (n) => String(n.MCC) === mcc,
@@ -499,7 +507,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       const uniqueMncs = Array.from(
         new Set(specificMncs.map((n) => String(n.MNC))),
       ).filter(Boolean);
-      
+
       uniqueMncs.forEach((mnc) => {
         const dbAllMnc = mnc.toLowerCase() === "all" || mnc.toLowerCase() === "in rest";
         if (!dbAllMnc) {
@@ -507,16 +515,16 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
         }
       });
     });
-    
-    setFormData((prev: any) => ({ 
-      ...prev, 
-      MCC: [...allMccValues], 
-      MNC: [...allIndividualMncs] 
+
+    setFormData((prev: any) => ({
+      ...prev,
+      MCC: [...allMccValues],
+      MNC: [...allIndividualMncs]
     }));
   };
 
   const handleClearMncExternal = () => {
-    setFormData((prev: any) => ({ ...prev, MCC: [], MNC: [] }));
+    setFormData((prev: any) => ({ ...prev, MCC: [], MNC: [], network: "" }));
   };
 
   const computeDisplayMnc = () => {
@@ -539,6 +547,36 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
     return Array.from(new Set(display));
   };
+
+  useEffect(() => {
+    if (formData.country && formData.MCC.length > 0 && formData.MNC.length > 0 && fullCountriesList.length > 0) {
+      if (formData.MCC.length === 1 && formData.MNC.length === 1) {
+        const selectedCountry = fullCountriesList.find(
+          (c) => String(c.id) === String(formData.country)
+        );
+        const countryNameParam = selectedCountry ? selectedCountry.name : "";
+
+        const cleanMnc = extractCleanMncString(formData.MNC);
+        const cleanMcc = formData.MCC[0] === "ALL_MCC" ? "ALL" : formData.MCC[0];
+
+        if (cleanMcc !== "ALL" && cleanMnc !== "ALL") {
+          getOperatorNetworkCodesApi("operatorNetworkCode", 1, 10, {
+            country__name: countryNameParam,
+            MCC: cleanMcc,
+            MNC: cleanMnc,
+          })
+            .then((res: any) => {
+              const list = res.results || (Array.isArray(res) ? res : []);
+              const match = list[0];
+              if (match?.operator) {
+                setFormData((prev: any) => ({ ...prev, network: match.operator }));
+              }
+            })
+            .catch(console.error);
+        }
+      }
+    }
+  }, [formData.country, formData.MCC, formData.MNC, fullCountriesList]);
 
   // Extract clean MNC string without `${MCC}(` prefix or array wrapping
   const extractCleanMncString = (mncInput: any): string => {
@@ -652,21 +690,25 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     const payload: any = { ...formData };
 
     const allIndividualMncsAvailable = mncOptions.filter(o => !o.isAll && !o.isUiOnly).map(o => o.value);
-    
-    const isActuallyAllSelected = allIndividualMncsAvailable.length > 0 && 
-                                  allIndividualMncsAvailable.every(mnc => formData.MNC.includes(mnc));
+
+    const isActuallyAllSelected = allIndividualMncsAvailable.length > 0 &&
+      allIndividualMncsAvailable.every(mnc => formData.MNC.includes(mnc));
 
     const cleanMnc = extractCleanMncString(formData.MNC);
 
     if (isActuallyAllSelected) {
-      delete payload.MCC; 
+      delete payload.MCC;
       payload.MNC = "ALL";
     } else {
       payload.MCC = Array.isArray(formData.MCC)
         ? formData.MCC.filter((m: string) => m !== "ALL_MCC").join(",")
         : formData.MCC || "";
-        
+
       payload.MNC = cleanMnc;
+    }
+
+    if (formData.network) {
+      payload.network = formData.network;
     }
 
     if (lockedName) {
@@ -729,27 +771,27 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-6 px-1">
         {isCreatingGroup ? (
-           <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-             <legend className="text-sm font-semibold text-primary px-2">
-               Route Group Info
-             </legend>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <Input
-                 label="Group Name"
-                 name="name"
-                 value={formData.name}
-                 onChange={handleChange}
-                 placeholder="Enter Route Group Name"
-                 required
-               />
-               <Select
-                 label="Status"
-                 value={formData.status}
-                 onChange={(v) => handleSelectChange("status", v)}
-                 options={statusOptions}
-               />
-             </div>
-           </fieldset>
+          <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <legend className="text-sm font-semibold text-primary px-2">
+              Route Group Info
+            </legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Group Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Enter Route Group Name"
+                required
+              />
+              <Select
+                label="Status"
+                value={formData.status}
+                onChange={(v) => handleSelectChange("status", v)}
+                options={statusOptions}
+              />
+            </div>
+          </fieldset>
         ) : (
           <>
             <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -762,7 +804,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                     label="Route Group Name"
                     name="name"
                     value={formData.name}
-                    onChange={() => {}}
+                    onChange={() => { }}
                     disabled={true}
                   />
                 ) : (
@@ -852,6 +894,19 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                           placeholder={
                             formData.MCC.length > 0 ? "Select MNC" : "MCC First"
                           }
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Input
+                          label="Network"
+                          name="network"
+                          value={formData.network}
+                          onChange={handleChange}
+                          placeholder="NTC"
+                          disabled={isViewMode}
+                          isClearable={false}
+                          readOnly
+
                         />
                       </div>
                       {!isFieldDisabled && !editingRoute && (

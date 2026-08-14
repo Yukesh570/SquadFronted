@@ -14,6 +14,7 @@ export interface CustomerRateData {
   effectiveFrom?: string;
   effectiveTo?: string;
   status?: string;
+  network?: string;
 }
 
 // ⚡️ Added Customer Rate Group Interface

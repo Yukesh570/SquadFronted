@@ -13,6 +13,8 @@ export interface CustomRouteData {
   // Destination
   country?: number;
   countryName?: string;
+  network?: string;
+
   operator?: number;
   operatorName?: string;
 
@@ -140,6 +142,8 @@ export interface RouteGroupCountryData {
   routeGroupName?: string;
   country: number;
   countryName?: string;
+  network?: string;
+
   routingType: "PRIORITY" | "PERCENTAGE";
   status: "ACTIVE" | "INACTIVE";
   createdAt?: string;

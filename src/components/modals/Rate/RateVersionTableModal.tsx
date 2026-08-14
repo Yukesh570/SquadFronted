@@ -110,10 +110,10 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
 
   const headers = [
     "Version",
-    ...(isVendorMode ? ["Network"] : []),
     "Country",
     "MCC",
     "MNC",
+    "Network",
     "Country Code",
     "Rate",
     "Status",
@@ -189,12 +189,10 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
                           )}
                           v{v.version || 0}
                         </td>
-                        {isVendorMode && (
-                          <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.network || "-"}</td>
-                        )}
                         <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{renderCountry(v)}</td>
                         <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MCC || "-"}</td>
                         <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MNC || "-"}</td>
+                        <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.network || "-"}</td>
                         <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.countryCode || "-"}</td>
                         <td className="py-3 px-4 text-text-secondary dark:text-gray-300 font-medium whitespace-nowrap">{v.rate || "-"}</td>
                         <td className="py-3 px-4"><StatusBadge status={v.status} /></td>

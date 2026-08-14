@@ -6,7 +6,10 @@ import {
   type CustomerRateData,
 } from "../../../api/rateApi/customerRateApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
-import { getOperatorNetworkCodelookupApi } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
+import {
+  getOperatorNetworkCodelookupApi,
+  getOperatorNetworkCodesApi,
+} from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
@@ -51,6 +54,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
     country: "",
     MCC: "",
     MNC: "",
+    network: "",
     countryCode: "",
     rate: "",
     remark: "",
@@ -121,6 +125,29 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
     }
   }, [formData.country, fullCountriesList]);
 
+  useEffect(() => {
+    if (formData.country && formData.MCC && formData.MNC && fullCountriesList.length > 0) {
+      const selectedCountry = fullCountriesList.find(
+        (c) => String(c.id) === formData.country
+      );
+      const countryNameParam = selectedCountry ? selectedCountry.name : "";
+
+      getOperatorNetworkCodesApi("operatorNetworkCode", 1, 10, {
+        country__name: countryNameParam,
+        MCC: formData.MCC,
+        MNC: formData.MNC,
+      })
+        .then((res: any) => {
+          const list = res.results || (Array.isArray(res) ? res : []);
+          const match = list[0];
+          if (match?.operator) {
+            setFormData((prev) => ({ ...prev, network: match.operator }));
+          }
+        })
+        .catch(console.error);
+    }
+  }, [formData.country, formData.MCC, formData.MNC, fullCountriesList]);
+
   // Handle Date Initialization on Modal Open
   useEffect(() => {
     if (isOpen) {
@@ -131,6 +158,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
           country: String(editingRate.country || ""),
           MCC: String(editingRate.MCC || ""),
           MNC: String(editingRate.MNC || ""),
+          network: String(editingRate.network || ""),
           countryCode: String(editingRate.countryCode || ""),
           rate: String(editingRate.rate || ""),
           remark: editingRate.remark || "",
@@ -163,6 +191,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
           country: "",
           MCC: "",
           MNC: "",
+          network: "",
           countryCode: "",
           rate: "",
           remark: "",
@@ -176,9 +205,16 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
   }, [isOpen, editingRate, isViewMode]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "MCC" || name === "MNC") {
+      setFormData({ ...formData, [name]: value, network: "" });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleSelect = (name: string, value: string) => {
@@ -190,6 +226,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
           countryCode: "",
           MCC: "",
           MNC: "",
+          network: "",
         });
         return;
       }
@@ -206,6 +243,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
           : "",
         MCC: "",
         MNC: "",
+        network: "",
       });
     } else {
       setFormData({ ...formData, [name]: value });
@@ -280,6 +318,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       if (formData.MNC) {
         payload.MNC = isNaN(Number(formData.MNC)) ? formData.MNC : Number(formData.MNC);
       }
+      if (formData.network) payload.network = formData.network;
 
       if (formData.countryCode) payload.countryCode = Number(formData.countryCode);
       if (formData.status) payload.status = formData.status;
@@ -395,6 +434,15 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
                 }
                 disabled={!formData.country || isViewMode}
                 required
+              />
+              <Input
+                label="Network"
+                name="network"
+                value={formData.network}
+                onChange={handleChange}
+                placeholder="NTC"
+                disabled={isViewMode}
+                isClearable={false}
               />
             </>
           )}

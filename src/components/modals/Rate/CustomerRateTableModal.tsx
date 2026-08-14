@@ -177,7 +177,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
   const currencyCode = latestRates.length > 0 ? latestRates[0].currencyCode : "";
 
   const headers = [
-    "Country", "MCC", "MNC", "Country Code", `Rate ${currencyCode ? `(${currencyCode})` : ""}`, "Version", "Status",
+    "Country", "MCC", "MNC", "Network", "Country Code", `Rate ${currencyCode ? `(${currencyCode})` : ""}`, "Version", "Status",
     "Effective From", "Effective To",
   ];
 
@@ -260,6 +260,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="countryName" placeholder="Search..." value={columnFilters["countryName"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="100px" /></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MCC" placeholder="Search..." value={columnFilters["MCC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px" /></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MNC" placeholder="Search..." value={columnFilters["MNC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px" /></th>
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="countryCode" placeholder="Search..." value={columnFilters["countryCode"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="80px" /></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput type="number" fieldKey="rate" placeholder="Search..." value={columnFilters["rate"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px" /></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
@@ -300,6 +301,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{renderCountry(v)}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MCC || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MNC || "-"}</td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.network || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.countryCode || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 font-medium whitespace-nowrap">{v.rate || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">v{v.version || 0}</td>

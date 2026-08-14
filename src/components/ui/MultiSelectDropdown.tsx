@@ -89,7 +89,10 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
     if (selected.length === 0) return placeholder;
     if (selected.length === 1) {
       const matchedOption = options.find((opt) => opt.value === selected[0]);
-      return matchedOption ? matchedOption.label : "1 selected";
+      if (matchedOption) return matchedOption.label;
+      const raw = String(selected[0]);
+      const match = raw.match(/\(([^)]+)\)/);
+      return match ? match[1] : raw;
     }
     return `${selected.length} selected`;
   };

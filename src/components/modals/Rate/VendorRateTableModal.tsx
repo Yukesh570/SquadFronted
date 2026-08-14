@@ -264,7 +264,7 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MCC" placeholder="Search..." value={columnFilters["MCC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px" /></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="MNC" placeholder="Search..." value={columnFilters["MNC"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px" /></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="countryCode" placeholder="Search..." value={columnFilters["countryCode"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="80px" /></th>
-                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="network" placeholder="Search..." value={columnFilters["network"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="90px" /></th>
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput type="number" fieldKey="rate" placeholder="Search..." value={columnFilters["rate"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="70px" /></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">

@@ -36,6 +36,7 @@ import {
   Edit,
   X,
   Layers,
+  Loader2,
 } from "lucide-react";
 
 interface NewRow {
@@ -47,6 +48,7 @@ interface NewRow {
   trafficPercentage: string;
   status: string;
   vendorRate?: string;
+  network?: string;
 }
 
 interface Section {
@@ -160,7 +162,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   const [newRoutingType, setNewRoutingType] = useState("PRIORITY");
   const [newConfigStatus, setNewConfigStatus] = useState("ACTIVE");
   const [isAddingConfig, setIsAddingConfig] = useState(false);
-  
+
   const [deleteConfigData, setDeleteConfigData] = useState<{ id: number; countryName: string } | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [deleteRouteData, setDeleteRouteData] = useState<{ id: number; name: string; countryId: string } | null>(null);
@@ -312,19 +314,20 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         const list = res.results || (Array.isArray(res) ? res : []);
 
         const uniqueMccs = Array.from(new Set(list.map((item: any) => item.MCC))).filter(Boolean);
-        
+
         const mncMap = new Map<string, string>();
         const brandMap: Record<string, string> = {};
 
         list.forEach((item: any) => {
           if (item.MNC) {
-            const mncStr = String(item.MNC).trim();
+            const rawMnc = String(item.MNC);
+            const mncStr = rawMnc.includes("(") ? rawMnc.split("(")[0].trim() : rawMnc.trim();
             const opName = String(item.operator || item.operatorName || item.brandName || "").trim();
-            
+
             if (opName && opName !== mncStr && opName !== String(Number(mncStr))) {
               brandMap[mncStr] = opName;
               if (!mncMap.has(mncStr)) {
-                mncMap.set(mncStr, `${mncStr} (${opName})`);
+                mncMap.set(mncStr, mncStr);
               }
             } else {
               if (!mncMap.has(mncStr)) {
@@ -511,14 +514,14 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   // PREPEND NEW ROW SO IT APPEARS AT THE TOP & SMARTLY PICK NON-100% MNC
   const addRow = (countryId: string) => {
     setSectionErrors((prev) => ({ ...prev, [countryId]: "" }));
-    
+
     setSections((prev) =>
       prev.map((s) => {
         if (String(s.config.country) !== countryId) return s;
 
         const codes = networkCodesByCountry[countryId];
         const row = emptyRow();
-        
+
         if (codes?.mccOptions.length === 1) {
           row.MCC = codes.mccOptions[0].value;
         } else if (s.newRows.length > 0 && s.newRows[0].MCC) {
@@ -541,15 +544,30 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
         let candidateMnc = "";
         if (row.MCC && codes?.mncOptions) {
-          const validOpt = codes.mncOptions.find((opt) => {
-            const k = normalizeKey(row.MCC, opt.value);
+          // Check if the most recent new row's MNC is still valid
+          if (s.newRows.length > 0 && s.newRows[0].MNC) {
+            const lastMnc = s.newRows[0].MNC;
+            const k = normalizeKey(row.MCC, lastMnc);
             const total = groupTotals.get(k) || 0;
-            return !isPercentage || total < 100;
-          });
-          if (validOpt) candidateMnc = validOpt.value;
+            if (!isPercentage || total < 100) {
+              candidateMnc = lastMnc;
+            }
+          }
+
+          if (!candidateMnc) {
+            const validOpt = codes.mncOptions.find((opt) => {
+              const k = normalizeKey(row.MCC, opt.value);
+              const total = groupTotals.get(k) || 0;
+              return !isPercentage || total < 100;
+            });
+            if (validOpt) candidateMnc = validOpt.value;
+          }
         }
 
         row.MNC = candidateMnc;
+        if (candidateMnc && codes?.brandMap) {
+          row.network = codes.brandMap[candidateMnc] || "";
+        }
 
         return { ...s, newRows: [row, ...s.newRows] };
       }),
@@ -606,12 +624,12 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           routes: s.routes.map((r) =>
             r.id === editingRouteData.id
               ? {
-                  ...r,
-                  trafficPercentage: updatedData.trafficPercentage,
-                  terminatingVendor: updatedData.terminatingVendor,
-                  status: updatedData.status as any,
-                  isModified: true,
-                }
+                ...r,
+                trafficPercentage: updatedData.trafficPercentage,
+                terminatingVendor: updatedData.terminatingVendor,
+                status: updatedData.status as any,
+                isModified: true,
+              }
               : r
           ),
         };
@@ -675,7 +693,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
     if (isPercentage) {
       const groups = new Map<string, number>();
-      
+
       const routesToValidate = targetGroupKey
         ? section.routes.filter(r => normalizeKey(r.MCC, r.MNC) === targetGroupKey)
         : section.routes;
@@ -688,7 +706,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         const key = normalizeKey(r.MCC, r.MNC);
         groups.set(key, (groups.get(key) || 0) + Number(r.trafficPercentage || 0));
       });
-      
+
       newRowsToValidate.forEach(r => {
         const key = normalizeKey(r.MCC, r.MNC);
         groups.set(key, (groups.get(key) || 0) + Number(r.trafficPercentage || 0));
@@ -739,6 +757,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           country: Number(countryId),
           MCC: row.MCC,
           MNC: row.MNC,
+          network: row.network,
           terminatingVendor: Number(row.terminatingVendor),
           ...(isPercentage
             ? { trafficPercentage: Number(row.trafficPercentage) }
@@ -798,7 +817,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
   const getOtherRoutesTotal = (countryId: string, currentRouteId?: number | string, mcc?: string, mnc?: string) => {
     if (!countryId) return 0;
-    
+
     const targetCountryStr = typeof countryId === "object" ? String((countryId as any).id || (countryId as any).country || "") : String(countryId);
 
     const section = sections.find((s) => {
@@ -829,16 +848,16 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     const mcc = "isNew" in item ? item.row.MCC : String(item.MCC || "");
     const mnc = "isNew" in item ? item.row.MNC : String(item.MNC || "");
     const vendorId = "isNew" in item ? item.row.terminatingVendor : String(item.terminatingVendor || "");
-    
+
     const vMatch = vendorOptions.find(v => String(v.value) === vendorId);
-    const vendorName = "isNew" in item 
+    const vendorName = "isNew" in item
       ? (vMatch?.label || "")
       : (vMatch?.label || (item as any).terminatingVendorProfileName || vendorId);
 
     const val = "isNew" in item
       ? (isPercentage ? item.row.trafficPercentage : item.row.priority)
       : (isPercentage ? String(item.trafficPercentage || "") : String(item.priority || ""));
-    
+
     const status = "isNew" in item ? item.row.status : String(item.status || "");
 
     if (filters.mcc && !mcc.toLowerCase().includes(filters.mcc.toLowerCase())) return false;
@@ -999,7 +1018,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
               // Group items by MCC & MNC
               const mccMncGroupsMap = new Map<string, { total: number; items: (CustomRouteData | { isNew: true; row: NewRow })[] }>();
-              
+
               section.newRows.forEach((row) => {
                 const key = normalizeKey(row.MCC, row.MNC);
                 if (!mccMncGroupsMap.has(key)) {
@@ -1126,6 +1145,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                               <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-10">#</th>
                               <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-24">MCC</th>
                               <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-24">MNC</th>
+                              <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-24">Network</th>
                               <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-48">Terminating Vendor</th>
                               <th className="px-3 py-2 font-bold text-left border-b border-r dark:border-gray-600 w-28">
                                 {isPercentage ? "Traffic %" : "Priority"}
@@ -1147,7 +1167,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                 <th className="px-3 py-2 font-bold text-center border-b border-l dark:border-gray-600 w-16">Action</th>
                               )}
                             </tr>
-                            
+
                             {/* In-Table Search Filter Row */}
                             <tr className="bg-gray-50 dark:bg-gray-800/80">
                               <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
@@ -1166,6 +1186,8 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                   value={filters.mnc || ""}
                                   onChange={(k, val) => handleFilterChange(countryId, k, val)}
                                 />
+                              </th>
+                              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
                               </th>
                               <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
                                 <FilterInput
@@ -1234,7 +1256,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                   <React.Fragment key={groupKey}>
                                     {/* MNC Group Banner Header Row */}
                                     <tr className="bg-gray-100/90 dark:bg-gray-800/90 border-t border-b border-gray-200 dark:border-gray-700">
-                                      <td colSpan={(canUpdate || canDelete) ? 11 : 10} className="px-3 py-1.5 text-xs font-semibold">
+                                      <td colSpan={11} className="px-3 py-1.5 text-xs font-semibold">
                                         <div className="flex items-center justify-between">
                                           <div className="flex items-center gap-2">
                                             <Layers size={13} className="text-primary" />
@@ -1249,31 +1271,52 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                             </span>
                                           </div>
 
-                                          {/* PER-MNC 100% VALIDATION BADGE */}
-                                          {isPercentage && (
-                                            <span
-                                              className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full border font-bold ${
-                                                groupData.total === 100
+                                          <div className="flex items-center justify-end gap-3">
+                                            {/* PER-MNC 100% VALIDATION BADGE */}
+                                            {isPercentage && (
+                                              <span
+                                                className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full border font-bold ${groupData.total === 100
                                                   ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-700 dark:text-green-400"
                                                   : groupData.total > 100
-                                                  ? "bg-red-50 border-red-300 text-red-700 dark:bg-red-900/40 dark:border-red-700 dark:text-red-300"
-                                                  : "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-300"
-                                              }`}
-                                            >
-                                              {groupData.total === 100 ? (
-                                                <CheckCircle2 size={12} />
-                                              ) : (
-                                                <AlertCircle size={12} />
-                                              )}
-                                              {groupData.total === 100
-                                                ? "100% (Valid)"
-                                                : groupData.total < 100
-                                                ? `${groupData.total}% allocated (${100 - groupData.total}% remaining)`
-                                                : `${groupData.total}% allocated (Exceeds by ${groupData.total - 100}%)`}
-                                            </span>
-                                          )}
+                                                    ? "bg-red-50 border-red-300 text-red-700 dark:bg-red-900/40 dark:border-red-700 dark:text-red-300"
+                                                    : "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-300"
+                                                  }`}
+                                              >
+                                                {groupData.total === 100 ? (
+                                                  <CheckCircle2 size={12} />
+                                                ) : (
+                                                  <AlertCircle size={12} />
+                                                )}
+                                                {groupData.total === 100
+                                                  ? "100% (Valid)"
+                                                  : groupData.total < 100
+                                                    ? `${groupData.total}% allocated (${100 - groupData.total}% remaining)`
+                                                    : `${groupData.total}% allocated (Exceeds by ${groupData.total - 100}%)`}
+                                              </span>
+                                            )}
+                                          </div>
                                         </div>
                                       </td>
+                                      {(canUpdate || canDelete) && (
+                                        <td className="px-3 py-1.5 border-l dark:border-gray-700 text-center align-middle">
+                                          {/* Common Save Button for the Group */}
+                                          {groupHasChanges && canUpdate && (
+                                            <div className="flex items-center justify-center">
+                                              <Button
+                                                type="button"
+                                                variant="primary"
+                                                onClick={() => saveGroupRows(countryId, groupKey)}
+                                                disabled={section.saving || !groupIsValid}
+                                                className="h-6 px-2.5 text-[11px] shadow-sm min-w-0 font-medium"
+                                                leftIcon={section.saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                                                title={!groupIsValid ? "Cannot save: Total traffic percentage must equal 100%" : "Save Changes for this Group"}
+                                              >
+                                                {section.saving ? "Saving…" : "Save"}
+                                              </Button>
+                                            </div>
+                                          )}
+                                        </td>
+                                      )}
                                     </tr>
 
                                     {/* Group Row Items */}
@@ -1281,7 +1324,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                       if ("isNew" in item) {
                                         // Unsaved / New Row
                                         const row = item.row;
-                                        const rowMncOptions = mncOptions.filter((opt) => {
+                                        const rowMncOptions = mncOptions.map(opt => ({
+                                          ...opt,
+                                          label: opt.label.includes("(") ? opt.label.split("(")[0].trim() : opt.label,
+                                          value: opt.value.includes("(") ? opt.value.split("(")[0].trim() : opt.value
+                                        })).filter((opt) => {
                                           if (opt.value === row.MNC) return true;
                                           if (isPercentage && row.MCC) {
                                             const key = normalizeKey(row.MCC, opt.value);
@@ -1317,6 +1364,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                                   options={mccOptions}
                                                   placeholder="MCC"
                                                   placement="bottom"
+                                                  clearable={false}
                                                 />
                                               </div>
                                             </td>
@@ -1329,6 +1377,19 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                                   options={rowMncOptions}
                                                   placeholder="MNC"
                                                   placement="bottom"
+                                                  clearable={false}
+                                                />
+                                              </div>
+                                            </td>
+                                            <td className="px-2 py-1.5 border-b border-r dark:border-gray-700">
+                                              <div className="inline-table-field">
+                                                <Input
+                                                  label=""
+                                                  name="network"
+                                                  value={row.network || ""}
+                                                  onChange={(e) => updateRow(countryId, row._id, "network", e.target.value)}
+                                                  placeholder="Network"
+                                                  readOnly
                                                 />
                                               </div>
                                             </td>
@@ -1341,6 +1402,8 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                                   options={rowVendorOptions}
                                                   placeholder="Select vendor…"
                                                   placement="bottom"
+                                                  clearable={false}
+
                                                 />
                                               </div>
                                             </td>
@@ -1377,6 +1440,8 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                                   onChange={(val) => updateRow(countryId, row._id, "status", val)}
                                                   options={statusOptions}
                                                   placement="bottom"
+                                                  clearable={false}
+
                                                 />
                                               </div>
                                             </td>
@@ -1385,6 +1450,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                                 <button
                                                   onClick={() => removeRow(countryId, row._id)}
                                                   className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"
+                                                  title="Remove Route"
                                                 >
                                                   <Trash2 size={14} />
                                                 </button>
@@ -1404,11 +1470,10 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                         <tr
                                           key={route.id}
                                           onContextMenu={(e) => handleRouteContextMenu(e, route, countryId, section.config.routingType as "PRIORITY" | "PERCENTAGE")}
-                                          className={`relative focus-within:z-20 transition-colors cursor-context-menu ${
-                                            isLocallyModified
-                                              ? "bg-amber-50/60 dark:bg-amber-900/10 border-l-[3px] border-l-amber-500 hover:bg-amber-100/50"
-                                              : `${rowBgClass} hover:bg-blue-50/40 dark:hover:bg-primary/5`
-                                          }`}
+                                          className={`relative focus-within:z-20 transition-colors cursor-context-menu ${isLocallyModified
+                                            ? "bg-amber-50/60 dark:bg-amber-900/10 border-l-[3px] border-l-amber-500 hover:bg-amber-100/50"
+                                            : `${rowBgClass} hover:bg-blue-50/40 dark:hover:bg-primary/5`
+                                            }`}
                                         >
                                           <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 text-gray-400 text-xs bg-gray-50/30 dark:bg-gray-800/10">{i + 1}</td>
                                           <td className="px-3 py-2.5 border-r border-b dark:border-gray-700 text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
@@ -1416,6 +1481,9 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                           </td>
                                           <td className="px-3 py-2.5 border-r border-b dark:border-gray-700 text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
                                             {route.MNC || "-"}
+                                          </td>
+                                          <td className="px-3 py-2.5 border-r border-b dark:border-gray-700 text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                                            {(route as any).network || "-"}
                                           </td>
                                           <td className="px-3 py-2.5 border-r border-b dark:border-gray-700 text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
                                             {vendorName}
@@ -1467,64 +1535,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                         </tr>
                                       );
                                     })}
-
-                                    {/* DEDICATED IN-BOX ACTION & VALIDATION BAR FOR THIS MNC GROUP */}
-                                    {(groupHasChanges || (isPercentage && groupData.total !== 100)) && (
-                                      <tr className="bg-gray-50/90 dark:bg-gray-800/60 border-b-2 border-gray-300 dark:border-gray-700">
-                                        <td colSpan={(canUpdate || canDelete) ? 11 : 10} className="px-4 py-2">
-                                          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                                            
-                                            {/* Informative Status Message for this MNC */}
-                                            {isPercentage ? (
-                                              <div
-                                                className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-md border ${
-                                                  groupData.total === 100
-                                                    ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300"
-                                                    : groupData.total > 100
-                                                    ? "bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300"
-                                                    : "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300"
-                                                }`}
-                                              >
-                                                {groupData.total === 100 ? (
-                                                  <CheckCircle2 size={15} className="shrink-0 text-green-600 dark:text-green-400" />
-                                                ) : (
-                                                  <AlertCircle size={15} className="shrink-0" />
-                                                )}
-                                                <span>
-                                                  {groupData.total === 100 ? (
-                                                    <>
-                                                      <strong className="font-bold">{formattedGroupHeaderLabel}: 100%</strong> (Ready to save)
-                                                    </>
-                                                  ) : groupData.total > 100 ? (
-                                                    <>
-                                                      <strong className="font-bold">{formattedGroupHeaderLabel}: {groupData.total}%</strong> ({groupData.total - 100}% over limit)
-                                                    </>
-                                                  ) : (
-                                                    <>
-                                                      <strong className="font-bold">{formattedGroupHeaderLabel}: {groupData.total}%</strong> ({100 - groupData.total}% remaining)
-                                                    </>
-                                                  )}
-                                                </span>
-                                              </div>
-                                            ) : <div />}
-
-                                            {/* Direct Save Button for this MNC Box */}
-                                            {groupHasChanges && canUpdate && (
-                                              <Button
-                                                type="button"
-                                                variant="primary"
-                                                onClick={() => saveGroupRows(countryId, groupKey)}
-                                                disabled={section.saving || !groupIsValid}
-                                                leftIcon={<Save size={13} />}
-                                                className="text-xs py-1.5 px-3 ml-auto shadow-sm"
-                                              >
-                                                {section.saving ? "Saving…" : "Save Changes"}
-                                              </Button>
-                                            )}
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    )}
                                   </React.Fragment>
                                 );
                               })}
