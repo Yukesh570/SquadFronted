@@ -13,6 +13,7 @@ import {
   updateCustomRouteApi,
   updateRouteGroupApi,
   createRouteGroupApi,
+  getCustomRoutesApi,
   type CustomRouteData,
 } from "../../../api/routeManagerApi/customRouteApi";
 import { getClientsApi } from "../../../api/clientApi/clientApi";
@@ -89,14 +90,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   const statusOptions = [
     { label: "Active", value: "ACTIVE" },
     { label: "Inactive", value: "INACTIVE" },
-  ];
-
-  const priorityOptions = [
-    { label: "1 (High)", value: "1" },
-    { label: "2", value: "2" },
-    { label: "3", value: "3" },
-    { label: "4", value: "4" },
-    { label: "5 (Low)", value: "5" },
   ];
 
   const extractOptions = (
@@ -301,6 +294,32 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     isCreatingGroup,
   ]);
 
+  // AUTO-CALCULATE +1 PRIORITY FOR SPECIFIC MNC WHEN ADDING A ROUTE
+  useEffect(() => {
+    if (!editingRoute && !isViewMode && formData.country && formData.MCC.length === 1 && formData.MNC.length === 1 && (lockedName || formData.name)) {
+      const cleanMcc = formData.MCC[0] === "ALL_MCC" ? "ALL" : formData.MCC[0];
+      const cleanMnc = extractCleanMncString(formData.MNC);
+      if (cleanMcc !== "ALL" && cleanMnc !== "ALL") {
+        getCustomRoutesApi(moduleName, 1, 100, {
+          country: formData.country,
+          routeGroup__name: lockedName || formData.name,
+          MCC: cleanMcc,
+          MNC: cleanMnc,
+        })
+          .then((res: any) => {
+            const list = res.results || (Array.isArray(res) ? res : []);
+            const priorities = list.map((r: any) => Number(r.priority) || 0);
+            const maxP = priorities.length > 0 ? Math.max(...priorities) : 0;
+            setFormData((prev: any) => ({
+              ...prev,
+              priority: String(maxP + 1),
+            }));
+          })
+          .catch(() => {});
+      }
+    }
+  }, [formData.country, formData.MCC, formData.MNC, editingRoute, isViewMode, lockedName, formData.name, moduleName]);
+
   useEffect(() => {
     if (isOpen) {
       if (isCreatingGroup) {
@@ -354,7 +373,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
         setFormData({
           name: editingRoute.name || "",
-          priority: editingRoute.priority || "",
+          priority: editingRoute.priority != null ? String(editingRoute.priority) : "1",
           status: editingRoute.status || "ACTIVE",
           country: editingRoute.country || 0,
           MCC: parsedMcc,
@@ -365,7 +384,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       } else {
         setFormData({
           name: lockedName || "",
-          priority: "",
+          priority: "1",
           status: "ACTIVE",
           country: 0,
           MCC: [],
@@ -578,7 +597,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     }
   }, [formData.country, formData.MCC, formData.MNC, fullCountriesList]);
 
-  // Extract clean MNC string without `${MCC}(` prefix or array wrapping
   const extractCleanMncString = (mncInput: any): string => {
     if (!mncInput) return "";
     let list: string[] = [];
@@ -820,13 +838,15 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                 )}
 
                 {!isEditingGroupStatus && (
-                  <Select
+                  <Input
                     label="Priority"
+                    name="priority"
+                    type="number"
                     value={formData.priority}
-                    onChange={(v) => handleSelectChange("priority", v)}
-                    options={priorityOptions}
-                    placeholder="Select Priority"
+                    onChange={handleChange}
+                    placeholder="Priority (e.g. 1)"
                     disabled={isFieldDisabled}
+                    min={1}
                   />
                 )}
 
@@ -906,7 +926,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                           disabled={isViewMode}
                           isClearable={false}
                           readOnly
-
                         />
                       </div>
                       {!isFieldDisabled && !editingRoute && (

@@ -37,6 +37,7 @@ import {
   X,
   Layers,
   Loader2,
+  Search,
 } from "lucide-react";
 
 interface NewRow {
@@ -58,6 +59,7 @@ interface Section {
   newRows: NewRow[];
   isOpen: boolean;
   saving: boolean;
+  searchExpanded: boolean;
 }
 
 interface SubRouteTableModalProps {
@@ -83,7 +85,7 @@ const FilterInput = ({
   onChange: (key: string, val: string) => void;
   type?: string;
 }) => (
-  <div className="w-full inline-filter-wrapper">
+  <div className="w-full inline-filter-wrapper relative">
     <Input
       type={type}
       label=""
@@ -120,13 +122,25 @@ const emptyRow = (): NewRow => ({
   status: "ACTIVE",
 });
 
-const normalizeKey = (mcc: any, mnc: any) => {
-  const normMcc = mcc != null && !isNaN(Number(mcc)) && String(mcc).trim() !== "" ? String(Number(mcc)) : String(mcc || "");
-  const normMnc = mnc != null && !isNaN(Number(mnc)) && String(mnc).trim() !== "" ? String(Number(mnc)) : String(mnc || "");
+const normalizeKey = (mcc: any, mnc: any): string => {
+  let normMcc = "";
+  if (mcc !== null && mcc !== undefined && !isNaN(Number(mcc)) && String(mcc).trim() !== "") {
+    normMcc = String(Number(mcc));
+  } else {
+    normMcc = String(mcc || "");
+  }
+
+  let normMnc = "";
+  if (mnc !== null && mnc !== undefined && !isNaN(Number(mnc)) && String(mnc).trim() !== "") {
+    normMnc = String(Number(mnc));
+  } else {
+    normMnc = String(mnc || "");
+  }
+
   return `${normMcc}-${normMnc}`;
 };
 
-const formatGroupKeyLabel = (groupKey: string) => {
+const formatGroupKeyLabel = (groupKey: string): string => {
   const [mcc, mnc] = groupKey.split("-");
   if (!mcc || mcc.trim() === "") return "Unassigned Network Group";
   if (!mnc || mnc.trim() === "") return `MCC ${mcc} / MNC (Select MNC)`;
@@ -162,6 +176,10 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   const [newRoutingType, setNewRoutingType] = useState("PRIORITY");
   const [newConfigStatus, setNewConfigStatus] = useState("ACTIVE");
   const [isAddingConfig, setIsAddingConfig] = useState(false);
+
+  // Search state for configured countries row
+  const [countrySearchTerm, setCountrySearchTerm] = useState("");
+  const [isCountrySearchExpanded, setIsCountrySearchExpanded] = useState(false);
 
   const [deleteConfigData, setDeleteConfigData] = useState<{ id: number; countryName: string } | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
@@ -241,6 +259,16 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }));
   };
 
+  const toggleSearchExpand = (countryId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSections(prev => prev.map(s => {
+      if (String(s.config.country) === countryId) {
+        return { ...s, searchExpanded: !s.searchExpanded };
+      }
+      return s;
+    }));
+  };
+
   const fetchConfigs = useCallback(async () => {
     if (!routeGroupId) return;
     try {
@@ -248,27 +276,50 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         routeGroup: routeGroupId,
       });
       const results: RouteGroupCountryData[] = res.results || [];
+
+      const routesPromises = results.map((cfg) =>
+        routeGroup
+          ? getCustomRoutesApi(moduleName, 1, 200, {
+              routeGroup__name: routeGroup,
+              country: String(cfg.country),
+            })
+              .then((r) => ({ countryId: String(cfg.country), routes: r.results || [] }))
+              .catch(() => ({ countryId: String(cfg.country), routes: [] }))
+          : Promise.resolve({ countryId: String(cfg.country), routes: [] })
+      );
+
+      const allCountryRoutes = await Promise.all(routesPromises);
+      const routesByCountryMap = new Map(
+        allCountryRoutes.map((item) => [item.countryId, item.routes])
+      );
+
       setSections((prev) => {
         const prevMap = new Map(prev.map((s) => [String(s.config.country), s]));
         return results.map((cfg) => {
           const existing = prevMap.get(String(cfg.country));
+          const loadedRoutes = routesByCountryMap.get(String(cfg.country)) || [];
           return existing
-            ? { ...existing, config: cfg }
+            ? {
+                ...existing,
+                config: cfg,
+                routes: existing.routes.length > 0 ? existing.routes : loadedRoutes,
+              }
             : {
-              config: cfg,
-              routes: [],
-              loading: false,
-              newRows: [],
-              isOpen: false,
-              saving: false,
-            };
+                config: cfg,
+                routes: loadedRoutes,
+                loading: false,
+                newRows: [],
+                isOpen: false,
+                saving: false,
+                searchExpanded: false,
+              };
         });
       });
       if (results.length === 0) setConfigSectionOpen(true);
     } catch {
       toast.error("Failed to load country configurations.");
     }
-  }, [routeGroupId, moduleName]);
+  }, [routeGroupId, routeGroup, moduleName]);
 
   const fetchSectionRoutes = useCallback(
     async (countryId: string) => {
@@ -363,6 +414,8 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       setNetworkCodesByCountry({});
       setSectionFilters({});
       setSectionErrors({});
+      setCountrySearchTerm("");
+      setIsCountrySearchExpanded(false);
       return;
     }
     fetchConfigs();
@@ -378,7 +431,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         setVendorOptions(list.map((v: any) => ({ label: v.profileName || v.name, value: String(v.id) })));
       })
       .catch(() => { });
-  }, [isOpen, routeGroupId]);
+  }, [isOpen, routeGroupId, fetchConfigs]);
 
   const toggleSection = (countryId: string) => {
     setSections((prev) =>
@@ -511,7 +564,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }
   };
 
-  // PREPEND NEW ROW SO IT APPEARS AT THE TOP & SMARTLY PICK NON-100% MNC
+  // PREPEND NEW ROW & SMARTLY CALCULATE AUTO +1 PRIORITY PER SPECIFIC MNC
   const addRow = (countryId: string) => {
     setSectionErrors((prev) => ({ ...prev, [countryId]: "" }));
 
@@ -544,7 +597,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
         let candidateMnc = "";
         if (row.MCC && codes?.mncOptions) {
-          // Check if the most recent new row's MNC is still valid
           if (s.newRows.length > 0 && s.newRows[0].MNC) {
             const lastMnc = s.newRows[0].MNC;
             const k = normalizeKey(row.MCC, lastMnc);
@@ -569,6 +621,21 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           row.network = codes.brandMap[candidateMnc] || "";
         }
 
+        // AUTO +1 PRIORITY FOR THE SAME MNC
+        if (!isPercentage) {
+          if (row.MCC && row.MNC) {
+            const sameMncPriorities = [
+              ...s.routes.filter(r => normalizeKey(r.MCC, r.MNC) === normalizeKey(row.MCC, row.MNC)),
+              ...s.newRows.filter(r => normalizeKey(r.MCC, r.MNC) === normalizeKey(row.MCC, row.MNC)),
+            ].map(r => Number(r.priority) || 0);
+
+            const maxPriority = sameMncPriorities.length > 0 ? Math.max(...sameMncPriorities) : 0;
+            row.priority = String(maxPriority + 1);
+          } else {
+            row.priority = "1";
+          }
+        }
+
         return { ...s, newRows: [row, ...s.newRows] };
       }),
     );
@@ -580,6 +647,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     setSections((prev) =>
       prev.map((s) => {
         if (String(s.config.country) !== countryId) return s;
+        const isPercentage = s.config.routingType === "PERCENTAGE";
 
         const updatedRows = s.newRows.map((r) => {
           if (r._id === rowId) {
@@ -587,6 +655,22 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
             if (field === "MCC" || field === "MNC" || field === "terminatingVendor") {
               fetchInlineVendorRate(countryId, rowId, updatedRow);
             }
+
+            // AUTO-ADJUST PRIORITY +1 WHEN MNC CHANGES FOR PRIORITY ROUTING
+            if (!isPercentage && (field === "MNC" || field === "MCC")) {
+              const targetMcc = field === "MCC" ? value : updatedRow.MCC;
+              const targetMnc = field === "MNC" ? value : updatedRow.MNC;
+              if (targetMcc && targetMnc) {
+                const sameMncPriorities = [
+                  ...s.routes.filter(item => normalizeKey(item.MCC, item.MNC) === normalizeKey(targetMcc, targetMnc)),
+                  ...s.newRows.filter(item => item._id !== rowId && normalizeKey(item.MCC, item.MNC) === normalizeKey(targetMcc, targetMnc)),
+                ].map(item => Number(item.priority) || 0);
+
+                const maxP = sameMncPriorities.length > 0 ? Math.max(...sameMncPriorities) : 0;
+                updatedRow.priority = String(maxP + 1);
+              }
+            }
+
             return updatedRow;
           }
           return r;
@@ -624,12 +708,12 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           routes: s.routes.map((r) =>
             r.id === editingRouteData.id
               ? {
-                ...r,
-                trafficPercentage: updatedData.trafficPercentage,
-                terminatingVendor: updatedData.terminatingVendor,
-                status: updatedData.status as any,
-                isModified: true,
-              }
+                  ...r,
+                  trafficPercentage: updatedData.trafficPercentage,
+                  terminatingVendor: updatedData.terminatingVendor,
+                  status: updatedData.status as any,
+                  isModified: true,
+                }
               : r
           ),
         };
@@ -741,6 +825,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           updateCustomRouteApi(
             route.id!,
             {
+              priority: Number(route.priority),
               trafficPercentage: Number(route.trafficPercentage),
               terminatingVendor: Number(route.terminatingVendor),
               status: route.status,
@@ -811,9 +896,13 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }
   };
 
-  const filteredSections = sections.filter(
-    (s) => configFilter === "ALL" || s.config.routingType === configFilter
-  );
+  const filteredSections = sections.filter((s) => {
+    const matchesType = configFilter === "ALL" || s.config.routingType === configFilter;
+    const matchesCountrySearch =
+      !countrySearchTerm.trim() ||
+      (s.config.countryName || "").toLowerCase().includes(countrySearchTerm.toLowerCase().trim());
+    return matchesType && matchesCountrySearch;
+  });
 
   const getOtherRoutesTotal = (countryId: string, currentRouteId?: number | string, mcc?: string, mnc?: string) => {
     if (!countryId) return 0;
@@ -843,7 +932,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   const isItemMatchingFilters = (
     item: CustomRouteData | { isNew: true; row: NewRow },
     filters: Record<string, string>,
-    isPercentage: boolean
   ) => {
     const mcc = "isNew" in item ? item.row.MCC : String(item.MCC || "");
     const mnc = "isNew" in item ? item.row.MNC : String(item.MNC || "");
@@ -854,17 +942,12 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       ? (vMatch?.label || "")
       : (vMatch?.label || (item as any).terminatingVendorProfileName || vendorId);
 
-    const val = "isNew" in item
-      ? (isPercentage ? item.row.trafficPercentage : item.row.priority)
-      : (isPercentage ? String(item.trafficPercentage || "") : String(item.priority || ""));
-
     const status = "isNew" in item ? item.row.status : String(item.status || "");
 
     if (filters.mcc && !mcc.toLowerCase().includes(filters.mcc.toLowerCase())) return false;
     if (filters.mnc && !mnc.toLowerCase().includes(filters.mnc.toLowerCase())) return false;
     if (filters.vendor && !vendorName.toLowerCase().includes(filters.vendor.toLowerCase())) return false;
-    if (filters.priority && !val.toLowerCase().includes(filters.priority.toLowerCase())) return false;
-    if (filters.status && !status.toLowerCase().includes(filters.status.toLowerCase())) return false;
+    if (filters.status && filters.status.trim() !== "" && status.toUpperCase() !== filters.status.toUpperCase()) return false;
 
     return true;
   };
@@ -948,10 +1031,48 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                   <hr className="border-gray-200 dark:border-gray-700" />
                 )}
 
-                {/* CONFIGURED COUNTRIES CHIPS */}
+                {/* CONFIGURED COUNTRIES CHIPS WITH EXPANDABLE SEARCH ON THE LEFT */}
                 <div className="flex flex-col gap-3">
                   {sections.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Search country trigger / expanded input on the left */}
+                      <div className="relative flex items-center">
+                        {isCountrySearchExpanded ? (
+                          <div className="flex items-center gap-1.5 animate-fade-in">
+                            <div className="w-36 sm:w-44">
+                              <Input
+                                label=""
+                                placeholder="Search country..."
+                                value={countrySearchTerm}
+                                onChange={(e) => setCountrySearchTerm(e.target.value)}
+                                autoFocus
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCountrySearchTerm("");
+                                setIsCountrySearchExpanded(false);
+                              }}
+                              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                              title="Close search"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setIsCountrySearchExpanded(true)}
+                            className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 transition-colors"
+                            title="Search configured countries"
+                          >
+                            <Search size={14} />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Filtered Country Chips */}
                       {filteredSections.map((s) => (
                         <div
                           key={s.config.id}
@@ -974,7 +1095,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                         </div>
                       ))}
                       {filteredSections.length === 0 && (
-                        <p className="text-sm text-gray-400 py-1">No countries match the selected filter.</p>
+                        <p className="text-sm text-gray-400 py-1">No countries match the search filter.</p>
                       )}
                     </div>
                   ) : (
@@ -1044,7 +1165,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
               const mccMncGroups = Array.from(mccMncGroupsMap.entries())
                 .map(([groupKey, groupData]) => {
                   const filteredItems = groupData.items.filter((item) =>
-                    isItemMatchingFilters(item, filters, isPercentage)
+                    isItemMatchingFilters(item, filters)
                   );
                   return [groupKey, { ...groupData, items: filteredItems }] as [string, typeof groupData];
                 })
@@ -1069,9 +1190,9 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                   key={countryId}
                   className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900"
                 >
-                  {/* Section header */}
+                  {/* Section header with Upper Bar Search Filters */}
                   <div
-                    className={`flex items-center justify-between px-4 py-2.5 cursor-pointer select-none transition-colors ${section.isOpen
+                    className={`flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 cursor-pointer select-none transition-colors ${section.isOpen
                       ? "bg-gray-100 dark:bg-gray-700/60 rounded-t-lg"
                       : "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                       }`}
@@ -1095,7 +1216,73 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+
+                    {/* Upper Bar: Search Filters & Actions */}
+                    <div className="flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                      {section.isOpen && (
+                        <div className="flex items-center gap-1 mr-1 relative">
+                          {section.searchExpanded ? (
+                            <div className="flex items-center gap-1.5 transition-all w-full md:w-auto animate-fade-in pr-2">
+                              <div className="w-20 relative">
+                                <FilterInput
+                                  fieldKey="mcc"
+                                  placeholder="MCC..."
+                                  value={filters.mcc || ""}
+                                  onChange={(k, val) => handleFilterChange(countryId, k, val)}
+                                />
+                              </div>
+                              <div className="w-20 relative">
+                                <FilterInput
+                                  fieldKey="mnc"
+                                  placeholder="MNC..."
+                                  value={filters.mnc || ""}
+                                  onChange={(k, val) => handleFilterChange(countryId, k, val)}
+                                />
+                              </div>
+                              <div className="w-28 relative sm:w-32">
+                                <FilterInput
+                                  fieldKey="vendor"
+                                  placeholder="Vendor..."
+                                  value={filters.vendor || ""}
+                                  onChange={(k, val) => handleFilterChange(countryId, k, val)}
+                                />
+                              </div>
+                              <div className="w-28 relative inline-filter-wrapper">
+                                <Select
+                                  label=""
+                                  value={filters.status || ""}
+                                  onChange={(val) => handleFilterChange(countryId, "status", val)}
+                                  options={statusOptions}
+                                  placeholder="Status..."
+                                  placement="bottom"
+                                  clearable={true}
+                                />
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  handleFilterChange(countryId, "mcc", "");
+                                  handleFilterChange(countryId, "mnc", "");
+                                  handleFilterChange(countryId, "vendor", "");
+                                  handleFilterChange(countryId, "status", "");
+                                  toggleSearchExpand(countryId, e);
+                                }}
+                                className="p-1.5 ml-1 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => toggleSearchExpand(countryId, e)}
+                              className="p-1.5 mr-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+                              title="Search routes"
+                            >
+                              <Search size={15} />
+                            </button>
+                          )}
+                        </div>
+                      )}
+
                       {canUpdate && section.isOpen && (
                         <Button
                           type="button"
@@ -1167,65 +1354,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                 <th className="px-3 py-2 font-bold text-center border-b border-l dark:border-gray-600 w-16">Action</th>
                               )}
                             </tr>
-
-                            {/* In-Table Search Filter Row */}
-                            <tr className="bg-gray-50 dark:bg-gray-800/80">
-                              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
-                              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-                                <FilterInput
-                                  fieldKey="mcc"
-                                  placeholder="MCC..."
-                                  value={filters.mcc || ""}
-                                  onChange={(k, val) => handleFilterChange(countryId, k, val)}
-                                />
-                              </th>
-                              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-                                <FilterInput
-                                  fieldKey="mnc"
-                                  placeholder="MNC..."
-                                  value={filters.mnc || ""}
-                                  onChange={(k, val) => handleFilterChange(countryId, k, val)}
-                                />
-                              </th>
-                              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-                              </th>
-                              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-                                <FilterInput
-                                  fieldKey="vendor"
-                                  placeholder="Vendor..."
-                                  value={filters.vendor || ""}
-                                  onChange={(k, val) => handleFilterChange(countryId, k, val)}
-                                />
-                              </th>
-                              <th className="p-1 border-b border-r dark:border-gray-600 font-normal">
-                                <FilterInput
-                                  fieldKey="priority"
-                                  placeholder={isPercentage ? "%..." : "Priority..."}
-                                  value={filters.priority || ""}
-                                  onChange={(k, val) => handleFilterChange(countryId, k, val)}
-                                />
-                              </th>
-                              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
-                              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
-                              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
-                              <th className="p-1 border-b border-r dark:border-gray-600 font-normal"></th>
-                              <th className="p-1 border-b dark:border-gray-600 font-normal">
-                                <FilterInput
-                                  fieldKey="status"
-                                  placeholder="Status..."
-                                  value={filters.status || ""}
-                                  onChange={(k, val) => handleFilterChange(countryId, k, val)}
-                                />
-                              </th>
-                              {(canUpdate || canDelete) && (
-                                <th className="p-1 border-b border-l dark:border-gray-600 font-normal"></th>
-                              )}
-                            </tr>
                           </thead>
                           <tbody>
                             {section.loading && (
                               <tr>
-                                <td colSpan={(canUpdate || canDelete) ? 11 : 10} className="px-4 py-6 text-center text-gray-400 animate-pulse bg-white dark:bg-gray-900">
+                                <td colSpan={(canUpdate || canDelete) ? 12 : 11} className="px-4 py-6 text-center text-gray-400 animate-pulse bg-white dark:bg-gray-900">
                                   Loading…
                                 </td>
                               </tr>
@@ -1403,7 +1536,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                                   placeholder="Select vendor…"
                                                   placement="bottom"
                                                   clearable={false}
-
                                                 />
                                               </div>
                                             </td>
@@ -1416,7 +1548,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                                   onChange={(e) =>
                                                     updateRow(countryId, row._id, isPercentage ? "trafficPercentage" : "priority", e.target.value)
                                                   }
-                                                  placeholder={isPercentage ? "0–100" : "1–5"}
+                                                  placeholder={isPercentage ? "0–100" : "Priority"}
                                                 />
                                               </div>
                                             </td>
@@ -1441,7 +1573,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                                   options={statusOptions}
                                                   placement="bottom"
                                                   clearable={false}
-
                                                 />
                                               </div>
                                             </td>
@@ -1541,7 +1672,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
                             {!section.loading && mccMncGroups.length === 0 && (
                               <tr>
-                                <td colSpan={canUpdate ? 11 : 10} className="px-4 py-5 text-center text-gray-400 dark:text-gray-500 text-xs">
+                                <td colSpan={(canUpdate || canDelete) ? 12 : 11} className="px-4 py-5 text-center text-gray-400 dark:text-gray-500 text-xs">
                                   No routes match your search filters.{canUpdate && " Click \"Add Route\" to create one."}
                                 </td>
                               </tr>
@@ -1632,6 +1763,15 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         .dark .custom-grid-scroll::-webkit-scrollbar-track { background: #1f2937; }
         .custom-grid-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .custom-grid-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Search Transition Classes */
+        .animate-fade-in {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateX(10px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
       `}} />
     </>
   );
