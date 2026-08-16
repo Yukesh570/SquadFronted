@@ -95,6 +95,21 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
       const match = raw.match(/\(([^)]+)\)/);
       return match ? match[1] : raw;
     }
+    
+    const allOptions = options.filter(o => o.isAll);
+    for (const allOpt of allOptions) {
+      if (allOpt.value === "ALL_MCC") {
+        const standardOpts = options.filter((o) => !o.isUiOnly);
+        const isAllSelected = standardOpts.length > 0 && standardOpts.every((o) => selected.includes(o.value));
+        if (isAllSelected) return "All MCCs";
+      } else {
+        const mccPrefix = allOpt.value.split("(")[0];
+        const standardOpts = options.filter((o) => o.value.startsWith(`${mccPrefix}(`) && !o.isUiOnly);
+        const isAllSelected = standardOpts.length > 0 && standardOpts.every((o) => selected.includes(o.value));
+        if (isAllSelected) return allOpt.label;
+      }
+    }
+
     return `${selected.length} selected`;
   };
 
@@ -154,6 +169,7 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
       </label>
 
       <Popover.Button
+        as="div"
         ref={buttonRef}
         onClick={updatePosition}
         disabled={disabled}
@@ -163,9 +179,21 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
             : "bg-white dark:bg-gray-900 cursor-pointer hover:border-primary"
         } ${open ? "ring-1 ring-primary border-primary" : ""}`}
       >
-        <span className="text-sm truncate text-text-primary dark:text-white">
-          {getDisplayText()}
-        </span>
+        <input
+          ref={searchInputRef}
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder={getDisplayText()}
+          disabled={disabled}
+          onClick={(e) => {
+            if (open) {
+              e.stopPropagation();
+            }
+          }}
+          onKeyDown={(e) => e.stopPropagation()}
+          className="flex-1 w-full bg-transparent outline-none truncate text-sm text-text-primary dark:text-white placeholder:text-text-primary dark:placeholder:text-white"
+        />
         
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
           {selected.length > 0 && !disabled && (
@@ -212,61 +240,23 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
                   className="w-full rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
                   style={{ maxHeight: "inherit" }}
                 >
-                  {/* Static Search Input Header */}
-                  <div className="p-2 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 z-20">
-                     <div className="relative">
-                        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input
-                          ref={searchInputRef}
-                          autoFocus
-                          type="text"
-                          autoComplete="off"
-                          className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-text-primary dark:text-white placeholder-gray-400"
-                          placeholder="Search options..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                     </div>
-                  </div>
-
                   {/* Scrolling List Container */}
                   <div className="flex-1 overflow-y-auto min-h-0 relative py-1 custom-grid-scroll bg-white dark:bg-gray-800">
                     
-                    {/* Selected Items Group */}
-                    {selectedOptions.length > 0 && (
-                      <div className="mb-2">
-                         <div className="px-3 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                            Selected ({selectedOptions.length})
-                         </div>
-                         {selectedOptions.map(opt => renderOptionBtn(opt, true, onChange))}
-                      </div>
-                    )}
-
-                    {/* Unselected / Available Items Group */}
-                    {unselectedOptions.length > 0 && (
-                       <div>
-                          {selectedOptions.length > 0 && (
-                             <div className="px-3 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-100 dark:bg-gray-900 border-y border-gray-200 dark:border-gray-700">
-                                Available Options
-                             </div>
-                          )}
-                          {unselectedOptions.map(opt => {
-                            let isSelected = false;
-                            if (opt.isAll) {
-                              if (opt.value === "ALL_MCC") {
-                                const standardOpts = options.filter((o) => !o.isUiOnly);
-                                isSelected = standardOpts.length > 0 && standardOpts.every((o) => selected.includes(o.value));
-                              } else {
-                                const mccPrefix = opt.value.split("(")[0];
-                                const standardOpts = options.filter((o) => o.value.startsWith(`${mccPrefix}(`) && !o.isUiOnly);
-                                isSelected = standardOpts.length > 0 && standardOpts.every((o) => selected.includes(o.value));
-                              }
-                            }
-                            return renderOptionBtn(opt, isSelected, onChange);
-                          })}
-                       </div>
-                    )}
-
+                    {filteredOptions.map(opt => {
+                      let isSelected = selected.includes(opt.value) && !opt.isAll;
+                      if (opt.isAll) {
+                        if (opt.value === "ALL_MCC") {
+                          const standardOpts = options.filter((o) => !o.isUiOnly);
+                          isSelected = selected.includes(opt.value) || (standardOpts.length > 0 && standardOpts.every((o) => selected.includes(o.value)));
+                        } else {
+                          const mccPrefix = opt.value.split("(")[0];
+                          const standardOpts = options.filter((o) => o.value.startsWith(`${mccPrefix}(`) && !o.isUiOnly);
+                          isSelected = selected.includes(opt.value) || (standardOpts.length > 0 && standardOpts.every((o) => selected.includes(o.value)));
+                        }
+                      }
+                      return renderOptionBtn(opt, isSelected, onChange);
+                    })}
                     {filteredOptions.length === 0 && (
                       <div className="py-6 px-4 text-center text-gray-500 text-sm">
                         No matching options found

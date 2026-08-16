@@ -294,8 +294,9 @@ const CustomRoute: React.FC = () => {
           : [];
 
       const searchTarget = activeFilters.name;
-      const clientName = extraNavInfo?.clientName || searchTarget;
-      const vendorName = extraNavInfo?.vendorName || searchTarget;
+      const isInitialNavigation = extraNavInfo !== undefined;
+      const clientName = extraNavInfo?.clientName || (isInitialNavigation ? searchTarget : undefined);
+      const vendorName = extraNavInfo?.vendorName || (isInitialNavigation ? searchTarget : undefined);
 
       if (routeList.length === 0 && searchTarget) {
         let foundGroupId: number | null = null;
@@ -514,6 +515,7 @@ const CustomRoute: React.FC = () => {
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
+                allowCustomValue={true}
               />
             );
           if (col.type === "date")

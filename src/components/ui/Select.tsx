@@ -207,6 +207,19 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
               setIsTyping(true);
             }}
             onKeyDown={handleKeyDown}
+            onBlur={() => {
+              if (allowCustomValue && query.trim() !== "") {
+                const trimmedQuery = query.trim();
+                const match = options.find(
+                  (o) =>
+                    o.value === trimmedQuery ||
+                    o.label.toLowerCase() === trimmedQuery.toLowerCase()
+                );
+                if (!match && trimmedQuery !== value) {
+                  onChange(trimmedQuery);
+                }
+              }
+            }}
             placeholder={placeholder}
           />
 
