@@ -9,6 +9,7 @@ export interface MultiSelectOption {
   isAll?: boolean;
   isUiOnly?: boolean; 
   groupIndex?: number; 
+  icon?: React.ReactNode;
 }
 
 interface MultiSelectDropdownProps {
@@ -128,7 +129,10 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
         ${isSelected && !opt.isAll ? "text-primary dark:text-primary font-medium bg-primary/5 hover:bg-primary/10" : ""}
       `}
     >
-      <span className="truncate">{opt.label}</span>
+      <span className="truncate flex items-center gap-2">
+        {opt.icon && <span>{opt.icon}</span>}
+        {opt.label}
+      </span>
       {isSelected && !opt.isAll ? (
         <span className="flex items-center justify-center w-5 h-5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition-colors">
             <X size={14} strokeWidth={2.5} />

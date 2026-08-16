@@ -21,10 +21,13 @@ import { DeleteModal } from "../../../components/modals/DeleteModal";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
+import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
+import { CountryFlag } from "../../../components/ui/CountryFlag";
 
 interface Option {
   label: string;
   value: string;
+  icon?: React.ReactNode;
 }
 
 interface ColumnConfig extends FilterColumn {
@@ -74,6 +77,27 @@ const State: React.FC = () => {
     return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
   });
 
+  const [countryOptions, setCountryOptions] = useState<Option[]>([]);
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const res = await getCountriesApi("country", 1, 1000);
+        const data = res.results || (Array.isArray(res) ? res : []);
+        setCountryOptions(
+          data.map((item: any) => ({
+            label: item.name || "Unknown",
+            value: item.name || String(item.id),
+            ...(item.iso2 ? { icon: <CountryFlag iso2={item.iso2} /> } : {})
+          }))
+        );
+      } catch (error) {
+        console.error("Failed to fetch countries", error);
+      }
+    };
+    fetchCountries();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem("state_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
@@ -98,8 +122,18 @@ const State: React.FC = () => {
       key: "countryName",
       label: "Country Name",
       type: "text",
-      filterKey: "countryName__icontains",
-      render: (state) => state.countryName || "-",
+      options: countryOptions,
+      filterKey: "country__name__icontains",
+      render: (state) => {
+        const countryName = state.countryName || "-";
+        const match = countryOptions.find((opt) => opt.label === countryName);
+        return (
+          <div className="flex items-center gap-1.5">
+            {match?.icon}
+            <span>{countryName}</span>
+          </div>
+        );
+      },
     },
   ];
 

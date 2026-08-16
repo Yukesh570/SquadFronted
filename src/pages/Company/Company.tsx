@@ -33,10 +33,12 @@ import ContextMenu, {
 } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { CountryFlag } from "../../components/ui/CountryFlag";
 
 interface Option {
   label: string;
   value: string;
+  icon?: React.ReactNode;
 }
 
 interface ColumnConfig extends FilterColumn {
@@ -55,13 +57,14 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["name"];
+const DEFAULT_SEARCH_COLUMNS = ["name", "countryName", "currency"];
 const DEFAULT_TABLE_COLUMNS = [
   "name",
   "shortName",
   "accountManagerName",
   "companyEmail",
   "phone",
+  "currency",
   "customerCreditLimit",
   "vendorCreditLimit",
 ];
@@ -128,6 +131,7 @@ const CompanyList: React.FC = () => {
           list.map((item: any) => ({
             label: item.name,
             value: String(item.id),
+            ...(item.iso2 && module === "country" ? { icon: <CountryFlag iso2={item.iso2} /> } : {})
           })),
         );
       } catch (e) {
@@ -176,6 +180,16 @@ const CompanyList: React.FC = () => {
       type: "text",
       options: countries,
       filterKey: "country__name__icontains",
+      render: (c: any) => {
+        const match = countries.find((opt: any) => opt.value === String(c.country));
+        const countryName = match ? match.label : c.country;
+        return (
+          <div className="flex items-center gap-1.5">
+            {match?.icon}
+            <span>{countryName}</span>
+          </div>
+        );
+      }
     },
     {
       key: "state",
@@ -217,82 +231,82 @@ const CompanyList: React.FC = () => {
     { key: "balanceAlertAmount", label: "Bal. Alert", type: "number", filterKey: "balanceAlertAmount" },
     { key: "referencNumber", label: "Ref. Number", type: "text", filterKey: "referencNumber__icontains" },
     { key: "address", label: "Address", type: "text", filterKey: "address__icontains" },
-    {
-      key: "validityPeriod",
-      label: "Validity",
-      type: "text",
-      options: [
-        { label: "Limited", value: "LTD" },
-        { label: "Unlimited", value: "UNL" },
-      ],
-      filterKey: "validityPeriod",
-    },
-    {
-      key: "defaultEmail",
-      label: "Default Email",
-      type: "text",
-      options: [
-        { label: "Company", value: "CMP" },
-        { label: "Support", value: "SUP" },
-      ],
-      filterKey: "defaultEmail",
-    },
-    {
-      key: "onlinePayment",
-      label: "Online Payment",
-      type: "boolean",
-      options: booleanOptions,
-      filterKey: "onlinePayment",
-      render: (c) => renderBooleanBadge(c.onlinePayment),
-    },
-    {
-      key: "companyBlocked",
-      label: "Blocked",
-      type: "boolean",
-      options: booleanOptions,
-      filterKey: "companyBlocked",
-      render: (c) => renderBooleanBadge(c.companyBlocked),
-    },
-    {
-      key: "allowWhiteListedCards",
-      label: "Whitelist Cards",
-      type: "boolean",
-      options: booleanOptions,
-      filterKey: "allowWhiteListedCards",
-      render: (c) => renderBooleanBadge(c.allowWhiteListedCards),
-    },
-    {
-      key: "sendDailyReports",
-      label: "Daily Reports",
-      type: "boolean",
-      options: booleanOptions,
-      filterKey: "sendDailyReports",
-      render: (c) => renderBooleanBadge(c.sendDailyReports),
-    },
-    {
-      key: "allowNetting",
-      label: "Netting",
-      type: "boolean",
-      options: booleanOptions,
-      filterKey: "allowNetting",
-      render: (c) => renderBooleanBadge(c.allowNetting),
-    },
-    {
-      key: "showHlrApi",
-      label: "HLR API",
-      type: "boolean",
-      options: booleanOptions,
-      filterKey: "showHlrApi",
-      render: (c) => renderBooleanBadge(c.showHlrApi),
-    },
-    {
-      key: "enableVendorPanel",
-      label: "Vendor Panel",
-      type: "boolean",
-      options: booleanOptions,
-      filterKey: "enableVendorPanel",
-      render: (c) => renderBooleanBadge(c.enableVendorPanel),
-    },
+    // {
+    //   key: "validityPeriod",
+    //   label: "Validity",
+    //   type: "text",
+    //   options: [
+    //     { label: "Limited", value: "LTD" },
+    //     { label: "Unlimited", value: "UNL" },
+    //   ],
+    //   filterKey: "validityPeriod",
+    // },
+    // {
+    //   key: "defaultEmail",
+    //   label: "Default Email",
+    //   type: "text",
+    //   options: [
+    //     { label: "Company", value: "CMP" },
+    //     { label: "Support", value: "SUP" },
+    //   ],
+    //   filterKey: "defaultEmail",
+    // },
+    // {
+    //   key: "onlinePayment",
+    //   label: "Online Payment",
+    //   type: "boolean",
+    //   options: booleanOptions,
+    //   filterKey: "onlinePayment",
+    //   render: (c) => renderBooleanBadge(c.onlinePayment),
+    // },
+    // {
+    //   key: "companyBlocked",
+    //   label: "Blocked",
+    //   type: "boolean",
+    //   options: booleanOptions,
+    //   filterKey: "companyBlocked",
+    //   render: (c) => renderBooleanBadge(c.companyBlocked),
+    // },
+    // {
+    //   key: "allowWhiteListedCards",
+    //   label: "Whitelist Cards",
+    //   type: "boolean",
+    //   options: booleanOptions,
+    //   filterKey: "allowWhiteListedCards",
+    //   render: (c) => renderBooleanBadge(c.allowWhiteListedCards),
+    // },
+    // {
+    //   key: "sendDailyReports",
+    //   label: "Daily Reports",
+    //   type: "boolean",
+    //   options: booleanOptions,
+    //   filterKey: "sendDailyReports",
+    //   render: (c) => renderBooleanBadge(c.sendDailyReports),
+    // },
+    // {
+    //   key: "allowNetting",
+    //   label: "Netting",
+    //   type: "boolean",
+    //   options: booleanOptions,
+    //   filterKey: "allowNetting",
+    //   render: (c) => renderBooleanBadge(c.allowNetting),
+    // },
+    // {
+    //   key: "showHlrApi",
+    //   label: "HLR API",
+    //   type: "boolean",
+    //   options: booleanOptions,
+    //   filterKey: "showHlrApi",
+    //   render: (c) => renderBooleanBadge(c.showHlrApi),
+    // },
+    // {
+    //   key: "enableVendorPanel",
+    //   label: "Vendor Panel",
+    //   type: "boolean",
+    //   options: booleanOptions,
+    //   filterKey: "enableVendorPanel",
+    //   render: (c) => renderBooleanBadge(c.enableVendorPanel),
+    // },
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);

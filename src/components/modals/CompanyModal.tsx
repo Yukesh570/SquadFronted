@@ -28,9 +28,12 @@ interface CompanyModalProps {
   isViewMode?: boolean;
 }
 
+import { CountryFlag } from "../ui/CountryFlag";
+
 interface Option {
   label: string;
   value: string;
+  icon?: React.ReactNode;
 }
 
 export const CompanyModal: React.FC<CompanyModalProps> = ({
@@ -95,6 +98,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             list.map((item: any) => ({
               label: item.username || item.name || item.legalEntityName || item.companyName,
               value: String(item.id),
+              ...(item.iso2 ? { icon: <CountryFlag iso2={item.iso2} /> } : {})
             })),
           );
         } catch (e) {
@@ -413,6 +417,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               placeholder="finance@xenon.com"
               disabled={isViewMode}
             />
+
           </div>
         </fieldset>
 
@@ -568,13 +573,13 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         </fieldset>
 
         {/* Policies */}
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        {/* <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Policies & Settings
-          </legend>
+          </legend> */}
 
-          {/* ⚡️ FIX: Added specific scoped label classes to force alignment baseline */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-start [&_label]:min-h-[32px] [&_label]:flex [&_label]:items-end">
+        {/* ⚡️ FIX: Added specific scoped label classes to force alignment baseline */}
+        {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-start [&_label]:min-h-[32px] [&_label]:flex [&_label]:items-end">
             <Select
               label="Validity Period"
               value={formData.validityPeriod}
@@ -597,9 +602,9 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               placeholder="Select Default Email"
               disabled={isViewMode}
             />
-          </div>
+          </div> */}
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <ToggleSwitch
               label="Online Payment"
               checked={formData.onlinePayment}
@@ -634,9 +639,9 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               label="Enable Vendor Panel"
               checked={formData.enableVendorPanel}
               onChange={(v) => handleToggle("enableVendorPanel", v)}
-            />
-          </div>
-        </fieldset>
+            /> */}
+        {/* </div> */}
+        {/* </fieldset> */}
 
         <div className="flex justify-end space-x-3 pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>

@@ -28,6 +28,7 @@ import {
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
+import { CountryFlag } from "../../../components/ui/CountryFlag";
 
 interface Option {
   label: string;
@@ -105,7 +106,8 @@ const Country: React.FC = () => {
       type: "text",
       filterKey: "name__icontains",
       render: (country) => (
-        <span className="font-medium text-text-primary dark:text-white">
+        <span className="font-medium text-text-primary dark:text-white flex items-center gap-2">
+          <CountryFlag iso2={country.iso2} name={country.name} />
           {country.name}
         </span>
       ),

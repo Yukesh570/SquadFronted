@@ -21,6 +21,7 @@ export interface MessageLogData {
   message_id: string;
   source_addr?: string;
   encoding?: string;
+  countryName?: string;
   segmentNumber?: string;
   characterCount?: string;
   failure_reason?: string;

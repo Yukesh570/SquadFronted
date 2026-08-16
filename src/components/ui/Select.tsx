@@ -7,6 +7,7 @@ interface SelectOption {
   value: string;
   label: string;
   disabled?: boolean;
+  icon?: React.ReactNode;
 }
 
 interface SelectProps {
@@ -21,6 +22,7 @@ interface SelectProps {
   required?: boolean;
   placement?: "top" | "bottom";
   className?: string;
+  allowCustomValue?: boolean;
 }
 
 const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
@@ -35,6 +37,7 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
   required = false,
   placement = "bottom",
   className = "",
+  allowCustomValue = false,
   open,
 }) => {
   const [query, setQuery] = useState("");
@@ -44,10 +47,12 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
   const anchorRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const [resolvedPlacement, setResolvedPlacement] = useState<"top" | "bottom">(placement);
+  const [isTyping, setIsTyping] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setQuery("");
+      setIsTyping(false);
     }
   }, [open]);
 
@@ -55,6 +60,7 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
     if (!value) {
       setQuery("");
     }
+    setIsTyping(false);
   }, [value]);
 
   const filteredOptions =
@@ -102,7 +108,12 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
             o.value === trimmedQuery ||
             o.label.toLowerCase() === trimmedQuery.toLowerCase()
         );
-        onChange(match ? match.value : trimmedQuery);
+        
+        if (match) {
+          onChange(match.value);
+        } else if (allowCustomValue) {
+          onChange(trimmedQuery);
+        }
       }
 
       const inputEl = e.currentTarget;
@@ -151,6 +162,8 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
     setTimeout(() => setCoords(null), 0);
   }
 
+  const selectedOption = options.find((o) => o.value === value);
+
   return (
     <div className={`flex flex-col ${hasLabel ? "" : "justify-end"} ${className}`}>
       {hasLabel && (
@@ -174,9 +187,14 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
           }
           dark:border-gray-700`}
         >
+          {selectedOption?.icon && !isTyping && (
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              {selectedOption.icon}
+            </span>
+          )}
           <Combobox.Input
             autoComplete="off"
-            className={`w-full border-none bg-transparent px-3 pr-10 outline-none focus:outline-none focus:ring-0 focus:border-transparent text-text-primary dark:text-white text-sm ${
+            className={`w-full border-none bg-transparent ${selectedOption?.icon && !isTyping ? "pl-10" : "px-3"} pr-10 outline-none focus:outline-none focus:ring-0 focus:border-transparent text-text-primary dark:text-white text-sm ${
               hasLabel ? "py-2.5" : "py-2"
             } ${
               disabled ? "text-gray-400 cursor-not-allowed dark:text-gray-500" : ""
@@ -184,7 +202,10 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
             displayValue={(val: string) =>
               options.find((option) => option.value === val)?.label || val || ""
             }
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setIsTyping(true);
+            }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
           />
@@ -244,7 +265,7 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
                       key={`${option.value}-${index}`}
                       disabled={option.disabled}
                       className={({ active }) =>
-                        `relative cursor-default select-none py-2 pl-10 pr-4 ${
+                        `relative cursor-default select-none py-2 pl-3 pr-10 ${
                           option.disabled
                             ? "opacity-40 cursor-not-allowed"
                             : active
@@ -257,16 +278,17 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
                       {({ selected }) => (
                         <>
                           <span
-                            className={`block whitespace-normal break-words leading-tight ${
+                            className={`flex items-center gap-2 whitespace-normal break-words leading-tight ${
                               selected
                                 ? "font-medium text-primary dark:text-primary"
                                 : "font-normal"
                             }`}
                           >
-                            {option.label}
+                            {option.icon && <span>{option.icon}</span>}
+                            <span className="block">{option.label}</span>
                           </span>
                           {selected && (
-                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary dark:text-primary">
+                            <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-primary dark:text-primary">
                               <Check size={16} aria-hidden="true" />
                             </span>
                           )}

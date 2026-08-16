@@ -13,7 +13,7 @@ export interface DetailedReportData {
   message_failed_at?: string;
   failure_reason?: string;
 
-
+  countryName?: string;
   client: string;
   destination: string;
   clientRate: string | number;

@@ -80,7 +80,7 @@ const Entity: React.FC = () => {
     },
     { key: "companyName", label: "Company Name", type: "text", filterKey: "companyName__icontains" },
     { key: "legalEntityName", label: "Legal Entity", type: "text", filterKey: "legalEntityName__icontains" },
-    { key: "weekCommencing", label: "Week Commencing", type: "text", options: [{ label: "Sunday", value: "SUNDAY" }, { label: "Monday", value: "MONDAY" }], filterKey: "weekCommencing" },
+    // { key: "weekCommencing", label: "Week Commencing", type: "text", options: [{ label: "Sunday", value: "SUNDAY" }, { label: "Monday", value: "MONDAY" }], filterKey: "weekCommencing" },
     { key: "vatRegistrationNumber", label: "VAT Registration", type: "text", filterKey: "vatRegistrationNumber__icontains" },
     { key: "phone", label: "Phone", type: "text", filterKey: "phone__icontains" },
     { key: "emailAddress", label: "Email Address", type: "text", filterKey: "emailAddress__icontains" },
@@ -90,7 +90,7 @@ const Entity: React.FC = () => {
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false && col.key !== "companyLogo");
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
-  
+
   // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
@@ -193,20 +193,20 @@ const Entity: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Entity Settings</h1>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={tableFilterColumns} 
-              selectedColumns={tableColumns} 
+            <AdvancedFilter
+              columns={tableFilterColumns}
+              selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
-              onFilter={setTableColumns} 
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
-              buttonLabel="Columns" 
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
               enableReorder={true}
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={searchableColumns} 
-              selectedColumns={searchColumns} 
+            <AdvancedFilter
+              columns={searchableColumns}
+              selectedColumns={searchColumns}
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
@@ -217,10 +217,10 @@ const Entity: React.FC = () => {
                   });
                   return next;
                 });
-              }} 
-              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
-              isLoading={isLoading} 
-              buttonLabel="Search Fields" 
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
             />
           </div>
         </div>
