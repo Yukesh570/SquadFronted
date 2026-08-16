@@ -15,7 +15,6 @@ import Input from "../ui/Input";
 import Button from "../ui/Button";
 import Select from "../ui/Select";
 import Modal from "../ui/Modal";
-import ToggleSwitch from "../ui/ToggleSwitch";
 import TextArea from "../ui/TextArea";
 import MultiEmailInput from "../ui/multiEmailInput";
 
@@ -212,9 +211,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleToggle = (name: string, value: boolean) => {
-    setFormData({ ...formData, [name]: value });
-  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

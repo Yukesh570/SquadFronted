@@ -32,7 +32,6 @@ import ContextMenu, {
   type ContextMenuItem,
 } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
-import { StatusBadge } from "../../components/ui/StatusBadge";
 import { CountryFlag } from "../../components/ui/CountryFlag";
 
 interface Option {
@@ -148,17 +147,6 @@ const CompanyList: React.FC = () => {
       loadOptions(getTimezoneApi, "timeZone", setTimeZones);
   }, []);
 
-  // --- Badge Renders ---
-  const renderBooleanBadge = (value: boolean) => {
-    const statusKey = value ? "DELIVERED" : "PENDING";
-    const labelText = value ? "Yes" : "No";
-    return <StatusBadge status={statusKey} customText={labelText} />;
-  };
-
-  const booleanOptions: Option[] = [
-    { label: "Yes", value: "true" },
-    { label: "No", value: "false" },
-  ];
 
   const allColumns: ColumnConfig[] = [
     { key: "name", label: "Company Name", type: "text", filterKey: "name__icontains" },
