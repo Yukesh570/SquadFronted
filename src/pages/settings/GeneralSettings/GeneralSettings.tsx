@@ -56,7 +56,7 @@ const GeneralSettings: React.FC = () => {
     defaultTimezone: "UTC",
     dateFormat: "YYYY-MM-DD",
     datetimeFormat: "YYYY-MM-DD HH:mm:ss",
-    baseCurrency: "", // ⚡️ FIX: Reset to empty string initially
+    baseCurrency: "",
     currencyApi: "",
     apiKey: "",
   });
@@ -71,7 +71,6 @@ const GeneralSettings: React.FC = () => {
       .then((res: any) => {
         const rawData = res?.results || res?.data?.results || res?.data || res;
         const list = Array.isArray(rawData) ? rawData : [];
-        // ⚡️ FIX: Changed value to String(c.id) to match backend expectations
         setCurrencyOptions(list.map((c: any) => ({ 
           label: `${c.name || "Unknown"} (${c.currencyCode || "N/A"})`, 
           value: String(c.id || "") 
@@ -105,7 +104,6 @@ const GeneralSettings: React.FC = () => {
           defaultTimezone: response.defaultTimezone || "UTC",
           dateFormat: response.dateFormat || "YYYY-MM-DD",
           datetimeFormat: response.datetimeFormat || "YYYY-MM-DD HH:mm:ss",
-          // ⚡️ FIX: Pre-fill with stringified ID for the Select dropdown
           baseCurrency: response.baseCurrency ? String(response.baseCurrency) : "", 
           currencyApi: response.currencyApi || "",
           apiKey: response.apiKey || "",
@@ -187,7 +185,6 @@ const GeneralSettings: React.FC = () => {
     if (!canUpdate) return toast.error("Permission denied.");
     setIsSubmitting(true);
     
-    // ⚡️ FIX: Cast baseCurrency back to a Number when submitting to API
     const payload = {
       ...formData,
       baseCurrency: formData.baseCurrency ? Number(formData.baseCurrency) : null
@@ -231,11 +228,10 @@ const GeneralSettings: React.FC = () => {
         const imageBase = import.meta.env.VITE_IMAGE_URL || "";
         const fullImageUrl = `${imageBase}${res.image}`;
         localStorage.setItem("app_login_logo", fullImageUrl);
-        localStorage.setItem("app_sidebar_logo", fullImageUrl);
       }
 
       window.dispatchEvent(new Event("BrandingUpdated")); 
-      toast.success("Dashboard Logo updated successfully!");
+      toast.success("Login Logo updated successfully!");
       setImageFile(null); 
     } catch (error: any) {
       toast.error("Image upload failed.");
