@@ -16,9 +16,9 @@ import {
 } from "../../../api/routeManagerApi/customRouteApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
 import { getVendorsApi } from "../../../api/connectivityApi/vendorApi";
-import { 
+import {
   getOperatorNetworkCodelookupApi,
-  getOperatorNetworkCodesApi 
+  getOperatorNetworkCodesApi
 } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 import { findCustomerRateApi } from "../../../api/rateApi/customerRateApi";
 import { findVendorRateApi } from "../../../api/rateApi/vendorRateApi";
@@ -53,7 +53,7 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
 }) => {
   const [formData, setFormData] = useState<any>({
     name: lockedName || "",
-    routingType: "PERCENTAGE", 
+    routingType: "PERCENTAGE",
     status: "ACTIVE",
     country: 0,
     MCC: [],
@@ -229,7 +229,7 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
             }
           }
           if (cleanMnc === "ALL_MNC") cleanMnc = "ALL";
-          
+
           const routeName = (lockedName || formData.name) as string;
 
           // Customer Rate
@@ -511,9 +511,9 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
     const allMccValues = mccOptions
       .filter((o: MultiSelectOption) => !o.isUiOnly)
       .map((o: MultiSelectOption) => o.value);
-    
+
     const allIndividualMncs: string[] = [];
-    
+
     allMccValues.forEach((mcc: string) => {
       const specificMncs = fullNetworkList.filter(
         (n) => String(n.MCC) === mcc,
@@ -521,7 +521,7 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
       const uniqueMncs = Array.from(
         new Set(specificMncs.map((n) => String(n.MNC))),
       ).filter(Boolean);
-      
+
       uniqueMncs.forEach((mnc) => {
         const dbAllMnc = mnc.toLowerCase() === "all" || mnc.toLowerCase() === "in rest";
         if (!dbAllMnc) {
@@ -529,12 +529,12 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
         }
       });
     });
-    
-    setFormData((prev: any) => ({ 
-      ...prev, 
-      MCC: [...allMccValues], 
+
+    setFormData((prev: any) => ({
+      ...prev,
+      MCC: [...allMccValues],
       MNC: [...allIndividualMncs],
-      network: "" 
+      network: ""
     }));
   };
 
@@ -548,9 +548,9 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
     (formData.MCC || []).forEach((mcc: string) => {
       if (mcc === "ALL_MCC") return;
 
-      const allTagOpt = mncOptions.find(
-        (o: MultiSelectOption) => o.value.startsWith(`${mcc}(`) && o.isAll,
-      );
+      // const allTagOpt = mncOptions.find(
+      //   (o: MultiSelectOption) => o.value.startsWith(`${mcc}(`) && o.isAll,
+      // );
     });
 
     return Array.from(new Set(display));
@@ -612,7 +612,7 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
       try {
         const row = vendorRows[0];
         const cleanMnc = extractCleanMncString(formData.MNC);
-        
+
         const payload: any = {
           name: formData.name,
           status: formData.status || "ACTIVE",
@@ -623,9 +623,9 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
 
         const mncArray = Array.isArray(formData.MNC) ? formData.MNC : [];
         const allIndividualMncsAvailable = mncOptions.filter(o => !o.isAll && !o.isUiOnly).map(o => o.value);
-        const isActuallyAllSelected = allIndividualMncsAvailable.length > 0 && 
-                                      allIndividualMncsAvailable.every(mnc => mncArray.includes(mnc));
-                                      
+        const isActuallyAllSelected = allIndividualMncsAvailable.length > 0 &&
+          allIndividualMncsAvailable.every(mnc => mncArray.includes(mnc));
+
         if (isActuallyAllSelected) {
           payload.MNC = "ALL";
         } else {
@@ -651,12 +651,12 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
         }
 
         if (editingRoute?.id) {
-          await import("../../../api/routeManagerApi/customRouteApi").then(api => 
+          await import("../../../api/routeManagerApi/customRouteApi").then(api =>
             api.updateCustomRouteApi(editingRoute.id!, payload, moduleName)
           );
           toast.success("Percentage route updated successfully!");
         }
-        
+
         if (onSaveLocal) {
           onSaveLocal({
             trafficPercentage: Number(row.percentage),
@@ -664,7 +664,7 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
             status: formData.status || "ACTIVE"
           });
         }
-        
+
         onSuccess();
         onClose();
       } catch (err: any) {
@@ -695,26 +695,26 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
       const cleanMnc = extractCleanMncString(formData.MNC);
 
       const payloadArray = vendorRows.map((vRow) => {
-        const rowPayload: any = { 
+        const rowPayload: any = {
           name: formData.name,
           status: formData.status,
           country: Number(formData.country),
-          terminatingVendor: Number(vRow.terminatingVendor), 
-          trafficPercentage: Number(vRow.percentage) 
+          terminatingVendor: Number(vRow.terminatingVendor),
+          trafficPercentage: Number(vRow.percentage)
         };
 
         const allIndividualMncsAvailable = mncOptions.filter(o => !o.isAll && !o.isUiOnly).map(o => o.value);
-        const isActuallyAllSelected = allIndividualMncsAvailable.length > 0 && 
-                                      allIndividualMncsAvailable.every(mnc => formData.MNC.includes(mnc));
+        const isActuallyAllSelected = allIndividualMncsAvailable.length > 0 &&
+          allIndividualMncsAvailable.every(mnc => formData.MNC.includes(mnc));
 
         if (isActuallyAllSelected) {
-          delete rowPayload.MCC; 
+          delete rowPayload.MCC;
           rowPayload.MNC = "ALL";
         } else {
           rowPayload.MCC = Array.isArray(formData.MCC)
             ? formData.MCC.filter((m: string) => m !== "ALL_MCC").join(",")
             : formData.MCC || "";
-            
+
           rowPayload.MNC = cleanMnc;
         }
 
@@ -767,19 +767,19 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
             Header Info
           </legend>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <Input
-               label="Name"
-               name="name"
-               value={formData.name}
-               onChange={() => {}}
-               disabled={true}
-             />
-             <Select
-               label="Status"
-               value={formData.status}
-               onChange={(v) => handleSelectChange("status", v)}
-               options={statusOptions}
-             />
+            <Input
+              label="Name"
+              name="name"
+              value={formData.name}
+              onChange={() => { }}
+              disabled={true}
+            />
+            <Select
+              label="Status"
+              value={formData.status}
+              onChange={(v) => handleSelectChange("status", v)}
+              options={statusOptions}
+            />
           </div>
         </fieldset>
 
@@ -826,7 +826,7 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
                   label="Network"
                   name="network"
                   value={formData.network}
-                  onChange={() => {}}
+                  onChange={() => { }}
                   placeholder="NTC"
                   disabled={true}
                   isClearable={false}
@@ -868,7 +868,7 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
               </Button>
             )}
           </div>
-          
+
           <div className="space-y-3">
             {vendorRows.map((row, index) => {
               const selectedVendors = vendorRows
@@ -908,33 +908,32 @@ export const CustomRoutePercentModal: React.FC<CustomRoutePercentModalProps> = (
 
           {/* DYNAMIC CALCULATION BANNER */}
           <div
-            className={`mt-4 p-3 rounded-lg flex flex-col sm:flex-row items-center justify-between border gap-2 ${
-              grandTotal === 100
+            className={`mt-4 p-3 rounded-lg flex flex-col sm:flex-row items-center justify-between border gap-2 ${grandTotal === 100
                 ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
                 : isExceeded
-                ? "bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400"
-                : "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400"
-            }`}
+                  ? "bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400"
+                  : "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400"
+              }`}
           >
-             <div className="flex items-center gap-2">
-                {grandTotal === 100 ? (
-                  <CheckCircle2 size={18} className="text-green-600 dark:text-green-400 shrink-0" />
+            <div className="flex items-center gap-2">
+              {grandTotal === 100 ? (
+                <CheckCircle2 size={18} className="text-green-600 dark:text-green-400 shrink-0" />
+              ) : (
+                <AlertCircle size={18} className="shrink-0" />
+              )}
+              <span className="text-sm font-semibold">
+                {isExceeded ? (
+                  <>Error: Total is {grandTotal}% (Exceeds limit by {grandTotal - 100}%)</>
+                ) : grandTotal < 100 ? (
+                  <>Warning: Total is {grandTotal}% ({100 - grandTotal}% remaining)</>
                 ) : (
-                  <AlertCircle size={18} className="shrink-0" />
+                  <>Valid: Total is 100%</>
                 )}
-                <span className="text-sm font-semibold">
-                  {isExceeded ? (
-                    <>Error: Total is {grandTotal}% (Exceeds limit by {grandTotal - 100}%)</>
-                  ) : grandTotal < 100 ? (
-                    <>Warning: Total is {grandTotal}% ({100 - grandTotal}% remaining)</>
-                  ) : (
-                    <>Valid: Total is 100%</>
-                  )}
-                </span>
-             </div>
-             <span className="text-xs font-mono opacity-90">
-               (This Route: {currentModalTotal}% + Other Vendors: {otherRoutesTotal}%)
-             </span>
+              </span>
+            </div>
+            <span className="text-xs font-mono opacity-90">
+              (This Route: {currentModalTotal}% + Other Vendors: {otherRoutesTotal}%)
+            </span>
           </div>
         </fieldset>
 
