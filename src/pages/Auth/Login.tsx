@@ -28,23 +28,12 @@ const Login = () => {
   useEffect(() => {
     document.title = `${companyName} Login`;
 
-    const updateFavicon = (url: string) => {
-      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (!link) {
-        link = document.createElement("link");
-        link.rel = "icon";
-        document.head.appendChild(link);
-      }
-      link.href = url;
-    };
-
     const handleBrandingUpdate = () => {
        const cachedName = localStorage.getItem("app_login_name");
        const cachedLogo = localStorage.getItem("app_login_logo");
        if (cachedName) setCompanyName(cachedName);
        if (cachedLogo) {
            setLogoUrl(cachedLogo);
-           updateFavicon(cachedLogo);
        }
     };
     window.addEventListener("BrandingUpdated", handleBrandingUpdate);
@@ -69,7 +58,6 @@ const Login = () => {
           if (fullImageUrl !== logoUrl) {
             setLogoUrl(fullImageUrl);
             localStorage.setItem("app_login_logo", fullImageUrl);
-            updateFavicon(fullImageUrl);
           }
         }
       })

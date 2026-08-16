@@ -4,10 +4,9 @@ import { useContext, useState, useEffect, useRef } from "react";
 import React from "react";
 import { createPortal } from "react-dom";
 import { NavItemsContext } from "../../context/navItemsContext";
-import FullLogo from "../../../src/assets/logos/logo.svg";
+import FullLogo from "../../assets/logos/Primary.png";
 import type { navUserData } from "../../api/navUserRelationApi/navUserRelationApi";
 import type { PaginatedResponse } from "../../api/sidebarApi/sideBarApi";
-import { getDashboardImageApi } from "../../api/settingApi/generalSettingsApi/generalSettingsApi";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -28,16 +27,6 @@ const Tooltip = ({ text, top, left }: { text: string; top: number; left: number;
   );
 };
 
-const updateFavicon = (url: string) => {
-  let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-  if (!link) {
-    link = document.createElement("link");
-    link.rel = "icon";
-    document.head.appendChild(link);
-  }
-  link.href = url;
-};
-
 const Sidebar = ({ isCollapsed, isMobileOpen, closeMobileSidebar }: SidebarProps) => {
   const { navItems } = useContext(NavItemsContext);
   const [openItems, setOpenItems] = useState<Record<number, boolean>>({});
@@ -45,40 +34,6 @@ const Sidebar = ({ isCollapsed, isMobileOpen, closeMobileSidebar }: SidebarProps
   const navRef = useRef<HTMLElement>(null);
 
   const [hoveredItem, setHoveredItem] = useState<{ label: string; top: number; left: number; } | null>(null);
-
-  const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem("app_sidebar_logo") || FullLogo);
-
-  useEffect(() => {
-    const fetchLogo = async () => {
-      try {
-        const res = await getDashboardImageApi();
-        if (res && res.image) {
-          const imageBase = import.meta.env.VITE_IMAGE_URL || "";
-          const fullImageUrl = `${imageBase}${res.image}`;
-          if (fullImageUrl !== logoUrl) {
-            setLogoUrl(fullImageUrl);
-            localStorage.setItem("app_sidebar_logo", fullImageUrl);
-            updateFavicon(fullImageUrl);
-          }
-        }
-      } catch (e) {
-        console.error("Failed to load sidebar logo");
-      }
-    };
-    
-    fetchLogo();
-
-    const handleBrandingUpdate = () => {
-      const cachedLogo = localStorage.getItem("app_sidebar_logo");
-      if (cachedLogo) {
-        setLogoUrl(cachedLogo);
-        updateFavicon(cachedLogo);
-      }
-    };
-    
-    window.addEventListener("BrandingUpdated", handleBrandingUpdate);
-    return () => window.removeEventListener("BrandingUpdated", handleBrandingUpdate);
-  }, [logoUrl]);
 
   useEffect(() => {
     if (navItems.results) {
@@ -191,7 +146,7 @@ const Sidebar = ({ isCollapsed, isMobileOpen, closeMobileSidebar }: SidebarProps
       <aside className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-xl md:shadow-sm transition-all duration-300 ease-in-out transform ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"} ${isCollapsed ? "md:w-[88px]" : "md:w-64"} w-64`}>
         <div className="h-16 flex-shrink-0 flex items-center justify-center border-b border-gray-100 dark:border-gray-800 mb-2 px-2">
           <NavLink to="/dashboard" className="flex items-center justify-center w-full h-full transition-transform hover:scale-105 active:scale-95 py-2" onClick={() => { if (window.innerWidth < 768) closeMobileSidebar(); }}>
-            <img src={logoUrl} alt="Dynamic Logo" className={`w-full h-full object-contain ${isCollapsed && window.innerWidth >= 768 ? "max-w-[72px]" : "max-w-[180px]"}`} />
+            <img src={FullLogo} alt="App Logo" className={`w-full h-full object-contain ${isCollapsed && window.innerWidth >= 768 ? "max-w-[72px]" : "max-w-[180px]"}`} />
           </NavLink>
         </div>
         <nav ref={navRef} className="flex-1 px-3 py-2 overflow-y-auto scrollbar-hide space-y-0.5">
