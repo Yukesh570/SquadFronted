@@ -63,6 +63,7 @@ import MccMncPrefixRange from "../pages/MccMncPrefix/MccMncPrefixRange";
 import MccMncPrefixImportBatch from "../pages/MccMncPrefix/MccMncPrefixImportBatch";
 import FindRoute from "../pages/RouteManager/FindRoute";
 import AnalyticsReport from "../pages/Report/AnalyticsReport";
+import UserCreation from "../pages/UserCreation/UserCreation";
 
 const componentMap: Record<string, JSX.Element> = {
   dashboard: <Dashboard />,
@@ -121,7 +122,8 @@ const componentMap: Record<string, JSX.Element> = {
   mccMncPrefixRange: <MccMncPrefixRange />,
   mccMncPrefixImportBatch: <MccMncPrefixImportBatch />,
   findRoute: <FindRoute />,
-  analyticsReport: <AnalyticsReport />
+  analyticsReport: <AnalyticsReport />,
+  userCreation: <UserCreation />
 };
 
 const AppRoutes = () => {
