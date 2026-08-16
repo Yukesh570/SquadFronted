@@ -70,6 +70,7 @@ const encodingOptions: Option[] = [
 ];
 
 const DEFAULT_SEARCH_COLUMNS = [
+  "message_id",
   "destination",
   "clientName",
   "countryName",
@@ -179,7 +180,7 @@ const MessageReport: React.FC = () => {
 
   const filterOptionsConfig: ColumnConfig[] = useMemo(
     () => [
-      { key: "message_id", label: "Message ID", type: "text", isSearchable: false },
+      { key: "message_id", label: "Message ID", type: "text", filterKey: "message_id__icontains" },
       { key: "source_addr", label: "Sender ID", type: "text", filterKey: "source_addr__icontains" },
       {
         key: "countryName",

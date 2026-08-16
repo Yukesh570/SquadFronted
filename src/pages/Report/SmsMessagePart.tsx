@@ -96,7 +96,7 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["parent_message_destination", "submit_status", "vendor_msg_id"];
+const DEFAULT_SEARCH_COLUMNS = ["parent_message_destination", "client_msg_id", "submit_status", "vendor_msg_id"];
 const DEFAULT_TABLE_COLUMNS = ["id", "client_msg_id", "vendor_msg_id", "parent_message_destination", "part_no", "part_total", "submit_status", "created_at"];
 
 const BATCH_SIZE = 100;
@@ -132,7 +132,7 @@ const SmsMessagePart: React.FC = () => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   const allColumns: ColumnConfig[] = [
-    { key: "client_msg_id", label: "Message ID", type: "text", isSearchable: false },
+    { key: "client_msg_id", label: "Message ID", type: "text", filterKey: "client_msg_id__icontains" },
     { key: "parent_message_destination", label: "Destination", type: "text", filterKey: "message__destination__icontains" },
     {
       key: "text",

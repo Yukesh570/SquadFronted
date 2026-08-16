@@ -13,6 +13,8 @@ import {
   getAnalyticsDatesApi,
   getAnalyticsDataApi,
 } from "../../api/reportApi/analyticsReportApi";
+import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
+import { CountryFlag } from "../../components/ui/CountryFlag";
 
 interface ColumnConfig extends FilterColumn {
   filterKey?: string;
@@ -229,6 +231,27 @@ const AnalyticsReport: React.FC = () => {
   const [nodeLoading, setNodeLoading] = useState<Record<string, boolean>>({});
 
   const tableWrapperRef = useRef<HTMLDivElement>(null);
+
+  const [countryOptions, setCountryOptions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const res = await getCountriesApi("country", 1, 1000);
+        const data = res.results || (Array.isArray(res) ? res : []);
+        setCountryOptions(
+          data.map((item: any) => ({
+            label: item.name || "Unknown",
+            value: item.name || String(item.id),
+            iso2: item.iso2,
+          }))
+        );
+      } catch (error) {
+        console.error("Failed to fetch countries", error);
+      }
+    };
+    fetchCountries();
+  }, []);
 
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
@@ -853,6 +876,7 @@ const AnalyticsReport: React.FC = () => {
                                                 const isCountryExpanded = !!expandedCountries[countryKey];
                                                 const isCountryLoading = !!nodeLoading[countryKey];
                                                 const vendors = vendorData[countryKey] || [];
+                                                const match = countryOptions.find((opt) => opt.label === countryName);
 
                                                 return (
                                                   <React.Fragment key={countryKey}>
@@ -864,7 +888,10 @@ const AnalyticsReport: React.FC = () => {
                                                           className="inline-flex items-center space-x-2 text-text-primary dark:text-gray-300 hover:text-amber-600 focus:outline-none group"
                                                         >
                                                           <ExpandButton isExpanded={isCountryExpanded} />
-                                                          <span className="text-xs font-medium">{countryName}</span>
+                                                          <div className="flex items-center gap-1.5">
+                                                            {match?.iso2 && <CountryFlag iso2={match.iso2} />}
+                                                            <span className="text-xs font-medium">{countryName}</span>
+                                                          </div>
                                                           <span className="text-[10px] font-bold tracking-wider uppercase text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 px-1.5 py-0.5 rounded ml-1">
                                                             COUNTRY
                                                           </span>
