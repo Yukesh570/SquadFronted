@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, Fragment } from "react";
 import ReactDOM from "react-dom";
 import { Popover, Transition } from "@headlessui/react";
-import { Check, X, ChevronDown, Search } from "lucide-react";
+import { Check, X, ChevronDown } from "lucide-react";
 
 export interface MultiSelectOption {
   label: string;
   value: string;
   isAll?: boolean;
-  isUiOnly?: boolean; 
-  groupIndex?: number; 
+  isUiOnly?: boolean;
+  groupIndex?: number;
   icon?: React.ReactNode;
 }
 
@@ -22,7 +22,7 @@ interface MultiSelectDropdownProps {
 }
 
 const Portal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  if (typeof document === "undefined") return null; 
+  if (typeof document === "undefined") return null;
   return ReactDOM.createPortal(children, document.body);
 };
 
@@ -39,7 +39,7 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -95,7 +95,7 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
       const match = raw.match(/\(([^)]+)\)/);
       return match ? match[1] : raw;
     }
-    
+
     const allOptions = options.filter(o => o.isAll);
     for (const allOpt of allOptions) {
       if (allOpt.value === "ALL_MCC") {
@@ -117,8 +117,8 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
     opt.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const selectedOptions = filteredOptions.filter(opt => selected.includes(opt.value) && !opt.isAll);
-  const unselectedOptions = filteredOptions.filter(opt => !selected.includes(opt.value) || opt.isAll);
+  // const selectedOptions = filteredOptions.filter(opt => selected.includes(opt.value) && !opt.isAll);
+  // const unselectedOptions = filteredOptions.filter(opt => !selected.includes(opt.value) || opt.isAll);
 
   const renderOptionBtn = (opt: MultiSelectOption, isSelected: boolean, onChangeHandler: any) => (
     <button
@@ -136,10 +136,9 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
         }
       }}
       className={`w-full flex items-center justify-between px-4 py-2 text-left text-sm transition-colors
-        ${
-          opt.isAll
-            ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-bold border-y border-gray-300 dark:border-gray-600"
-            : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+        ${opt.isAll
+          ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-bold border-y border-gray-300 dark:border-gray-600"
+          : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
         }
         ${isSelected && !opt.isAll ? "text-primary dark:text-primary font-medium bg-primary/5 hover:bg-primary/10" : ""}
       `}
@@ -150,16 +149,16 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
       </span>
       {isSelected && !opt.isAll ? (
         <span className="flex items-center justify-center w-5 h-5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition-colors">
-            <X size={14} strokeWidth={2.5} />
+          <X size={14} strokeWidth={2.5} />
         </span>
       ) : isSelected && opt.isAll ? (
-         <Check size={16} className="text-gray-800 dark:text-gray-200" strokeWidth={2.5} />
+        <Check size={16} className="text-gray-800 dark:text-gray-200" strokeWidth={2.5} />
       ) : null}
     </button>
   );
 
   if (open && !buttonRect) {
-      updatePosition();
+    updatePosition();
   }
 
   return (
@@ -173,11 +172,10 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
         ref={buttonRef}
         onClick={updatePosition}
         disabled={disabled}
-        className={`w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 flex justify-between items-center transition-all focus:outline-none focus:ring-1 focus:ring-primary shadow-sm ${
-          disabled
+        className={`w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 flex justify-between items-center transition-all focus:outline-none focus:ring-1 focus:ring-primary shadow-sm ${disabled
             ? "bg-gray-100 dark:bg-gray-800 opacity-60 cursor-not-allowed"
             : "bg-white dark:bg-gray-900 cursor-pointer hover:border-primary"
-        } ${open ? "ring-1 ring-primary border-primary" : ""}`}
+          } ${open ? "ring-1 ring-primary border-primary" : ""}`}
       >
         <input
           ref={searchInputRef}
@@ -194,7 +192,7 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
           onKeyDown={(e) => e.stopPropagation()}
           className="flex-1 w-full bg-transparent outline-none truncate text-sm text-text-primary dark:text-white placeholder:text-text-primary dark:placeholder:text-white"
         />
-        
+
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
           {selected.length > 0 && !disabled && (
             <div
@@ -242,7 +240,7 @@ const MultiSelectDropdownContent: React.FC<MultiSelectDropdownProps & { open: bo
                 >
                   {/* Scrolling List Container */}
                   <div className="flex-1 overflow-y-auto min-h-0 relative py-1 custom-grid-scroll bg-white dark:bg-gray-800">
-                    
+
                     {filteredOptions.map(opt => {
                       let isSelected = selected.includes(opt.value) && !opt.isAll;
                       if (opt.isAll) {

@@ -329,7 +329,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               priority: String(maxP + 1),
             }));
           })
-          .catch(() => {});
+          .catch(() => { });
       }
     }
   }, [formData.country, formData.MCC, formData.MNC, editingRoute, isViewMode, lockedName, formData.name, moduleName]);
@@ -526,13 +526,13 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       return;
     }
 
-    const filteredMnc = formData.MNC.filter((mnc: string) => {
-      const mccPrefix = mnc.split("(")[0].trim();
-      return selectedValues.includes(mccPrefix);
-    });
+    // const filteredMnc = formData.MNC.filter((mnc: string) => {
+    //   const mccPrefix = mnc.split("(")[0].trim();
+    //   return selectedValues.includes(mccPrefix);
+    // });
 
-    const previousMccs: string[] = formData.MCC;
-    const newlyAddedMccs = selectedValues.filter((mcc: string) => !previousMccs.includes(mcc));
+    // const previousMccs: string[] = formData.MCC;
+    // const newlyAddedMccs = selectedValues.filter((mcc: string) => !previousMccs.includes(mcc));
 
     setFormData((prev: any) => ({ ...prev, MCC: selectedValues, MNC: [], network: "" }));
   };
@@ -589,9 +589,9 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     (formData.MCC || []).forEach((mcc: string) => {
       if (mcc === "ALL_MCC") return;
 
-      const allTagOpt = mncOptions.find(
-        (o: MultiSelectOption) => o.value.startsWith(`${mcc}(`) && o.isAll,
-      );
+      // const allTagOpt = mncOptions.find(
+      //   (o: MultiSelectOption) => o.value.startsWith(`${mcc}(`) && o.isAll,
+      // );
     });
 
     return Array.from(new Set(display));
@@ -1017,21 +1017,21 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               <Input
                 label="Customer Rate"
                 name="customerRate"
-                onChange={() => {}}
+                onChange={() => { }}
                 value={dynamicCustomerRate ? `${dynamicCustomerRate} ${dynamicCustomerCurrency || ''}` : "—"}
                 disabled
               />
               <Input
                 label="Vendor Rate"
                 name="vendorRate"
-                onChange={() => {}}
+                onChange={() => { }}
                 value={dynamicVendorRate ? `${dynamicVendorRate} ${dynamicVendorCurrency || ''}` : "—"}
                 disabled
               />
               <Input
                 label="Margin"
                 name="margin"
-                onChange={() => {}}
+                onChange={() => { }}
                 value={(() => {
                   if (dynamicCustomerRateBase != null && dynamicVendorRateBase != null && dynamicCustomerRate !== "N/A" && dynamicCustomerRate !== "Error" && dynamicVendorRate !== "N/A" && dynamicVendorRate !== "Error") {
                     const margin = dynamicCustomerRateBase - dynamicVendorRateBase;
@@ -1051,7 +1051,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               <Input
                 label="Margin %"
                 name="marginPercentage"
-                onChange={() => {}}
+                onChange={() => { }}
                 value={(() => {
                   if (dynamicCustomerRateBase != null && dynamicVendorRateBase != null && dynamicCustomerRate !== "N/A" && dynamicCustomerRate !== "Error" && dynamicVendorRate !== "N/A" && dynamicVendorRate !== "Error" && dynamicCustomerRateBase !== 0) {
                     const marginPct = ((dynamicCustomerRateBase - dynamicVendorRateBase) / dynamicCustomerRateBase) * 100;
