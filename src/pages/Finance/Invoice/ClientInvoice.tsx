@@ -258,7 +258,6 @@ const ClientInvoice: React.FC = () => {
     }
   };
 
-  const VITE_IMAGE_URL = import.meta.env.VITE_IMAGE_URL;
 
   const handleViewPdf = async (id?: number) => {
     if (!id) {
@@ -361,35 +360,35 @@ const ClientInvoice: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRow
     ? [
-        {
-          label: "View Invoice",
-          icon: <Eye size={16} />,
-          onClick: () => handleViewPdf(selectedRow.id),
-        },
-        {
-          label: "Download PDF",
-          icon: <Download size={16} />,
-          onClick: () =>
-            handleDownloadPdf(
-              selectedRow.downloadUrl || `/api/finance/client-invoice/${selectedRow.id}/download/`,
-            ),
-        },
-        {
-          label: "Download EDR",
-          icon: <Download size={16} />,
-          onClick: () => handleDownloadEdr(selectedRow.id),
-        },
-        ...(canDelete
-          ? [
-              {
-                label: "Delete Invoice",
-                icon: <Trash size={16} />,
-                variant: "danger" as const,
-                onClick: () => setDeleteId(selectedRow.id!),
-              },
-            ]
-          : []),
-      ]
+      {
+        label: "View Invoice",
+        icon: <Eye size={16} />,
+        onClick: () => handleViewPdf(selectedRow.id),
+      },
+      {
+        label: "Download PDF",
+        icon: <Download size={16} />,
+        onClick: () =>
+          handleDownloadPdf(
+            selectedRow.downloadUrl || `/api/finance/client-invoice/${selectedRow.id}/download/`,
+          ),
+      },
+      {
+        label: "Download EDR",
+        icon: <Download size={16} />,
+        onClick: () => handleDownloadEdr(selectedRow.id),
+      },
+      ...(canDelete
+        ? [
+          {
+            label: "Delete Invoice",
+            icon: <Trash size={16} />,
+            variant: "danger" as const,
+            onClick: () => setDeleteId(selectedRow.id!),
+          },
+        ]
+        : []),
+    ]
     : [];
 
   const tableHeaders = [
@@ -551,9 +550,8 @@ const ClientInvoice: React.FC = () => {
               } else if (col.key === "totalAmount") {
                 cellContent =
                   rawValue != null && !isNaN(Number(rawValue))
-                    ? `${Number(rawValue).toFixed(4)} ${
-                        (invoice as any).currencyCode || ""
-                      }`
+                    ? `${Number(rawValue).toFixed(4)} ${(invoice as any).currencyCode || ""
+                    }`
                     : "-";
               } else {
                 cellContent = rawValue || "-";
@@ -562,9 +560,8 @@ const ClientInvoice: React.FC = () => {
               return (
                 <td
                   key={col.key}
-                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${
-                    col.key === "invoiceNumber" ? "font-medium text-primary" : ""
-                  }`}
+                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "invoiceNumber" ? "font-medium text-primary" : ""
+                    }`}
                 >
                   {cellContent}
                 </td>

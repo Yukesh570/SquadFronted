@@ -15,21 +15,12 @@ import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedF
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 
 import { actionHelper } from "../../helper/action";
-import { StatusBadge } from "../../components/ui/StatusBadge";
 import { RejectedSMSLogModal } from "../../components/modals/Report/RejectedSMSLogModal";
 
 interface Option { label: string; value: string; }
 interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; isSearchable?: boolean; isSearchOnly?: boolean; tableLabel?: string; }
 
-const statusOptions: Option[] = [
-  { label: "Submitted", value: "SUBMITTED" },
-  { label: "Delivered", value: "DELIVERED" },
-  { label: "Queued", value: "QUEUED" },
-  { label: "Failed", value: "FAILED" },
-  { label: "Rejected", value: "REJECTED" },
-  { label: "Expired", value: "EXPIRED" },
-  { label: "Undelivered", value: "UNDELIVERED" },
-];
+
 
 const formatLocalDate = (date: Date) => {
   const year = date.getFullYear();
@@ -55,7 +46,7 @@ const RejectedSMSLog: React.FC = () => {
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRow, setSelectedRow] = useState<RejectedSMSLogData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewLog, setViewLog] = useState<RejectedSMSLogData | null>(null);  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [viewLog, setViewLog] = useState<RejectedSMSLogData | null>(null); const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("rejected_sms_columns");
@@ -88,7 +79,7 @@ const RejectedSMSLog: React.FC = () => {
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
-  
+
   // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
@@ -196,20 +187,20 @@ const RejectedSMSLog: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Rejected SMS Log</h1>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={tableFilterColumns} 
-              selectedColumns={tableColumns} 
+            <AdvancedFilter
+              columns={tableFilterColumns}
+              selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
-              onFilter={setTableColumns} 
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
-              buttonLabel="Columns" 
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
               enableReorder={true}
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={searchableColumns} 
-              selectedColumns={searchColumns} 
+            <AdvancedFilter
+              columns={searchableColumns}
+              selectedColumns={searchColumns}
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
@@ -221,9 +212,9 @@ const RejectedSMSLog: React.FC = () => {
                   return next;
                 });
               }}
-              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
-              isLoading={isLoading} 
-              buttonLabel="Search Fields" 
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
             />
           </div>
         </div>
