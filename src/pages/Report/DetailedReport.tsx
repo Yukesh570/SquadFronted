@@ -47,7 +47,7 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["client", "destination", "submitStatus", "countryName"];
+const DEFAULT_SEARCH_COLUMNS = ["client", "destination", "submitStatus", "countryName", "text_message_id"];
 const DEFAULT_TABLE_COLUMNS = [
   "text_message_id", "destination", "senderId", "countryName", "submitStatus", "client", "vendor", "vendor_msg_id", "request_time"
 ];

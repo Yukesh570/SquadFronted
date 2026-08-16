@@ -11,7 +11,8 @@ import {
 } from "../../api/mccMncPrefixApi/mccMncPrefixRangeApi";
 import { MccMncPrefixRangeModal } from "../../components/modals/MccMncPrefix/MccMncPrefixRangeModal";
 import { DeleteModal } from "../../components/modals/DeleteModal";
-
+import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
+import { CountryFlag } from "../../components/ui/CountryFlag";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import DatePicker from "../../components/ui/DatePicker";
@@ -78,6 +79,28 @@ const MccMncPrefixRange: React.FC = () => {
     return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
   });
 
+  const [countryOptions, setCountryOptions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const res = await getCountriesApi("country", 1, 1000);
+        const data = res.results || (Array.isArray(res) ? res : []);
+        setCountryOptions(
+          data.map((item: any) => ({
+            label: item.name || "Unknown",
+            value: item.name || String(item.id),
+            iso2: item.iso2,
+            icon: item.iso2 ? <CountryFlag iso2={item.iso2} /> : undefined,
+          }))
+        );
+      } catch (error) {
+        console.error("Failed to fetch countries", error);
+      }
+    };
+    fetchCountries();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem("mcc_mnc_range_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
@@ -102,7 +125,22 @@ const MccMncPrefixRange: React.FC = () => {
   ];
 
   const allColumns: ColumnConfig[] = [
-    { key: "countryName", label: "Country Name", type: "text", filterKey: "country__name__icontains" },
+    { 
+      key: "countryName", 
+      label: "Country Name", 
+      type: "text", 
+      filterKey: "country__name", 
+      options: countryOptions,
+      render: (c) => {
+        const match = countryOptions.find((opt) => opt.value === c.countryName);
+        return (
+          <div className="flex items-center gap-2">
+            {match?.iso2 && <CountryFlag iso2={match.iso2} />}
+            <span>{c.countryName}</span>
+          </div>
+        );
+      }
+    },
     { key: "mccmnc", label: "MCC MNC", type: "text", filterKey: "mccmnc__icontains" },
     {
       key: "status",
