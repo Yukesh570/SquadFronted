@@ -15,8 +15,10 @@ import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedF
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { CountryFlag } from "../../components/ui/CountryFlag";
+import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 
-interface Option { label: string; value: string; }
+interface Option { label: string; value: string; icon?: React.ReactNode; }
 
 interface ColumnConfig extends FilterColumn {
   render?: (data: DetailedReportData) => React.ReactNode;
@@ -45,9 +47,9 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["client", "destination", "submitStatus"];
+const DEFAULT_SEARCH_COLUMNS = ["client", "destination", "submitStatus", "countryName"];
 const DEFAULT_TABLE_COLUMNS = [
-  "text_message_id", "destination", "senderId", "content", "submitStatus", "client", "vendor", "vendor_msg_id", "request_time"
+  "text_message_id", "destination", "senderId", "countryName", "submitStatus", "client", "vendor", "vendor_msg_id", "request_time"
 ];
 
 const BATCH_SIZE = 100;
@@ -77,6 +79,27 @@ const DetailedReport: React.FC = () => {
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  const [countryOptions, setCountryOptions] = useState<Option[]>([]);
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const res = await getCountriesApi("country", 1, 1000);
+        const data = res.results || (Array.isArray(res) ? res : []);
+        setCountryOptions(
+          data.map((item: any) => ({
+            label: item.name || "Unknown",
+            value: item.name || String(item.id),
+            ...(item.iso2 ? { icon: <CountryFlag iso2={item.iso2} /> } : {})
+          }))
+        );
+      } catch (error) {
+        console.error("Failed to fetch countries", error);
+      }
+    };
+    fetchCountries();
+  }, []);
+
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -99,6 +122,23 @@ const DetailedReport: React.FC = () => {
   const allColumns: ColumnConfig[] = [
     { key: "text_message_id", label: "Message ID", type: "text", filterKey: "text_message_id__icontains", render: (log) => (<span className="font-mono text-xs text-primary">{log.text_message_id || "-"}</span>) },
     { key: "destination", label: "Destination", type: "text", filterKey: "destination__icontains", render: (log) => (<span className="text-sm font-medium text-text-primary dark:text-white">{log.destination}</span>) },
+    {
+      key: "countryName",
+      label: "Country",
+      type: "text",
+      options: countryOptions,
+      filterKey: "message__country__name__icontains",
+      render: (log) => {
+        const match = countryOptions.find((opt) => opt.label === log.countryName);
+        return (
+          <div className="flex items-center gap-1.5 text-sm font-medium text-text-primary dark:text-white">
+            {match?.icon}
+            <span>{log.countryName}</span>
+          </div>
+        );
+      }
+    },
+
     { key: "client", label: "Client", type: "text", filterKey: "client__icontains" },
     { key: "vendor", label: "Vendor", type: "text", filterKey: "vendor__icontains" },
     { key: "senderId", label: "Sender ID", type: "text", filterKey: "senderId__icontains" },

@@ -30,6 +30,7 @@ import ContextMenu, {
 import { actionHelper } from "../../helper/action";
 
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { CountryFlag } from "../../components/ui/CountryFlag";
 
 interface Option {
   label: string;
@@ -115,6 +116,7 @@ const OperatorNetworkCode: React.FC = () => {
         const options: Option[] = list.map((c: any) => ({
           label: c.name,
           value: String(c.id),
+          ...(c.iso2 ? { icon: <CountryFlag iso2={c.iso2} /> } : {})
         }));
         setCountryOptions(
           options.sort((a, b) => a.label.localeCompare(b.label)),

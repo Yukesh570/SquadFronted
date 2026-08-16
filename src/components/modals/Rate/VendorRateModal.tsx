@@ -14,6 +14,7 @@ import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
 import Modal from "../../ui/Modal";
+import { CountryFlag } from "../../ui/CountryFlag";
 import TextArea from "../../ui/TextArea";
 import CustomDatePicker from "../../ui/DatePicker";
 
@@ -86,7 +87,11 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
         const list = res.results || (Array.isArray(res) ? res : []);
         setFullCountriesList(list);
         setCountryOptions(
-          list.map((c: any) => ({ label: c.name, value: String(c.id) }))
+          list.map((c: any) => ({
+            label: c.name,
+            value: String(c.id),
+            ...(c.iso2 ? { icon: <CountryFlag iso2={c.iso2} /> } : {})
+          }))
         );
       });
     }

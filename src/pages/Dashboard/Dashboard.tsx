@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import StatCard from "../../components/ui/StatCard";
+import { CountryFlag } from "../../components/ui/CountryFlag";
 import {
   AreaChart,
   Area,
@@ -1346,7 +1347,12 @@ const Dashboard: React.FC = () => {
                       key={`${g.iso2}-${i}`}
                       className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >
-                      <td className="p-4 text-sm font-medium text-text-primary dark:text-white">{g.country}</td>
+                      <td className="p-4 text-sm font-medium text-text-primary dark:text-white">
+                        <div className="flex items-center gap-2">
+                          {g.iso2 && <CountryFlag iso2={g.iso2} />}
+                          {g.country}
+                        </div>
+                      </td>
                       <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{g.total.toLocaleString()}</td>
                       <td className="p-4 text-sm text-text-secondary dark:text-gray-300">{g.deliveryRate}%</td>
                     </tr>

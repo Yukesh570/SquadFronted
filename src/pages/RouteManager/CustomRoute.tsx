@@ -28,6 +28,7 @@ import ContextMenu, {
 import { actionHelper } from "../../helper/action";
 import { formatDateTime } from "../../helper/dateFormatter";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { CountryFlag } from "../../components/ui/CountryFlag";
 
 interface Option {
   label: string;
@@ -118,7 +119,11 @@ const CustomRoute: React.FC = () => {
       try {
         const countryRes: any = await getCountriesApi("country", 1, 1000);
         const countryList = countryRes.results || (Array.isArray(countryRes) ? countryRes : []);
-        setCountryOptions(countryList.map((c: any) => ({ label: c.name, value: c.name })));
+        setCountryOptions(countryList.map((c: any) => ({ 
+          label: c.name, 
+          value: c.name,
+          ...(c.iso2 ? { icon: <CountryFlag iso2={c.iso2} /> } : {})
+        })));
       } catch (err: any) {
         console.error("Failed to load countries for filter", err);
       }
