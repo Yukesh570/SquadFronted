@@ -51,7 +51,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     company: "",
     profileName: "",
     connectionType: "SMPP",
-    invoicePolicy: "ON_ATTEMPT",
+    invoicePolicy: "ON_SUBMIT",
     smppId: 0,
     smppHost: "",
     smppPort: "",
@@ -117,13 +117,13 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     { label: "Transceiver", value: "TRANSCEIVER" },
   ];
 
-  const logLevelOptions = [
-    { label: "DEBUG", value: "DEBUG" },
-    { label: "INFO", value: "INFO" },
-    { label: "WARNING", value: "WARNING" },
-    { label: "ERROR", value: "ERROR" },
-    { label: "CRITICAL", value: "CRITICAL" },
-  ];
+  // const logLevelOptions = [
+  //   { label: "DEBUG", value: "DEBUG" },
+  //   { label: "INFO", value: "INFO" },
+  //   { label: "WARNING", value: "WARNING" },
+  //   { label: "ERROR", value: "ERROR" },
+  //   { label: "CRITICAL", value: "CRITICAL" },
+  // ];
 
   // Fetch Dropdown Data on Mount
   useEffect(() => {
@@ -154,7 +154,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           company: editingVendor.company ? String(editingVendor.company) : "",
           profileName: editingVendor.profileName,
           connectionType: editingVendor.connectionType || "",
-          invoicePolicy: editingVendor.invoicePolicy || "ON_ATTEMPT",
+          invoicePolicy: editingVendor.invoicePolicy || "ON_SUBMIT",
           smppId: anyVendor.smpp || 0,
           smppHost: "",
           smppPort: "",
@@ -218,7 +218,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           company: "",
           profileName: "",
           connectionType: "SMPP",
-          invoicePolicy: "ON_ATTEMPT",
+          invoicePolicy: "ON_SUBMIT",
           status: "ACTIVE",
           smppId: 0,
           smppHost: "",
@@ -467,14 +467,14 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               disabled={isViewMode}
               required
             />
-            <Select
+            {/* <Select
               label="Log Level"
               value={formData.logLevel}
               onChange={(v) => handleSelect("logLevel", v)}
               options={logLevelOptions}
               placeholder="Select Log Level"
               disabled={isViewMode}
-            />
+            /> */}
             <Select
               label="Status"
               value={formData.status}
@@ -712,12 +712,12 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         </fieldset>
 
         {/* Retries & Recovery */}
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        {/* <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Retries & Recovery
           </legend>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Input
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4"> */}
+            {/* <Input
               label="Max Msg Retries"
               name="maxMessageRetries"
               type="number"
@@ -725,7 +725,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={handleChange}
               placeholder="3"
               disabled={isViewMode}
-            />
+            /> */}
             {/* <Input
               label="Conn Retry Delay (s)"
               name="connectionRetryDelay"
@@ -774,8 +774,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="3"
               disabled={isViewMode}
             /> */}
-          </div>
-        </fieldset>
+          {/* </div>
+        </fieldset> */}
 
         {/* TLVs */}
         {/* <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">

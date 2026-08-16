@@ -44,7 +44,7 @@ const formatLocalDate = (date: Date) => {
 };
 
 const DEFAULT_SEARCH_COLUMNS = ["name", "countryName"];
-const DEFAULT_TABLE_COLUMNS = ["name", "country", "countryName"];
+const DEFAULT_TABLE_COLUMNS = ["name", "countryName"];
 
 const State: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -93,13 +93,6 @@ const State: React.FC = () => {
           {state.name}
         </span>
       ),
-    },
-    {
-      key: "country",
-      label: "Country ID",
-      type: "text",
-      filterKey: "country",
-      render: (state) => state.country || "-",
     },
     {
       key: "countryName",

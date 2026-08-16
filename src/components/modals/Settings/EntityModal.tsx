@@ -200,7 +200,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({
             name="companyName"
             value={formData.companyName}
             onChange={handleChange}
-            placeholder="Gecko Works"
+            placeholder="Xenon SMS"
             required
             disabled={isViewMode}
           />
@@ -209,8 +209,16 @@ export const EntityModal: React.FC<EntityModalProps> = ({
             name="legalEntityName"
             value={formData.legalEntityName}
             onChange={handleChange}
-            placeholder="Gecko Works Pvt. Ltd."
+            placeholder="Xenon SMS Pvt. Ltd."
             required
+            disabled={isViewMode}
+          />
+          <Input
+            label="Business Address"
+            name="businessAddress"
+            value={formData.businessAddress}
+            onChange={handleChange}
+            placeholder="123 Street Name"
             disabled={isViewMode}
           />
           <Select
@@ -246,14 +254,6 @@ export const EntityModal: React.FC<EntityModalProps> = ({
             value={formData.emailAddress}
             onChange={handleChange}
             placeholder="contact@company.com"
-            disabled={isViewMode}
-          />
-          <Input
-            label="Business Address"
-            name="businessAddress"
-            value={formData.businessAddress}
-            onChange={handleChange}
-            placeholder="123 Street Name"
             disabled={isViewMode}
           />
           <Input

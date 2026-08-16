@@ -74,13 +74,10 @@ const DEFAULT_SEARCH_COLUMNS = [
 const DEFAULT_TABLE_COLUMNS = [
   "message_id",
   "destination",
-  "text",
   "status",
-  "encoding",
   "segmentNumber",
   "clientName",
   "vendorName",
-  "smppName",
   "systemId",
 ];
 

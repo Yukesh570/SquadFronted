@@ -59,8 +59,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     name: "",
     status: "ACTIVE",
     route: "DIRECT",
-    paymentTerms: "PREPAID",
-    invoicePolicy: "ON_ATTEMPT",
+    paymentTerms: "POSTPAID",
+    invoicePolicy: "ON_SUBMIT",
     allowNetting: false,
     enableDlr: true,
     ipWhitelist: "",
@@ -152,8 +152,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           name: "",
           status: "ACTIVE",
           route: "DIRECT",
-          paymentTerms: "PREPAID",
-          invoicePolicy: "ON_ATTEMPT",
+          paymentTerms: "POSTPAID",
+          invoicePolicy: "ON_SUBMIT",
           allowNetting: false,
           enableDlr: true,
           ipWhitelist: "",
@@ -183,8 +183,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           name: editingClient.name,
           status: editingClient.status,
           route: editingClient.route,
-          paymentTerms: editingClient.paymentTerms,
-          invoicePolicy: editingClient.invoicePolicy || "ON_ATTEMPT",
+          paymentTerms: editingClient.paymentTerms || "POSTPAID",
+          invoicePolicy: editingClient.invoicePolicy || "ON_SUBMIT",
           allowNetting: editingClient.allowNetting,
           enableDlr: editingClient.enableDlr,
           smppUsername: editingClient.smppUsername || "",
@@ -406,7 +406,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         await handleAccessControlSync(savedClientId, ipList, hostList);
       }
       
-          // On creation only, auto-create linked Route Group / Customer Rate
+      // On creation only, auto-create linked Route Group / Customer Rate
       // Group with the same name and attach them to the client.
       // if (isNewClient && savedClientId) {
       //   try {
@@ -727,7 +727,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               placeholder="10000"
               disabled={isViewMode}
             /> */}
-            <Input
+            {/* <Input
               label="Max Window (Global)"
               name="maxWindowGlobal"
               type="number"
@@ -735,8 +735,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               onChange={handleChange}
               placeholder="50"
               disabled={isViewMode}
-            />
-            <Input
+            /> */}
+            {/* <Input
               label="Max Window (Per Session)"
               name="maxWindowPerSession"
               type="number"
@@ -744,7 +744,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               onChange={handleChange}
               placeholder="10"
               disabled={isViewMode}
-            />
+            /> */}
           </div>
         </fieldset>
 

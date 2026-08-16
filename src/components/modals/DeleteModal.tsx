@@ -8,7 +8,7 @@ interface DeleteModalProps {
   onClose: () => void;
   onConfirm: () => void;
   title: string;
-  message: string;
+  message: React.ReactNode;
   isDeleting?: boolean;
 }
 
@@ -20,6 +20,29 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
   message,
   isDeleting = false,
 }) => {
+  // Automatically formats and bolds any quoted text (e.g., "Belgium", "Route A")
+  const renderMessage = (content: React.ReactNode) => {
+    if (typeof content !== "string") return content;
+
+    const parts = content.split(/(".*?"|'.*?')/g);
+    return parts.map((part, index) => {
+      if (
+        (part.startsWith('"') && part.endsWith('"')) ||
+        (part.startsWith("'") && part.endsWith("'"))
+      ) {
+        return (
+          <strong
+            key={index}
+            className="font-bold text-text-primary dark:text-white"
+          >
+            {part}
+          </strong>
+        );
+      }
+      return part;
+    });
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} className="max-w-md">
       <div className="flex flex-col items-center text-center space-y-4">
@@ -28,7 +51,7 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
         </div>
 
         <p className="text-text-secondary text-sm leading-relaxed dark:text-gray-300">
-          {message}
+          {renderMessage(message)}
         </p>
 
         <div className="flex justify-center space-x-3 w-full pt-4">
