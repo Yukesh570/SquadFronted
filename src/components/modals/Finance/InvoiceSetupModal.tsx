@@ -71,8 +71,8 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
       getEntityApi("entity", 1, 1000)
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
-          setEntityOptions(list.map((e: any) => ({ 
-            label: e.legalEntityName || e.companyName, 
+          setEntityOptions(list.map((e: any) => ({
+            label: e.legalEntityName || e.companyName,
             value: String(e.id)
           })));
         }).catch(() => console.error("Failed to load entities"));
@@ -96,7 +96,7 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
         billingAddressOverride: "",
         businessEntity: "",
         invoiceFrequency: "MONTHLY",
-        dueDays: "", 
+        dueDays: "",
         tax: "", // ⚡️ FIX: Reset to empty string
         isTaxApplied: false,
       });
@@ -107,9 +107,9 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     // ⚡️ FIX: Allow backspace for both dueDays and tax so they don't lock at 0
-    setFormData((prev) => ({ 
-      ...prev, 
-      [name]: ["dueDays", "tax"].includes(name) ? (value === "" ? "" : Number(value)) : value 
+    setFormData((prev) => ({
+      ...prev,
+      [name]: ["dueDays", "tax"].includes(name) ? (value === "" ? "" : Number(value)) : value
     }));
   };
 
@@ -133,7 +133,7 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
     if (isViewMode) return;
 
     if (!formData.company || !formData.businessEntity) {
-      toast.error("Company and Business Entity are required.");
+      toast.error("Company and Business Profile are required.");
       return;
     }
 
@@ -161,12 +161,12 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
       onClose();
     } catch (error: any) {
       const serverError = error.response?.data;
-      const errorMsg = serverError?.detail || 
-                       (serverError && typeof serverError === 'object' 
-                       ? Object.values(serverError).flat()[0] 
-                       : "Failed to save Invoice Setup.");
+      const errorMsg = serverError?.detail ||
+        (serverError && typeof serverError === 'object'
+          ? Object.values(serverError).flat()[0]
+          : "Failed to save Invoice Setup.");
 
-      toast.error(errorMsg);    
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -192,17 +192,17 @@ export const InvoiceSetupModal: React.FC<InvoiceSetupModalProps> = ({
             disabled={isViewMode}
           />
           <Select
-            label="Business Entity"
+            label="Business Profile"
             value={formData.businessEntity}
             onChange={(v) => handleSelect("businessEntity", v)}
             options={entityOptions}
-            placeholder="Select Entity"
+            placeholder="Select Business Profile"
             disabled={isViewMode}
           />
         </div>
-        
+
         <div className="grid grid-cols-1 gap-4">
-           <Input
+          <Input
             label="Company Address"
             name="billingAddressOverride"
             value={formData.billingAddressOverride}

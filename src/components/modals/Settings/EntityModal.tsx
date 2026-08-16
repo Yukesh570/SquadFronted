@@ -221,7 +221,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({
             placeholder="123 Street Name"
             disabled={isViewMode}
           />
-          <Select
+          {/* <Select
             label="Week Commencing"
             value={formData.weekCommencing}
             onChange={handleSelectChange}
@@ -230,7 +230,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({
               { label: "Monday", value: "MONDAY" }
             ]}
             disabled={isViewMode}
-          />
+          /> */}
           <Input
             label="VAT Registration Number"
             name="vatRegistrationNumber"
