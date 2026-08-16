@@ -61,10 +61,11 @@ const booleanOptions: Option[] = [
   { label: "No", value: "false" },
 ];
 
-const renderStatusBadge = (status?: string) => {
-  if (!status) return <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">-</span>;
+const renderStatusBadge = (status?: string | number) => {
+  if (status === null || status === undefined || status === "") return <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">-</span>;
 
-  const statusKey = status.toUpperCase();
+  const statusStr = String(status);
+  const statusKey = statusStr.toUpperCase();
   const config = DLR_STATUS_COLORS[statusKey] || DLR_STATUS_COLORS.UNKNOWN;
 
   return (
@@ -76,7 +77,7 @@ const renderStatusBadge = (status?: string) => {
         borderColor: config.border,
       }}
     >
-      {config.label || status}
+      {config.label || statusStr}
     </span>
   );
 };
@@ -96,7 +97,7 @@ const formatLocalDate = (date: Date) => {
 };
 
 const DEFAULT_SEARCH_COLUMNS = ["parent_message_destination", "submit_status", "vendor_msg_id"];
-const DEFAULT_TABLE_COLUMNS = ["id", "message", "parent_message_destination", "text", "part_no", "part_total", "submit_status", "created_at"];
+const DEFAULT_TABLE_COLUMNS = ["id", "client_msg_id", "vendor_msg_id", "parent_message_destination", "part_no", "part_total", "submit_status", "created_at"];
 
 const BATCH_SIZE = 100;
 const LOAD_MORE_THRESHOLD_PX = 200;
@@ -131,8 +132,7 @@ const SmsMessagePart: React.FC = () => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   const allColumns: ColumnConfig[] = [
-    { key: "id", label: "Segment ID", type: "text", isSearchable: false },
-    { key: "message", label: "Message ID", type: "text", isSearchable: false },
+    { key: "client_msg_id", label: "Message ID", type: "text", isSearchable: false },
     { key: "parent_message_destination", label: "Destination", type: "text", filterKey: "message__destination__icontains" },
     {
       key: "text",
@@ -164,14 +164,7 @@ const SmsMessagePart: React.FC = () => {
       render: (log) => renderStatusBadge(log.submit_status)
     },
     { key: "vendor_msg_id", label: "Vendor Msg ID", type: "text", filterKey: "vendor_msg_id__icontains" },
-    {
-      key: "vendor_submit_status",
-      label: "Vendor Submit Status",
-      type: "text",
-      options: statusOptions,
-      filterKey: "vendor_submit_status__icontains",
-      render: (log) => renderStatusBadge(log.vendor_submit_status)
-    },
+
     { key: "submit_attempts", label: "Submit Attempts", type: "text", filterKey: "submit_attempts__icontains" },
 
     {
@@ -226,7 +219,7 @@ const SmsMessagePart: React.FC = () => {
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
-  
+
   // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
@@ -325,20 +318,20 @@ const SmsMessagePart: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Message Segments</h1>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={tableFilterColumns as any} 
-              selectedColumns={tableColumns} 
+            <AdvancedFilter
+              columns={tableFilterColumns as any}
+              selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
-              onFilter={setTableColumns} 
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
-              buttonLabel="Columns" 
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
               enableReorder={true}
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={searchableColumns as any} 
-              selectedColumns={searchColumns} 
+            <AdvancedFilter
+              columns={searchableColumns as any}
+              selectedColumns={searchColumns}
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
@@ -350,9 +343,9 @@ const SmsMessagePart: React.FC = () => {
                   return next;
                 });
               }}
-              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
-              isLoading={isLoading} 
-              buttonLabel="Search Fields" 
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
             />
           </div>
         </div>
@@ -369,16 +362,16 @@ const SmsMessagePart: React.FC = () => {
           const baseLabel = getBaseLabel(col.label || "");
 
           if (col.options) {
-             return (
+            return (
               <Select
                 key={col.key}
                 label={baseLabel}
                 value={filterValues[col.key] || ""}
-                onChange={(val) => setFilterValues(p => ({...p, [col.key]: val}))}
+                onChange={(val) => setFilterValues(p => ({ ...p, [col.key]: val }))}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
               />
-             );
+            );
           }
           if (col.type === "date") {
             const rawVal = filterValues[col.key] || "";
@@ -445,7 +438,7 @@ const SmsMessagePart: React.FC = () => {
               key={col.key}
               label={`Search ${baseLabel}`}
               value={filterValues[col.key] || ""}
-              onChange={(e) => setFilterValues(p => ({...p, [col.key]: e.target.value}))}
+              onChange={(e) => setFilterValues(p => ({ ...p, [col.key]: e.target.value }))}
               placeholder={`Search ${baseLabel}`}
             />
           );

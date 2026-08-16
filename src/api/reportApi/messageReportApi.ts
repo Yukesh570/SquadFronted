@@ -5,20 +5,21 @@ export interface MessageLogData {
   destination: string;
   text: string;
   status:
-    | "PENDING"
-    | "QUEUED"
-    | "SUBMITTED"
-    | "FAILED"
-    | "DELIVERED"
-    | "REJECTED"
-    | "UNDELIVERED"
-    | "EXPIRED"
-    | "IN_PROGRESS"
-    | "PARTIALLY_DELIVERED"
-    | "NO_ROUTE"
-    | "RETRY_PENDING"
-    | "UNCERTAIN";
+  | "PENDING"
+  | "QUEUED"
+  | "SUBMITTED"
+  | "FAILED"
+  | "DELIVERED"
+  | "REJECTED"
+  | "UNDELIVERED"
+  | "EXPIRED"
+  | "IN_PROGRESS"
+  | "PARTIALLY_DELIVERED"
+  | "NO_ROUTE"
+  | "RETRY_PENDING"
+  | "UNCERTAIN";
   message_id: string;
+  source_addr?: string;
   encoding?: string;
   segmentNumber?: string;
   characterCount?: string;
@@ -30,6 +31,7 @@ export interface MessageLogData {
   systemId?: string;
   createdAt?: string;
   queued_at?: string | null;
+  submitted_at?: string | null;
   delivered_at?: string | null;
   failed_at?: string | null;
 }

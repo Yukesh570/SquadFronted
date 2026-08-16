@@ -4,6 +4,7 @@ export interface SmsMessagePartData {
   id?: number;
   message?: number | null;
   parent_message_destination?: string | null;
+  parent_message_id?: string | null;
   text?: string | null;
   part_no?: number;
   part_total?: number;

@@ -18,7 +18,7 @@ import { getCustomerRateGroupsApi } from "../../api/rateApi/customerRateApi";
 import { ClientModal } from "../../components/modals/ClientModal";
 import { ClientRoutingRateModal } from "../../components/modals/ClientRoutingRateModal";
 import IpWhitelistModal from "../../components/modals/WhiteListIPModal";
-import { ClientRateTableModal } from "../../components/modals/ClientRateTableModal"; 
+import { ClientRateTableModal } from "../../components/modals/ClientRateTableModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -49,7 +49,7 @@ interface ColumnConfig extends FilterColumn {
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
-  isSearchable?: boolean; 
+  isSearchable?: boolean;
   tableLabel?: string;
 }
 
@@ -171,18 +171,18 @@ const Client: React.FC = () => {
       try {
         const rgRes: any = await getGroupedCustomRoutesApi("customRoute", 1, 1000);
         const rgList = rgRes.results || (Array.isArray(rgRes) ? rgRes : []);
-        
+
         setrouteGroup(
           rgList.map((rg: any) => ({
             label: rg.name,
-            value: String(rg.id), 
+            value: String(rg.id),
           }))
         );
 
         setRouteGroupFilter(
           rgList.map((rg: any) => ({
             label: rg.name,
-            value: rg.name, 
+            value: rg.name,
           }))
         );
       } catch (err) {
@@ -229,9 +229,7 @@ const Client: React.FC = () => {
   const paymentTermOptions: Option[] = [
     { label: "Prepaid", value: "PREPAID" },
     { label: "Postpaid", value: "POSTPAID" },
-    { label: "Net 7", value: "NET7" },
-    { label: "Net 15", value: "NET15" },
-    { label: "Net 30", value: "NET30" },
+
   ];
 
   const invoicePolicyOptions: Option[] = [
@@ -265,8 +263,9 @@ const Client: React.FC = () => {
     { key: "name", label: "Client Name", type: "text", options: clientOptions, filterKey: "name__icontains" },
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
     { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroupFilter, filterKey: "routeGroup__name" },
-    { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, isSearchable: false }, 
-    { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status", render: (c) => {
+    { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, isSearchable: false },
+    {
+      key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status", render: (c) => {
         const statusConfig = STATUS_COLORS[c.status?.toUpperCase() || "UNKNOWN"] || STATUS_COLORS.UNKNOWN;
         return (
           <select
@@ -289,21 +288,22 @@ const Client: React.FC = () => {
             <option value="SUSPENDED" className="bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100">Suspended</option>
           </select>
         );
-      } 
+      }
     },
     { key: "route", label: "Route Type", type: "text", options: routeOptions, filterKey: "route" },
     { key: "paymentTerms", label: "Payment Terms", type: "text", options: paymentTermOptions, filterKey: "paymentTerms" },
-    { key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions, isSearchable: false, render: (c) => { 
+    {
+      key: "invoicePolicy", label: "Invoice Policy", type: "text", options: invoicePolicyOptions, isSearchable: false, render: (c) => {
         if (!c.invoicePolicy) return "-";
         const match = invoicePolicyOptions.find(opt => opt.value === c.invoicePolicy);
         return match ? match.label : c.invoicePolicy;
       }
     },
     { key: "allowNetting", label: "Allow Netting", type: "boolean", options: booleanOptions, filterKey: "allowNetting", render: (c) => renderBooleanBadge(c.allowNetting) },
-    { key: "enableDlr", label: "Enable Dlr", type: "boolean", options: booleanOptions, isSearchable: false, render: (c) => renderBooleanBadge(c.enableDlr) }, 
+    { key: "enableDlr", label: "Enable Dlr", type: "boolean", options: booleanOptions, isSearchable: false, render: (c) => renderBooleanBadge(c.enableDlr) },
     { key: "smppUsername", label: "SMPP Username", type: "text", filterKey: "smppUsername__icontains" },
     { key: "bindStatus", label: "Bind Status", type: "text", options: bindStatusOptions, filterKey: "bindStatus", render: (c) => <StatusBadge status={c.bindStatus} /> },
-    { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", isSearchable: false, render: (c) => renderSessionBadge(c) }, 
+    { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", isSearchable: false, render: (c) => renderSessionBadge(c) },
     { key: "maxTps", label: "TPS", type: "number", filterKey: "clientPolicy__maxTps", render: (c) => c.clientPolicy?.maxTps ?? "-" },
     { key: "maxSessions", label: "Max Sessions", type: "number", filterKey: "clientPolicy__maxSessions", render: (c) => c.clientPolicy?.maxSessions ?? "-" },
     { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number", filterKey: "clientPolicy__maxWindowGlobal", render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-" },
@@ -316,7 +316,7 @@ const Client: React.FC = () => {
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
-  
+
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -376,7 +376,7 @@ const Client: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = lt; 
+            if (lt) currentSearchParams[`${baseKey}__lt`] = lt;
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -574,58 +574,58 @@ const Client: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowClient
     ? [
-        ...(canUpdate
-          ? [
-              {
-                label: "Add Access Control", 
-                icon: <ShieldPlus size={16} />,
-                onClick: () => handleAddIp(selectedRowClient),
-              },
-            ]
-          : []),
-        {
-          label: "View Details",
-          icon: <Eye size={16} />,
-          onClick: () => handleView(selectedRowClient),
-        },
-        {
-          label: "View Rate",
-          icon: <Layers size={16} />,
-          onClick: () => {
-            setRateModalClient({ id: selectedRowClient.id!, name: selectedRowClient.name });
-            setIsRateModalOpen(true);
-          }
-        },
-        {
-          label: "Send Details",
-          icon: <Mail size={16} />,
-          onClick: () => handleSendDetails(selectedRowClient),
-        },
-        ...(canUpdate
-          ? [
-              {
-                label: "Edit Client",
-                icon: <Edit size={16} />,
-                onClick: () => handleEdit(selectedRowClient),
-              },
-              {
-                label: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? "Add Route & Rate Plan" : "Edit Route & Rate Group",
-                icon: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? <Plus size={16} /> : <Edit size={16} />,
-                onClick: () => handleEditRouting(selectedRowClient),
-              },
-            ]
-          : []),
-        ...(canDelete
-          ? [
-              {
-                label: "Delete Client",
-                icon: <Trash size={16} />,
-                variant: "danger" as const,
-                onClick: () => setDeleteId(selectedRowClient.id!),
-              },
-            ]
-          : []),
-      ]
+      ...(canUpdate
+        ? [
+          {
+            label: "Add Access Control",
+            icon: <ShieldPlus size={16} />,
+            onClick: () => handleAddIp(selectedRowClient),
+          },
+        ]
+        : []),
+      {
+        label: "View Details",
+        icon: <Eye size={16} />,
+        onClick: () => handleView(selectedRowClient),
+      },
+      {
+        label: "View Rate",
+        icon: <Layers size={16} />,
+        onClick: () => {
+          setRateModalClient({ id: selectedRowClient.id!, name: selectedRowClient.name });
+          setIsRateModalOpen(true);
+        }
+      },
+      {
+        label: "Send Details",
+        icon: <Mail size={16} />,
+        onClick: () => handleSendDetails(selectedRowClient),
+      },
+      ...(canUpdate
+        ? [
+          {
+            label: "Edit Client",
+            icon: <Edit size={16} />,
+            onClick: () => handleEdit(selectedRowClient),
+          },
+          {
+            label: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? "Add Route & Rate Plan" : "Edit Route & Rate Group",
+            icon: (!selectedRowClient.routeGroup && !selectedRowClient.customerRateGroup) ? <Plus size={16} /> : <Edit size={16} />,
+            onClick: () => handleEditRouting(selectedRowClient),
+          },
+        ]
+        : []),
+      ...(canDelete
+        ? [
+          {
+            label: "Delete Client",
+            icon: <Trash size={16} />,
+            variant: "danger" as const,
+            onClick: () => setDeleteId(selectedRowClient.id!),
+          },
+        ]
+        : []),
+    ]
     : [];
 
   const tableHeaders = [

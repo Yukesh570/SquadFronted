@@ -3,6 +3,7 @@ import api from "../axiosInstance";
 export interface DLREventData {
   id?: number;
   message?: number | null;
+  client_msg_id?: string | null;
   segment?: number | null;
   vendorMessageId?: string | null;
   event_type: string;

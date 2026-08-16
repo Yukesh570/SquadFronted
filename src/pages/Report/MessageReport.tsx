@@ -70,15 +70,18 @@ const DEFAULT_SEARCH_COLUMNS = [
   "clientName",
   "status",
   "message_id",
+  "source_addr"
 ];
 const DEFAULT_TABLE_COLUMNS = [
   "message_id",
   "destination",
+  "source_addr",
   "status",
   "segmentNumber",
   "clientName",
   "vendorName",
   "systemId",
+  "createdAt"
 ];
 
 const formatLocalDate = (date: Date) => {
@@ -167,6 +170,8 @@ const MessageReport: React.FC = () => {
   const filterOptionsConfig: ColumnConfig[] = useMemo(
     () => [
       { key: "message_id", label: "Message ID", type: "text", isSearchable: false },
+      { key: "source_addr", label: "Sender ID", type: "text", filterKey: "source_addr__icontains" },
+
       { key: "destination", label: "Destination", type: "text", filterKey: "destination__icontains" },
       {
         key: "clientName",
@@ -204,9 +209,14 @@ const MessageReport: React.FC = () => {
 
       { key: "createdAt", label: "Created At (Single Day)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range" },
       { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt__range", isSearchOnly: true },
-
       { key: "queued_at", label: "Queued At (Single Day)", tableLabel: "Queued At", type: "date", filterKey: "queued_at__range" },
       { key: "queued_at__range", label: "Queued At (Range)", type: "date_range", filterKey: "queued_at__range", isSearchOnly: true },
+      { key: "submitted_at", label: "Submitted At (Single Day)", tableLabel: "Submitted At", type: "date", filterKey: "submitted_at__range" },
+      { key: "submitted_at__range", label: "Submitted At (Range)", type: "date_range", filterKey: "submitted_at__range", isSearchOnly: true },
+      { key: "delivered_at", label: "Delivered At (Single Day)", tableLabel: "Delivered At", type: "date", filterKey: "delivered_at__range" },
+      { key: "delivered_at__range", label: "Delivered At (Range)", type: "date_range", filterKey: "delivered_at__range", isSearchOnly: true },
+      { key: "failed_at", label: "Failed At (Single Day)", tableLabel: "Failed At", type: "date", filterKey: "failed_at__range" },
+      { key: "failed_at__range", label: "Failed At (Range)", type: "date_range", filterKey: "failed_at__range", isSearchOnly: true },
 
       { key: "delivered_at", label: "Delivered At (Single Day)", tableLabel: "Delivered At", type: "date", filterKey: "delivered_at__range" },
       { key: "delivered_at__range", label: "Delivered At (Range)", type: "date_range", filterKey: "delivered_at__range", isSearchOnly: true },
@@ -228,6 +238,16 @@ const MessageReport: React.FC = () => {
         render: (log) => (
           <span className="font-mono text-xs text-primary">
             {log.message_id}
+          </span>
+        ),
+      },
+      {
+        key: "source_addr",
+        label: "Sender ID",
+        type: "text",
+        render: (log) => (
+          <span className="text-sm font-medium text-text-primary dark:text-white">
+            {log.source_addr}
           </span>
         ),
       },
@@ -324,7 +344,7 @@ const MessageReport: React.FC = () => {
   const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
-  
+
   // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => tableColumnsConfig.find((col) => col.key === key))

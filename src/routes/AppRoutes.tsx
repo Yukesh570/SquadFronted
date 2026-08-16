@@ -45,6 +45,7 @@ import VendorInvoice from "../pages/Finance/Invoice/VendorInvoice";
 import GenerateVendorInvoice from "../pages/Finance/Invoice/GenerateVendorInvoice";
 import AllNotifications from "../pages/Notifications/AllNotifications";
 import DLREvent from "../pages/Report/DLREvent";
+import RejectedSMSLog from "../pages/Report/RejectedSMSLog";
 import MessageAttempt from "../pages/Report/MessageAttempt";
 import SmsMessagePart from "../pages/Report/SmsMessagePart";
 import OperatorNetworkCode from "../pages/OperatorNetworkCode/OperatorNetworkCode";
@@ -104,6 +105,7 @@ const componentMap: Record<string, JSX.Element> = {
   generateVendorInvoice: <GenerateVendorInvoice />,
   messageAttempt: <MessageAttempt />,
   dlrEvent: <DLREvent />,
+  rejectedSMSLog: <RejectedSMSLog />,
   smsMessagePart: <SmsMessagePart />,
   operatorNetworkCode: <OperatorNetworkCode />,
   clientSession: <ClientSession />,

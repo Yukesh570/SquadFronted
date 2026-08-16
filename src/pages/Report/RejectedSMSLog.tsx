@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Eye } from "lucide-react";
+import { Home } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  getDLREventApi,
-  type DLREventData,
-} from "../../api/reportApi/dlrEventApi";
+  getRejectedSMSLogApi,
+  type RejectedSMSLogData,
+} from "../../api/reportApi/rejectedSMSLogApi";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import DatePicker from "../../components/ui/DatePicker";
@@ -13,9 +13,10 @@ import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedFilter";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
-import { DLREventModal } from "../../components/modals/Report/DLREventModal";
+
 import { actionHelper } from "../../helper/action";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { RejectedSMSLogModal } from "../../components/modals/Report/RejectedSMSLogModal";
 
 interface Option { label: string; value: string; }
 interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; isSearchable?: boolean; isSearchOnly?: boolean; tableLabel?: string; }
@@ -37,14 +38,14 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["client_msg_id", "event_type", "vendorMessageId"];
-const DEFAULT_TABLE_COLUMNS = ["id", "client_msg_id", "vendorMessageId", "event_type", "segment_number", "status_code", "received_at"];
+const DEFAULT_SEARCH_COLUMNS = ["client__name", "system_id", "destination_addr", "message_id"];
+const DEFAULT_TABLE_COLUMNS = ["id", "timestamp", "client__name", "system_id", "destination_addr", "message_id", "reason", "required_amount", "available_credit"];
 
 const BATCH_SIZE = 100;
 const LOAD_MORE_THRESHOLD_PX = 200;
 
-const DLREvent: React.FC = () => {
-  const [events, setEvents] = useState<DLREventData[]>([]);
+const RejectedSMSLog: React.FC = () => {
+  const [events, setEvents] = useState<RejectedSMSLogData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -52,19 +53,16 @@ const DLREvent: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
 
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [selectedRow, setSelectedRow] = useState<DLREventData | null>(null);
-
+  const [selectedRow, setSelectedRow] = useState<RejectedSMSLogData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewLog, setViewLog] = useState<DLREventData | null>(null);
-
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [viewLog, setViewLog] = useState<RejectedSMSLogData | null>(null);  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
-    const saved = localStorage.getItem("dlr_event_columns_v3");
+    const saved = localStorage.getItem("rejected_sms_columns");
     try { return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS; } catch (e) { return DEFAULT_TABLE_COLUMNS; }
   });
 
-  useEffect(() => { localStorage.setItem("dlr_event_columns_v3", JSON.stringify(tableColumns)); }, [tableColumns]);
+  useEffect(() => { localStorage.setItem("rejected_sms_columns", JSON.stringify(tableColumns)); }, [tableColumns]);
 
   const location = useLocation();
   const pathParts = location.pathname.split("/").filter(Boolean);
@@ -73,30 +71,24 @@ const DLREvent: React.FC = () => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   const allColumns: ColumnConfig[] = [
-    { key: "client_msg_id", label: "Message ID", type: "text", filterKey: "segment__client_msg_id__icontains", render: (data: any) => data.client_msg_id },
-    { key: "segment", label: "Segment ID", type: "text", isSearchable: false, render: (data: any) => data.segment || "-" },
-    { key: "vendorMessageId", label: "Vendor Message ID", type: "text", filterKey: "vendorMessageId__icontains" },
-    {
-      key: "event_type",
-      label: "Event Type",
-      type: "text",
-      options: statusOptions,
-      filterKey: "event_type",
-      render: (log) => <StatusBadge status={log.event_type} />
-    },
-    { key: "segment_number", label: "Segment Number", type: "text", filterKey: "segment_number__icontains" },
-    { key: "status_code", label: "Status Code", type: "text", filterKey: "status_code__icontains" },
-    { key: "status_description", label: "Status Description", type: "text", filterKey: "status_description__icontains", isSearchable: false },
-
-    { key: "received_at", label: "Received At (Single Day)", tableLabel: "Received At", type: "date", filterKey: "received_at__range", render: (data: any) => data.received_at ? new Date(data.received_at).toLocaleString() : "-" },
-    { key: "received_at__range", label: "Received At (Range)", type: "date_range", filterKey: "received_at__range", isSearchOnly: true },
-
-    { key: "raw_payload", label: "Raw Payload", type: "text", render: (data: any) => data.raw_payload ? "{...}" : "-", isSearchable: false },
+    { key: "id", label: "Log ID", type: "text", isSearchable: false },
+    { key: "client__name", label: "Client", tableLabel: "Client", type: "text", filterKey: "client__name__icontains", render: (log) => log.client_name || "-" },
+    { key: "system_id", label: "System ID", type: "text", filterKey: "system_id__icontains" },
+    { key: "source_addr", label: "Source Addr", type: "text", filterKey: "source_addr__icontains" },
+    { key: "destination_addr", label: "Destination", type: "text", filterKey: "destination_addr__icontains" },
+    { key: "message_id", label: "Message ID", type: "text", filterKey: "message_id__icontains" },
+    { key: "reason", label: "Reason", type: "text", filterKey: "reason__icontains" },
+    { key: "required_amount", label: "Required Amount", type: "text", isSearchable: false },
+    { key: "available_credit", label: "Available Credit", type: "text", isSearchable: false },
+    { key: "used_credit", label: "Used Credit", type: "text", isSearchable: false },
+    { key: "smpp_command_status", label: "Status Code", type: "text", isSearchable: false },
+    { key: "timestamp", label: "Timestamp (Single Day)", tableLabel: "Timestamp", type: "date", filterKey: "timestamp__range", render: (data: any) => data.timestamp ? new Date(data.timestamp).toLocaleString() : "-" },
+    { key: "timestamp__range", label: "Timestamp (Range)", type: "date_range", filterKey: "timestamp__range", isSearchOnly: true },
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
-
+  
   // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
@@ -130,7 +122,7 @@ const DLREvent: React.FC = () => {
         }
       });
 
-      const response: any = await getDLREventApi(routeName, page, BATCH_SIZE, cleanParams);
+      const response: any = await getRejectedSMSLogApi(routeName, page, BATCH_SIZE, cleanParams);
       if (response && response.results) {
         setEvents((prev) => (append ? [...prev, ...response.results] : response.results));
         setTotalItems(response.count);
@@ -169,14 +161,20 @@ const DLREvent: React.FC = () => {
     return () => scrollEl.removeEventListener("scroll", handleScroll);
   }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, events.length]);
 
-  const handleContextMenu = (e: React.MouseEvent, item: DLREventData) => {
+  const handleContextMenu = (e: React.MouseEvent, item: RejectedSMSLogData) => {
     e.preventDefault();
     setContextMenuPos({ x: e.clientX, y: e.clientY });
     setSelectedRow(item);
   };
 
   const menuItems: ContextMenuItem[] = selectedRow ? [
-    { label: "View Details", icon: <Eye size={16} />, onClick: () => { setViewLog(selectedRow); setIsModalOpen(true); } },
+    {
+      label: "View Details",
+      onClick: () => {
+        setViewLog(selectedRow);
+        setIsModalOpen(true);
+      },
+    },
   ] : [];
 
   const getBaseLabel = (label: string) => {
@@ -187,7 +185,7 @@ const DLREvent: React.FC = () => {
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
     if (!hasLoggedOpening.current) {
-      setTimeout(() => { actionHelper("DLR Events", `Opened DLR Events Report`, false); }, 100);
+      setTimeout(() => { actionHelper("Rejected SMS Log", `Opened Rejected SMS Log Report`, false); }, 100);
       hasLoggedOpening.current = true;
     }
   }, []);
@@ -196,22 +194,22 @@ const DLREvent: React.FC = () => {
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">DLR Events</h1>
+          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Rejected SMS Log</h1>
           <div className="relative z-20">
-            <AdvancedFilter
-              columns={tableFilterColumns}
-              selectedColumns={tableColumns}
+            <AdvancedFilter 
+              columns={tableFilterColumns} 
+              selectedColumns={tableColumns} 
               defaultColumns={DEFAULT_TABLE_COLUMNS}
-              onFilter={setTableColumns}
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
-              buttonLabel="Columns"
+              onFilter={setTableColumns} 
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
+              buttonLabel="Columns" 
               enableReorder={true}
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter
-              columns={searchableColumns}
-              selectedColumns={searchColumns}
+            <AdvancedFilter 
+              columns={searchableColumns} 
+              selectedColumns={searchColumns} 
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
@@ -223,9 +221,9 @@ const DLREvent: React.FC = () => {
                   return next;
                 });
               }}
-              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
-              isLoading={isLoading}
-              buttonLabel="Search Fields"
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
+              isLoading={isLoading} 
+              buttonLabel="Search Fields" 
             />
           </div>
         </div>
@@ -233,7 +231,7 @@ const DLREvent: React.FC = () => {
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
           <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">Home</NavLink>
-          <span>/</span><span className="text-text-primary dark:text-white">DLR Events</span>
+          <span>/</span><span className="text-text-primary dark:text-white">Rejected SMS Log</span>
         </div>
       </div>
 
@@ -373,13 +371,16 @@ const DLREvent: React.FC = () => {
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
 
-      <DLREventModal
+      <RejectedSMSLogModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setViewLog(null);
+        }}
         viewLog={viewLog}
       />
     </div>
   );
 };
 
-export default DLREvent;
+export default RejectedSMSLog;

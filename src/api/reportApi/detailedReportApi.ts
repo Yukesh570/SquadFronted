@@ -2,6 +2,18 @@ import api from "../axiosInstance";
 
 export interface DetailedReportData {
   id: number;
+
+  // Fields pulled from SMSMessage
+  encoding?: string;
+  characterCount?: string;
+  source_addr?: string;
+  message_queued_at?: string;
+  message_sent_at?: string;
+  message_delivered_at?: string;
+  message_failed_at?: string;
+  failure_reason?: string;
+
+
   client: string;
   destination: string;
   clientRate: string | number;
@@ -35,7 +47,7 @@ export const getDetailedReportsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  
+
   // FIX: Added the missing '/api/' prefix here
   const response = await api.get(`/api/reports/detailed/`, { params });
   return response.data;

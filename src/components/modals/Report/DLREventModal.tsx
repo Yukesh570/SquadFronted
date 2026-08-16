@@ -26,13 +26,10 @@ export const DLREventModal: React.FC<DLREventModalProps> = ({
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Row 1 */}
-          <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">DLR ID</label>
-            <div className="text-sm font-mono text-primary bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.id || "-"}</div>
-          </div>
+
           <div>
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Message ID</label>
-            <div className="text-sm font-medium text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.message || "-"}</div>
+            <div className="text-sm font-medium text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.client_msg_id || "-"}</div>
           </div>
           <div>
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Segment ID</label>

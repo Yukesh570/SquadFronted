@@ -26,7 +26,8 @@ export interface ClientData {
   status: "ACTIVE" | "TRIAL" | "SUSPENDED";
   bindStatus: "ONLINE" | "OFFLINE";
   route: "DIRECT" | "HIGH QUALITY" | "SIM" | "WHOLESALE" | "FULL" | "SPAM";
-  paymentTerms: "PREPAID" | "POSTPAID" | "NET7" | "NET15" | "NET30";
+  // paymentTerms: "PREPAID" | "POSTPAID" | "NET7" | "NET15" | "NET30";
+  paymentTerms: "PREPAID" | "POSTPAID";
   invoicePolicy: "ON_ATTEMPT" | "ON_SUBMIT" | "ON_DELIVERED" | string;
   allowNetting: boolean;
   enableDlr: boolean;
@@ -35,7 +36,7 @@ export interface ClientData {
   smppPassword?: string;
   internalNotes?: string;
   createdAt?: string;
-  clientPolicy?: ClientPolicyData; 
+  clientPolicy?: ClientPolicyData;
 }
 
 export interface PaginatedResponse<T> {
@@ -117,7 +118,7 @@ export const sendClientDetailsEmailApi = async (data: {
 export const getClientRateOverViewApi = async (params: {
   client: number;
   routeGroup: string;
-  customerRateGroup: string; 
+  customerRateGroup: string;
 }) => {
   const response = await api.get(`/clientRateOverView/`, { params });
   return response.data;

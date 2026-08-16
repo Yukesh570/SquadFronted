@@ -650,6 +650,16 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="2"
               disabled={isViewMode}
             />
+            <Input
+              label="Response Timeout (s)"
+              name="responseTimeout"
+              type="number"
+              step="0.1"
+              value={formData.responseTimeout}
+              onChange={handleChange}
+              placeholder="30.0"
+              disabled={isViewMode}
+            />
             {/* <Input
               label="Queue Limit"
               name="sendQueueLimit"
@@ -673,7 +683,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         </fieldset>
 
         {/* Timeouts */}
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        {/* <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Timeouts
           </legend>
@@ -687,8 +697,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={handleChange}
               placeholder="30.0"
               disabled={isViewMode}
-            />
-            {/* <Input
+            /> */}
+        {/* <Input
               label="Enquire Link Interval (s)"
               name="enquireLinkInterval"
               type="number"
@@ -698,7 +708,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="30.0"
               disabled={isViewMode}
             /> */}
-            {/* <Input
+        {/* <Input
               label="Connection Timeout (s)"
               name="connectionTimeout"
               type="number"
@@ -708,8 +718,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="10.0"
               disabled={isViewMode}
             /> */}
-          </div>
-        </fieldset>
+        {/* </div>
+        </fieldset> */}
 
         {/* Retries & Recovery */}
         {/* <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -717,7 +727,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             Retries & Recovery
           </legend>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4"> */}
-            {/* <Input
+        {/* <Input
               label="Max Msg Retries"
               name="maxMessageRetries"
               type="number"
@@ -726,7 +736,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="3"
               disabled={isViewMode}
             /> */}
-            {/* <Input
+        {/* <Input
               label="Conn Retry Delay (s)"
               name="connectionRetryDelay"
               type="number"
@@ -736,7 +746,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="5.0"
               disabled={isViewMode}
             /> */}
-            {/* <Input
+        {/* <Input
               label="Conn Retry Count"
               name="connectionRetryCount"
               type="number"
@@ -745,7 +755,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="3"
               disabled={isViewMode}
             /> */}
-            {/* <Input
+        {/* <Input
               label="Conn Recovery Delay (s)"
               name="connectionRecoveryDelay"
               type="number"
@@ -755,7 +765,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="60.0"
               disabled={isViewMode}
             /> */}
-            {/* <Input
+        {/* <Input
               label="Bind Retry Delay (s)"
               name="bindRetryDelay"
               type="number"
@@ -765,7 +775,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="5.0"
               disabled={isViewMode}
             /> */}
-            {/* <Input
+        {/* <Input
               label="Bind Retry Count"
               name="bindRetryCount"
               type="number"
@@ -774,7 +784,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               placeholder="3"
               disabled={isViewMode}
             /> */}
-          {/* </div>
+        {/* </div>
         </fieldset> */}
 
         {/* TLVs */}

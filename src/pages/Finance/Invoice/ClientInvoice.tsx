@@ -260,18 +260,34 @@ const ClientInvoice: React.FC = () => {
 
   const VITE_IMAGE_URL = import.meta.env.VITE_IMAGE_URL;
 
-  const handleViewPdf = (path?: string) => {
-    if (!path) {
-      toast.error("PDF not available yet.");
+  const handleViewPdf = async (id?: number) => {
+    if (!id) {
+      toast.error("Invoice ID not available.");
       return;
     }
 
-    const fullUrl = path.startsWith("http")
-      ? path
-      : `${VITE_IMAGE_URL}/${path}`;
-
-    const cleanUrl = fullUrl.replace(/(?<!:)\/\//g, "/");
-    window.open(cleanUrl, "_blank");
+    const cleanUrl = `/api/finance/client-invoice/${id}/download/`;
+    const toastId = toast.loading("Generating PDF for view...", { type: "info" });
+    try {
+      const response = await api.get(cleanUrl, { responseType: "blob" });
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const blobUrl = window.URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank");
+      toast.update(toastId, {
+        render: "PDF opened successfully",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
+    } catch (error) {
+      console.error(error);
+      toast.update(toastId, {
+        render: "Failed to load PDF.",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
+    }
   };
 
   const handleDownloadPdf = async (url?: string) => {
@@ -348,14 +364,14 @@ const ClientInvoice: React.FC = () => {
         {
           label: "View Invoice",
           icon: <Eye size={16} />,
-          onClick: () => handleViewPdf(selectedRow.invoicePdf),
+          onClick: () => handleViewPdf(selectedRow.id),
         },
         {
           label: "Download PDF",
           icon: <Download size={16} />,
           onClick: () =>
             handleDownloadPdf(
-              selectedRow.downloadUrl || selectedRow.invoicePdf,
+              selectedRow.downloadUrl || `/api/finance/client-invoice/${selectedRow.id}/download/`,
             ),
         },
         {

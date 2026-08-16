@@ -115,9 +115,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   const paymentTermOptions = [
     { label: "Prepaid", value: "PREPAID" },
     { label: "Postpaid", value: "POSTPAID" },
-    { label: "Net 7", value: "NET7" },
-    { label: "Net 15", value: "NET15" },
-    { label: "Net 30", value: "NET30" },
+    // { label: "Net 7", value: "NET7" },
+    // { label: "Net 15", value: "NET15" },
+    // { label: "Net 30", value: "NET30" },
+
   ];
 
   const invoicePolicyOptions = [
@@ -405,7 +406,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       if (editingClient) {
         await handleAccessControlSync(savedClientId, ipList, hostList);
       }
-      
+
       // On creation only, auto-create linked Route Group / Customer Rate
       // Group with the same name and attach them to the client.
       // if (isNewClient && savedClientId) {
@@ -718,6 +719,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               placeholder="10"
               disabled={isViewMode}
             />
+            <Input
+              label="Idle Timeout (Seconds)"
+              name="idleTimeoutSec"
+              type="number"
+              value={formData.idleTimeoutSec}
+              onChange={handleChange}
+              placeholder="60"
+              disabled={isViewMode}
+            />
             {/* <Input
               label="Max Queue Depth"
               name="maxQueueDepth"
@@ -749,7 +759,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         </fieldset>
 
         {/* Policy: Timeouts */}
-        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        {/* <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Timeouts
           </legend>
@@ -762,8 +772,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               onChange={handleChange}
               placeholder="60"
               disabled={isViewMode}
-            />
-            {/* <Input
+            /> */}
+        {/* <Input
               label="Submit Timeout (Seconds)"
               name="submitTimeoutSec"
               type="number"
@@ -772,8 +782,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               placeholder="60"
               disabled={isViewMode}
             /> */}
-          </div>
-        </fieldset>
+        {/* </div>
+        </fieldset> */}
 
         {/* Settings & Extra */}
         <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">

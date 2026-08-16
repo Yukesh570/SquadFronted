@@ -58,10 +58,8 @@ const DEFAULT_TABLE_COLUMNS = [
   "country_name",
   "MCC",
   "MNC",
-  "networkType",
   "status",
-  "isPrimary",
-  "notes",
+  "createdAt"
 ];
 
 const OperatorNetworkCode: React.FC = () => {
@@ -164,7 +162,7 @@ const OperatorNetworkCode: React.FC = () => {
       const statusKey = val ? "DELIVERED" : "PENDING";
       return <StatusBadge status={statusKey} customText={val ? "Yes" : "No"} />;
     }
-    
+
     const stringVal = String(val).toUpperCase();
     if (stringVal === "ACTIVE" || stringVal === "TRUE") {
       return <StatusBadge status="DELIVERED" customText={String(val)} />;
@@ -255,7 +253,7 @@ const OperatorNetworkCode: React.FC = () => {
   const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
-  
+
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -407,31 +405,31 @@ const OperatorNetworkCode: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRow
     ? [
-        {
-          label: "View Details",
-          icon: <Eye size={16} />,
-          onClick: () => handleView(selectedRow),
-        },
-        ...(canUpdate
-          ? [
-              {
-                label: "Edit Info",
-                icon: <Edit size={16} />,
-                onClick: () => handleEdit(selectedRow),
-              },
-            ]
-          : []),
-        ...(canDelete
-          ? [
-              {
-                label: "Delete",
-                icon: <Trash size={16} />,
-                variant: "danger" as const,
-                onClick: () => setDeleteId(selectedRow.id!),
-              },
-            ]
-          : []),
-      ]
+      {
+        label: "View Details",
+        icon: <Eye size={16} />,
+        onClick: () => handleView(selectedRow),
+      },
+      ...(canUpdate
+        ? [
+          {
+            label: "Edit Info",
+            icon: <Edit size={16} />,
+            onClick: () => handleEdit(selectedRow),
+          },
+        ]
+        : []),
+      ...(canDelete
+        ? [
+          {
+            label: "Delete",
+            icon: <Trash size={16} />,
+            variant: "danger" as const,
+            onClick: () => setDeleteId(selectedRow.id!),
+          },
+        ]
+        : []),
+    ]
     : [];
 
   const tableHeaders = [

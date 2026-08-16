@@ -62,6 +62,30 @@ export const MessageReportModal: React.FC<MessageReportModalProps> = ({
           {/* Timestamps Row */}
           <div>
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
+              Queued At
+            </label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">
+              {viewLog.queued_at ? new Date(viewLog.queued_at).toLocaleString() : "-"}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
+              Submitted At
+            </label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">
+              {viewLog.submitted_at ? new Date(viewLog.submitted_at).toLocaleString() : "-"}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
+              Delivered At
+            </label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">
+              {viewLog.delivered_at ? new Date(viewLog.delivered_at).toLocaleString() : "-"}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
               Delivered At
             </label>
             <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">
@@ -76,14 +100,7 @@ export const MessageReportModal: React.FC<MessageReportModalProps> = ({
               {viewLog.failed_at ? new Date(viewLog.failed_at).toLocaleString() : "-"}
             </div>
           </div>
-          <div className="lg:col-span-2">
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
-              Failure Reason
-            </label>
-            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">
-              {viewLog.failure_reason || "-"}
-            </div>
-          </div>
+
 
           {/* Account Details */}
           <div>
@@ -142,6 +159,14 @@ export const MessageReportModal: React.FC<MessageReportModalProps> = ({
             </label>
             <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">
               {viewLog.characterCount || "-"}
+            </div>
+          </div>
+          <div className="lg:col-span-2">
+            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
+              Failure Reason
+            </label>
+            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">
+              {viewLog.failure_reason || "-"}
             </div>
           </div>
         </div>

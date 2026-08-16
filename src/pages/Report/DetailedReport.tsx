@@ -47,7 +47,7 @@ const formatLocalDate = (date: Date) => {
 
 const DEFAULT_SEARCH_COLUMNS = ["client", "destination", "submitStatus"];
 const DEFAULT_TABLE_COLUMNS = [
-  "text_message_id", "destination", "content", "submitStatus", "client", "vendor", "vendor_msg_id", "request_time"
+  "text_message_id", "destination", "senderId", "content", "submitStatus", "client", "vendor", "vendor_msg_id", "request_time"
 ];
 
 const BATCH_SIZE = 100;
@@ -104,15 +104,19 @@ const DetailedReport: React.FC = () => {
     { key: "senderId", label: "Sender ID", type: "text", filterKey: "senderId__icontains" },
     { key: "vendor_msg_id", label: "Vendor Msg ID", type: "text", filterKey: "vendor_msg_id__icontains" },
 
-    { key: "content", label: "Content", type: "text", filterKey: "text__icontains", render: (log) => (
-      <div className="max-w-xs truncate text-sm text-text-secondary cursor-pointer hover:text-primary transition-colors" title="Click to view full message" onClick={(e) => { e.stopPropagation(); setViewLog(log); setIsModalOpen(true); }}>
-        {log.content}
-      </div>
-    )},
+    {
+      key: "content", label: "Content", type: "text", filterKey: "text__icontains", render: (log) => (
+        <div className="max-w-xs truncate text-sm text-text-secondary cursor-pointer hover:text-primary transition-colors" title="Click to view full message" onClick={(e) => { e.stopPropagation(); setViewLog(log); setIsModalOpen(true); }}>
+          {log.content}
+        </div>
+      )
+    },
 
-    { key: "submitStatus", label: "Status", type: "text", options: statusOptions, filterKey: "submitStatus", render: (log) => {
-      return <StatusBadge status={log.submitStatus} />;
-    }},
+    {
+      key: "submitStatus", label: "Status", type: "text", options: statusOptions, filterKey: "submitStatus", render: (log) => {
+        return <StatusBadge status={log.submitStatus} />;
+      }
+    },
 
     { key: "clientRate", label: "Client Rate", type: "number", filterKey: "clientRate__icontains" },
     { key: "client_charge", label: "Client Charge", type: "number", filterKey: "client_charge__icontains" },
@@ -122,11 +126,18 @@ const DetailedReport: React.FC = () => {
 
     { key: "request_time", label: "Request Time (Single Day)", tableLabel: "Request Time", type: "date", filterKey: "request_time__range", render: (log) => (<span>{log.request_time ? new Date(log.request_time).toLocaleString() : "-"}</span>) },
     { key: "request_time__range", label: "Request Time (Range)", type: "date_range", filterKey: "request_time__range", isSearchOnly: true },
+
+    { key: "encoding", label: "Encoding", type: "text", filterKey: "encoding__icontains" },
+    { key: "characterCount", label: "Character Count", type: "text", filterKey: "characterCount__icontains" },
+    { key: "failure_reason", label: "Failure Reason", type: "text", filterKey: "failure_reason__icontains" },
+    { key: "message_queued_at", label: "Queued At", type: "date", filterKey: "message_queued_at__range", render: (log) => (<span>{log.message_queued_at || "-"}</span>) },
+    { key: "message_delivered_at", label: "Delivered At", type: "date", filterKey: "message_delivered_at__range", render: (log) => (<span>{log.message_delivered_at || "-"}</span>) },
+    { key: "message_failed_at", label: "Failed At", type: "date", filterKey: "message_failed_at__range", render: (log) => (<span>{log.message_failed_at || "-"}</span>) },
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
-  
+
   // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
@@ -234,34 +245,34 @@ const DetailedReport: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Detailed Report</h1>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={tableFilterColumns} 
-              selectedColumns={tableColumns} 
+            <AdvancedFilter
+              columns={tableFilterColumns}
+              selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
-              onFilter={setTableColumns} 
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
-              buttonLabel="Columns" 
+              onFilter={setTableColumns}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
               enableReorder={true}
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={searchableColumns} 
-              selectedColumns={searchColumns} 
+            <AdvancedFilter
+              columns={searchableColumns}
+              selectedColumns={searchColumns}
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
-              onFilter={(newCols) => { 
-                setSearchColumns(newCols); 
-                setFilterValues((prev) => { 
-                  const next = { ...prev }; 
-                  Object.keys(next).forEach((k) => { 
-                    if (!newCols.includes(k)) delete next[k]; 
-                  }); 
-                  return next; 
-                }); 
-              }} 
-              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
-              isLoading={isLoading} 
-              buttonLabel="Search Fields" 
+              onFilter={(newCols) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
             />
           </div>
         </div>

@@ -59,10 +59,11 @@ const DEFAULT_SEARCH_COLUMNS = ["name"];
 const DEFAULT_TABLE_COLUMNS = [
   "name",
   "shortName",
+  "accountManagerName",
   "companyEmail",
   "phone",
-  "usedCustomerCredit",
-  "usedVendorCredit",
+  "customerCreditLimit",
+  "vendorCreditLimit",
 ];
 
 const CompanyList: React.FC = () => {
