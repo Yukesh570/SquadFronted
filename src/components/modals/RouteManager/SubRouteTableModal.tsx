@@ -23,6 +23,7 @@ import Button from "../../ui/Button";
 import Select from "../../ui/Select";
 import Input from "../../ui/Input";
 import { StatusBadge } from "../../ui/StatusBadge";
+import { CountryFlag } from "../../ui/CountryFlag";
 import ContextMenu, { type ContextMenuItem } from "../../ui/ContextMenu";
 import {
   Plus,
@@ -157,7 +158,8 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   canDelete,
 }) => {
   const [vendorOptions, setVendorOptions] = useState<{ label: string; value: string }[]>([]);
-  const [countryOptions, setCountryOptions] = useState<{ label: string; value: string }[]>([]);
+  const [countryOptions, setCountryOptions] = useState<any[]>([]);
+  const [countryIsoMap, setCountryIsoMap] = useState<Record<string, string>>({});
 
   const [networkCodesByCountry, setNetworkCodesByCountry] = useState<
     Record<
@@ -422,7 +424,18 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     getCountriesApi("country", 1, 1000)
       .then((res: any) => {
         const list = res.results || (Array.isArray(res) ? res : []);
-        setCountryOptions(list.map((c: any) => ({ label: c.name, value: String(c.id) })));
+        const isoMap: Record<string, string> = {};
+        setCountryOptions(
+          list.map((c: any) => {
+            if (c.iso2) isoMap[String(c.id)] = c.iso2;
+            return {
+              label: c.name,
+              value: String(c.id),
+              ...(c.iso2 ? { icon: <CountryFlag iso2={c.iso2} /> } : {})
+            };
+          }),
+        );
+        setCountryIsoMap(isoMap);
       })
       .catch(() => { });
     getVendorsApi("vendor", 1, 1000)
@@ -1081,7 +1094,12 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                             : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300"
                             }`}
                         >
-                          <span>{s.config.countryName}</span>
+                          <span className="flex items-center gap-1.5">
+                            {countryIsoMap[String(s.config.country)] && (
+                              <CountryFlag iso2={countryIsoMap[String(s.config.country)]} />
+                            )}
+                            {s.config.countryName}
+                          </span>
                           <span className="text-xs opacity-60">({s.config.routingType})</span>
                           {canUpdate && (
                             <button
@@ -1199,7 +1217,10 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                     onClick={() => toggleSection(countryId)}
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="font-semibold text-sm text-gray-800 dark:text-gray-100">
+                      <span className="font-semibold text-sm text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
+                        {countryIsoMap[countryId] && (
+                          <CountryFlag iso2={countryIsoMap[countryId]} />
+                        )}
                         {section.config.countryName}
                       </span>
                       <span

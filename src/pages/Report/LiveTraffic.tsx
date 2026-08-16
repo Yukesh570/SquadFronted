@@ -27,6 +27,7 @@ import FilterCard from "../../components/ui/FilterCard";
 import AdvancedFilter, {
   type FilterColumn,
 } from "../../components/ui/AdvancedFilter";
+import { CountryFlag } from "../../components/ui/CountryFlag";
 import TraceModal from "../../components/modals/Report/TraceModal";
 import CustomDatePicker from "../../components/ui/DatePicker";
 import { actionHelper } from "../../helper/action";
@@ -114,8 +115,8 @@ const LiveTraffic: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // --- 2. Fetch Dropdown Options ---
-  const extractOptions = (response: any, labelKey: string = "name") => {
-    let data = [];
+  const extractOptions = (response: any, labelKey: string, isCountry = false) => {
+    let data: any[] = [];
     if (response && response.results) {
       data = response.results;
     } else if (Array.isArray(response)) {
@@ -126,6 +127,7 @@ const LiveTraffic: React.FC = () => {
     return data.map((item: any) => ({
       label: item[labelKey] || item.name || "Unknown",
       value: String(item.id),
+      ...(isCountry && item.iso2 ? { icon: <CountryFlag iso2={item.iso2} /> } : {})
     }));
   };
 
@@ -143,7 +145,7 @@ const LiveTraffic: React.FC = () => {
           ]);
 
         setClientOptions(extractOptions(clientsRes, "name"));
-        setCountryOptions(extractOptions(countriesRes, "name"));
+        setCountryOptions(extractOptions(countriesRes, "name", true));
         // ⚡️ FIX: Commented out operator options setting
         // setOperatorOptions(extractOptions(operatorsRes, "name"));
         setVendorOptions(extractOptions(vendorsRes, "profileName"));

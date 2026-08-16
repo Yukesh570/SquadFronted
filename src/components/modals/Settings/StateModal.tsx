@@ -10,6 +10,7 @@ import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
 import Modal from "../../ui/Modal";
+import { CountryFlag } from "../../ui/CountryFlag";
 
 interface StateModalProps {
   isOpen: boolean;
@@ -55,6 +56,7 @@ export const StateModal: React.FC<StateModalProps> = ({
           const options = data.map((c: any) => ({
             label: c.name,
             value: String(c.id),
+            ...(c.iso2 ? { icon: <CountryFlag iso2={c.iso2} /> } : {})
           }));
           setCountryOptions(options);
         })

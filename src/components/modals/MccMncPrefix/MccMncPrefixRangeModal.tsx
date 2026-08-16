@@ -12,6 +12,7 @@ import Button from "../../ui/Button";
 import Select from "../../ui/Select";
 import Modal from "../../ui/Modal";
 import TextArea from "../../ui/TextArea";
+import { CountryFlag } from "../../ui/CountryFlag";
 
 interface Option {
   label: string;
@@ -60,6 +61,7 @@ export const MccMncPrefixRangeModal: React.FC<MccMncPrefixRangeModalProps> = ({
         const options: Option[] = list.map((c: any) => ({
           label: c.name || `Country ${c.id}`,
           value: String(c.id),
+          ...(c.iso2 ? { icon: <CountryFlag iso2={c.iso2} /> } : {}),
         }));
         setCountryOptions(options.sort((a, b) => a.label.localeCompare(b.label)));
       })

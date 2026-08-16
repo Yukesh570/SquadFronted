@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import Modal from "../../ui/Modal";
 import Button from "../../ui/Button";
 import Input from "../../ui/Input";
+import { CountryFlag } from "../../ui/CountryFlag";
 import Select from "../../ui/Select";
 import {
   MultiSelectDropdown,
@@ -95,8 +96,9 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
   const extractOptions = (
     response: any,
     labelKey: string = "name",
+    isCountry = false
   ): MultiSelectOption[] => {
-    let data = [];
+    let data: any[] = [];
     if (response && response.results) {
       data = response.results;
     } else if (Array.isArray(response)) {
@@ -107,6 +109,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     return data.map((item: any) => ({
       label: item[labelKey] || item.name || "Unknown",
       value: String(item.id),
+      ...(isCountry && item.iso2 ? { icon: <CountryFlag iso2={item.iso2} /> } : {})
     }));
   };
 
@@ -127,7 +130,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
             [];
           setFullCountriesList(fullList);
 
-          const allCountryOptions = extractOptions(countries, "name");
+          const allCountryOptions = extractOptions(countries, "name", true);
           const filteredCountryOptions =
             allowedCountryIds && allowedCountryIds.length > 0
               ? allCountryOptions.filter((o) => allowedCountryIds.includes(o.value))

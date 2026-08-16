@@ -28,9 +28,12 @@ interface CompanyModalProps {
   isViewMode?: boolean;
 }
 
+import { CountryFlag } from "../ui/CountryFlag";
+
 interface Option {
   label: string;
   value: string;
+  icon?: React.ReactNode;
 }
 
 export const CompanyModal: React.FC<CompanyModalProps> = ({
@@ -95,6 +98,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
             list.map((item: any) => ({
               label: item.username || item.name || item.legalEntityName || item.companyName,
               value: String(item.id),
+              ...(item.iso2 ? { icon: <CountryFlag iso2={item.iso2} /> } : {})
             })),
           );
         } catch (e) {

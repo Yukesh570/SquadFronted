@@ -11,6 +11,7 @@ import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
 // import { getOperatorsApi } from "../../../api/operatorApi/operatorApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
+import { CountryFlag } from "../../ui/CountryFlag";
 import Select from "../../ui/Select";
 import Modal from "../../ui/Modal";
 import TextArea from "../../ui/TextArea";
@@ -73,7 +74,11 @@ export const OperatorNetworkCodeModal: React.FC<
         .then((res: any) => {
           const list = res.results || (Array.isArray(res) ? res : []);
           setCountryOptions(
-            list.map((c: any) => ({ label: c.name, value: String(c.id) })),
+            list.map((c: any) => ({ 
+              label: c.name, 
+              value: String(c.id),
+              ...(c.iso2 ? { icon: <CountryFlag iso2={c.iso2} /> } : {})
+            })),
           );
         })
         .catch(console.error);

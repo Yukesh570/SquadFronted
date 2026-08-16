@@ -8,11 +8,13 @@ import {
   getMessageLogsApi,
   type MessageLogData,
 } from "../../api/reportApi/messageReportApi";
+import { CountryFlag } from "../../components/ui/CountryFlag";
 
 // --- Dropdown APIs ---
 import { getClientsApi } from "../../api/clientApi/clientApi";
 import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
 import { getSmppApi } from "../../api/connectivityApi/smppApi";
+import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 
 // --- Components ---
 import Input from "../../components/ui/Input";
@@ -32,6 +34,8 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 interface Option {
   label: string;
   value: string;
+  icon?: React.ReactNode;
+
 }
 
 interface ColumnConfig extends FilterColumn {
@@ -68,6 +72,7 @@ const encodingOptions: Option[] = [
 const DEFAULT_SEARCH_COLUMNS = [
   "destination",
   "clientName",
+  "countryName",
   "status",
   "message_id",
   "source_addr"
@@ -76,6 +81,7 @@ const DEFAULT_TABLE_COLUMNS = [
   "message_id",
   "destination",
   "source_addr",
+  "countryName",
   "status",
   "segmentNumber",
   "clientName",
@@ -106,6 +112,7 @@ const MessageReport: React.FC = () => {
   const [clientOptions, setClientOptions] = useState<Option[]>([]);
   const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
   const [smppOptions, setSmppOptions] = useState<Option[]>([]);
+  const [countryOptions, setCountryOptions] = useState<Option[]>([]);
 
   const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
 
@@ -141,18 +148,20 @@ const MessageReport: React.FC = () => {
     return data.map((item: any) => ({
       label: item[labelKey] || item.name || "Unknown",
       value: item[valueKey] || item.name || String(item.id),
+      ...(item.iso2 ? { icon: <CountryFlag iso2={item.iso2} /> } : {})
     }));
   };
 
   useEffect(() => {
     const fetchAllOptions = async () => {
       try {
-        const [clientsRes, vendorsRes, smppRes] = await Promise.all([
+        const [clientsRes, vendorsRes, smppRes, countriesRes] = await Promise.all([
           getClientsApi("client", 1, 1000),
           getVendorsApi("vendor", 1, 1000),
           typeof getSmppApi === "function"
             ? getSmppApi("smpp", 1, 1000)
             : Promise.resolve([]),
+          getCountriesApi("country", 1, 1000),
         ]);
 
         setClientOptions(extractOptions(clientsRes, "name", "name"));
@@ -160,6 +169,7 @@ const MessageReport: React.FC = () => {
           extractOptions(vendorsRes, "profileName", "profileName"),
         );
         setSmppOptions(extractOptions(smppRes, "systemID", "systemID"));
+        setCountryOptions(extractOptions(countriesRes, "name", "name"));
       } catch (error) {
         console.error("Failed to load filter options", error);
       }
@@ -171,6 +181,13 @@ const MessageReport: React.FC = () => {
     () => [
       { key: "message_id", label: "Message ID", type: "text", isSearchable: false },
       { key: "source_addr", label: "Sender ID", type: "text", filterKey: "source_addr__icontains" },
+      {
+        key: "countryName",
+        label: "Country",
+        type: "text",
+        options: countryOptions,
+        filterKey: "country__name__icontains"
+      },
 
       { key: "destination", label: "Destination", type: "text", filterKey: "destination__icontains" },
       {
@@ -224,7 +241,7 @@ const MessageReport: React.FC = () => {
       { key: "failed_at", label: "Failed At (Single Day)", tableLabel: "Failed At", type: "date", filterKey: "failed_at__range" },
       { key: "failed_at__range", label: "Failed At (Range)", type: "date_range", filterKey: "failed_at__range", isSearchOnly: true },
     ],
-    [clientOptions, vendorOptions, smppOptions],
+    [clientOptions, vendorOptions, smppOptions, countryOptions],
   );
 
   const searchableColumns = filterOptionsConfig.filter((col) => col.isSearchable !== false);
@@ -246,10 +263,24 @@ const MessageReport: React.FC = () => {
         label: "Sender ID",
         type: "text",
         render: (log) => (
-          <span className="text-sm font-medium text-text-primary dark:text-white">
+          <span className="text-sm">
             {log.source_addr}
           </span>
         ),
+      },
+      {
+        key: "countryName",
+        label: "Country",
+        type: "text",
+        render: (log) => {
+          const match = countryOptions.find((opt) => opt.label === log.countryName);
+          return (
+            <div className="flex items-center gap-1.5 text-sm   ">
+              {match?.icon}
+              <span>{log.countryName}</span>
+            </div>
+          );
+        },
       },
       {
         key: "destination",
@@ -536,7 +567,7 @@ const MessageReport: React.FC = () => {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
-            Message Report
+            Live Report
           </h1>
           <div className="relative z-20">
             <AdvancedFilter

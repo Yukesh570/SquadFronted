@@ -5,6 +5,8 @@ import { StatusBadge } from "../../ui/StatusBadge";
 import { DeleteModal } from "../DeleteModal";
 import { toast } from "react-toastify";
 import ContextMenu, { type ContextMenuItem } from "../../ui/ContextMenu";
+import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
+import { CountryFlag } from "../../ui/CountryFlag";
 
 interface RateVersionTableModalProps {
   isOpen: boolean;
@@ -44,6 +46,27 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<any>(null);
+
+  const [countryOptions, setCountryOptions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const res = await getCountriesApi("country", 1, 1000);
+        const data = res.results || (Array.isArray(res) ? res : []);
+        setCountryOptions(
+          data.map((item: any) => ({
+            label: item.name || "Unknown",
+            value: item.name || String(item.id),
+            iso2: item.iso2,
+          }))
+        );
+      } catch (error) {
+        console.error("Failed to fetch countries", error);
+      }
+    };
+    fetchCountries();
+  }, []);
 
   useEffect(() => {
     if (isOpen && ratePlan) {
@@ -122,8 +145,14 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
   ];
 
   const renderCountry = (rate: any) => { 
-    if (rate.countryName) return rate.countryName; 
-    return countryMap[String(rate.country)] || String(rate.country || "-"); 
+    const countryNameStr = rate.countryName || countryMap[String(rate.country)] || String(rate.country || "-");
+    const match = countryOptions.find((opt) => opt.label === countryNameStr || opt.value === String(rate.country));
+    return (
+      <div className="flex items-center gap-1.5">
+        {match?.iso2 && <CountryFlag iso2={match.iso2} />}
+        <span>{countryNameStr}</span>
+      </div>
+    );
   };
   
   const title = `Rate Plan Versions: ${ratePlan || ""}`;
