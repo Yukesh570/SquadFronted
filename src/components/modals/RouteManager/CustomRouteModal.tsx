@@ -18,6 +18,8 @@ import {
   type CustomRouteData,
 } from "../../../api/routeManagerApi/customRouteApi";
 import { getClientsApi } from "../../../api/clientApi/clientApi";
+import { findCustomerRateApi } from "../../../api/rateApi/customerRateApi";
+import { findVendorRateApi } from "../../../api/rateApi/vendorRateApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
 import { getVendorsApi } from "../../../api/connectivityApi/vendorApi";
 import {
@@ -85,6 +87,17 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetchingOptions, setIsFetchingOptions] = useState(false);
+
+  // Dynamic Rate States
+  const [dynamicCustomerRate, setDynamicCustomerRate] = useState<string | null>(null);
+  const [dynamicCustomerRateBase, setDynamicCustomerRateBase] = useState<number | null>(null);
+  const [dynamicCustomerCurrency, setDynamicCustomerCurrency] = useState<string | null>(null);
+
+  const [dynamicVendorRate, setDynamicVendorRate] = useState<string | null>(null);
+  const [dynamicVendorRateBase, setDynamicVendorRateBase] = useState<number | null>(null);
+  const [dynamicVendorCurrency, setDynamicVendorCurrency] = useState<string | null>(null);
+
+  const [dynamicBaseCurrency, setDynamicBaseCurrency] = useState<string | null>(null);
 
   const isFieldDisabled = isViewMode || isEditingGroupStatus;
 
@@ -260,9 +273,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
 
           uniqueMncs.forEach((mnc) => {
             if (mnc !== dbAllMnc) {
-              const matchItem = specificMncs.find((n) => String(n.MNC) === mnc);
-              const opName = matchItem?.operator || matchItem?.operatorName || matchItem?.brandName || "";
-              const labelText = opName ? `${mnc} - ${opName}` : `${mnc}`;
+              const labelText = `${mnc}`;
 
               newMncOptions.push({
                 label: labelText,
@@ -322,6 +333,82 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       }
     }
   }, [formData.country, formData.MCC, formData.MNC, editingRoute, isViewMode, lockedName, formData.name, moduleName]);
+
+  // Dynamic rate fetching
+  useEffect(() => {
+    if (editingRoute && formData.MCC?.length > 0 && formData.MNC?.length > 0) {
+      const fetchDynamicRates = async () => {
+        try {
+          const mcc = formData.MCC[0] === "ALL_MCC" ? "ALL" : formData.MCC[0];
+          const cleanMnc = extractCleanMncString(formData.MNC);
+          const routeName = (lockedName || formData.name) as string;
+
+          // Customer Rate
+          try {
+            const custRes = await findCustomerRateApi({
+              routeGroupName: routeName,
+              MCC: mcc,
+              MNC: cleanMnc,
+            });
+            const custResults = custRes.results || (Array.isArray(custRes) ? custRes : []);
+            if (custResults.length > 0) {
+              setDynamicCustomerRate(String(custResults[0].rate));
+              setDynamicCustomerRateBase(custResults[0].rateBase ?? null);
+              setDynamicCustomerCurrency(custResults[0].currencyCode ?? null);
+              setDynamicBaseCurrency(custResults[0].baseCurrencyCode ?? null);
+            } else {
+              setDynamicCustomerRate("N/A");
+              setDynamicCustomerRateBase(null);
+            }
+          } catch {
+            setDynamicCustomerRate("Error");
+            setDynamicCustomerRateBase(null);
+          }
+
+          // Vendor Rate
+          if (formData.terminatingVendor) {
+            try {
+              const vendRes = await findVendorRateApi({
+                terminatingVendor: formData.terminatingVendor,
+                MCC: mcc,
+                MNC: cleanMnc,
+              });
+              const vendResults = vendRes.results || (Array.isArray(vendRes) ? vendRes : []);
+              if (vendResults.length > 0) {
+                setDynamicVendorRate(String(vendResults[0].rate));
+                setDynamicVendorRateBase(vendResults[0].rateBase ?? null);
+                setDynamicVendorCurrency(vendResults[0].currencyCode ?? null);
+                setDynamicBaseCurrency((prev) => prev || (vendResults[0].baseCurrencyCode ?? null));
+              } else {
+                setDynamicVendorRate("N/A");
+                setDynamicVendorRateBase(null);
+              }
+            } catch {
+              setDynamicVendorRate("Error");
+              setDynamicVendorRateBase(null);
+            }
+          } else {
+            setDynamicVendorRate(null);
+            setDynamicVendorRateBase(null);
+          }
+        } catch (err) {
+          console.error("Error fetching dynamic rates", err);
+        }
+      };
+
+      fetchDynamicRates();
+    } else if (editingRoute) {
+      setDynamicCustomerRate((editingRoute as any).customerRate ?? null);
+      setDynamicCustomerRateBase((editingRoute as any).customerRateBase ?? null);
+      setDynamicCustomerCurrency((editingRoute as any).clientCurrencyCode ?? null);
+
+      setDynamicVendorRate((editingRoute as any).vendorRate ?? null);
+      setDynamicVendorRateBase((editingRoute as any).vendorRateBase ?? null);
+      setDynamicVendorCurrency((editingRoute as any).vendorCurrencyCode ?? null);
+
+      setDynamicBaseCurrency((editingRoute as any).baseCurrencyCode ?? null);
+    }
+  }, [formData.terminatingVendor, formData.MCC, formData.MNC, formData.name, lockedName, editingRoute]);
 
   useEffect(() => {
     if (isOpen) {
@@ -447,72 +534,19 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
     const previousMccs: string[] = formData.MCC;
     const newlyAddedMccs = selectedValues.filter((mcc: string) => !previousMccs.includes(mcc));
 
-    const restoredMncs: string[] = [];
-    newlyAddedMccs.forEach((mcc: string) => {
-      const specificMncs = fullNetworkList.filter((n) => String(n.MCC) === mcc);
-      const uniqueMncs = Array.from(
-        new Set(specificMncs.map((n) => String(n.MNC)))
-      ).filter(Boolean);
-
-      uniqueMncs.forEach((mnc) => {
-        const isDbAll = mnc.toLowerCase() === "all" || mnc.toLowerCase() === "in rest";
-        if (!isDbAll) {
-          restoredMncs.push(`${mcc}(${mnc})`);
-        }
-      });
-    });
-
-    const mergedMnc = Array.from(new Set([...filteredMnc, ...restoredMncs]));
-    setFormData((prev: any) => ({ ...prev, MCC: selectedValues, MNC: mergedMnc, network: "" }));
+    setFormData((prev: any) => ({ ...prev, MCC: selectedValues, MNC: [], network: "" }));
   };
 
   const handleMncChange = (selectedValues: string[], clickedOption?: any) => {
-    let baseMnc = selectedValues.filter((v: string) => v !== "All(All)");
-
-    if (clickedOption && clickedOption.isAll) {
-      const mccPrefix = clickedOption.value.split("(")[0].trim();
-      let newMnc = [...formData.MNC].filter((v: string) => v !== "All(All)");
-
-      const allTag = mncOptions.find(
-        (o: MultiSelectOption) => o.value.startsWith(`${mccPrefix}(`) && o.isAll,
-      );
-
-      if (allTag) {
-        if (newMnc.includes(allTag.value)) {
-          newMnc = newMnc.filter((v: string) => !v.startsWith(`${mccPrefix}(`));
-        } else {
-          newMnc = newMnc.filter((v: string) => !v.startsWith(`${mccPrefix}(`));
-          newMnc.push(allTag.value);
-        }
+    if (clickedOption) {
+      if (formData.MNC.includes(clickedOption.value)) {
+        setFormData((prev: any) => ({ ...prev, MNC: [] }));
+      } else {
+        setFormData((prev: any) => ({ ...prev, MNC: [clickedOption.value] }));
       }
-      setFormData((prev: any) => ({ ...prev, MNC: newMnc }));
       return;
     }
-
-    if (clickedOption && !clickedOption.isAll) {
-      const mccPrefix = clickedOption.value.split("(")[0].trim();
-      let newMnc = [...baseMnc];
-
-      const allTag = mncOptions.find(
-        (o: MultiSelectOption) => o.value.startsWith(`${mccPrefix}(`) && o.isAll,
-      );
-
-      if (allTag && formData.MNC.includes(allTag.value)) {
-        const individualMncs = mncOptions
-          .filter((o: MultiSelectOption) => o.value.startsWith(`${mccPrefix}(`) && !o.isAll)
-          .map((o: MultiSelectOption) => o.value);
-
-        newMnc = formData.MNC.filter((v: string) => v !== allTag.value && v !== "All(All)");
-        newMnc.push(...individualMncs);
-        newMnc = newMnc.filter((v: string) => v !== clickedOption.value);
-        newMnc = Array.from(new Set(newMnc));
-      }
-
-      setFormData((prev: any) => ({ ...prev, MNC: newMnc }));
-      return;
-    }
-
-    setFormData((prev: any) => ({ ...prev, MNC: selectedValues }));
+    setFormData((prev: any) => ({ ...prev, MNC: selectedValues.slice(-1) }));
   };
 
   const handleSelectAllMncExternal = () => {
@@ -558,13 +592,6 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
       const allTagOpt = mncOptions.find(
         (o: MultiSelectOption) => o.value.startsWith(`${mcc}(`) && o.isAll,
       );
-
-      if (allTagOpt && display.includes(allTagOpt.value)) {
-        const individualMncs = mncOptions
-          .filter((o: MultiSelectOption) => o.value.startsWith(`${mcc}(`) && !o.isAll)
-          .map((o: MultiSelectOption) => o.value);
-        display.push(...individualMncs);
-      }
     });
 
     return Array.from(new Set(display));
@@ -878,7 +905,7 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                         options={countryOptions}
                         placeholder="Select Country"
                         disabled={
-                          !!editingRoute || isFieldDisabled || isFetchingOptions
+                          isFieldDisabled || !!editingRoute || isFetchingOptions
                         }
                       />
                     </div>
@@ -890,9 +917,9 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                         selected={formData.MCC}
                         onChange={handleMccChange}
                         disabled={
-                          !!editingRoute ||
                           !formData.country ||
                           isFieldDisabled ||
+                          !!editingRoute ||
                           isFetchingOptions
                         }
                         placeholder={
@@ -909,9 +936,9 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
                           selected={computeDisplayMnc()}
                           onChange={handleMncChange}
                           disabled={
-                            !!editingRoute ||
                             formData.MCC.length === 0 ||
                             isFieldDisabled ||
+                            !!editingRoute ||
                             isFetchingOptions
                           }
                           placeholder={
@@ -979,6 +1006,70 @@ export const CustomRouteModal: React.FC<CustomRouteModalProps> = ({
               </>
             )}
           </>
+        )}
+
+        {!!editingRoute && (
+          <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50/50 dark:bg-gray-800/30">
+            <legend className="text-sm font-semibold text-primary px-2">
+              Rates & Margins (Read-Only)
+            </legend>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Input
+                label="Customer Rate"
+                name="customerRate"
+                onChange={() => {}}
+                value={dynamicCustomerRate ? `${dynamicCustomerRate} ${dynamicCustomerCurrency || ''}` : "—"}
+                disabled
+              />
+              <Input
+                label="Vendor Rate"
+                name="vendorRate"
+                onChange={() => {}}
+                value={dynamicVendorRate ? `${dynamicVendorRate} ${dynamicVendorCurrency || ''}` : "—"}
+                disabled
+              />
+              <Input
+                label="Margin"
+                name="margin"
+                onChange={() => {}}
+                value={(() => {
+                  if (dynamicCustomerRateBase != null && dynamicVendorRateBase != null && dynamicCustomerRate !== "N/A" && dynamicCustomerRate !== "Error" && dynamicVendorRate !== "N/A" && dynamicVendorRate !== "Error") {
+                    const margin = dynamicCustomerRateBase - dynamicVendorRateBase;
+                    return `${margin.toFixed(6)} ${dynamicBaseCurrency || ''}`;
+                  }
+                  return "—";
+                })()}
+                className={(() => {
+                  if (dynamicCustomerRateBase != null && dynamicVendorRateBase != null && dynamicCustomerRate !== "N/A" && dynamicCustomerRate !== "Error" && dynamicVendorRate !== "N/A" && dynamicVendorRate !== "Error") {
+                    const margin = dynamicCustomerRateBase - dynamicVendorRateBase;
+                    return margin < 0 ? "!text-red-500 font-medium" : margin > 0 ? "!text-green-600 font-medium" : "";
+                  }
+                  return "";
+                })()}
+                disabled
+              />
+              <Input
+                label="Margin %"
+                name="marginPercentage"
+                onChange={() => {}}
+                value={(() => {
+                  if (dynamicCustomerRateBase != null && dynamicVendorRateBase != null && dynamicCustomerRate !== "N/A" && dynamicCustomerRate !== "Error" && dynamicVendorRate !== "N/A" && dynamicVendorRate !== "Error" && dynamicCustomerRateBase !== 0) {
+                    const marginPct = ((dynamicCustomerRateBase - dynamicVendorRateBase) / dynamicCustomerRateBase) * 100;
+                    return `${marginPct.toFixed(2)}%`;
+                  }
+                  return "—";
+                })()}
+                className={(() => {
+                  if (dynamicCustomerRateBase != null && dynamicVendorRateBase != null && dynamicCustomerRate !== "N/A" && dynamicCustomerRate !== "Error" && dynamicVendorRate !== "N/A" && dynamicVendorRate !== "Error" && dynamicCustomerRateBase !== 0) {
+                    const margin = dynamicCustomerRateBase - dynamicVendorRateBase;
+                    return margin < 0 ? "!text-red-500 font-medium" : margin > 0 ? "!text-green-600 font-medium" : "";
+                  }
+                  return "";
+                })()}
+                disabled
+              />
+            </div>
+          </fieldset>
         )}
 
         <div className="flex justify-end space-x-3 pt-2">

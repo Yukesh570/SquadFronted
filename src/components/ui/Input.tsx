@@ -21,6 +21,7 @@ const Input: React.FC<InputProps> = ({
   value, 
   autoComplete = "off",
   labelClassName,
+  className,
   ...props 
 }) => {
   const inputId = id || label.replace(/\s+/g, "-").toLowerCase();
@@ -78,7 +79,8 @@ const Input: React.FC<InputProps> = ({
               : "bg-white border-gray-200 text-text-primary dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-500"
           }
           ${leftIcon ? "pl-10" : ""}
-          ${rightIcon || showClear ? "pr-10" : ""}`}
+          ${rightIcon || showClear ? "pr-10" : ""}
+          ${className || ""}`}
         />
         
         {showClear && (
