@@ -296,7 +296,7 @@ const ClientTransaction: React.FC = () => {
           const baseLabel = getBaseLabel(col.label || "");
 
           if (col.options) {
-            return <Select key={col.key} label={baseLabel} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} />;
+            return <Select key={col.key} label={baseLabel} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} allowCustomValue={true} />;
           }
           if (col.type === "date") {
             const rawVal = filterValues[col.key] || "";

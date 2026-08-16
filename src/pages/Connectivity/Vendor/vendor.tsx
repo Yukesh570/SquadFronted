@@ -734,7 +734,7 @@ const Vendor: React.FC = () => {
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              />
+              allowCustomValue={true} />
             );
           }
 

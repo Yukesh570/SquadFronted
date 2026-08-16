@@ -239,7 +239,7 @@ const RejectedSMSLog: React.FC = () => {
                 onChange={(val) => setFilterValues(p => ({ ...p, [col.key]: val }))}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              />
+              allowCustomValue={true} />
             );
           }
           if (col.type === "date") {

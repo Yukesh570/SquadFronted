@@ -352,7 +352,7 @@ const State: React.FC = () => {
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              />
+              allowCustomValue={true} />
             );
           if (col.type === "date")
             return (
