@@ -29,7 +29,7 @@ import Select from "../ui/Select";
 import Modal from "../ui/Modal";
 import ToggleSwitch from "../ui/ToggleSwitch";
 import TextArea from "../ui/TextArea";
-import MultiEmailInput from "../ui/multiEmailInput";
+// import MultiEmailInput from "../ui/multiEmailInput";
 
 interface ClientModalProps {
   isOpen: boolean;
