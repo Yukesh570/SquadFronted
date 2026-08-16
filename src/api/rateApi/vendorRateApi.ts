@@ -15,6 +15,9 @@ export interface VendorRateData {
   effectiveFrom?: string;
   effectiveTo?: string;
   status?: string;
+  currencyCode?: string;
+  rateBase?: number;
+  baseCurrencyCode?: string;
 }
 
 export interface VendorRateGroupData {
