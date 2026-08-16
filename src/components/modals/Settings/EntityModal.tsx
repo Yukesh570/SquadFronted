@@ -7,7 +7,6 @@ import {
 } from "../../../api/settingApi/entityApi/entityApi";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
-import Select from "../../ui/Select";
 import Modal from "../../ui/Modal";
 // FIXED: Imported your brand new reusable component
 import ImageUpload from "../../ui/ImageUpload";
@@ -93,9 +92,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSelectChange = (value: string) => {
-    setFormData({ ...formData, weekCommencing: value });
-  };
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
