@@ -472,7 +472,7 @@ const VendorInvoice: React.FC = () => {
                 }
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              />
+              allowCustomValue={true} />
             );
           }
           if (col.type === "date") {
