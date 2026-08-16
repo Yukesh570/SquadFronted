@@ -18,6 +18,7 @@ import { getVendorsApi } from "../../../api/connectivityApi/vendorApi";
 import { getCountriesApi } from "../../../api/settingApi/countryApi/countryApi";
 import { getOperatorNetworkCodelookupApi } from "../../../api/operatorNetworkCodeApi/operatorNetworkCodeApi";
 import { findVendorRateApi } from "../../../api/rateApi/vendorRateApi";
+import { findCustomerRateApi } from "../../../api/rateApi/customerRateApi";
 import { toast } from "react-toastify";
 import Button from "../../ui/Button";
 import Select from "../../ui/Select";
@@ -50,6 +51,12 @@ interface NewRow {
   trafficPercentage: string;
   status: string;
   vendorRate?: string;
+  vendorCurrencyCode?: string;
+  vendorRateBase?: string;
+  customerRate?: string;
+  customerCurrencyCode?: string;
+  customerRateBase?: string;
+  baseCurrencyCode?: string;
   network?: string;
 }
 
@@ -547,6 +554,9 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       });
       const results = res.results || (Array.isArray(res) ? res : []);
       const matchedRate = results.length > 0 ? String(results[0].rate) : "N/A";
+      const matchedCurrency = results.length > 0 ? results[0].currencyCode : "";
+      const matchedRateBase = results.length > 0 && results[0].rateBase !== undefined ? String(results[0].rateBase) : undefined;
+      const matchedBaseCurrency = results.length > 0 ? results[0].baseCurrencyCode : undefined;
 
       setSections((prev) =>
         prev.map((s) =>
@@ -554,7 +564,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
             ? {
               ...s,
               newRows: s.newRows.map((r) =>
-                r._id === rowId ? { ...r, vendorRate: matchedRate } : r,
+                r._id === rowId ? { ...r, vendorRate: matchedRate, vendorCurrencyCode: matchedCurrency, vendorRateBase: matchedRateBase, baseCurrencyCode: matchedBaseCurrency || r.baseCurrencyCode } : r,
               ),
             }
             : s,
@@ -569,6 +579,64 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
               ...s,
               newRows: s.newRows.map((r) =>
                 r._id === rowId ? { ...r, vendorRate: "Error" } : r,
+              ),
+            }
+            : s,
+        ),
+      );
+    }
+  };
+
+  const fetchInlineCustomerRate = async (countryId: string, rowId: string, rowData: NewRow) => {
+    if (!rowData.MCC || !rowData.MNC || !routeGroup) {
+      setSections((prev) =>
+        prev.map((s) =>
+          String(s.config.country) === countryId
+            ? {
+              ...s,
+              newRows: s.newRows.map((r) =>
+                r._id === rowId ? { ...r, customerRate: undefined } : r,
+              ),
+            }
+            : s,
+        ),
+      );
+      return;
+    }
+
+    try {
+      const res = await findCustomerRateApi({
+        routeGroupName: routeGroup,
+        MCC: rowData.MCC,
+        MNC: rowData.MNC,
+      });
+      const results = res.results || (Array.isArray(res) ? res : []);
+      const matchedRate = results.length > 0 ? String(results[0].rate) : "N/A";
+      const matchedCurrency = results.length > 0 ? results[0].currencyCode : "";
+      const matchedRateBase = results.length > 0 && results[0].rateBase !== undefined ? String(results[0].rateBase) : undefined;
+      const matchedBaseCurrency = results.length > 0 ? results[0].baseCurrencyCode : undefined;
+
+      setSections((prev) =>
+        prev.map((s) =>
+          String(s.config.country) === countryId
+            ? {
+              ...s,
+              newRows: s.newRows.map((r) =>
+                r._id === rowId ? { ...r, customerRate: matchedRate, customerCurrencyCode: matchedCurrency, customerRateBase: matchedRateBase, baseCurrencyCode: matchedBaseCurrency || r.baseCurrencyCode } : r,
+              ),
+            }
+            : s,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to fetch inline customer rate:", err);
+      setSections((prev) =>
+        prev.map((s) =>
+          String(s.config.country) === countryId
+            ? {
+              ...s,
+              newRows: s.newRows.map((r) =>
+                r._id === rowId ? { ...r, customerRate: "Error" } : r,
               ),
             }
             : s,
@@ -649,6 +717,12 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           }
         }
 
+        if (row.MCC && row.MNC) {
+          setTimeout(() => {
+            fetchInlineCustomerRate(countryId, row._id, row);
+          }, 0);
+        }
+
         return { ...s, newRows: [row, ...s.newRows] };
       }),
     );
@@ -667,6 +741,9 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
             const updatedRow = { ...r, [field]: value };
             if (field === "MCC" || field === "MNC" || field === "terminatingVendor") {
               fetchInlineVendorRate(countryId, rowId, updatedRow);
+            }
+            if (field === "MCC" || field === "MNC") {
+              fetchInlineCustomerRate(countryId, rowId, updatedRow);
             }
 
             // AUTO-ADJUST PRIORITY +1 WHEN MNC CHANGES FOR PRIORITY ROUTING
@@ -1501,6 +1578,15 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                           return true;
                                         });
 
+                                        const isValidCustomerRateBase = row.customerRateBase && !["N/A", "Error"].includes(row.customerRateBase);
+                                        const isValidVendorRateBase = row.vendorRateBase && !["N/A", "Error"].includes(row.vendorRateBase);
+                                        const rowMargin = (isValidCustomerRateBase && isValidVendorRateBase) 
+                                          ? parseFloat(row.customerRateBase!) - parseFloat(row.vendorRateBase!) 
+                                          : null;
+                                        const rowMarginPct = (rowMargin !== null && parseFloat(row.customerRateBase!) !== 0) 
+                                          ? (rowMargin / parseFloat(row.customerRateBase!)) * 100 
+                                          : null;
+
                                         return (
                                           <tr
                                             key={row._id}
@@ -1573,17 +1659,17 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                                 />
                                               </div>
                                             </td>
-                                            <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-500 font-mono text-center">
-                                              —
+                                            <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-500 font-mono">
+                                              {row.customerRate ? (row.customerRate === "N/A" || row.customerRate === "Error" ? <span className="text-red-400">{row.customerRate}</span> : <span>{row.customerRate} {row.customerCurrencyCode || ''}</span>) : "—"}
                                             </td>
                                             <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-500 font-mono">
-                                              {row.vendorRate ? (row.vendorRate === "N/A" || row.vendorRate === "Error" ? <span className="text-red-400">{row.vendorRate}</span> : <span>{row.vendorRate}</span>) : "—"}
+                                              {row.vendorRate ? (row.vendorRate === "N/A" || row.vendorRate === "Error" ? <span className="text-red-400">{row.vendorRate}</span> : <span>{row.vendorRate} {row.vendorCurrencyCode || ''}</span>) : "—"}
                                             </td>
-                                            <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-500 font-mono text-center">
-                                              —
+                                            <td className={`px-3 py-1.5 border-b border-r dark:border-gray-700 font-mono text-xs text-center ${rowMargin !== null ? (rowMargin < 0 ? 'text-red-500 font-medium' : rowMargin > 0 ? 'text-green-600 font-medium' : 'text-gray-500') : 'text-gray-500'}`}>
+                                              {rowMargin !== null ? `${rowMargin.toFixed(6)} ${row.baseCurrencyCode || ''}` : "—"}
                                             </td>
-                                            <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-500 font-mono text-center">
-                                              —
+                                            <td className={`px-3 py-1.5 border-b border-r dark:border-gray-700 font-mono text-xs text-center ${rowMarginPct !== null ? (rowMarginPct < 0 ? 'text-red-500 font-medium' : rowMarginPct > 0 ? 'text-green-600 font-medium' : 'text-gray-500') : 'text-gray-500'}`}>
+                                              {rowMarginPct !== null ? rowMarginPct.toFixed(2) + "%" : "—"}
                                             </td>
                                             <td className="px-2 py-1.5 border-b dark:border-gray-700 overflow-visible">
                                               <div className="inline-table-field min-w-[110px]">

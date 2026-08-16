@@ -15,6 +15,9 @@ export interface CustomerRateData {
   effectiveTo?: string;
   status?: string;
   network?: string;
+  currencyCode?: string;
+  rateBase?: number;
+  baseCurrencyCode?: string;
 }
 
 // ⚡️ Added Customer Rate Group Interface
@@ -108,6 +111,14 @@ export const getCustomerRatesPerMNCMCCApi = async (
     ...searchParams,
   };
   const response = await api.get(`/customerRatePerQuery/${module}/`, { params });
+  return response.data;
+};
+
+// ⚡️ Added: Looks up the matching active customer rate for a given RouteGroup + MCC + MNC
+export const findCustomerRateApi = async (
+  searchParams: { routeGroupName: string; MCC: string | number; MNC: string | number },
+): Promise<PaginatedResponse<CustomerRateData>> => {
+  const response = await api.get(`/findCustomerRate/customerRate/`, { params: searchParams });
   return response.data;
 };
 

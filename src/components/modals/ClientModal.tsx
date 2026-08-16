@@ -667,7 +667,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               </>
             )}
 
-            {editingClient && (!isViewMode || formData.ipWhitelist) && (
+            {/* {editingClient && (!isViewMode || formData.ipWhitelist) && (
               <div className="md:col-span-2">
                 <MultiEmailInput
                   label="IP Whitelist"
@@ -691,7 +691,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                   disabled={isViewMode}
                 />
               </div>
-            )}
+            )} */}
           </div>
         </fieldset>
 
