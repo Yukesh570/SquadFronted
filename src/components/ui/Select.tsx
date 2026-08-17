@@ -95,13 +95,6 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
     e.stopPropagation();
     onChange("");
     setQuery("");
-
-    setTimeout(() => {
-      const form = anchorRef.current?.closest("form");
-      if (form) {
-        form.requestSubmit();
-      }
-    }, 0);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -124,12 +117,14 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
       const inputEl = e.currentTarget;
       inputEl.blur();
 
-      setTimeout(() => {
-        const form = inputEl.closest("form");
-        if (form) {
-          form.requestSubmit();
-        }
-      }, 0);
+      if (allowCustomValue) {
+        setTimeout(() => {
+          const form = inputEl.closest("form");
+          if (form) {
+            form.requestSubmit();
+          }
+        }, 0);
+      }
     }
   };
 
@@ -223,6 +218,13 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
                 );
                 if (!match && trimmedQuery !== value) {
                   onChange(trimmedQuery);
+                }
+              } else if (!allowCustomValue) {
+                setQuery("");
+                setIsTyping(false);
+                if (inputRef.current) {
+                  const actualDisplayValue = options.find((o) => o.value === value)?.label || value || "";
+                  inputRef.current.value = actualDisplayValue;
                 }
               }
             }}
