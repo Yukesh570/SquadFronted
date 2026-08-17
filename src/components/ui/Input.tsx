@@ -44,6 +44,17 @@ const Input: React.FC<InputProps> = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (props.type === "number") {
+      if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") {
+        e.preventDefault();
+      }
+    }
+    if (props.onKeyDown) {
+      props.onKeyDown(e);
+    }
+  };
+
   const hasValue = value !== undefined && value !== null && value !== "";
   const showClear = isClearable && !disabled && !props.readOnly && hasValue && !rightIcon;
 
@@ -71,7 +82,9 @@ const Input: React.FC<InputProps> = ({
           value={value}
           disabled={disabled}
           required={required}
+          min={props.type === "number" && props.min === undefined ? 0 : props.min}
           onInput={handleInput}
+          onKeyDown={handleKeyDown}
           className={`w-full rounded-lg border px-3 py-2.5 text-sm shadow-input transition duration-150 ease-in-out focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary 
           ${
             disabled

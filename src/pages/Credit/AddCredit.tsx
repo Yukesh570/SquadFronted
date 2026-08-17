@@ -146,8 +146,8 @@ const AddCredit: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowCompany ? [
     ...(canUpdate ? [
-      { label: "Update Customer Credit", icon: <Edit size={16} />, onClick: () => openModal("customer", selectedRowCompany) },
-      { label: "Update Vendor Credit", icon: <Edit size={16} />, onClick: () => openModal("vendor", selectedRowCompany) }
+      { label: "Add Customer Credit", icon: <Edit size={16} />, onClick: () => openModal("customer", selectedRowCompany) },
+      { label: "Add Vendor Credit", icon: <Edit size={16} />, onClick: () => openModal("vendor", selectedRowCompany) }
     ] : []),
   ] : [];
 
@@ -214,7 +214,7 @@ const AddCredit: React.FC = () => {
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              allowCustomValue={true} />
+                allowCustomValue={true} />
             );
           }
           return (
