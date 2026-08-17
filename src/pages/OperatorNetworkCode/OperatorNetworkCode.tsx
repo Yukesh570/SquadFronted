@@ -185,6 +185,12 @@ const OperatorNetworkCode: React.FC = () => {
       type: "text",
       options: countryOptions,
       filterKey: "country__name__icontains",
+      render: (item) => (
+        <div className="flex items-center gap-2">
+          {item.country_iso && <CountryFlag iso2={item.country_iso} />}
+          <span>{item.country_name}</span>
+        </div>
+      ),
     },
 
     { key: "MCC", label: "MCC", type: "text", filterKey: "MCC" },
