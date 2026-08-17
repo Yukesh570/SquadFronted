@@ -49,6 +49,8 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
   const [resolvedPlacement, setResolvedPlacement] = useState<"top" | "bottom">(placement);
   const [isTyping, setIsTyping] = useState(false);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!open) {
       setQuery("");
@@ -59,6 +61,9 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
   useEffect(() => {
     if (!value) {
       setQuery("");
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
     }
     setIsTyping(false);
   }, [value]);
@@ -193,6 +198,7 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
             </span>
           )}
           <Combobox.Input
+            ref={inputRef}
             autoComplete="off"
             className={`w-full border-none bg-transparent ${selectedOption?.icon && !isTyping ? "pl-10" : "px-3"} pr-10 outline-none focus:outline-none focus:ring-0 focus:border-transparent text-text-primary dark:text-white text-sm ${
               hasLabel ? "py-2.5" : "py-2"
