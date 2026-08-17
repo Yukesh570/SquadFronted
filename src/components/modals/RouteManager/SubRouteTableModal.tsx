@@ -75,6 +75,7 @@ interface SubRouteTableModalProps {
   onClose: () => void;
   routeGroup: string | null;
   routeGroupId?: number | null;
+  initialCountryName?: string | null;
   moduleName: string;
   canUpdate: boolean;
   canDelete: boolean;
@@ -160,6 +161,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   onClose,
   routeGroup,
   routeGroupId,
+  initialCountryName,
   moduleName,
   canUpdate,
   canDelete,
@@ -278,91 +280,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     }));
   };
 
-  const fetchConfigs = useCallback(async () => {
-    if (!routeGroupId) return;
-    try {
-      const res = await getRouteGroupCountriesApi(moduleName, 1, 1000, {
-        routeGroup: routeGroupId,
-      });
-      const results: RouteGroupCountryData[] = res.results || [];
-
-      const routesPromises = results.map((cfg) =>
-        routeGroup
-          ? getCustomRoutesApi(moduleName, 1, 200, {
-              routeGroup__name: routeGroup,
-              country: String(cfg.country),
-            })
-              .then((r) => ({ countryId: String(cfg.country), routes: r.results || [] }))
-              .catch(() => ({ countryId: String(cfg.country), routes: [] }))
-          : Promise.resolve({ countryId: String(cfg.country), routes: [] })
-      );
-
-      const allCountryRoutes = await Promise.all(routesPromises);
-      const routesByCountryMap = new Map(
-        allCountryRoutes.map((item) => [item.countryId, item.routes])
-      );
-
-      setSections((prev) => {
-        const prevMap = new Map(prev.map((s) => [String(s.config.country), s]));
-        return results.map((cfg) => {
-          const existing = prevMap.get(String(cfg.country));
-          const loadedRoutes = routesByCountryMap.get(String(cfg.country)) || [];
-          return existing
-            ? {
-                ...existing,
-                config: cfg,
-                routes: existing.routes.length > 0 ? existing.routes : loadedRoutes,
-              }
-            : {
-                config: cfg,
-                routes: loadedRoutes,
-                loading: false,
-                newRows: [],
-                isOpen: false,
-                saving: false,
-                searchExpanded: false,
-              };
-        });
-      });
-      if (results.length === 0) setConfigSectionOpen(true);
-    } catch {
-      toast.error("Failed to load country configurations.");
-    }
-  }, [routeGroupId, routeGroup, moduleName]);
-
-  const fetchSectionRoutes = useCallback(
-    async (countryId: string) => {
-      if (!routeGroup) return;
-      setSections((prev) =>
-        prev.map((s) =>
-          String(s.config.country) === countryId ? { ...s, loading: true } : s,
-        ),
-      );
-      try {
-        const res = await getCustomRoutesApi(moduleName, 1, 200, {
-          routeGroup__name: routeGroup,
-          country: countryId,
-        });
-        const fetchedRoutes = res.results || [];
-        setSections((prev) =>
-          prev.map((s) =>
-            String(s.config.country) === countryId
-              ? { ...s, routes: fetchedRoutes, loading: false }
-              : s,
-          ),
-        );
-      } catch {
-        toast.error("Failed to load routes.");
-        setSections((prev) =>
-          prev.map((s) =>
-            String(s.config.country) === countryId ? { ...s, loading: false } : s,
-          ),
-        );
-      }
-    },
-    [routeGroup, moduleName],
-  );
-
   const fetchNetworkCodesForCountry = useCallback(
     async (countryId: string, countryName: string) => {
       if (!countryId || !countryName) return;
@@ -415,6 +332,104 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       }
     },
     [],
+  );
+
+  const fetchConfigs = useCallback(async () => {
+    if (!routeGroupId) return;
+    try {
+      const res = await getRouteGroupCountriesApi(moduleName, 1, 1000, {
+        routeGroup: routeGroupId,
+      });
+      const results: RouteGroupCountryData[] = res.results || [];
+
+      const routesPromises = results.map((cfg) =>
+        routeGroup
+          ? getCustomRoutesApi(moduleName, 1, 200, {
+              routeGroup__name: routeGroup,
+              country: String(cfg.country),
+            })
+              .then((r) => ({ countryId: String(cfg.country), routes: r.results || [] }))
+              .catch(() => ({ countryId: String(cfg.country), routes: [] }))
+          : Promise.resolve({ countryId: String(cfg.country), routes: [] })
+      );
+
+      const allCountryRoutes = await Promise.all(routesPromises);
+      const routesByCountryMap = new Map(
+        allCountryRoutes.map((item) => [item.countryId, item.routes])
+      );
+
+      setSections((prev) => {
+        const prevMap = new Map(prev.map((s) => [String(s.config.country), s]));
+        return results.map((cfg) => {
+          const existing = prevMap.get(String(cfg.country));
+          const loadedRoutes = routesByCountryMap.get(String(cfg.country)) || [];
+
+          // Auto-open if matching target country or if only 1 country exists
+          const shouldAutoOpen = initialCountryName
+            ? (cfg.countryName && cfg.countryName.toLowerCase().trim() === initialCountryName.toLowerCase().trim()) ||
+              String(cfg.country) === initialCountryName
+            : results.length === 1;
+
+          const openState = existing ? existing.isOpen : shouldAutoOpen;
+
+          if (openState && cfg.countryName) {
+            fetchNetworkCodesForCountry(String(cfg.country), cfg.countryName);
+          }
+
+          return existing
+            ? {
+                ...existing,
+                config: cfg,
+                routes: existing.routes.length > 0 ? existing.routes : loadedRoutes,
+              }
+            : {
+                config: cfg,
+                routes: loadedRoutes,
+                loading: false,
+                newRows: [],
+                isOpen: openState,
+                saving: false,
+                searchExpanded: false,
+              };
+        });
+      });
+      if (results.length === 0) setConfigSectionOpen(true);
+    } catch {
+      toast.error("Failed to load country configurations.");
+    }
+  }, [routeGroupId, routeGroup, moduleName, initialCountryName, fetchNetworkCodesForCountry]);
+
+  const fetchSectionRoutes = useCallback(
+    async (countryId: string) => {
+      if (!routeGroup) return;
+      setSections((prev) =>
+        prev.map((s) =>
+          String(s.config.country) === countryId ? { ...s, loading: true } : s,
+        ),
+      );
+      try {
+        const res = await getCustomRoutesApi(moduleName, 1, 200, {
+          routeGroup__name: routeGroup,
+          country: countryId,
+        });
+        const fetchedRoutes = res.results || [];
+        setSections((prev) =>
+          prev.map((s) =>
+            String(s.config.country) === countryId
+              ? { ...s, routes: fetchedRoutes, loading: false }
+              : s,
+          ),
+        );
+      } catch {
+        toast.error("Failed to load routes.");
+        setSections((prev) =>
+          prev.map((s) =>
+            String(s.config.country) === countryId ? { ...s, loading: false } : s,
+          ),
+        );
+      }
+    },
+    [routeGroup, moduleName],
   );
 
   useEffect(() => {

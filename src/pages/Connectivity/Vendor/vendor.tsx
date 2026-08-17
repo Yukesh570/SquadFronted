@@ -452,7 +452,7 @@ const Vendor: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
           } else if (columnDef?.type === "number_range") {
             const baseKey = key.replace("__range", "");
             const [start, end] = value.split(",");
@@ -734,7 +734,8 @@ const Vendor: React.FC = () => {
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              allowCustomValue={true} />
+                allowCustomValue={true}
+              />
             );
           }
 
@@ -956,10 +957,24 @@ const Vendor: React.FC = () => {
                 );
                 cellData = match ? match.label : cellData;
               }
+              if (col.key === "profileName") {
+                return (
+                  <td
+                    key={col.key}
+                    className="px-4 py-4 text-sm font-semibold text-primary cursor-pointer hover:underline whitespace-nowrap"
+                    onClick={() => {
+                      setRateModalVendor({ id: vendor.id!, profileName: vendor.profileName });
+                      setIsRateModalOpen(true);
+                    }}
+                  >
+                    {cellData || "-"}
+                  </td>
+                );
+              }
               return (
                 <td
                   key={col.key}
-                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "profileName" ? "font-medium text-text-primary dark:text-white" : ""}`}
+                  className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
                 >
                   {cellData || "-"}
                 </td>

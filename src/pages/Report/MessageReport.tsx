@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Home, Eye, Route } from "lucide-react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
 // --- API ---
@@ -8,6 +8,10 @@ import {
   getMessageLogsApi,
   type MessageLogData,
 } from "../../api/reportApi/messageReportApi";
+import {
+  getGroupedCustomRoutesApi,
+  getCustomRoutesApi,
+} from "../../api/routeManagerApi/customRouteApi";
 import { CountryFlag } from "../../components/ui/CountryFlag";
 
 // --- Dropdown APIs ---
@@ -16,7 +20,7 @@ import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
 import { getSmppApi } from "../../api/connectivityApi/smppApi";
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 
-// --- Components ---
+// --- Components & Modals ---
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import DatePicker from "../../components/ui/DatePicker";
@@ -28,14 +32,14 @@ import AdvancedFilter, {
 import { actionHelper } from "../../helper/action";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { MessageReportModal } from "../../components/modals/Report/MessageReportModal";
-
+import { SubRouteTableModal } from "../../components/modals/RouteManager/SubRouteTableModal";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { usePagePermissions } from "../../hooks/usePagePermissions";
 
 interface Option {
   label: string;
   value: string;
   icon?: React.ReactNode;
-
 }
 
 interface ColumnConfig extends FilterColumn {
@@ -75,7 +79,6 @@ const DEFAULT_SEARCH_COLUMNS = [
   "clientName",
   "countryName",
   "status",
-  "message_id",
   "source_addr"
 ];
 const DEFAULT_TABLE_COLUMNS = [
@@ -102,7 +105,7 @@ const BATCH_SIZE = 100;
 const LOAD_MORE_THRESHOLD_PX = 200;
 
 const MessageReport: React.FC = () => {
-  const navigate = useNavigate();
+  const { canUpdate, canDelete } = usePagePermissions();
   const [logs, setLogs] = useState<MessageLogData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -124,8 +127,16 @@ const MessageReport: React.FC = () => {
 
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
+  // Message Log Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewLog, setViewLog] = useState<MessageLogData | null>(null);
+
+  // Manage Route Group Modal (In-place)
+  const [activeRouteGroup, setActiveRouteGroup] = useState<string | null>(null);
+  const [activeRouteGroupId, setActiveRouteGroupId] = useState<number | null>(null);
+  const [activeCountryName, setActiveCountryName] = useState<string | null>(null);
+  const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
+
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRowLog, setSelectedRowLog] = useState<MessageLogData | null>(null);
 
@@ -189,7 +200,6 @@ const MessageReport: React.FC = () => {
         options: countryOptions,
         filterKey: "country__name__icontains"
       },
-
       { key: "destination", label: "Destination", type: "text", filterKey: "destination__icontains" },
       {
         key: "clientName",
@@ -235,12 +245,6 @@ const MessageReport: React.FC = () => {
       { key: "delivered_at__range", label: "Delivered At (Range)", type: "date_range", filterKey: "delivered_at__range", isSearchOnly: true },
       { key: "failed_at", label: "Failed At (Single Day)", tableLabel: "Failed At", type: "date", filterKey: "failed_at__range" },
       { key: "failed_at__range", label: "Failed At (Range)", type: "date_range", filterKey: "failed_at__range", isSearchOnly: true },
-
-      { key: "delivered_at", label: "Delivered At (Single Day)", tableLabel: "Delivered At", type: "date", filterKey: "delivered_at__range" },
-      { key: "delivered_at__range", label: "Delivered At (Range)", type: "date_range", filterKey: "delivered_at__range", isSearchOnly: true },
-
-      { key: "failed_at", label: "Failed At (Single Day)", tableLabel: "Failed At", type: "date", filterKey: "failed_at__range" },
-      { key: "failed_at__range", label: "Failed At (Range)", type: "date_range", filterKey: "failed_at__range", isSearchOnly: true },
     ],
     [clientOptions, vendorOptions, smppOptions, countryOptions],
   );
@@ -276,7 +280,7 @@ const MessageReport: React.FC = () => {
         render: (log) => {
           const match = countryOptions.find((opt) => opt.label === log.countryName);
           return (
-            <div className="flex items-center gap-1.5 text-sm   ">
+            <div className="flex items-center gap-1.5 text-sm">
               {match?.icon}
               <span>{log.countryName}</span>
             </div>
@@ -366,7 +370,7 @@ const MessageReport: React.FC = () => {
         ),
       },
     ],
-    [],
+    [countryOptions],
   );
 
   useEffect(() => {
@@ -377,7 +381,6 @@ const MessageReport: React.FC = () => {
     searchColumns.includes(col.key),
   );
 
-  // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => tableColumnsConfig.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
@@ -509,17 +512,85 @@ const MessageReport: React.FC = () => {
     setSelectedRowLog(log);
   };
 
-  const handleGoToRoute = (log: MessageLogData) => {
+  const handleOpenRouteModal = async (log: MessageLogData) => {
     const clientName = log.clientName || "";
     const vendorName = log.vendorName || "";
     const targetName = clientName || vendorName;
+    const countryName = log.countryName || "";
 
-    navigate(
-      `/routeManager/customRoute?client=${encodeURIComponent(clientName)}&vendor=${encodeURIComponent(vendorName)}&name=${encodeURIComponent(targetName)}&autoOpen=true`,
-      {
-        state: { clientName, vendorName, targetName, autoOpen: true },
+    setActiveCountryName(countryName || null);
+
+    if (!targetName) {
+      toast.error("No Client or Vendor associated with this route.");
+      return;
+    }
+
+    try {
+      // 1. Direct match on Route Group
+      let groupRes: any = await getGroupedCustomRoutesApi("customRoute", 1, 10, { name: targetName });
+      let groupList = groupRes?.results || (Array.isArray(groupRes) ? groupRes : []);
+
+      if (groupList.length === 0) {
+        groupRes = await getGroupedCustomRoutesApi("customRoute", 1, 10, { name__icontains: targetName });
+        groupList = groupRes?.results || (Array.isArray(groupRes) ? groupRes : []);
       }
-    );
+
+      if (groupList.length > 0) {
+        setActiveRouteGroup(groupList[0].name);
+        setActiveRouteGroupId(groupList[0].id);
+        setIsRouteModalOpen(true);
+        return;
+      }
+
+      // 2. Lookup via Client profile
+      if (clientName) {
+        const clientRes: any = await getClientsApi("client", 1, 10, { name__icontains: clientName });
+        const clientList = clientRes?.results || (Array.isArray(clientRes) ? clientRes : []);
+        if (clientList.length > 0) {
+          const c = clientList[0];
+          const matchedRouteGroup = c.routeGroup || c.customRoute || c.routeGroupName || c.customRouteName;
+          if (typeof matchedRouteGroup === "number") {
+            const rgRes: any = await getGroupedCustomRoutesApi("customRoute", 1, 1, { id: matchedRouteGroup });
+            const rgList = rgRes?.results || (Array.isArray(rgRes) ? rgRes : []);
+            if (rgList.length > 0) {
+              setActiveRouteGroup(rgList[0].name);
+              setActiveRouteGroupId(rgList[0].id);
+              setIsRouteModalOpen(true);
+              return;
+            }
+          } else if (typeof matchedRouteGroup === "string") {
+            setActiveRouteGroup(matchedRouteGroup);
+            setActiveRouteGroupId(null);
+            setIsRouteModalOpen(true);
+            return;
+          }
+        }
+      }
+
+      // 3. Lookup via Vendor sub-routes
+      if (vendorName) {
+        const subRouteRes: any = await getCustomRoutesApi("customRoute", 1, 10, {
+          terminatingVendorProfileName__icontains: vendorName,
+        });
+        const subList = subRouteRes?.results || (Array.isArray(subRouteRes) ? subRouteRes : []);
+        if (subList.length > 0 && subList[0].routeGroup) {
+          setActiveRouteGroup(subList[0].routeGroupName || targetName);
+          setActiveRouteGroupId(Number(subList[0].routeGroup));
+          setIsRouteModalOpen(true);
+          return;
+        }
+      }
+
+      // Fallback
+      setActiveRouteGroup(targetName);
+      setActiveRouteGroupId(null);
+      setIsRouteModalOpen(true);
+    } catch (e) {
+      console.error("Failed to resolve route group", e);
+      setActiveRouteGroup(targetName);
+      setActiveRouteGroupId(null);
+      setIsRouteModalOpen(true);
+    }
   };
 
   const connectedRouteTarget = selectedRowLog
@@ -539,7 +610,7 @@ const MessageReport: React.FC = () => {
       {
         label: `View Custom Route (${connectedRouteTarget})`,
         icon: <Route size={16} />,
-        onClick: () => handleGoToRoute(selectedRowLog)
+        onClick: () => handleOpenRouteModal(selectedRowLog)
       }
     ] : []),
   ] : [];
@@ -631,7 +702,8 @@ const MessageReport: React.FC = () => {
                   onChange={(val) => handleFilterChange(col.key, val)}
                   options={col.options}
                   placeholder={`Select ${baseLabel}`}
-                allowCustomValue={true} />
+                  allowCustomValue={true}
+                />
               );
             }
             if (col.type === "date") {
@@ -796,6 +868,22 @@ const MessageReport: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         viewLog={viewLog}
+      />
+
+      <SubRouteTableModal
+        isOpen={isRouteModalOpen}
+        onClose={() => {
+          setIsRouteModalOpen(false);
+          setActiveRouteGroup(null);
+          setActiveRouteGroupId(null);
+          setActiveCountryName(null);
+        }}
+        routeGroup={activeRouteGroup}
+        routeGroupId={activeRouteGroupId}
+        initialCountryName={activeCountryName}
+        moduleName="customRoute"
+        canUpdate={canUpdate}
+        canDelete={canDelete}
       />
     </div>
   );

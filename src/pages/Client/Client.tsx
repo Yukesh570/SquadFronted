@@ -229,7 +229,6 @@ const Client: React.FC = () => {
   const paymentTermOptions: Option[] = [
     { label: "Prepaid", value: "PREPAID" },
     { label: "Postpaid", value: "POSTPAID" },
-
   ];
 
   const invoicePolicyOptions: Option[] = [
@@ -362,7 +361,7 @@ const Client: React.FC = () => {
             const baseKey = key.replace("__gt_lt", "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
           } else if (columnDef?.type === "number_range") {
             const baseKey = key.replace("__range", "");
             const [start, end] = value.split(",");
@@ -704,7 +703,8 @@ const Client: React.FC = () => {
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              allowCustomValue={true} />
+                allowCustomValue={true}
+              />
             );
           }
 
@@ -934,13 +934,24 @@ const Client: React.FC = () => {
                 );
                 cellData = match ? match.label : cellData;
               }
+              if (col.key === "name") {
+                return (
+                  <td
+                    key={col.key}
+                    className="px-4 py-4 text-sm font-semibold text-primary cursor-pointer hover:underline whitespace-nowrap"
+                    onClick={() => {
+                      setRateModalClient({ id: client.id!, name: client.name });
+                      setIsRateModalOpen(true);
+                    }}
+                  >
+                    {cellData || "-"}
+                  </td>
+                );
+              }
               return (
                 <td
                   key={col.key}
-                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "name"
-                    ? "font-medium text-text-primary dark:text-white"
-                    : ""
-                    }`}
+                  className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
                 >
                   {cellData || "-"}
                 </td>
