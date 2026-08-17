@@ -41,10 +41,10 @@ const LOAD_MORE_THRESHOLD_PX = 200;
 const allColumns: ColumnConfig[] = [
   { key: "date", label: "Date Exact", type: "date" },
   { key: "date__range", label: "Date Range", type: "date_range" },
-  { key: "date__gt", label: "Date After (>)", type: "date" },
-  { key: "date__gte", label: "Date From (>=)", type: "date" },
-  { key: "date__lt", label: "Date Before (<)", type: "date" },
-  { key: "date__lte", label: "Date To (<=)", type: "date" },
+  // { key: "date__gt", label: "Date After (>)", type: "date" },
+  // { key: "date__gte", label: "Date From (>=)", type: "date" },
+  // { key: "date__lt", label: "Date Before (<)", type: "date" },
+  // { key: "date__lte", label: "Date To (<=)", type: "date" },
 ];
 
 const ExpandButton: React.FC<{ isExpanded: boolean }> = ({ isExpanded }) => {
@@ -689,11 +689,10 @@ const AnalyticsReport: React.FC = () => {
                   key={preset.key}
                   type="button"
                   onClick={() => handlePresetClick(preset.key)}
-                  className={`px-3 py-1 text-xs font-medium rounded-lg border transition-all duration-200 focus:outline-none shadow-xs ${
-                    isActive
+                  className={`px-3 py-1 text-xs font-medium rounded-lg border transition-all duration-200 focus:outline-none shadow-xs ${isActive
                       ? "bg-primary text-white border-primary dark:bg-primary dark:border-primary"
                       : "bg-white text-text-secondary border-gray-200 hover:border-primary hover:text-primary dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary"
-                  }`}
+                    }`}
                 >
                   {preset.label}
                 </button>
