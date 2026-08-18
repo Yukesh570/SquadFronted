@@ -3,9 +3,10 @@ import { createPortal } from "react-dom";
 import { Combobox, Transition } from "@headlessui/react";
 import { ChevronDown, Check, X } from "lucide-react";
 
-interface SelectOption {
+export interface SelectOption {
   value: string;
   label: string;
+  displayLabel?: string;
   disabled?: boolean;
   icon?: React.ReactNode;
 }
@@ -72,7 +73,9 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
     query === ""
       ? options
       : options.filter((option) =>
-          option.label.toLowerCase().includes(query.toLowerCase())
+          option.label.toLowerCase().includes(query.toLowerCase()) ||
+          (option.displayLabel && option.displayLabel.toLowerCase().includes(query.toLowerCase())) ||
+          option.value.toLowerCase().includes(query.toLowerCase())
         );
 
   useEffect(() => {
@@ -104,7 +107,8 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
         const match = options.find(
           (o) =>
             o.value === trimmedQuery ||
-            o.label.toLowerCase() === trimmedQuery.toLowerCase()
+            o.label.toLowerCase() === trimmedQuery.toLowerCase() ||
+            (o.displayLabel && o.displayLabel.toLowerCase() === trimmedQuery.toLowerCase())
         );
         
         if (match) {
@@ -200,9 +204,10 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
             } ${
               disabled ? "text-gray-400 cursor-not-allowed dark:text-gray-500" : ""
             }`}
-            displayValue={(val: string) =>
-              options.find((option) => option.value === val)?.label || val || ""
-            }
+            displayValue={(val: string) => {
+              const opt = options.find((option) => option.value === val);
+              return opt ? (opt.displayLabel ?? opt.label) : (val || "");
+            }}
             onChange={(event) => {
               setQuery(event.target.value);
               setIsTyping(true);
@@ -214,7 +219,8 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
                 const match = options.find(
                   (o) =>
                     o.value === trimmedQuery ||
-                    o.label.toLowerCase() === trimmedQuery.toLowerCase()
+                    o.label.toLowerCase() === trimmedQuery.toLowerCase() ||
+                    (o.displayLabel && o.displayLabel.toLowerCase() === trimmedQuery.toLowerCase())
                 );
                 if (!match && trimmedQuery !== value) {
                   onChange(trimmedQuery);
@@ -223,7 +229,8 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
                 setQuery("");
                 setIsTyping(false);
                 if (inputRef.current) {
-                  const actualDisplayValue = options.find((o) => o.value === value)?.label || value || "";
+                  const opt = options.find((o) => o.value === value);
+                  const actualDisplayValue = opt ? (opt.displayLabel ?? opt.label) : (value || "");
                   inputRef.current.value = actualDisplayValue;
                 }
               }

@@ -31,6 +31,8 @@ interface CustomerRateModalProps {
 interface Option {
   label: string;
   value: string;
+  displayLabel?: string;
+  icon?: React.ReactNode;
 }
 
 interface CountryData {
@@ -114,13 +116,28 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
           const uniqueMccs = Array.from(new Set(list.map((item: any) => item.MCC))).filter(Boolean);
           setMccOptions(uniqueMccs.map((mcc) => ({ label: String(mcc), value: String(mcc) })));
 
-          const uniqueMncs = Array.from(new Set(list.map((item: any) => item.MNC))).filter(Boolean);
-          setMncOptions(uniqueMncs.map((mnc) => ({ label: String(mnc), value: String(mnc) })));
+          const mncMap = new Map<string, string>();
+          list.forEach((item: any) => {
+            const mncStr = String(item.MNC || "").trim();
+            if (mncStr && !mncMap.has(mncStr)) {
+              const operatorName = String(item.operator || item.operatorName || "").trim();
+              const label = operatorName ? `${mncStr} (${operatorName})` : mncStr;
+              mncMap.set(mncStr, label);
+            }
+          });
+
+          const formattedMncOptions: Option[] = Array.from(mncMap.entries()).map(([value, label]) => ({
+            label,               // Shown in dropdown list e.g. "1 (Afghan Wireless Communication Company)"
+            value,               // Form state & API value e.g. "1"
+            displayLabel: value, // Shown in closed input box e.g. "1"
+          }));
+
+          setMncOptions(formattedMncOptions);
 
           setFormData((prev) => ({
             ...prev,
             MCC: uniqueMccs.length === 1 ? String(uniqueMccs[0]) : prev.MCC,
-            MNC: uniqueMncs.length === 1 ? String(uniqueMncs[0]) : prev.MNC,
+            MNC: formattedMncOptions.length === 1 ? String(formattedMncOptions[0].value) : prev.MNC,
           }));
         })
         .catch(console.error);
