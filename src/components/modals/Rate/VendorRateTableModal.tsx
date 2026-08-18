@@ -4,14 +4,16 @@ import { DeleteModal } from "../DeleteModal";
 import {
   deleteVendorRateApi,
   getVendorRatesApi,
-  getVendorRatesPerMNCMCCApi
+  getVendorRatesPerMNCMCCApi,
+  exportVendorRatesEmailApi,
 } from "../../../api/rateApi/vendorRateApi";
+import { getEmailTemplatesApi } from "../../../api/emailTemplateApi/emailTemplateApi";
 import { VendorRateModal } from "./VendorRateModal";
 import { RateVersionTableModal } from "./RateVersionTableModal";
 import { ImportVendorRateModal } from "./ImportVendorRateModal";
 import { toast } from "react-toastify";
 import Button from "../../ui/Button"; 
-import { Plus, Edit, Trash, Layers, Upload, ChevronLeft, ChevronRight } from "lucide-react"; 
+import { Plus, Edit, Trash, Layers, Upload, Download, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"; 
 import Select from "../../ui/Select";
 import Input from "../../ui/Input";
 import DatePicker from "../../ui/DatePicker";
@@ -54,7 +56,6 @@ const rowsOptions = [
   { value: "50", label: "50" }, { value: "100", label: "100" },
 ];
 
-// ⚡️ FIX: Updated options to match DRAFT/ACTIVE/EXPIRED as requested
 const statusOptions = [
   { label: "Draft", value: "DRAFT" },
   { label: "Active", value: "ACTIVE" },
@@ -79,6 +80,11 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false); 
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [emailTemplateOptions, setEmailTemplateOptions] = useState<{ label: string; value: string }[]>([]);
+  const [selectedEmailTemplate, setSelectedEmailTemplate] = useState<string>("");
+  const [isExporting, setIsExporting] = useState(false);
+
   const [versionTargetRate, setVersionTargetRate] = useState<any>(null);
   const [editingRate, setEditingRate] = useState<any>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -106,6 +112,23 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
     fetchCountries();
   }, []);
 
+  // Fetch email templates for export dropdown
+  useEffect(() => {
+    if (isOpen) {
+      getEmailTemplatesApi("emailTemplate", 1, 1000)
+        .then((res: any) => {
+          const list = res.results || (Array.isArray(res) ? res : []);
+          setEmailTemplateOptions(
+            list.map((t: any) => ({
+              label: t.name,
+              value: String(t.id),
+            }))
+          );
+        })
+        .catch((err) => console.error("Failed to fetch email templates", err));
+    }
+  }, [isOpen]);
+
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [apiFilters, setApiFilters] = useState<Record<string, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
@@ -130,16 +153,15 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
         const val = apiFilters[key];
         if (!val) return;
 
-        // ⚡️ FIX: Adjusted mappings explicitly based on backend constraints
         if      (key === "countryName") searchParams["country__name__icontains"] = val;
         else if (key === "MCC")         searchParams["MCC__icontains"]           = val;
         else if (key === "MNC")         searchParams["MNC__icontains"]           = val;
         else if (key === "countryCode") searchParams["countryCode__icontains"]   = val;
         else if (key === "network")     searchParams["network__icontains"]       = val;
-        else if (key === "rate")        searchParams["rate"]              = val; 
-        else if (key === "version")     searchParams["version"]                  = val; // If backend doesn't support version, this will simply not break, but won't filter
+        else if (key === "rate")        searchParams["rate"]                     = val; 
+        else if (key === "version")     searchParams["version"]                  = val;
         else if (key === "status")      searchParams["status__icontains"]        = val; 
-        else if (key === "effectiveFrom") searchParams["effectiveFrom"] = val; // Using icontains for loose date matching
+        else if (key === "effectiveFrom") searchParams["effectiveFrom"]          = val;
       });
       const res = await getVendorRatesApi(moduleName, currentPage, rowsPerPage, searchParams);
       const list = res.results || (Array.isArray(res) ? res : []);
@@ -178,6 +200,51 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
         toast.error("Failed to delete rate.");
       }
       setDeleteId(null);
+    }
+  };
+
+  const handleExportEmail = async (exportOnlyNew: boolean) => {
+    if (!selectedEmailTemplate) {
+      return toast.error("Please select an email template.");
+    }
+    if (!rateGroupId) {
+      return toast.error("Rate Group ID is not available.");
+    }
+
+    setIsExporting(true);
+    try {
+      await exportVendorRatesEmailApi(
+        rateGroupId,
+        {
+          exportOnlyNew,
+          emailTemplateId: Number(selectedEmailTemplate),
+        },
+      );
+      toast.success(`Rates exported successfully (${exportOnlyNew ? "New only" : "All"})!`);
+      setIsExportModalOpen(false);
+      setSelectedEmailTemplate("");
+    } catch (error: any) {
+      console.error("Export error:", error);
+      const data = error.response?.data;
+      let errorMsg = "Failed to export rates.";
+
+      if (typeof data === "string") {
+        errorMsg = data;
+      } else if (data?.error) {
+        errorMsg = typeof data.error === "string" ? data.error : JSON.stringify(data.error);
+      } else if (data?.detail) {
+        errorMsg = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+      } else if (data?.message) {
+        errorMsg = typeof data.message === "string" ? data.message : JSON.stringify(data.message);
+      } else if (data && typeof data === "object") {
+        const firstKey = Object.keys(data)[0];
+        const firstVal = data[firstKey];
+        errorMsg = Array.isArray(firstVal) ? firstVal[0] : String(firstVal);
+      }
+
+      toast.error(errorMsg);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -244,6 +311,17 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
               <div className="flex shrink-0 w-full sm:w-auto gap-2">
                 <Button
                   variant="secondary"
+                  onClick={() => {
+                    setSelectedEmailTemplate("");
+                    setIsExportModalOpen(true);
+                  }}
+                  leftIcon={<Download size={16} />}
+                  className="w-full sm:w-auto text-sm py-1.5 px-4"
+                >
+                  Export
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={() => setIsImportModalOpen(true)}
                   leftIcon={<Upload size={16} />}
                   className="w-full sm:w-auto text-sm py-1.5 px-4"
@@ -307,7 +385,6 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
                         label=""
                         selected={columnFilters["effectiveFrom"] ? new Date(columnFilters["effectiveFrom"]) : null}
                         onChange={(date: Date | null) => {
-                          // ⚡️ FIX: Format to purely YYYY-MM-DD for icontains to catch substring matches cleanly
                           const dateStr = date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}` : "";
                           handleFilterChange("effectiveFrom", dateStr);
                           setApiFilters((prev) => dateStr ? { ...prev, effectiveFrom: dateStr } : (() => { const next = { ...prev }; delete next["effectiveFrom"]; return next; })());
@@ -332,7 +409,6 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
                       className="group border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-context-menu transition-colors"
                     >
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{renderCountry(v)}</td>
-
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MCC || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.MNC || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.countryCode || "-"}</td>
@@ -357,6 +433,69 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
           items={menuItems}
           onClose={() => { setContextMenuPos(null); setSelectedRate(null); }}
         />
+      </Modal>
+
+      {/* Export Rates Email Modal */}
+      <Modal
+        isOpen={isExportModalOpen}
+        onClose={() => {
+          if (!isExporting) {
+            setIsExportModalOpen(false);
+            setSelectedEmailTemplate("");
+          }
+        }}
+        title="Export Rates via Email"
+        className="max-w-md"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-text-secondary dark:text-gray-400">
+            Select an email template to dispatch rate details for <strong>{rateGroup || "this group"}</strong>.
+          </p>
+
+          <div>
+            <Select
+              label="Email Template"
+              value={selectedEmailTemplate}
+              onChange={setSelectedEmailTemplate}
+              options={emailTemplateOptions}
+              placeholder="Select Email Template"
+              placement="bottom"
+              required
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setIsExportModalOpen(false);
+                setSelectedEmailTemplate("");
+              }}
+              disabled={isExporting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => handleExportEmail(true)}
+              disabled={isExporting || !selectedEmailTemplate}
+              leftIcon={isExporting ? <Loader2 size={16} className="animate-spin" /> : undefined}
+            >
+              Export New
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => handleExportEmail(false)}
+              disabled={isExporting || !selectedEmailTemplate}
+              leftIcon={isExporting ? <Loader2 size={16} className="animate-spin" /> : undefined}
+            >
+              Export All
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       <DeleteModal
@@ -403,21 +542,24 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
         onSuccess={fetchLatestRates}
         rateGroupId={rateGroupId}
       />
-    <style dangerouslySetInnerHTML={{ __html: `
-  .filter-vrt-wrapper label { display: none !important; }
-  .filter-vrt-wrapper > div { margin-bottom: 0 !important; }
-  .filter-vrt-wrapper input, .filter-vrt-wrapper select, .filter-vrt-wrapper button {
-    min-height: 28px !important; height: 28px !important; padding-top: 2px !important;
-    padding-bottom: 2px !important; padding-right: 6px !important;
-    font-size: 12px !important; border-radius: 4px !important;
-  }
-  .filter-vrt-wrapper input:not(.pl-10) {
-    padding-left: 6px !important;
-  }
-  .filter-vrt-wrapper input.pl-10 {
-    padding-left: 2rem !important;
-  }
-`}} />
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .filter-vrt-wrapper label { display: none !important; }
+        .filter-vrt-wrapper > div { margin-bottom: 0 !important; }
+        .filter-vrt-wrapper input, .filter-vrt-wrapper select, .filter-vrt-wrapper button {
+          min-height: 28px !important; height: 28px !important; padding-top: 2px !important;
+          padding-bottom: 2px !important; padding-right: 6px !important;
+          font-size: 12px !important; border-radius: 4px !important;
+        }
+        .filter-vrt-wrapper input:not(.pl-10) {
+          padding-left: 6px !important;
+        }
+        .filter-vrt-wrapper input.pl-10 {
+          padding-left: 2rem !important;
+        }
+      `}} />
     </>
   );
 };
+
+export default VendorRateTableModal;

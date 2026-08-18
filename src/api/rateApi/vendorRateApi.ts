@@ -88,6 +88,7 @@ export const getVendorRatesApi = async (
   const response = await api.get(`/vendorRate/${module}/`, { params });
   return response.data;
 };
+
 export const getVendorRatesPerMNCMCCApi = async (
   module: string,
   page: number = 1,
@@ -155,5 +156,14 @@ export const importVendorRatesApi = async (
 
 export const getImportStatusApi = async (taskId: string): Promise<any> => {
   const response = await api.get(`/status/${taskId}/`);
+  return response.data;
+};
+
+// ⚡️ Added: Export Rates via Email API for Vendor Rate Group
+export const exportVendorRatesEmailApi = async (
+  rateGroupId: number,
+  data: { exportOnlyNew: boolean; emailTemplateId: number },
+): Promise<any> => {
+  const response = await api.post(`/vendorRateGroup/emailtemplate/${rateGroupId}/export_rates_email/`, data);
   return response.data;
 };

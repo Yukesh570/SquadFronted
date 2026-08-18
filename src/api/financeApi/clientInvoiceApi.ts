@@ -77,3 +77,36 @@ export const generateClientCompanyInvoiceApi = async (
   const response = await api.post(`/finance/generate-clientCompanyInvoice/`, payload, config);
   return response.data;
 };
+
+export interface CompanyClientInvoiceData {
+  id?: number;
+  accountManager?: number | null;
+  accountManagerName?: string;
+  invoiceNumber?: string;
+  company?: number;
+  companyName?: string;
+  clientName?: string;   
+  billingPeriodStart?: string;
+  billingPeriodEnd?: string;
+  invoiceDate?: string;
+  totalAmount?: string | number;
+  taxAmount?: string | number;
+  taxPercentage?: string | number;
+  totalSegments?: number;
+  status?: string;
+  createdAt?: string;
+  currencyCode?: string;
+}
+
+export const getClientInvoiceByCompanyApi = async (
+  companyName: string,
+  invoiceDate: string
+): Promise<PaginatedResponse<CompanyClientInvoiceData>> => {
+  const response = await api.get(`/clientInvoice/clientInvoice/`, {
+    params: {
+      client__company__name: companyName,
+      invoiceDate,
+    },
+  });
+  return response.data;
+};

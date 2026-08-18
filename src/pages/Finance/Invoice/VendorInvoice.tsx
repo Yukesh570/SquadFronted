@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Trash, Eye, Download } from "lucide-react";
+import { Home, Trash, Eye, Download, Users } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../../../api/axiosInstance";
@@ -11,6 +11,9 @@ import {
   getVendorsApi,
   type VendorInvoiceData,
 } from "../../../api/financeApi/vendorInvoiceApi";
+
+// --- Modals ---
+import { VendorInvoiceViewVendorModal } from "../../../components/modals/Finance/VendorInvoiceViewVendorModal";
 
 // --- Components ---
 import Select from "../../../components/ui/Select";
@@ -79,6 +82,9 @@ const VendorInvoice: React.FC = () => {
 
   const [companies, setCompanies] = useState<Option[]>([]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  const [isViewVendorModalOpen, setIsViewVendorModalOpen] = useState(false);
+  const [viewVendorCompanyName, setViewVendorCompanyName] = useState<string | null>(null);
 
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
@@ -355,6 +361,14 @@ const VendorInvoice: React.FC = () => {
   const menuItems: ContextMenuItem[] = selectedRow
     ? [
       {
+        label: "View Vendor",
+        icon: <Users size={16} />,
+        onClick: () => {
+          setViewVendorCompanyName(selectedRow.companyName || null);
+          setIsViewVendorModalOpen(true);
+        },
+      },
+      {
         label: "View Invoice",
         icon: <Eye size={16} />,
         onClick: () => handleViewPdf(selectedRow.id),
@@ -576,6 +590,11 @@ const VendorInvoice: React.FC = () => {
         onConfirm={handleDelete}
         title="Delete Invoice"
         message="Are you sure you want to delete this invoice?"
+      />
+      <VendorInvoiceViewVendorModal
+        isOpen={isViewVendorModalOpen}
+        onClose={() => setIsViewVendorModalOpen(false)}
+        companyName={viewVendorCompanyName}
       />
     </div>
   );

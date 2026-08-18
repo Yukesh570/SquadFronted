@@ -53,7 +53,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   editingClient,
   isViewMode = false,
 }) => {
-  // --- State ---
+  // --- State with Default Values ---
   const [formData, setFormData] = useState({
     company: "",
     name: "",
@@ -71,14 +71,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     bindStatus: "OFFLINE",
     session: "0/2",
 
-    // Policy Fields
-    maxTps: "",
+    // Policy Fields Defaults
+    maxTps: "20",
     maxQueueDepth: "",
     maxWindowPerSession: "",
     maxWindowGlobal: "",
-    maxSessions: "",
-    idleTimeoutSec: "",
-    submitTimeoutSec: "",
+    maxSessions: "2",
+    idleTimeoutSec: "15",
+    submitTimeoutSec: "20",
     senderIdPolicy: "",
   });
 
@@ -118,7 +118,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     // { label: "Net 7", value: "NET7" },
     // { label: "Net 15", value: "NET15" },
     // { label: "Net 30", value: "NET30" },
-
   ];
 
   const invoicePolicyOptions = [
@@ -164,13 +163,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           internalNotes: "",
           bindStatus: "OFFLINE",
           session: "0/2",
-          maxTps: "",
+          maxTps: "20",
           maxQueueDepth: "",
           maxWindowPerSession: "",
           maxWindowGlobal: "",
-          maxSessions: "",
-          idleTimeoutSec: "",
-          submitTimeoutSec: "",
+          maxSessions: "2",
+          idleTimeoutSec: "15",
+          submitTimeoutSec: "20",
           senderIdPolicy: "",
         });
       }
@@ -197,13 +196,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           ipWhitelist: "",
           hostnameWhitelist: "",
 
-          maxTps: editingClient.clientPolicy?.maxTps != null ? String(editingClient.clientPolicy.maxTps) : "",
+          maxTps: editingClient.clientPolicy?.maxTps != null ? String(editingClient.clientPolicy.maxTps) : "20",
           maxQueueDepth: editingClient.clientPolicy?.maxQueueDepth != null ? String(editingClient.clientPolicy.maxQueueDepth) : "",
           maxWindowPerSession: editingClient.clientPolicy?.maxWindowPerSession != null ? String(editingClient.clientPolicy.maxWindowPerSession) : "",
           maxWindowGlobal: editingClient.clientPolicy?.maxWindowGlobal != null ? String(editingClient.clientPolicy.maxWindowGlobal) : "",
-          maxSessions: editingClient.clientPolicy?.maxSessions != null ? String(editingClient.clientPolicy.maxSessions) : "",
-          idleTimeoutSec: editingClient.clientPolicy?.idleTimeoutSec != null ? String(editingClient.clientPolicy.idleTimeoutSec) : "",
-          submitTimeoutSec: editingClient.clientPolicy?.submitTimeoutSec != null ? String(editingClient.clientPolicy.submitTimeoutSec) : "",
+          maxSessions: editingClient.clientPolicy?.maxSessions != null ? String(editingClient.clientPolicy.maxSessions) : "2",
+          idleTimeoutSec: editingClient.clientPolicy?.idleTimeoutSec != null ? String(editingClient.clientPolicy.idleTimeoutSec) : "15",
+          submitTimeoutSec: editingClient.clientPolicy?.submitTimeoutSec != null ? String(editingClient.clientPolicy.submitTimeoutSec) : "20",
           senderIdPolicy: editingClient.clientPolicy?.senderIdPolicy || "",
         }));
 
@@ -327,7 +326,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     e.preventDefault();
     if (isViewMode) return;
 
-    if (!formData.company.trim()) {
+    if (!editingClient && !formData.company.trim()) {
       toast.error("Company is required.");
       return;
     }
@@ -390,8 +389,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
       const payload: any = {
         ...clientPayload,
-        company: Number(formData.company),
       };
+
+      if (formData.company) {
+        payload.company = Number(formData.company);
+      }
 
       let savedClientId: number;
 
@@ -522,8 +524,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               onChange={(v) => handleSelect("company", v)}
               options={companyOptions}
               placeholder="Select Company"
-              disabled={isViewMode}
-              required
+              disabled={isViewMode || Boolean(editingClient)}
+              required={!editingClient}
             />
             <Input
               label="Client Name"
@@ -700,14 +702,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Throughput & Limits
           </legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Input
               label="TPS"
               name="maxTps"
               type="number"
               value={formData.maxTps}
               onChange={handleChange}
-              placeholder="50"
+              placeholder="20"
               disabled={isViewMode}
             />
             <Input
@@ -716,7 +718,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               type="number"
               value={formData.maxSessions}
               onChange={handleChange}
-              placeholder="10"
+              placeholder="2"
               disabled={isViewMode}
             />
             <Input
@@ -725,7 +727,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               type="number"
               value={formData.idleTimeoutSec}
               onChange={handleChange}
-              placeholder="60"
+              placeholder="15"
+              disabled={isViewMode}
+            />
+            <Input
+              label="Response Timeout (Seconds)"
+              name="submitTimeoutSec"
+              type="number"
+              value={formData.submitTimeoutSec}
+              onChange={handleChange}
+              placeholder="20"
               disabled={isViewMode}
             />
             {/* <Input
@@ -851,3 +862,5 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     </Modal>
   );
 };
+
+export default ClientModal;

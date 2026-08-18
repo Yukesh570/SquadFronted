@@ -268,7 +268,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     e.preventDefault();
     if (isViewMode) return;
 
-    if (!formData.company) {
+    if (!editingVendor && !formData.company) {
       toast.error("Company Name is required.");
       return;
     }
@@ -336,12 +336,15 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           : null;
 
       const vendorPayload: any = {
-        company: Number(formData.company),
         profileName: formData.profileName,
         connectionType: formData.connectionType,
         smpp: finalSmppValue,
         status: formData.status,
       };
+
+      if (formData.company) {
+        vendorPayload.company = Number(formData.company);
+      }
 
       const validInvoicePolicies = ["ON_ATTEMPT", "ON_SUBMIT", "ON_DELIVERED"];
       if (formData.invoicePolicy && validInvoicePolicies.includes(formData.invoicePolicy)) {
@@ -444,8 +447,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={(v) => handleSelect("company", v)}
               options={companyOptions}
               placeholder="Select Company"
-              disabled={isViewMode}
-              required
+              disabled={isViewMode || Boolean(editingVendor)}
+              required={!editingVendor}
             />
             <Input
               label="Profile Name"
@@ -585,7 +588,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Input
                 label="Source TON"
                 name="sourceTON"
@@ -631,7 +634,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Speed & Queueing
           </legend>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
               label="TPS"
               name="rateTps"

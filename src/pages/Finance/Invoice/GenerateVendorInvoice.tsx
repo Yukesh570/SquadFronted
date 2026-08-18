@@ -5,7 +5,8 @@ import { toast } from "react-toastify";
 import { NavItemsContext } from "../../../context/navItemsContext";
 
 // --- APIs ---
-import { generateVendorInvoiceApi, getVendorsApi } from "../../../api/financeApi/vendorInvoiceApi";
+import { generateVendorCompanyInvoiceApi } from "../../../api/financeApi/vendorInvoiceApi";
+import { getCompaniesApi } from "../../../api/companyApi/companyApi";
 import { getallAMUserApi } from "../../../api/userApi/userApi";
 
 // --- Components ---
@@ -52,7 +53,7 @@ const GenerateVendorInvoice: React.FC = () => {
 
   const [formData, setFormData] = useState({
     accountManager: "",
-    vendor: "",
+    company: "",
   });
 
   const [fromDate, setFromDate] = useState<Date | null>(null);
@@ -60,7 +61,7 @@ const GenerateVendorInvoice: React.FC = () => {
   const [invoiceDate, setInvoiceDate] = useState<Date | null>(new Date());
 
   const [amOptions, setAmOptions] = useState<Option[]>([]);
-  const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
+  const [companyOptions, setCompanyOptions] = useState<Option[]>([]);
 
   // Loading & Modal States
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,10 +86,10 @@ const GenerateVendorInvoice: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Fetch Vendors
-        const vendorsResponse: any = await getVendorsApi("vendor", 1, 1000);
-        let vendorsData = vendorsResponse?.results || (Array.isArray(vendorsResponse) ? vendorsResponse : []);
-        setVendorOptions(vendorsData.map((v: any) => ({ label: v.name || v.profileName, value: String(v.id) })));
+        // 1. Fetch Companies
+        const companiesResponse: any = await getCompaniesApi("company", 1, 1000);
+        let companiesData = companiesResponse?.results || (Array.isArray(companiesResponse) ? companiesResponse : []);
+        setCompanyOptions(companiesData.map((c: any) => ({ label: c.name, value: String(c.id) })));
 
         // 2. Fetch Users
         try {
@@ -128,11 +129,11 @@ const GenerateVendorInvoice: React.FC = () => {
   }, []);
 
   const getPayload = () => {
-    if (!formData.vendor || !fromDate || !toDate || !invoiceDate) return null;
+    if (!formData.company || !fromDate || !toDate || !invoiceDate) return null;
 
     return {
       accountManager: formData.accountManager && formData.accountManager !== "0" ? Number(formData.accountManager) : null,
-      company: Number(formData.vendor),
+      company: Number(formData.company),
       fromDate: formatLocalDate(fromDate),
       toDate: formatLocalDate(toDate),
       invoiceDate: formatLocalDate(invoiceDate),
@@ -148,7 +149,7 @@ const GenerateVendorInvoice: React.FC = () => {
 
     setIsPreviewing(true);
     try {
-      const resBlob = await generateVendorInvoiceApi(payload, "PREVIEW");
+      const resBlob = await generateVendorCompanyInvoiceApi(payload, "PREVIEW");
       const fileUrl = window.URL.createObjectURL(new Blob([resBlob], { type: 'application/pdf' }));
 
       setPreviewPdfUrl(fileUrl);
@@ -189,7 +190,7 @@ const GenerateVendorInvoice: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await generateVendorInvoiceApi(payload, "GENERATE");
+      await generateVendorCompanyInvoiceApi(payload, "GENERATE");
       handleCloseModal();
 
       const loadingToastId = toast("Generating invoice, please wait...", {
@@ -242,9 +243,9 @@ const GenerateVendorInvoice: React.FC = () => {
 
           <Select
             label="Company *"
-            value={formData.vendor}
-            onChange={(v) => setFormData({ ...formData, vendor: v })}
-            options={[...vendorOptions]}
+            value={formData.company}
+            onChange={(v) => setFormData({ ...formData, company: v })}
+            options={[...companyOptions]}
             placeholder="Select Company"
           />
 

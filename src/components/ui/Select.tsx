@@ -3,9 +3,10 @@ import { createPortal } from "react-dom";
 import { Combobox, Transition } from "@headlessui/react";
 import { ChevronDown, Check, X } from "lucide-react";
 
-interface SelectOption {
+export interface SelectOption {
   value: string;
   label: string;
+  displayLabel?: string;
   disabled?: boolean;
   icon?: React.ReactNode;
 }
@@ -72,7 +73,9 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
     query === ""
       ? options
       : options.filter((option) =>
-          option.label.toLowerCase().includes(query.toLowerCase())
+          option.label.toLowerCase().includes(query.toLowerCase()) ||
+          (option.displayLabel && option.displayLabel.toLowerCase().includes(query.toLowerCase())) ||
+          option.value.toLowerCase().includes(query.toLowerCase())
         );
 
   useEffect(() => {
@@ -104,7 +107,8 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
         const match = options.find(
           (o) =>
             o.value === trimmedQuery ||
-            o.label.toLowerCase() === trimmedQuery.toLowerCase()
+            o.label.toLowerCase() === trimmedQuery.toLowerCase() ||
+            (o.displayLabel && o.displayLabel.toLowerCase() === trimmedQuery.toLowerCase())
         );
         
         if (match) {
@@ -194,15 +198,25 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
           )}
           <Combobox.Input
             ref={inputRef}
+            name="search-select-field"
             autoComplete="off"
+            data-bwignore="true"
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-dashlane-ignore="true"
+            data-form-type="other"
+            spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
             className={`w-full border-none bg-transparent ${selectedOption?.icon && !isTyping ? "pl-10" : "px-3"} pr-10 outline-none focus:outline-none focus:ring-0 focus:border-transparent text-text-primary dark:text-white text-sm ${
               hasLabel ? "py-2.5" : "py-2"
             } ${
               disabled ? "text-gray-400 cursor-not-allowed dark:text-gray-500" : ""
             }`}
-            displayValue={(val: string) =>
-              options.find((option) => option.value === val)?.label || val || ""
-            }
+            displayValue={(val: string) => {
+              const opt = options.find((option) => option.value === val);
+              return opt ? (opt.displayLabel ?? opt.label) : (val || "");
+            }}
             onChange={(event) => {
               setQuery(event.target.value);
               setIsTyping(true);
@@ -214,7 +228,8 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
                 const match = options.find(
                   (o) =>
                     o.value === trimmedQuery ||
-                    o.label.toLowerCase() === trimmedQuery.toLowerCase()
+                    o.label.toLowerCase() === trimmedQuery.toLowerCase() ||
+                    (o.displayLabel && o.displayLabel.toLowerCase() === trimmedQuery.toLowerCase())
                 );
                 if (!match && trimmedQuery !== value) {
                   onChange(trimmedQuery);
@@ -223,7 +238,8 @@ const SelectContent: React.FC<SelectProps & { open: boolean }> = ({
                 setQuery("");
                 setIsTyping(false);
                 if (inputRef.current) {
-                  const actualDisplayValue = options.find((o) => o.value === value)?.label || value || "";
+                  const opt = options.find((o) => o.value === value);
+                  const actualDisplayValue = opt ? (opt.displayLabel ?? opt.label) : (value || "");
                   inputRef.current.value = actualDisplayValue;
                 }
               }

@@ -161,3 +161,13 @@ export const importCustomerRatesApi = async (
   });
   return response.data;
 };
+
+// ⚡️ Correct API: /customerRateGroup/<str:module>/<int:pk>/export_rates_email/
+export const exportCustomerRatesEmailApi = async (
+  rateGroupId: number,
+  data: { exportOnlyNew: boolean; emailTemplateId: number },
+  module: string = "customerRateGroup",
+): Promise<any> => {
+  const response = await api.post(`/customerRateGroup/${module}/${rateGroupId}/export_rates_email/`, data);
+  return response.data;
+};

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Trash, Eye, Download } from "lucide-react";
+import { Home, Trash, Eye, Download, Users } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../../../api/axiosInstance";
@@ -11,6 +11,9 @@ import {
   type ClientInvoiceData,
 } from "../../../api/financeApi/clientInvoiceApi";
 import { getCompaniesApi as getClientsApi } from "../../../api/companyApi/companyApi";
+
+// --- Modals ---
+import { ClientInvoiceViewClientModal } from "../../../components/modals/Finance/ClientInvoiceViewClientModal";
 
 // --- Components ---
 import Select from "../../../components/ui/Select";
@@ -79,6 +82,9 @@ const ClientInvoice: React.FC = () => {
 
   const [companies, setCompanies] = useState<Option[]>([]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  const [isViewClientModalOpen, setIsViewClientModalOpen] = useState(false);
+  const [viewClientCompanyName, setViewClientCompanyName] = useState<string | null>(null);
 
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
@@ -361,6 +367,14 @@ const ClientInvoice: React.FC = () => {
   const menuItems: ContextMenuItem[] = selectedRow
     ? [
       {
+        label: "View Client",
+        icon: <Users size={16} />,
+        onClick: () => {
+          setViewClientCompanyName(selectedRow.companyName || null);
+          setIsViewClientModalOpen(true);
+        },
+      },
+      {
         label: "View Invoice",
         icon: <Eye size={16} />,
         onClick: () => handleViewPdf(selectedRow.id),
@@ -582,6 +596,11 @@ const ClientInvoice: React.FC = () => {
         onConfirm={handleDelete}
         title="Delete Invoice"
         message="Are you sure you want to delete this invoice?"
+      />
+      <ClientInvoiceViewClientModal
+        isOpen={isViewClientModalOpen}
+        onClose={() => setIsViewClientModalOpen(false)}
+        companyName={viewClientCompanyName}
       />
     </div>
   );

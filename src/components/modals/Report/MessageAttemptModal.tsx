@@ -23,79 +23,104 @@ export const MessageAttemptModal: React.FC<MessageAttemptModalProps> = ({
       title="Message Attempt Details"
       className="max-w-4xl"
     >
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Row 1 */}
-          <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Attempt ID</label>
-            <div className="text-sm font-mono text-primary bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.id || "-"}</div>
+      <div className="space-y-5 max-h-[80vh] overflow-y-auto px-1">
+        {/* Attempt Overview & Status */}
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <legend className="text-sm font-semibold text-primary px-2">
+            Attempt Overview & Status
+          </legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Attempt ID</label>
+              <div className="text-sm font-mono text-primary bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.id || "-"}</div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Message ID</label>
+              <div className="text-sm font-medium text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.message || "-"}</div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Status</label>
+              <div className="text-sm font-medium capitalize text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.status || "-"}</div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Attempt Number</label>
+              <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.attempt_number || "-"}</div>
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Message ID</label>
-            <div className="text-sm font-medium text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.message || "-"}</div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Status</label>
-            <div className="text-sm font-medium capitalize text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.status || "-"}</div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Attempt Number</label>
-            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.attempt_number || "-"}</div>
-          </div>
+        </fieldset>
 
-          {/* Row 2 */}
-          <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Provider</label>
-            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.provider || "-"}</div>
+        {/* Provider & Routing Details */}
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <legend className="text-sm font-semibold text-primary px-2">
+            Provider & Routing Details
+          </legend>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Provider</label>
+              <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.provider || "-"}</div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Vendor Message ID</label>
+              <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700 truncate">{viewLog.vendorMessageId || "-"}</div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Segment ID</label>
+              <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.segment || "-"}</div>
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Vendor Message ID</label>
-            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.vendorMessageId || "-"}</div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Segment ID</label>
-            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.segment || "-"}</div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Started At</label>
-            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.started_at ? new Date(viewLog.started_at).toLocaleString() : "-"}</div>
-          </div>
+        </fieldset>
 
-          {/* Row 3 */}
-          <div>
-            <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Completed At</label>
-            <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.completed_at ? new Date(viewLog.completed_at).toLocaleString() : "-"}</div>
+        {/* Timestamps */}
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <legend className="text-sm font-semibold text-primary px-2">
+            Timestamps
+          </legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Started At</label>
+              <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.started_at ? new Date(viewLog.started_at).toLocaleString() : "-"}</div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">Completed At</label>
+              <div className="text-sm text-text-primary dark:text-white bg-gray-50 dark:bg-gray-800/50 p-2 rounded border border-gray-100 dark:border-gray-700">{viewLog.completed_at ? new Date(viewLog.completed_at).toLocaleString() : "-"}</div>
+            </div>
           </div>
-        </div>
+        </fieldset>
 
-        {/* Error Message Area */}
-        <div className="mt-4">
-          <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
-            Error Message
-          </label>
+        {/* Error Message */}
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <legend className="text-sm font-semibold text-primary px-2">
+            Error Details
+          </legend>
           <div className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[80px] text-sm text-text-primary dark:text-white whitespace-pre-wrap break-words">
             {viewLog.error_message || <span className="text-gray-400 italic">No error message available.</span>}
           </div>
-        </div>
+        </fieldset>
 
         {/* Payloads */}
-        <div className="mt-4">
-          <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
-            Request Payload
-          </label>
-          <div className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[80px] text-sm text-text-primary dark:text-white whitespace-pre-wrap break-words">
-            {viewLog.request_payload ? JSON.stringify(viewLog.request_payload, null, 2) : <span className="text-gray-400 italic">No payload available.</span>}
+        <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <legend className="text-sm font-semibold text-primary px-2">
+            Payloads
+          </legend>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
+                Request Payload
+              </label>
+              <div className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[80px] text-sm text-text-primary dark:text-white whitespace-pre-wrap break-words font-mono">
+                {viewLog.request_payload ? JSON.stringify(viewLog.request_payload, null, 2) : <span className="text-gray-400 italic">No payload available.</span>}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
+                Response Payload
+              </label>
+              <div className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[80px] text-sm text-text-primary dark:text-white whitespace-pre-wrap break-words font-mono">
+                {viewLog.response_payload ? JSON.stringify(viewLog.response_payload, null, 2) : <span className="text-gray-400 italic">No payload available.</span>}
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div className="mt-4">
-          <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-1">
-            Response Payload
-          </label>
-          <div className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[80px] text-sm text-text-primary dark:text-white whitespace-pre-wrap break-words">
-            {viewLog.response_payload ? JSON.stringify(viewLog.response_payload, null, 2) : <span className="text-gray-400 italic">No payload available.</span>}
-          </div>
-        </div>
+        </fieldset>
 
         {/* Footer Actions */}
         <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
@@ -107,3 +132,5 @@ export const MessageAttemptModal: React.FC<MessageAttemptModalProps> = ({
     </Modal>
   );
 };
+
+export default MessageAttemptModal;

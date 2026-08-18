@@ -74,10 +74,10 @@ export const getVendorsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  // FIXED: Changed `/${module}/` to `/vendor/${module}/` to match Django's vendor/<str:module>/ pattern
   const response = await api.get(`/vendor/${module}/`, { params });
   return response.data;
 };
+
 export const generateVendorCompanyInvoiceApi = async (
   data: any,
   action: "PREVIEW" | "GENERATE" = "GENERATE"
@@ -90,5 +90,38 @@ export const generateVendorCompanyInvoiceApi = async (
   const config = action === "PREVIEW" ? { responseType: "blob" as const } : {};
   
   const response = await api.post(`/finance/generate-vendorCompanyInvoice/`, payload, config);
+  return response.data;
+};
+
+export interface CompanyVendorInvoiceData {
+  id?: number;
+  accountManager?: number | null;
+  accountManagerName?: string;
+  invoiceNumber?: string;
+  company?: number;
+  companyName?: string;
+  vendorName?: string;   
+  billingPeriodStart?: string;
+  billingPeriodEnd?: string;
+  invoiceDate?: string;
+  totalAmount?: string | number;
+  taxAmount?: string | number;
+  taxPercentage?: string | number;
+  totalSegments?: number;
+  status?: string;
+  createdAt?: string;
+  currencyCode?: string;
+}
+
+export const getVendorInvoiceByCompanyApi = async (
+  companyName: string,
+  invoiceDate: string
+): Promise<PaginatedResponse<CompanyVendorInvoiceData>> => {
+  const response = await api.get(`/vendorInvoice/vendorInvoice/`, {
+    params: {
+      vendor__company__name: companyName,
+      invoiceDate,
+    },
+  });
   return response.data;
 };
