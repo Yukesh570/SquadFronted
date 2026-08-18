@@ -10,7 +10,7 @@ import {
   deleteClientInvoiceApi,
   type ClientInvoiceData,
 } from "../../../api/financeApi/clientInvoiceApi";
-import { getClientsApi } from "../../../api/clientApi/clientApi";
+import { getCompaniesApi as getClientsApi } from "../../../api/companyApi/companyApi";
 
 // --- Components ---
 import Select from "../../../components/ui/Select";
@@ -45,10 +45,10 @@ interface ColumnConfig extends FilterColumn {
   tableLabel?: string;
 }
 
-const DEFAULT_SEARCH_COLUMNS = ["invoiceNumber", "clientName"];
+const DEFAULT_SEARCH_COLUMNS = ["invoiceNumber", "companyName"];
 const DEFAULT_TABLE_COLUMNS = [
   "invoiceNumber",
-  "clientName",
+  "companyName",
   "billingPeriodStart",
   "billingPeriodEnd",
   "invoiceDate",
@@ -77,7 +77,7 @@ const ClientInvoice: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [clients, setClients] = useState<Option[]>([]);
+  const [companies, setCompanies] = useState<Option[]>([]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const [contextMenuPos, setContextMenuPos] = useState<{
@@ -130,7 +130,7 @@ const ClientInvoice: React.FC = () => {
     getClientsApi("client", 1, 1000)
       .then((res: any) => {
         const list = res.results || (Array.isArray(res) ? res : []);
-        setClients(
+        setCompanies(
           list.map((c: any) => ({ label: c.name, value: String(c.id) })),
         );
       })
@@ -140,11 +140,11 @@ const ClientInvoice: React.FC = () => {
   const allColumns: ColumnConfig[] = [
     { key: "invoiceNumber", label: "Invoice No.", type: "text" },
     {
-      key: "clientName",
-      label: "Client",
+      key: "companyName",
+      label: "Company",
       type: "text",
-      options: clients,
-      filterKey: "client",
+      options: companies,
+      filterKey: "company",
     },
     { key: "billingPeriodStart", label: "Period Start", type: "date" },
     { key: "billingPeriodEnd", label: "Period End", type: "date" },
@@ -265,7 +265,7 @@ const ClientInvoice: React.FC = () => {
       return;
     }
 
-    const cleanUrl = `/api/finance/client-invoice/${id}/download/`;
+    const cleanUrl = `/api/finance/company-client-invoice/${id}/download/`;
     const toastId = toast.loading("Generating PDF for view...", { type: "info" });
     try {
       const response = await api.get(cleanUrl, { responseType: "blob" });
@@ -331,13 +331,13 @@ const ClientInvoice: React.FC = () => {
 
     const toastId = toast.loading("Downloading EDR...", { type: "info" });
     try {
-      const response = await api.get(`/finance/TDR-invoice/download/${id}/`, {
+      const response = await api.get(`/api/finance/company-client-invoice/${id}/tdr/`, {
         responseType: "blob",
       });
       const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = blobUrl;
-      link.setAttribute("download", `EDR-${id}.csv`);
+      link.setAttribute("download", `${response.headers["content-disposition"]?.split("filename=")[1]?.replace(/"/g, "") || `EDR-Company-${id}.zip`}`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -370,7 +370,7 @@ const ClientInvoice: React.FC = () => {
         icon: <Download size={16} />,
         onClick: () =>
           handleDownloadPdf(
-            selectedRow.downloadUrl || `/api/finance/client-invoice/${selectedRow.id}/download/`,
+            selectedRow.downloadUrl || `/api/finance/company-client-invoice/${selectedRow.id}/download/`,
           ),
       },
       {

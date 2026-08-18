@@ -6,7 +6,7 @@ export interface VendorInvoiceData {
   accountManagerName?: string;
   invoiceNumber?: string;
   vendor: number;
-  vendorName?: string;
+  companyName?: string;
   billingPeriodStart?: string;
   billingPeriodEnd?: string;
   invoiceDate?: string;
@@ -37,7 +37,7 @@ export const getVendorInvoicesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendorInvoice/${module}/`, { params });
+  const response = await api.get(`/vendorCompanyInvoice/${module}/`, { params });
   return response.data;
 };
 
@@ -60,7 +60,7 @@ export const deleteVendorInvoiceApi = async (
   id: number,
   module: string
 ): Promise<void> => {
-  await api.delete(`/vendorInvoice/${module}/${id}/`);
+  await api.delete(`/vendorCompanyInvoice/${module}/${id}/`);
 };
 
 export const getVendorsApi = async (
@@ -76,5 +76,19 @@ export const getVendorsApi = async (
   };
   // FIXED: Changed `/${module}/` to `/vendor/${module}/` to match Django's vendor/<str:module>/ pattern
   const response = await api.get(`/vendor/${module}/`, { params });
+  return response.data;
+};
+export const generateVendorCompanyInvoiceApi = async (
+  data: any,
+  action: "PREVIEW" | "GENERATE" = "GENERATE"
+): Promise<any> => {
+  const payload = {
+    ...data,
+    action: action 
+  };
+  
+  const config = action === "PREVIEW" ? { responseType: "blob" as const } : {};
+  
+  const response = await api.post(`/finance/generate-vendorCompanyInvoice/`, payload, config);
   return response.data;
 };

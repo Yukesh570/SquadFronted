@@ -132,7 +132,7 @@ const GenerateVendorInvoice: React.FC = () => {
 
     return {
       accountManager: formData.accountManager && formData.accountManager !== "0" ? Number(formData.accountManager) : null,
-      vendor: Number(formData.vendor),
+      company: Number(formData.vendor),
       fromDate: formatLocalDate(fromDate),
       toDate: formatLocalDate(toDate),
       invoiceDate: formatLocalDate(invoiceDate),
@@ -142,7 +142,7 @@ const GenerateVendorInvoice: React.FC = () => {
   const handlePreview = async () => {
     const payload = getPayload();
     if (!payload) {
-      toast.error("Please fill in Vendor and all Date fields to preview.");
+      toast.error("Please fill in Company and all Date fields to preview.");
       return;
     }
 
@@ -183,7 +183,7 @@ const GenerateVendorInvoice: React.FC = () => {
   const handleGenerate = async () => {
     const payload = getPayload();
     if (!payload) {
-      toast.error("Please fill in Vendor and all Date fields to generate.");
+      toast.error("Please fill in Company and all Date fields to generate.");
       return;
     }
 
@@ -200,7 +200,7 @@ const GenerateVendorInvoice: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 4000));
       toast.dismiss(loadingToastId);
 
-      toast.success("Vendor Invoice generated successfully!");
+      toast.success("Company Vendor Invoice generated successfully!");
       navigate(findVendorInvoiceUrl());
     } catch (error: any) {
       const errorData = error.response?.data;
@@ -241,11 +241,11 @@ const GenerateVendorInvoice: React.FC = () => {
           />
 
           <Select
-            label="Vendor *"
+            label="Company *"
             value={formData.vendor}
             onChange={(v) => setFormData({ ...formData, vendor: v })}
             options={[...vendorOptions]}
-            placeholder="Select Vendor"
+            placeholder="Select Company"
           />
 
           <hr className="dark:border-gray-700" />

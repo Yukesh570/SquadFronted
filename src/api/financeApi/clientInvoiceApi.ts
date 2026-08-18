@@ -6,7 +6,7 @@ export interface ClientInvoiceData {
   accountManagerName?: string;
   invoiceNumber?: string;
   client: number;
-  clientName?: string;
+  companyName?: string;
   billingPeriodStart?: string;
   billingPeriodEnd?: string;
   invoiceDate?: string;
@@ -37,7 +37,7 @@ export const getClientInvoicesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/clientInvoice/${module}/`, { params });
+  const response = await api.get(`/clientCompanyInvoice/${module}/`, { params });
   return response.data;
 };
 
@@ -61,5 +61,19 @@ export const deleteClientInvoiceApi = async (
   id: number,
   module: string
 ): Promise<void> => {
-  await api.delete(`/clientInvoice/${module}/${id}/`);
+  await api.delete(`/clientCompanyInvoice/${module}/${id}/`);
+};
+export const generateClientCompanyInvoiceApi = async (
+  data: any,
+  action: "PREVIEW" | "GENERATE" = "GENERATE"
+): Promise<any> => {
+  const payload = {
+    ...data,
+    action: action 
+  };
+  
+  const config = action === "PREVIEW" ? { responseType: 'blob' as const } : {};
+  
+  const response = await api.post(`/finance/generate-clientCompanyInvoice/`, payload, config);
+  return response.data;
 };

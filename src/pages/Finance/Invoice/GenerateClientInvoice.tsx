@@ -5,8 +5,8 @@ import { toast } from "react-toastify";
 import { NavItemsContext } from "../../../context/navItemsContext";
 
 // --- APIs ---
-import { generateClientInvoiceApi } from "../../../api/financeApi/clientInvoiceApi";
-import { getClientsApi } from "../../../api/clientApi/clientApi";
+import { generateClientCompanyInvoiceApi as generateClientInvoiceApi } from "../../../api/financeApi/clientInvoiceApi";
+import { getCompaniesApi as getClientsApi } from "../../../api/companyApi/companyApi";
 import { getallAMUserApi } from "../../../api/userApi/userApi";
 
 // --- Components ---
@@ -132,7 +132,7 @@ const GenerateClientInvoice: React.FC = () => {
 
     return {
       accountManager: formData.accountManager && formData.accountManager !== "0" ? Number(formData.accountManager) : null,
-      client: Number(formData.client),
+      company: Number(formData.client),
       fromDate: formatLocalDate(fromDate),
       toDate: formatLocalDate(toDate),
       invoiceDate: formatLocalDate(invoiceDate),
@@ -142,7 +142,7 @@ const GenerateClientInvoice: React.FC = () => {
   const handlePreview = async () => {
     const payload = getPayload();
     if (!payload) {
-      toast.error("Please fill in Client and all Date fields to preview.");
+      toast.error("Please fill in Company and all Date fields to preview.");
       return;
     }
 
@@ -183,7 +183,7 @@ const GenerateClientInvoice: React.FC = () => {
   const handleGenerate = async () => {
     const payload = getPayload();
     if (!payload) {
-      toast.error("Please fill in Client and all Date fields to generate.");
+      toast.error("Please fill in Company and all Date fields to generate.");
       return;
     }
 
@@ -200,7 +200,7 @@ const GenerateClientInvoice: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 4000));
       toast.dismiss(loadingToastId);
 
-      toast.success("Client Invoice generated successfully!");
+      toast.success("Company Client Invoice generated successfully!");
       navigate(findClientInvoiceUrl());
     } catch (error: any) {
       const errorData = error.response?.data;
@@ -241,11 +241,11 @@ const GenerateClientInvoice: React.FC = () => {
           />
 
           <Select
-            label="Client *"
+            label="Company *"
             value={formData.client}
             onChange={(v) => setFormData({ ...formData, client: v })}
             options={[...clientOptions]}
-            placeholder="Select Client"
+            placeholder="Select Company"
           />
 
           <hr className="dark:border-gray-700" />

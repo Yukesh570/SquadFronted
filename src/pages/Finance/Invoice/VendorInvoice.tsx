@@ -45,10 +45,10 @@ interface ColumnConfig extends FilterColumn {
   tableLabel?: string;
 }
 
-const DEFAULT_SEARCH_COLUMNS = ["invoiceNumber", "vendorName"];
+const DEFAULT_SEARCH_COLUMNS = ["invoiceNumber", "companyName"];
 const DEFAULT_TABLE_COLUMNS = [
   "invoiceNumber",
-  "vendorName",
+  "companyName",
   "billingPeriodStart",
   "billingPeriodEnd",
   "invoiceDate",
@@ -77,7 +77,7 @@ const VendorInvoice: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [vendors, setVendors] = useState<Option[]>([]);
+  const [companies, setCompanies] = useState<Option[]>([]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const [contextMenuPos, setContextMenuPos] = useState<{
@@ -130,9 +130,9 @@ const VendorInvoice: React.FC = () => {
     getVendorsApi("vendor", 1, 1000)
       .then((res: any) => {
         const list = res.results || (Array.isArray(res) ? res : []);
-        setVendors(
+        setCompanies(
           list.map((v: any) => ({
-            label: v.name || v.profileName,
+            label: v.name || v.name,
             value: String(v.id),
           })),
         );
@@ -143,11 +143,11 @@ const VendorInvoice: React.FC = () => {
   const allColumns: ColumnConfig[] = [
     { key: "invoiceNumber", label: "Invoice No.", type: "text" },
     {
-      key: "vendorName",
-      label: "Vendor",
+      key: "companyName",
+      label: "Company",
       type: "text",
-      options: vendors,
-      filterKey: "vendor",
+      options: companies,
+      filterKey: "company",
     },
     { key: "billingPeriodStart", label: "Period Start", type: "date" },
     { key: "billingPeriodEnd", label: "Period End", type: "date" },
@@ -258,7 +258,7 @@ const VendorInvoice: React.FC = () => {
       return;
     }
 
-    const cleanUrl = `/api/finance/vendor-invoice/${id}/download/`;
+    const cleanUrl = `/api/finance/company-vendor-invoice/${id}/download/`;
     const toastId = toast.loading("Generating PDF for view...", { type: "info" });
     try {
       const response = await api.get(cleanUrl, { responseType: "blob" });
@@ -325,13 +325,13 @@ const VendorInvoice: React.FC = () => {
     const toastId = toast.loading("Downloading EDR...", { type: "info" });
     try {
       const response = await api.get(
-        `/finance/TDR-invoiceVendor/download/${id}/`,
+        `/api/finance/company-vendor-invoice/${id}/tdr/`,
         { responseType: "blob" },
       );
       const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = blobUrl;
-      link.setAttribute("download", `EDR-${id}.csv`);
+      link.setAttribute("download", `${response.headers["content-disposition"]?.split("filename=")[1]?.replace(/"/g, "") || `EDR-Company-${id}.zip`}`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -364,7 +364,7 @@ const VendorInvoice: React.FC = () => {
         icon: <Download size={16} />,
         onClick: () =>
           handleDownloadPdf(
-            selectedRow.downloadUrl || `/api/finance/vendor-invoice/${selectedRow.id}/download/`,
+            selectedRow.downloadUrl || `/api/finance/company-vendor-invoice/${selectedRow.id}/download/`,
           ),
       },
       {
