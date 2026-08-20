@@ -175,18 +175,18 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ── Derive company email (locked) from selected vendor ──────────────────────
-  const companyEmail = (() => {
-    if (formData.vendor) {
-      const selectedVendor = vendorsList.find((v) => String(v.id) === String(formData.vendor));
-      if (selectedVendor?.company) {
-        const selectedCompany = companiesList.find((c) => String(c.id) === String(selectedVendor.company));
-        if (selectedCompany) {
-          return selectedCompany.ratesEmail || selectedCompany.companyEmail || "";
-        }
-      }
-    }
-    return "";
-  })();
+  // const companyEmail = (() => {
+  //   if (formData.vendor) {
+  //     const selectedVendor = vendorsList.find((v) => String(v.id) === String(formData.vendor));
+  //     if (selectedVendor?.company) {
+  //       const selectedCompany = companiesList.find((c) => String(c.id) === String(selectedVendor.company));
+  //       if (selectedCompany) {
+  //         return selectedCompany.ratesEmail || selectedCompany.companyEmail || "";
+  //       }
+  //     }
+  //   }
+  //   return "";
+  // })();
 
   // ── Fetch reference data ────────────────────────────────────────────────────
   useEffect(() => {

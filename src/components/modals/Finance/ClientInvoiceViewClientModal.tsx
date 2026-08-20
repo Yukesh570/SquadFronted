@@ -26,13 +26,13 @@ const rowsOptions = [
   { value: "100", label: "100" },
 ];
 
-const formatDateToday = () => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+// const formatDateToday = () => {
+//   const date = new Date();
+//   const year = date.getFullYear();
+//   const month = String(date.getMonth() + 1).padStart(2, "0");
+//   const day = String(date.getDate()).padStart(2, "0");
+//   return `${year}-${month}-${day}`;
+// };
 
 export const ClientInvoiceViewClientModal: React.FC<ClientInvoiceViewClientModalProps> = ({
   isOpen,
