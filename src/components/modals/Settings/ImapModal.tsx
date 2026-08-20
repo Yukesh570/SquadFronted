@@ -8,6 +8,7 @@ import {
 import Button from "../../ui/Button";
 import Input from "../../ui/Input";
 import Select from "../../ui/Select";
+import ToggleSwitch from "../../ui/ToggleSwitch";
 import Modal from "../../ui/Modal";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -80,8 +81,8 @@ export const ImapModal: React.FC<ImapModalProps> = ({
         type === "checkbox"
           ? checked
           : name === "imapPort"
-          ? parseInt(value) || 0
-          : value,
+            ? parseInt(value) || 0
+            : value,
     }));
   };
 
@@ -124,8 +125,8 @@ export const ImapModal: React.FC<ImapModalProps> = ({
         isViewMode
           ? "View IMAP Host"
           : editingServer
-          ? "Edit IMAP Host"
-          : "Add New IMAP Host"
+            ? "Edit IMAP Host"
+            : "Add New IMAP Host"
       }
     >
       <form className="space-y-5" onSubmit={handleSubmit}>
@@ -186,6 +187,7 @@ export const ImapModal: React.FC<ImapModalProps> = ({
           value={formData.imapPassword}
           onChange={handleChange}
           placeholder="••••••••"
+          isClearable={false}
           rightIcon={
             <button
               type="button"
@@ -199,20 +201,13 @@ export const ImapModal: React.FC<ImapModalProps> = ({
           disabled={isViewMode}
           autoComplete="new-password"
         />
-        
-        <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="active"
-              name="active"
-              checked={formData.active}
-              onChange={handleChange}
-              disabled={isViewMode}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="active" className="text-sm font-medium text-gray-700">
-              Active
-            </label>
+
+        <div className={isViewMode ? "pointer-events-none opacity-50" : ""}>
+          <ToggleSwitch
+            label="Active"
+            checked={formData.active || false}
+            onChange={(v) => setFormData((prev) => ({ ...prev, active: v }))}
+          />
         </div>
 
         {!isViewMode && (

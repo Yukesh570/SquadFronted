@@ -371,7 +371,7 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
 
             <div className="relative">
               <Input
-                label="Unique ID (Secret Token)"
+                label="Unique ID"
                 name="uniqueId"
                 value={formData.uniqueId}
                 onChange={handleChange}
@@ -404,7 +404,7 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
               disabled={isViewMode}
               label="Allowed Email"
               placeholder="Add email and press Enter"
-              hint="Type an email and press Enter or comma to add. Company email is pre-filled from the vendor."
+              hint="Press Enter or comma to add. Emails are pre-filled from the vendor's Company email."
               validatePattern={/^[^\s@]+@[^\s@]+\.[^\s@]+$/}
               validateErrorMsg="is not a valid email address."
             />
@@ -416,7 +416,7 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
               disabled={isViewMode}
               label="Allowed Domain"
               placeholder="example.com"
-              hint="Type a domain and press Enter or comma to add."
+              hint="Press Enter or comma to add."
             />
             <Input
               label="Subject Pattern"
