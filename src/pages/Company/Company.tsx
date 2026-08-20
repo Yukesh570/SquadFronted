@@ -9,7 +9,6 @@ import {
   type CompanyData,
 } from "../../api/companyApi/companyApi";
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
-import { getStateApi } from "../../api/settingApi/stateApi/stateApi";
 import { getCompanyCategoryApi } from "../../api/settingApi/companyCategoryApi/companyCategoryApi";
 import { getCurrenciesApi } from "../../api/settingApi/currencyApi/currencyApi";
 import { getCompanyStatusApi } from "../../api/settingApi/companyStatusApi/companyStatusApi";
@@ -91,7 +90,6 @@ const CompanyList: React.FC = () => {
 
   // --- Dropdown Options ---
   const [countries, setCountries] = useState<Option[]>([]);
-  const [states, setStates] = useState<Option[]>([]);
   const [categories, setCategories] = useState<Option[]>([]);
   const [statuses, setStatuses] = useState<Option[]>([]);
   const [currencies, setCurrencies] = useState<Option[]>([]);
@@ -138,7 +136,6 @@ const CompanyList: React.FC = () => {
       }
     };
     loadOptions(getCountriesApi, "country", setCountries);
-    loadOptions(getStateApi, "state", setStates);
     loadOptions(getCompanyCategoryApi, "companyCategory", setCategories);
     loadOptions(getCurrenciesApi, "currency", setCurrencies);
     if (typeof getCompanyStatusApi === "function")
@@ -146,7 +143,6 @@ const CompanyList: React.FC = () => {
     if (typeof getTimezoneApi === "function")
       loadOptions(getTimezoneApi, "timeZone", setTimeZones);
   }, []);
-
 
   const allColumns: ColumnConfig[] = [
     { key: "name", label: "Company Name", type: "text", filterKey: "name__icontains" },
@@ -178,13 +174,6 @@ const CompanyList: React.FC = () => {
           </div>
         );
       }
-    },
-    {
-      key: "state",
-      label: "State",
-      type: "text",
-      options: states,
-      filterKey: "state__name__icontains",
     },
     {
       key: "category",
@@ -219,82 +208,6 @@ const CompanyList: React.FC = () => {
     { key: "balanceAlertAmount", label: "Bal. Alert", type: "number", filterKey: "balanceAlertAmount" },
     { key: "referencNumber", label: "Ref. Number", type: "text", filterKey: "referencNumber__icontains" },
     { key: "address", label: "Address", type: "text", filterKey: "address__icontains" },
-    // {
-    //   key: "validityPeriod",
-    //   label: "Validity",
-    //   type: "text",
-    //   options: [
-    //     { label: "Limited", value: "LTD" },
-    //     { label: "Unlimited", value: "UNL" },
-    //   ],
-    //   filterKey: "validityPeriod",
-    // },
-    // {
-    //   key: "defaultEmail",
-    //   label: "Default Email",
-    //   type: "text",
-    //   options: [
-    //     { label: "Company", value: "CMP" },
-    //     { label: "Support", value: "SUP" },
-    //   ],
-    //   filterKey: "defaultEmail",
-    // },
-    // {
-    //   key: "onlinePayment",
-    //   label: "Online Payment",
-    //   type: "boolean",
-    //   options: booleanOptions,
-    //   filterKey: "onlinePayment",
-    //   render: (c) => renderBooleanBadge(c.onlinePayment),
-    // },
-    // {
-    //   key: "companyBlocked",
-    //   label: "Blocked",
-    //   type: "boolean",
-    //   options: booleanOptions,
-    //   filterKey: "companyBlocked",
-    //   render: (c) => renderBooleanBadge(c.companyBlocked),
-    // },
-    // {
-    //   key: "allowWhiteListedCards",
-    //   label: "Whitelist Cards",
-    //   type: "boolean",
-    //   options: booleanOptions,
-    //   filterKey: "allowWhiteListedCards",
-    //   render: (c) => renderBooleanBadge(c.allowWhiteListedCards),
-    // },
-    // {
-    //   key: "sendDailyReports",
-    //   label: "Daily Reports",
-    //   type: "boolean",
-    //   options: booleanOptions,
-    //   filterKey: "sendDailyReports",
-    //   render: (c) => renderBooleanBadge(c.sendDailyReports),
-    // },
-    // {
-    //   key: "allowNetting",
-    //   label: "Netting",
-    //   type: "boolean",
-    //   options: booleanOptions,
-    //   filterKey: "allowNetting",
-    //   render: (c) => renderBooleanBadge(c.allowNetting),
-    // },
-    // {
-    //   key: "showHlrApi",
-    //   label: "HLR API",
-    //   type: "boolean",
-    //   options: booleanOptions,
-    //   filterKey: "showHlrApi",
-    //   render: (c) => renderBooleanBadge(c.showHlrApi),
-    // },
-    // {
-    //   key: "enableVendorPanel",
-    //   label: "Vendor Panel",
-    //   type: "boolean",
-    //   options: booleanOptions,
-    //   filterKey: "enableVendorPanel",
-    //   render: (c) => renderBooleanBadge(c.enableVendorPanel),
-    // },
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
@@ -601,7 +514,8 @@ const CompanyList: React.FC = () => {
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              allowCustomValue={true} />
+                allowCustomValue={true}
+              />
             );
           }
           if (col.type === "date") {

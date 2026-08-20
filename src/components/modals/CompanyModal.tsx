@@ -17,6 +17,7 @@ import Select from "../ui/Select";
 import Modal from "../ui/Modal";
 import TextArea from "../ui/TextArea";
 import MultiEmailInput from "../ui/multiEmailInput";
+import { CountryFlag } from "../ui/CountryFlag";
 
 interface CompanyModalProps {
   isOpen: boolean;
@@ -26,8 +27,6 @@ interface CompanyModalProps {
   editingCompany: CompanyData | null;
   isViewMode?: boolean;
 }
-
-import { CountryFlag } from "../ui/CountryFlag";
 
 interface Option {
   label: string;
@@ -54,7 +53,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     ratesEmail: "",
     lowBalanceAlertEmail: "",
     country: "",
-    state: "",
     category: "",
     status: "",
     currency: "",
@@ -140,7 +138,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         ratesEmail: editingCompany.ratesEmail,
         lowBalanceAlertEmail: editingCompany.lowBalanceAlertEmail,
         country: String(editingCompany.country || ""),
-        state: String(editingCompany.state || ""),
         category: String(editingCompany.category || ""),
         status: String(editingCompany.status || ""),
         currency: String(editingCompany.currency || ""),
@@ -175,7 +172,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         ratesEmail: "",
         lowBalanceAlertEmail: "",
         country: "",
-        state: "",
         category: "",
         status: "",
         currency: "",
@@ -210,8 +206,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   const handleSelect = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
   };
-
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -267,7 +261,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     const payload = {
       ...restFormData,
       country: Number(formData.country) || null,
-      state: formData.state ? formData.state : null,
       category: Number(formData.category) || null,
       status: Number(formData.status) || null,
       currency: Number(formData.currency) || null,
@@ -326,7 +319,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Identity & Contacts
           </legend>
-          {/* ⚡️ FIX: Added specific scoped label classes to force alignment baseline */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start [&_label]:min-h-[32px] [&_label]:flex [&_label]:items-end">
             <Input
               label="Company Name"
@@ -414,7 +406,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               placeholder="finance@xenon.com"
               disabled={isViewMode}
             />
-
           </div>
         </fieldset>
 
@@ -423,7 +414,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Classification & Location
           </legend>
-          {/* ⚡️ FIX: Added specific scoped label classes to force alignment baseline */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start [&_label]:min-h-[32px] [&_label]:flex [&_label]:items-end">
             <Select
               label="Country Name"
@@ -434,14 +424,14 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               disabled={isViewMode}
               required
             />
-            <Input
+             {/* <Input
               label="State Name"
               name="state"
               value={formData.state}
               onChange={handleChange}
               placeholder="Enter State Name"
               disabled={isViewMode}
-            />
+            /> */}
             <Select
               label="Company Category"
               value={formData.category}
@@ -450,7 +440,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               placeholder="Select Category"
               disabled={isViewMode}
             />
-
             <Select
               label="Company Status"
               value={formData.status}
@@ -468,7 +457,6 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Finance & System
           </legend>
-          {/* ⚡️ FIX: Added specific scoped label classes to force alignment baseline */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start [&_label]:min-h-[32px] [&_label]:flex [&_label]:items-end">
             <Select
               label="Currency"
@@ -569,7 +557,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           />
         </fieldset>
 
-        {/* Policies */}
+         {/* Policies */}
         {/* <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <legend className="text-sm font-semibold text-primary px-2">
             Policies & Settings

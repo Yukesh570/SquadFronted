@@ -18,28 +18,25 @@ export interface CompanyData {
 
   // Foreign Keys (IDs)
   country: number;
-  state: number;
   category: number;
   status: number;
   currency: number;
   timeZone: number;
-  // businessEntity: number;
 
   // Finance
-  customerCreditLimit: string; // Decimal as string
-  vendorCreditLimit: string; // Restored
+  customerCreditLimit: string;
+  vendorCreditLimit: string;
   balanceAlertAmount: string;
   usedCustomerCredit: string;
   usedVendorCredit: string;
   referencNumber: string;
-  // vatNumber: string;
 
   // Address
   address: string;
 
   // Enums & Booleans
-  validityPeriod: string; // 'LTD' or 'UNL'
-  defaultEmail: string;   // 'CMP' or 'SUP'
+  validityPeriod: string;
+  defaultEmail: string;
   onlinePayment: boolean;
   companyBlocked: boolean;
   allowWhiteListedCards: boolean;
@@ -99,8 +96,8 @@ export const deleteCompanyApi = async (
   await api.delete(`/company/${module}/${id}/`);
 };
 
-// --- NEW: Add Credit API ---
-// PATCH
+// --- Add Credit API ---
+// POST
 export const addCreditApi = async (
   data: { company: number; creditType: string; creditAmount: number },
   module: string
