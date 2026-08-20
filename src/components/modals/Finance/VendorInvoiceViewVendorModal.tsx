@@ -15,6 +15,7 @@ interface VendorInvoiceViewVendorModalProps {
   isOpen: boolean;
   onClose: () => void;
   companyName: string | null;
+  companyInvoiceId: number | null;
 }
 
 const rowsOptions = [
@@ -36,6 +37,7 @@ export const VendorInvoiceViewVendorModal: React.FC<VendorInvoiceViewVendorModal
   isOpen,
   onClose,
   companyName,
+  companyInvoiceId,
 }) => {
   const [allInvoices, setAllInvoices] = useState<CompanyVendorInvoiceData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,23 +46,20 @@ export const VendorInvoiceViewVendorModal: React.FC<VendorInvoiceViewVendorModal
   const [rowsPerPage, setRowsPerPage] = useState(50);
 
   useEffect(() => {
-    if (isOpen && companyName) {
+    if (isOpen && companyInvoiceId) {
       fetchInvoices();
     } else {
       setAllInvoices([]);
     }
     setCurrentPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, companyName]);
+  }, [isOpen, companyInvoiceId]);
 
   const fetchInvoices = async () => {
-    if (!companyName) return;
+    if (!companyInvoiceId) return;
     setIsLoading(true);
     try {
-      const res = await getVendorInvoiceByCompanyApi(
-        companyName,
-        formatDateToday(),
-      );
+      const res = await getVendorInvoiceByCompanyApi(companyInvoiceId);
       const list = res.results || (Array.isArray(res) ? res : []);
       setAllInvoices(list);
     } catch (err) {

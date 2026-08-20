@@ -44,13 +44,14 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["vendor", "batchStatus", "approvalStatus"];
-const DEFAULT_TABLE_COLUMNS = ["vendor", "batchStatus", "approvalStatus", "totalRows", "validRows", "currency", "createdAt"];
+const DEFAULT_SEARCH_COLUMNS = ["vendor", "batchStatus"];
+const DEFAULT_TABLE_COLUMNS = ["vendor", "batchStatus", "totalRows", "validRows", "currency", "createdAt"];
 
 const ImportBatch: React.FC = () => {
   const [data, setData] = useState<ImportBatchData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPolling, setIsPolling] = useState(false);
 
   // Mappings
   const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
@@ -116,12 +117,7 @@ const ImportBatch: React.FC = () => {
     { label: "Rolled Back", value: "ROLLED_BACK" },
   ];
 
-  const approvalStatusOptions: Option[] = [
-    { label: "Pending", value: "PENDING" },
-    { label: "Auto Approved", value: "AUTO_APPROVED" },
-    { label: "Manual Approved", value: "MANUAL_APPROVED" },
-    { label: "Rejected", value: "REJECTED" },
-  ];
+
 
   const allColumns: ColumnConfig[] = [
     { key: "vendor", label: "Vendor", type: "text", options: vendorOptions, filterKey: "vendor" },
@@ -144,31 +140,18 @@ const ImportBatch: React.FC = () => {
         return <StatusBadge status={colorKey} customText={label} />;
       }
     },
-    {
-      key: "approvalStatus",
-      label: "Approval Status",
-      type: "text",
-      options: approvalStatusOptions,
-      filterKey: "approvalStatus",
-      render: (c) => {
-        const val = c.approvalStatus || "PENDING";
-        const label = approvalStatusOptions.find(o => o.value === val)?.label || val;
 
-        let colorKey = "PENDING";
-        if (["AUTO_APPROVED", "MANUAL_APPROVED"].includes(val)) colorKey = "ACTIVE";
-        if (val === "REJECTED") colorKey = "REJECTED";
-
-        return <StatusBadge status={colorKey} customText={label} />;
-      }
-    },
     { key: "sourceType", label: "Source Type", type: "text", filterKey: "sourceType__icontains" },
     { key: "currency", label: "Currency", type: "text", filterKey: "currency__icontains" },
+
     { key: "totalRows", label: "Total Rows", type: "number", filterKey: "totalRows" },
     { key: "validRows", label: "Valid Rows", type: "number", filterKey: "validRows" },
     { key: "invalidRows", label: "Invalid Rows", type: "number", filterKey: "invalidRows" },
+    { key: "newRows", label: "New Rows", type: "number", filterKey: "newRows" },
+
     { key: "unmappedRows", label: "Unmapped Rows", type: "number", filterKey: "unmappedRows" },
     { key: "updatedRows", label: "Updated Rows", type: "number", filterKey: "updatedRows" },
-    { key: "newRows", label: "New Rows", type: "number", filterKey: "newRows" },
+    { key: "failureReason", label: "Failure Reason", type: "text" },
     { key: "createdAt", label: "Created At (Exact)", tableLabel: "created At", type: "date", filterKey: "createdAt__date", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
     { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
     { key: "effectiveDate", label: "Effective Date (Exact)", tableLabel: "Effective Date", type: "date", filterKey: "effectiveDate__date", render: (c) => (c.effectiveDate ? formatDateTime(c.effectiveDate) : "-") },
@@ -177,7 +160,7 @@ const ImportBatch: React.FC = () => {
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
-  
+
   // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
@@ -189,11 +172,11 @@ const ImportBatch: React.FC = () => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const fetchData = async (filters: Record<string, string> | null = null) => {
+  const fetchData = async (filters: Record<string, string> | null = null, silent: boolean = false) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
-    setIsLoading(true);
+    if (!silent) setIsLoading(true);
 
     try {
       const activeFilters = filters || filterValues;
@@ -237,12 +220,21 @@ const ImportBatch: React.FC = () => {
       if (response && response.results) {
         setData(response.results);
         setTotalItems(response.count);
+        const needsPolling = response.results.some((batch: ImportBatchData) => {
+          return !["PUBLISHED", "ROLLED_BACK", "FAILED"].includes(batch.batchStatus || "");
+        });
+        setIsPolling(needsPolling);
       } else if (Array.isArray(response)) {
         setData(response);
         setTotalItems(response.length);
+        const needsPolling = response.some((batch: ImportBatchData) => {
+          return !["PUBLISHED", "ROLLED_BACK", "FAILED"].includes(batch.batchStatus || "");
+        });
+        setIsPolling(needsPolling);
       } else {
         setData([]);
         setTotalItems(0);
+        setIsPolling(false);
       }
     } catch (error: any) {
       if (error.name !== "AbortError") toast.error("Failed to fetch import batches.");
@@ -253,8 +245,17 @@ const ImportBatch: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-    return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
-  }, [routeName, currentPage, rowsPerPage, searchColumns]);
+    let intervalId: ReturnType<typeof setInterval>;
+    if (isPolling) {
+      intervalId = setInterval(() => {
+        fetchData(null, true);
+      }, 3000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, [routeName, currentPage, rowsPerPage, searchColumns, isPolling]);
 
   const handleSearch = () => { setCurrentPage(1); fetchData(); };
   const handleClearFilters = () => { setFilterValues({}); setCurrentPage(1); fetchData({}); };
@@ -294,34 +295,34 @@ const ImportBatch: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Import Batches</h1>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={tableFilterColumns as any} 
-              selectedColumns={tableColumns} 
+            <AdvancedFilter
+              columns={tableFilterColumns as any}
+              selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
-              onFilter={(cols: string[]) => setTableColumns(cols)} 
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
-              buttonLabel="Columns" 
+              onFilter={(cols: string[]) => setTableColumns(cols)}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
               enableReorder={true}
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={searchableColumns as any} 
-              selectedColumns={searchColumns} 
+            <AdvancedFilter
+              columns={searchableColumns as any}
+              selectedColumns={searchColumns}
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
-              onFilter={(newCols: string[]) => { 
-                setSearchColumns(newCols); 
-                setFilterValues((prev) => { 
-                  const next = { ...prev }; 
-                  Object.keys(next).forEach((k) => { 
-                    if (!newCols.includes(k)) delete next[k]; 
-                  }); 
-                  return next; 
-                }); 
-              }} 
-              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
-              isLoading={isLoading} 
-              buttonLabel="Search Fields" 
+              onFilter={(newCols: string[]) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
             />
           </div>
         </div>
@@ -359,16 +360,16 @@ const ImportBatch: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable 
-        serverSide={true} 
-        data={data} 
-        totalItems={totalItems} 
-        currentPage={currentPage} 
-        rowsPerPage={rowsPerPage} 
-        onPageChange={setCurrentPage} 
-        onRowsPerPageChange={setRowsPerPage} 
-        density="compact" 
-        headers={tableHeaders} 
+      <DataTable
+        serverSide={true}
+        data={data}
+        totalItems={totalItems}
+        currentPage={currentPage}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={setRowsPerPage}
+        density="compact"
+        headers={tableHeaders}
         isLoading={isLoading}
         onReorderColumns={(fromIdx, toIdx) => {
           setTableColumns((prev) => {

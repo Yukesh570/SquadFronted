@@ -156,9 +156,14 @@ const Dashboard: React.FC = () => {
 
   // ─── Date range ──────────────────────────────────────────────────────────────
 
-  type RangeKey = "today" | "7d" | "30d" | "90d" | "365d" | "all";
+  type RangeKey = "5m" | "15m" | "1h" | "2h" | "4h" | "today" | "7d" | "30d" | "90d" | "365d" | "all";
 
   const RANGE_OPTIONS: { key: RangeKey; label: string }[] = [
+    { key: "5m", label: "Last 5 Minutes" },
+    { key: "15m", label: "Last 15 Minutes" },
+    { key: "1h", label: "Last 1 Hour" },
+    { key: "2h", label: "Last 2 Hour" },
+    { key: "4h", label: "Last 4 Hour" },
     { key: "today", label: "Today" },
     { key: "7d", label: "Last 7 Days" },
     { key: "30d", label: "Last 30 Days" },
@@ -179,10 +184,20 @@ const Dashboard: React.FC = () => {
     if (range === "all") return {};
     const end = new Date();
     const start = new Date();
-    const days = range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 365;
-    start.setDate(start.getDate() - days + 1);
-    const fmt = (d: Date) => d.toISOString().split("T")[0];
-    return { startDate: fmt(start), endDate: fmt(end) };
+    
+    if (range === "5m") start.setMinutes(start.getMinutes() - 5);
+    else if (range === "15m") start.setMinutes(start.getMinutes() - 15);
+    else if (range === "1h") start.setHours(start.getHours() - 1);
+    else if (range === "2h") start.setHours(start.getHours() - 2);
+    else if (range === "4h") start.setHours(start.getHours() - 4);
+    else {
+        const days = range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 365;
+        start.setDate(start.getDate() - days + 1);
+        const fmtDate = (d: Date) => d.toISOString().split("T")[0];
+        return { startDate: fmtDate(start), endDate: fmtDate(end) };
+    }
+    
+    return { startDate: start.toISOString(), endDate: end.toISOString() };
   };
 
   // ─── Fetchers ────────────────────────────────────────────────────────────────

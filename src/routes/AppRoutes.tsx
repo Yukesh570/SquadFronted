@@ -9,6 +9,7 @@ import ChangePassword from "../pages/Auth/ChangePassword";
 import TemplatePage from "../pages/template/templateInput";
 import CreateCampaignForm from "../pages/Campaign/Campaign";
 import SmtpServer from "../pages/settings/Smtp/SmtpServer";
+import ImapServer from "../pages/settings/Imap/ImapServer";
 import EmailTemplatePage from "../pages/Email Template/emailTemplate";
 import SendMailPage from "../pages/Send Mail/SendMail";
 import Country from "../pages/settings/Country/Country";
@@ -73,6 +74,7 @@ const componentMap: Record<string, JSX.Element> = {
   template: <TemplatePage />,
   campaign: <CreateCampaignForm />,
   smtp: <SmtpServer />,
+  imap: <ImapServer />,
   emailTemplate: <EmailTemplatePage />,
   sendMail: <SendMailPage />,
   country: <Country />,

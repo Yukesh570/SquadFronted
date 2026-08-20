@@ -10,10 +10,10 @@ export interface ImportBatchData {
   unmappedRows?: number;
   updatedRows?: number;
   newRows?: number;
+  failureReason?: string;
   currency?: string;
   effectiveDate?: string;
   batchStatus?: "PARSING" | "PARSED" | "READY_FOR_REVIEW" | "AUTO_APPROVED" | "MANUAL_APPROVED" | "PUBLISHED" | "ROLLED_BACK";
-  approvalStatus?: "PENDING" | "AUTO_APPROVED" | "MANUAL_APPROVED" | "REJECTED";
   publishedAt?: string;
   vendor?: number;
   mail?: number;

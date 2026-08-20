@@ -47,12 +47,12 @@ export const generateClientInvoiceApi = async (
 ): Promise<any> => {
   const payload = {
     ...data,
-    action: action 
+    action: action
   };
-  
+
   // FIXED: If we are previewing, tell Axios we are receiving a raw PDF file (blob)
   const config = action === "PREVIEW" ? { responseType: 'blob' as const } : {};
-  
+
   const response = await api.post(`/finance/generate-clientInvoice/`, payload, config);
   return response.data;
 };
@@ -69,11 +69,11 @@ export const generateClientCompanyInvoiceApi = async (
 ): Promise<any> => {
   const payload = {
     ...data,
-    action: action 
+    action: action
   };
-  
+
   const config = action === "PREVIEW" ? { responseType: 'blob' as const } : {};
-  
+
   const response = await api.post(`/finance/generate-clientCompanyInvoice/`, payload, config);
   return response.data;
 };
@@ -85,7 +85,7 @@ export interface CompanyClientInvoiceData {
   invoiceNumber?: string;
   company?: number;
   companyName?: string;
-  clientName?: string;   
+  clientName?: string;
   billingPeriodStart?: string;
   billingPeriodEnd?: string;
   invoiceDate?: string;
@@ -99,13 +99,11 @@ export interface CompanyClientInvoiceData {
 }
 
 export const getClientInvoiceByCompanyApi = async (
-  companyName: string,
-  invoiceDate: string
+  companyInvoiceId: number
 ): Promise<PaginatedResponse<CompanyClientInvoiceData>> => {
   const response = await api.get(`/clientInvoice/clientInvoice/`, {
     params: {
-      client__company__name: companyName,
-      invoiceDate,
+      company_invoice_id: companyInvoiceId,
     },
   });
   return response.data;

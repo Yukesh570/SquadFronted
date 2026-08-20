@@ -351,11 +351,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       const routesPromises = results.map((cfg) =>
         routeGroup
           ? getCustomRoutesApi(moduleName, 1, 200, {
-              routeGroup__name: routeGroup,
-              country: String(cfg.country),
-            })
-              .then((r) => ({ countryId: String(cfg.country), routes: r.results || [] }))
-              .catch(() => ({ countryId: String(cfg.country), routes: [] }))
+            routeGroup__name: routeGroup,
+            country: String(cfg.country),
+          })
+            .then((r) => ({ countryId: String(cfg.country), routes: r.results || [] }))
+            .catch(() => ({ countryId: String(cfg.country), routes: [] }))
           : Promise.resolve({ countryId: String(cfg.country), routes: [] })
       );
 
@@ -373,7 +373,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           // Auto-open if matching target country or if only 1 country exists
           const shouldAutoOpen = initialCountryName
             ? (cfg.countryName && cfg.countryName.toLowerCase().trim() === initialCountryName.toLowerCase().trim()) ||
-              String(cfg.country) === initialCountryName
+            String(cfg.country) === initialCountryName
             : results.length === 1;
 
           const openState = existing ? existing.isOpen : shouldAutoOpen;
@@ -384,19 +384,19 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
           return existing
             ? {
-                ...existing,
-                config: cfg,
-                routes: existing.routes.length > 0 ? existing.routes : loadedRoutes,
-              }
+              ...existing,
+              config: cfg,
+              routes: existing.routes.length > 0 ? existing.routes : loadedRoutes,
+            }
             : {
-                config: cfg,
-                routes: loadedRoutes,
-                loading: false,
-                newRows: [],
-                isOpen: openState,
-                saving: false,
-                searchExpanded: false,
-              };
+              config: cfg,
+              routes: loadedRoutes,
+              loading: false,
+              newRows: [],
+              isOpen: openState,
+              saving: false,
+              searchExpanded: false,
+            };
         });
       });
       if (results.length === 0) setConfigSectionOpen(true);
@@ -822,12 +822,12 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           routes: s.routes.map((r) =>
             r.id === editingRouteData.id
               ? {
-                  ...r,
-                  trafficPercentage: updatedData.trafficPercentage,
-                  terminatingVendor: updatedData.terminatingVendor,
-                  status: updatedData.status as any,
-                  isModified: true,
-                }
+                ...r,
+                trafficPercentage: updatedData.trafficPercentage,
+                terminatingVendor: updatedData.terminatingVendor,
+                status: updatedData.status as any,
+                isModified: true,
+              }
               : r
           ),
         };
@@ -1602,11 +1602,11 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
 
                                         const isValidCustomerRateBase = row.customerRateBase && !["N/A", "Error"].includes(row.customerRateBase);
                                         const isValidVendorRateBase = row.vendorRateBase && !["N/A", "Error"].includes(row.vendorRateBase);
-                                        const rowMargin = (isValidCustomerRateBase && isValidVendorRateBase) 
-                                          ? parseFloat(row.customerRateBase!) - parseFloat(row.vendorRateBase!) 
+                                        const rowMargin = (isValidCustomerRateBase && isValidVendorRateBase)
+                                          ? parseFloat(row.customerRateBase!) - parseFloat(row.vendorRateBase!)
                                           : null;
-                                        const rowMarginPct = (rowMargin !== null && parseFloat(row.customerRateBase!) !== 0) 
-                                          ? (rowMargin / parseFloat(row.customerRateBase!)) * 100 
+                                        const rowMarginPct = (rowMargin !== null && parseFloat(row.customerRateBase!) !== 0)
+                                          ? (rowMargin / parseFloat(row.customerRateBase!)) * 100
                                           : null;
 
                                         return (
@@ -1757,16 +1757,70 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                             )}
                                           </td>
                                           <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 font-mono text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                                            {(route as any).customerRate ? `${(route as any).customerRate} ${(route as any).clientCurrencyCode || ''}` : "—"}
+                                            {((route as any).allCustomerRates && (route as any).allCustomerRates.length > 1) ? (
+                                              <div className="relative group inline-block">
+                                                <span className="cursor-pointer text-blue-600 font-semibold bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded hover:bg-blue-100 transition-colors border border-blue-200 dark:border-blue-800 inline-flex items-center gap-1">
+                                                  Multiple Rates <span className="text-[10px]">▼</span>
+                                                </span>
+                                                <div className="hidden group-hover:block fixed z-[99999] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-2xl rounded-md p-3 mt-4 ml-2 min-w-[200px] transform -translate-x-1/2">
+                                                  <div className="text-xs font-semibold mb-2 text-gray-700 dark:text-gray-200 border-b pb-1">All Customer Rates</div>
+                                                  <table className="w-full text-left">
+                                                    <thead>
+                                                      <tr className="text-[10px] text-gray-500 uppercase bg-gray-50 dark:bg-gray-900/50">
+                                                        <th className="px-2 py-1 font-medium">MNC</th>
+                                                        <th className="px-2 py-1 font-medium text-right">Rate</th>
+                                                      </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                                                      {(route as any).allCustomerRates.map((cr: any, idx: number) => (
+                                                        <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                          <td className="px-2 py-1 font-mono text-gray-700 dark:text-gray-300">{cr.MNC}</td>
+                                                          <td className="px-2 py-1 font-mono text-right text-gray-700 dark:text-gray-300">{cr.rate} {(route as any).clientCurrencyCode || ""}</td>
+                                                        </tr>
+                                                      ))}
+                                                    </tbody>
+                                                  </table>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              (route as any).customerRate ? `${(route as any).customerRate} ${(route as any).clientCurrencyCode || ''}` : "—"
+                                            )}
                                           </td>
                                           <td className="px-3 py-2.5 border-b border-r dark:border-gray-700 font-mono text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                                            {(route as any).vendorRate ? `${(route as any).vendorRate} ${(route as any).vendorCurrencyCode || ''}` : "—"}
+                                            {((route as any).allVendorRates && (route as any).allVendorRates.length > 1) ? (
+                                              <div className="relative group inline-block">
+                                                <span className="cursor-pointer text-blue-600 font-semibold bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded hover:bg-blue-100 transition-colors border border-blue-200 dark:border-blue-800 inline-flex items-center gap-1">
+                                                  Multiple Rates <span className="text-[10px]">▼</span>
+                                                </span>
+                                                <div className="hidden group-hover:block fixed z-[99999] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-2xl rounded-md p-3 mt-4 ml-2 min-w-[200px] transform -translate-x-1/2">
+                                                  <div className="text-xs font-semibold mb-2 text-gray-700 dark:text-gray-200 border-b pb-1">All Network Rates</div>
+                                                  <table className="w-full text-left">
+                                                    <thead>
+                                                      <tr className="text-[10px] text-gray-500 uppercase bg-gray-50 dark:bg-gray-900/50">
+                                                        <th className="px-2 py-1 font-medium">MNC</th>
+                                                        <th className="px-2 py-1 font-medium text-right">Rate</th>
+                                                      </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                                                      {(route as any).allVendorRates.map((vr: any, idx: number) => (
+                                                        <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                          <td className="px-2 py-1 font-mono text-gray-700 dark:text-gray-300">{vr.MNC}</td>
+                                                          <td className="px-2 py-1 font-mono text-right text-gray-700 dark:text-gray-300">{vr.rate} {(route as any).vendorCurrencyCode || ""}</td>
+                                                        </tr>
+                                                      ))}
+                                                    </tbody>
+                                                  </table>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              (route as any).vendorRate ? `${(route as any).vendorRate} ${(route as any).vendorCurrencyCode || ''}` : "—"
+                                            )}
                                           </td>
-                                          <td className={`px-2 py-2.5 border-b border-r dark:border-gray-700 font-mono text-xs whitespace-nowrap w-20 ${(route as any).margin < 0 ? 'text-red-500 font-medium' : (route as any).margin > 0 ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
-                                            {(route as any).margin !== undefined ? `${(route as any).margin} ${(route as any).baseCurrencyCode || ''}` : "—"}
+                                          <td className={`px-2 py-2.5 border-b border-r dark:border-gray-700 font-mono text-xs whitespace-nowrap w-20 ${(((route as any).allVendorRates && (route as any).allVendorRates.length > 1) || ((route as any).allCustomerRates && (route as any).allCustomerRates.length > 1)) ? "text-gray-400" : (route as any).margin < 0 ? "text-red-500 font-medium" : (route as any).margin > 0 ? "text-green-600 font-medium" : "text-gray-500"}`}>
+                                            {(((route as any).allVendorRates && (route as any).allVendorRates.length > 1) || ((route as any).allCustomerRates && (route as any).allCustomerRates.length > 1)) ? "—" : ((route as any).margin !== undefined ? `${(route as any).margin} ${(route as any).baseCurrencyCode || ""}` : "—")}
                                           </td>
-                                          <td className={`px-2 py-2.5 border-b border-r dark:border-gray-700 font-mono text-xs whitespace-nowrap w-16 ${(route as any).marginPercentage < 0 ? 'text-red-500 font-medium' : (route as any).marginPercentage > 0 ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
-                                            {(route as any).marginPercentage !== undefined ? `${(route as any).marginPercentage}%` : "—"}
+                                          <td className={`px-2 py-2.5 border-b border-r dark:border-gray-700 font-mono text-xs whitespace-nowrap w-16 ${(((route as any).allVendorRates && (route as any).allVendorRates.length > 1) || ((route as any).allCustomerRates && (route as any).allCustomerRates.length > 1)) ? "text-gray-400" : (route as any).marginPercentage < 0 ? "text-red-500 font-medium" : (route as any).marginPercentage > 0 ? "text-green-600 font-medium" : "text-gray-500"}`}>
+                                            {(((route as any).allVendorRates && (route as any).allVendorRates.length > 1) || ((route as any).allCustomerRates && (route as any).allCustomerRates.length > 1)) ? "—" : ((route as any).marginPercentage !== undefined ? `${(route as any).marginPercentage}%` : "—")}
                                           </td>
                                           <td className="px-2 py-2.5 border-b dark:border-gray-700 whitespace-nowrap w-24">
                                             <StatusBadge status={route.status} />

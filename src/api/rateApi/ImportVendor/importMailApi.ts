@@ -10,6 +10,7 @@ export interface ImportMailData {
   dedupeHash?: string;
   status?: "RECEIVED" | "IDENTIFIED" | "DUPLICATE" | "MANUAL_REVIEW" | "FAILED";
   vendor?: number;
+  failureReason?: string;
   sourceProfile?: number;
   createdAt?: string;
   updatedAt?: string;

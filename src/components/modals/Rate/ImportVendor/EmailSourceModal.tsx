@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
 import {
   createEmailSourceApi,
@@ -6,8 +6,8 @@ import {
   type EmailSourceData,
 } from "../../../../api/rateApi/ImportVendor/emailSourceApi";
 import { getVendorsApi } from "../../../../api/connectivityApi/vendorApi";
-import { getMappingSetupsApi } from "../../../../api/mappingSetupApi/mappingSetupApi"; 
-import { getCompaniesApi } from "../../../../api/companyApi/companyApi"; 
+import { getMappingSetupsApi } from "../../../../api/mappingSetupApi/mappingSetupApi";
+import { getCompaniesApi } from "../../../../api/companyApi/companyApi";
 import Input from "../../../ui/Input";
 import Button from "../../../ui/Button";
 import Select from "../../../ui/Select";
@@ -28,33 +28,123 @@ interface Option {
   value: string;
 }
 
-// Custom read-only field specifically mimicking MultiEmailInput without 'x' buttons
-const ReadOnlyEmailField = ({ label, value }: { label: string; value: string | undefined }) => {
-  // Support comma-separated emails if backend sends multiple
-  const emails = value ? value.split(',').map(e => e.trim()).filter(e => e) : [];
+// ─── Multi-tag input ────────────────────────────────────────────────────
+interface MultiTagInputProps {
+  tags: string[];
+  onAdd: (tag: string) => void;
+  onRemove: (tag: string) => void;
+  disabled?: boolean;
+  label: string;
+  placeholder: string;
+  hint?: string;
+  validatePattern?: RegExp;
+  validateErrorMsg?: string;
+}
+
+const MultiTagInput: React.FC<MultiTagInputProps> = ({
+  tags,
+  onAdd,
+  onRemove,
+  disabled = false,
+  label,
+  placeholder,
+  hint,
+  validatePattern,
+  validateErrorMsg,
+}) => {
+  const [inputValue, setInputValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const commitTag = (raw: string) => {
+    const tag = raw.trim().toLowerCase();
+    if (!tag) return;
+    if (validatePattern && !validatePattern.test(tag)) {
+      toast.error(`"${tag}" ${validateErrorMsg || "is not valid."}`);
+      return;
+    }
+    if (tags.map((t) => t.toLowerCase()).includes(tag)) {
+      toast.info(`${label} already added.`);
+      return;
+    }
+    onAdd(tag);
+    setInputValue("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (["Enter", ",", "Tab"].includes(e.key)) {
+      e.preventDefault();
+      commitTag(inputValue);
+    }
+    if (e.key === "Backspace" && inputValue === "" && tags.length > 0) {
+      onRemove(tags[tags.length - 1]);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    e.clipboardData.getData("text").split(/[,;\s]+/).forEach(commitTag);
+  };
 
   return (
     <div className="flex flex-col w-full">
-      <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400 min-h-[32px] flex items-end">
+      <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400">
         {label}
       </label>
-      <div className="w-full rounded-lg border px-3 py-2 text-sm shadow-input transition duration-150 ease-in-out bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 min-h-[42px] flex items-center flex-wrap gap-1.5">
-        {emails.length > 0 ? (
-          emails.map((email, idx) => (
-            <span
-              key={idx}
-              className="inline-flex items-center px-2 py-0.5 rounded text-sm font-medium bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600"
-            >
-              {email}
-            </span>
-          ))
-        ) : (
-          <span className="text-gray-400 dark:text-gray-500 italic">Select Vendor</span>
+
+      <div
+        className={[
+          "w-full min-h-[42px] rounded-lg border px-2 py-1.5 text-sm shadow-input transition duration-150 ease-in-out flex flex-wrap gap-1.5 items-center cursor-text",
+          disabled
+            ? "bg-gray-100 border-gray-200 dark:bg-gray-800 dark:border-gray-700 cursor-not-allowed"
+            : "bg-white border-gray-300 dark:bg-gray-900 dark:border-gray-600 focus-within:ring-2 focus-within:ring-primary/40",
+        ].join(" ")}
+        onClick={() => !disabled && inputRef.current?.focus()}
+      >
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary dark:bg-primary/20 border border-primary/20"
+          >
+            {tag}
+            {!disabled && (
+              <button
+                type="button"
+                onClick={(e: React.MouseEvent) => { e.stopPropagation(); onRemove(tag); }}
+                className="ml-0.5 rounded-full hover:bg-primary/20 transition-colors p-0.5 leading-none"
+                aria-label={`Remove ${tag}`}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </span>
+        ))}
+
+        {!disabled && (
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            onBlur={() => { if (inputValue.trim()) commitTag(inputValue); }}
+            placeholder={tags.length === 0 ? placeholder : ""}
+            className="flex-1 min-w-[140px] bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+          />
         )}
       </div>
+
+      {!disabled && hint && (
+        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+          {hint}
+        </p>
+      )}
     </div>
   );
 };
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
   isOpen,
@@ -66,87 +156,133 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     vendor: "",
-    mappingSetup: "", 
+    mappingSetup: "",
     allowedDomain: "",
+    strictDomainMatch: false,
     subjectPattern: "",
+    uniqueId: "",
     active: true,
   });
 
+  // Manually added extra emails
+  const [extraEmails, setExtraEmails] = useState<string[]>([]);
+  const [extraDomains, setExtraDomains] = useState<string[]>([]);
+
   const [vendorOptions, setVendorOptions] = useState<Option[]>([]);
-  const [mappingOptions, setMappingOptions] = useState<Option[]>([]); 
-  
+  const [mappingOptions, setMappingOptions] = useState<Option[]>([]);
   const [vendorsList, setVendorsList] = useState<any[]>([]);
   const [companiesList, setCompaniesList] = useState<any[]>([]);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // ── Derive company email (locked) from selected vendor ──────────────────────
+  const companyEmail = (() => {
+    if (formData.vendor) {
+      const selectedVendor = vendorsList.find((v) => String(v.id) === String(formData.vendor));
+      if (selectedVendor?.company) {
+        const selectedCompany = companiesList.find((c) => String(c.id) === String(selectedVendor.company));
+        if (selectedCompany) {
+          return selectedCompany.ratesEmail || selectedCompany.companyEmail || "";
+        }
+      }
+    }
+    return "";
+  })();
+
+  // ── Fetch reference data ────────────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) {
-      // Fetch Vendors
       getVendorsApi("vendor", 1, 1000)
         .then((res: any) => {
-          let list = res.results || (Array.isArray(res) ? res : []);
-          setVendorsList(list); 
-          setVendorOptions(
-            list.map((v: any) => ({
-              label: v.profileName || v.name || `Vendor ${v.id}`,
-              value: String(v.id),
-            }))
-          );
+          const list = res.results || (Array.isArray(res) ? res : []);
+          setVendorsList(list);
+          setVendorOptions(list.map((v: any) => ({
+            label: v.profileName || v.name || `Vendor ${v.id}`,
+            value: String(v.id),
+          })));
         })
         .catch((err: any) => console.error("Failed to load vendors", err));
 
-      // Fetch Companies to cross-reference ratesEmail
       getCompaniesApi("company", 1, 1000)
         .then((res: any) => {
-          let list = res.results || (Array.isArray(res) ? res : []);
-          setCompaniesList(list); 
+          const list = res.results || (Array.isArray(res) ? res : []);
+          setCompaniesList(list);
         })
         .catch((err: any) => console.error("Failed to load companies", err));
 
-      // Fetch Mapping Setups
       getMappingSetupsApi("mappingSetup", 1, 1000)
         .then((res: any) => {
-          let list = res.results || (Array.isArray(res) ? res : []);
-          setMappingOptions(
-            list.map((m: any) => ({
-              label: m.name || `Setup ${m.id}`,
-              value: String(m.id),
-            }))
-          );
+          const list = res.results || (Array.isArray(res) ? res : []);
+          setMappingOptions(list.map((m: any) => ({
+            label: m.name || `Setup ${m.id}`,
+            value: String(m.id),
+          })));
         })
         .catch((err: any) => console.error("Failed to load mappings", err));
     }
   }, [isOpen]);
 
+  // ── Populate form when editing ──────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) {
       if (editingData) {
+        const saved = editingData.allowedEmail || "";
+        const parsed = saved.split(",").map((e: string) => e.trim()).filter(Boolean);
+
+        const savedDomains = editingData.allowedDomain || "";
+        const parsedDomains = savedDomains.split(",").map((e: string) => e.trim()).filter(Boolean);
+
         setFormData({
           vendor: editingData.vendor ? String(editingData.vendor) : "",
-          mappingSetup: editingData.mappingSetup ? String(editingData.mappingSetup) : "", 
+          mappingSetup: editingData.mappingSetup ? String(editingData.mappingSetup) : "",
           allowedDomain: editingData.allowedDomain || "",
+          strictDomainMatch: editingData.strictDomainMatch ?? false,
           subjectPattern: editingData.subjectPattern || "",
+          uniqueId: editingData.uniqueId || "",
           active: editingData.active ?? true,
         });
+        setExtraEmails(parsed);
+        setExtraDomains(parsedDomains);
       } else {
-        setFormData({
-          vendor: "",
-          mappingSetup: "",
-          allowedDomain: "",
-          subjectPattern: "",
-          active: true,
-        });
+        setFormData({ vendor: "", mappingSetup: "", allowedDomain: "", strictDomainMatch: false, subjectPattern: "", uniqueId: "", active: true });
+        setExtraEmails([]);
+        setExtraDomains([]);
       }
     }
   }, [isOpen, editingData]);
 
+
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSelect = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
+
+    // When vendor is manually changed, auto-fill its emails, tags, and systemId
+    if (name === "vendor") {
+      const selectedVendor = vendorsList.find((v) => String(v.id) === value);
+
+      let newUniqueId = formData.uniqueId;
+      if (!newUniqueId) {
+        newUniqueId = "UID-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+      }
+
+      setFormData((prev) => ({ ...prev, vendor: value, uniqueId: newUniqueId }));
+
+      if (selectedVendor?.company) {
+        const selectedCompany = companiesList.find((c) => String(c.id) === String(selectedVendor.company));
+        if (selectedCompany) {
+          const cEmail = selectedCompany.ratesEmail || selectedCompany.companyEmail || "";
+          const emailsToAdd = cEmail.split(",").map((e: string) => e.trim()).filter(Boolean);
+          setExtraEmails(emailsToAdd);
+          return;
+        }
+      }
+      setExtraEmails([]);
+      setExtraDomains([]);
+    }
   };
 
   const handleToggle = (name: string, value: boolean) => {
@@ -156,17 +292,18 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
   const handleSubmit = async (e?: React.SyntheticEvent) => {
     if (e) e.preventDefault();
     if (isViewMode) return;
-
     setIsSubmitting(true);
-
     try {
-      // Omit allowedEmail from payload entirely as per backend requirements
+      // Send all emails as a comma-separated string
       const payload: any = {
-        allowedDomain: formData.allowedDomain,
+        allowedDomain: extraDomains.join(", ") || null,
+        strictDomainMatch: formData.strictDomainMatch,
+        allowedEmail: extraEmails.join(", ") || null,
         subjectPattern: formData.subjectPattern,
         active: formData.active,
-        vendor: formData.vendor ? Number(formData.vendor) : null,
-        mappingSetup: formData.mappingSetup ? Number(formData.mappingSetup) : null, 
+        vendor: parseInt(formData.vendor),
+        mappingSetup: parseInt(formData.mappingSetup),
+        uniqueId: formData.uniqueId || null,
       };
 
       if (editingData && editingData.id) {
@@ -176,7 +313,6 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
         await createEmailSourceApi(payload, moduleName);
         toast.success("Email Source created successfully!");
       }
-
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -195,19 +331,6 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
     }
   };
 
-  const displayEmail = (() => {
-    if (formData.vendor) {
-      const selectedVendor = vendorsList.find((v) => String(v.id) === String(formData.vendor));
-      if (selectedVendor && selectedVendor.company) {
-        const selectedCompany = companiesList.find((c) => String(c.id) === String(selectedVendor.company));
-        if (selectedCompany) {
-          return selectedCompany.ratesEmail || selectedCompany.companyEmail || editingData?.allowedEmail || "";
-        }
-      }
-    }
-    return editingData?.allowedEmail || "";
-  })();
-
   if (!isOpen) return null;
 
   return (
@@ -218,8 +341,8 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
         isViewMode
           ? "View Email Source"
           : editingData
-          ? "Edit Email Source"
-          : "Add Email Source"
+            ? "Edit Email Source"
+            : "Add Email Source"
       }
       className="max-w-xl"
     >
@@ -228,7 +351,6 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
           <legend className="text-sm font-semibold text-primary px-2">
             Configuration
           </legend>
-          {/* Decreased the gap to gap-2 (from gap-4) to match original compact design */}
           <div className="grid grid-cols-1 gap-2">
             <Select
               label="Vendor"
@@ -246,16 +368,55 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
               placeholder="Select Mapping Setup"
               disabled={isViewMode}
             />
-            
-            <ReadOnlyEmailField label="Allowed Email" value={displayEmail} />
 
-            <Input
-              label="Allowed Domain"
-              name="allowedDomain"
-              value={formData.allowedDomain}
-              onChange={handleChange}
-              placeholder="example.com"
+            <div className="relative">
+              <Input
+                label="Unique ID (Secret Token)"
+                name="uniqueId"
+                value={formData.uniqueId}
+                onChange={handleChange}
+                placeholder="Enter a unique ID (e.g. UID-XXXX)"
+                disabled={isViewMode}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (formData.uniqueId) {
+                    navigator.clipboard.writeText(formData.uniqueId);
+                    toast.success("Unique ID copied to clipboard!");
+                  }
+                }}
+                className="absolute right-2 top-8 text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 px-2 py-1 rounded text-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!formData.uniqueId}
+              >
+                Copy
+              </button>
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                The vendor must include this ID in their email subject or body.
+              </p>
+            </div>
+
+            {/* Multi-email tag input */}
+            <MultiTagInput
+              tags={extraEmails}
+              onAdd={(email) => setExtraEmails((prev) => [...prev, email])}
+              onRemove={(email) => setExtraEmails((prev) => prev.filter((e) => e !== email))}
               disabled={isViewMode}
+              label="Allowed Email"
+              placeholder="Add email and press Enter"
+              hint="Type an email and press Enter or comma to add. Company email is pre-filled from the vendor."
+              validatePattern={/^[^\s@]+@[^\s@]+\.[^\s@]+$/}
+              validateErrorMsg="is not a valid email address."
+            />
+
+            <MultiTagInput
+              tags={extraDomains}
+              onAdd={(domain) => setExtraDomains((prev) => [...prev, domain])}
+              onRemove={(domain) => setExtraDomains((prev) => prev.filter((d) => d !== domain))}
+              disabled={isViewMode}
+              label="Allowed Domain"
+              placeholder="example.com"
+              hint="Type a domain and press Enter or comma to add."
             />
             <Input
               label="Subject Pattern"
@@ -265,7 +426,12 @@ export const EmailSourceModal: React.FC<EmailSourceModalProps> = ({
               placeholder="e.g. *Invoice*"
               disabled={isViewMode}
             />
-            <div className={`mt-2 ${isViewMode ? "pointer-events-none opacity-50" : ""}`}>
+            <div className={`mt-2 flex flex-wrap items-center gap-6 ${isViewMode ? "pointer-events-none opacity-50" : ""}`}>
+              <ToggleSwitch
+                label="Strict Domain Match"
+                checked={formData.strictDomainMatch}
+                onChange={(v: boolean) => handleToggle("strictDomainMatch", v)}
+              />
               <ToggleSwitch
                 label="Active Status"
                 checked={formData.active}

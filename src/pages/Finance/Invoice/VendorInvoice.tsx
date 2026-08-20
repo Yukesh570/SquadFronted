@@ -85,6 +85,7 @@ const VendorInvoice: React.FC = () => {
 
   const [isViewVendorModalOpen, setIsViewVendorModalOpen] = useState(false);
   const [viewVendorCompanyName, setViewVendorCompanyName] = useState<string | null>(null);
+  const [viewVendorInvoiceId, setViewVendorInvoiceId] = useState<number | null>(null);
 
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
@@ -365,6 +366,7 @@ const VendorInvoice: React.FC = () => {
         icon: <Users size={16} />,
         onClick: () => {
           setViewVendorCompanyName(selectedRow.companyName || null);
+          setViewVendorInvoiceId(selectedRow.id ?? null);
           setIsViewVendorModalOpen(true);
         },
       },
@@ -486,7 +488,7 @@ const VendorInvoice: React.FC = () => {
                 }
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              allowCustomValue={true} />
+                allowCustomValue={true} />
             );
           }
           if (col.type === "date") {
@@ -595,6 +597,7 @@ const VendorInvoice: React.FC = () => {
         isOpen={isViewVendorModalOpen}
         onClose={() => setIsViewVendorModalOpen(false)}
         companyName={viewVendorCompanyName}
+        companyInvoiceId={viewVendorInvoiceId}
       />
     </div>
   );

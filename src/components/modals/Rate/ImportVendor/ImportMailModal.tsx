@@ -30,6 +30,7 @@ export const ImportMailModal: React.FC<ImportMailModalProps> = ({
     subject: "",
     rawMailPath: "",
     dedupeHash: "",
+    failureReason: "",
     status: "RECEIVED",
   });
 
@@ -43,6 +44,7 @@ export const ImportMailModal: React.FC<ImportMailModalProps> = ({
         subject: editingData.subject || "",
         rawMailPath: editingData.rawMailPath || "",
         dedupeHash: editingData.dedupeHash || "",
+        failureReason: editingData.failureReason || "",
         status: editingData.status || "RECEIVED",
       });
     }
@@ -106,7 +108,7 @@ export const ImportMailModal: React.FC<ImportMailModalProps> = ({
             </div>
             <Input label="Raw Mail Path" name="rawMailPath" value={formData.rawMailPath} onChange={handleChange} disabled={isViewMode} />
             <Input label="Dedupe Hash" name="dedupeHash" value={formData.dedupeHash} onChange={handleChange} disabled={isViewMode} />
-            
+            <Input label="Failure Reason" name="failureReason" value={formData.failureReason} onChange={handleChange} disabled={isViewMode} />
             <Select
               label="Processing Status"
               value={formData.status}
@@ -122,12 +124,12 @@ export const ImportMailModal: React.FC<ImportMailModalProps> = ({
             />
 
             {isViewMode && editingData?.receivedAt && (
-              <Input 
-                label="Received At" 
-                name="receivedAt" 
-                value={formatDateTime(editingData.receivedAt)} 
-                disabled={true} 
-                onChange={() => {}}
+              <Input
+                label="Received At"
+                name="receivedAt"
+                value={formatDateTime(editingData.receivedAt)}
+                disabled={true}
+                onChange={() => { }}
               />
             )}
           </div>

@@ -68,7 +68,7 @@ const ImportMail: React.FC = () => {
   // Filters & Pagination
   const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
-  
+
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("import_mail_table_columns");
     return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
@@ -82,7 +82,7 @@ const ImportMail: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const location = useLocation();
-  const routeName = location.pathname.split("/")[1] || "vendor"; 
+  const routeName = location.pathname.split("/")[1] || "vendor";
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -119,17 +119,17 @@ const ImportMail: React.FC = () => {
     { key: "vendor__profileName__icontains", label: "Vendor Profile (Search)", type: "text", isSearchOnly: true },
     { key: "senderEmail", label: "Sender Email", type: "text", filterKey: "senderEmail__icontains" },
     { key: "subject", label: "Subject", type: "text", filterKey: "subject__icontains" },
-    { 
-      key: "status", 
-      label: "Processing Status", 
+    {
+      key: "status",
+      label: "Processing Status",
       tableLabel: "Status",
-      type: "text", 
-      options: statusOptions, 
+      type: "text",
+      options: statusOptions,
       filterKey: "status",
       render: (c) => {
         const val = c.status || "RECEIVED";
         const label = statusOptions.find(o => o.value === val)?.label || val;
-        
+
         let colorKey = "SUBMITTED"; // Received -> Blue
         if (val === "IDENTIFIED") colorKey = "SUBMITTING"; // Identified -> Purple
         if (val === "DUPLICATE") colorKey = "PENDING"; // Duplicate -> Yellow
@@ -142,6 +142,8 @@ const ImportMail: React.FC = () => {
     { key: "messageId", label: "Message ID", type: "text", filterKey: "messageId__icontains" },
     { key: "rawMailPath", label: "Raw Mail Path", type: "text", filterKey: "rawMailPath__icontains" },
     { key: "dedupeHash", label: "Dedupe Hash", type: "text", filterKey: "dedupeHash__icontains" },
+    { key: "failureReason", label: "Failure Reason", type: "text" },
+
     { key: "receivedAt", label: "Received At (Exact)", tableLabel: "Received At", type: "date", filterKey: "receivedAt__date", render: (c) => (c.receivedAt ? formatDateTime(c.receivedAt) : "-") },
     { key: "receivedAt__range", label: "Received At (Range)", type: "date_range", filterKey: "receivedAt", isSearchOnly: true },
     { key: "receivedAt__gt_lt", label: "Received At (After / Before)", type: "date_gt_lt", filterKey: "receivedAt", isSearchOnly: true },
@@ -149,7 +151,7 @@ const ImportMail: React.FC = () => {
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
   const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
-  
+
   // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
@@ -246,7 +248,7 @@ const ImportMail: React.FC = () => {
   ] : [];
 
   const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
-  
+
   const getBaseLabel = (label: string) => {
     if (!label) return "";
     return label.split(" (")[0].trim();
@@ -258,34 +260,34 @@ const ImportMail: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Import Mails</h1>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={tableFilterColumns as any} 
-              selectedColumns={tableColumns} 
+            <AdvancedFilter
+              columns={tableFilterColumns as any}
+              selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
-              onFilter={(cols: string[]) => setTableColumns(cols)} 
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
-              buttonLabel="Columns" 
+              onFilter={(cols: string[]) => setTableColumns(cols)}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
               enableReorder={true}
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={searchableColumns as any} 
-              selectedColumns={searchColumns} 
+            <AdvancedFilter
+              columns={searchableColumns as any}
+              selectedColumns={searchColumns}
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
-              onFilter={(newCols: string[]) => { 
-                setSearchColumns(newCols); 
-                setFilterValues((prev) => { 
-                  const next = { ...prev }; 
-                  Object.keys(next).forEach((k) => { 
-                    if (!newCols.includes(k)) delete next[k]; 
-                  }); 
-                  return next; 
-                }); 
-              }} 
-              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
-              isLoading={isLoading} 
-              buttonLabel="Search Fields" 
+              onFilter={(newCols: string[]) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
             />
           </div>
         </div>
@@ -323,16 +325,16 @@ const ImportMail: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable 
-        serverSide={true} 
-        data={data} 
-        totalItems={totalItems} 
-        currentPage={currentPage} 
-        rowsPerPage={rowsPerPage} 
-        onPageChange={setCurrentPage} 
-        onRowsPerPageChange={setRowsPerPage} 
-        density="compact" 
-        headers={tableHeaders} 
+      <DataTable
+        serverSide={true}
+        data={data}
+        totalItems={totalItems}
+        currentPage={currentPage}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={setRowsPerPage}
+        density="compact"
+        headers={tableHeaders}
         isLoading={isLoading}
         onReorderColumns={(fromIdx, toIdx) => {
           setTableColumns((prev) => {
@@ -357,7 +359,7 @@ const ImportMail: React.FC = () => {
       />
 
       <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
-      
+
       <ImportMailModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchData} moduleName={routeName} editingData={editingData} isViewMode={isViewMode} />
     </div>
   );

@@ -47,11 +47,11 @@ export const generateVendorInvoiceApi = async (
 ): Promise<any> => {
   const payload = {
     ...data,
-    action: action 
+    action: action
   };
-  
+
   const config = action === "PREVIEW" ? { responseType: 'blob' as const } : {};
-  
+
   const response = await api.post(`/finance/generate-vendorInvoice/`, payload, config);
   return response.data;
 };
@@ -84,11 +84,11 @@ export const generateVendorCompanyInvoiceApi = async (
 ): Promise<any> => {
   const payload = {
     ...data,
-    action: action 
+    action: action
   };
-  
+
   const config = action === "PREVIEW" ? { responseType: "blob" as const } : {};
-  
+
   const response = await api.post(`/finance/generate-vendorCompanyInvoice/`, payload, config);
   return response.data;
 };
@@ -100,7 +100,7 @@ export interface CompanyVendorInvoiceData {
   invoiceNumber?: string;
   company?: number;
   companyName?: string;
-  vendorName?: string;   
+  vendorName?: string;
   billingPeriodStart?: string;
   billingPeriodEnd?: string;
   invoiceDate?: string;
@@ -114,13 +114,11 @@ export interface CompanyVendorInvoiceData {
 }
 
 export const getVendorInvoiceByCompanyApi = async (
-  companyName: string,
-  invoiceDate: string
+  companyInvoiceId: number
 ): Promise<PaginatedResponse<CompanyVendorInvoiceData>> => {
   const response = await api.get(`/vendorInvoice/vendorInvoice/`, {
     params: {
-      vendor__company__name: companyName,
-      invoiceDate,
+      company_invoice_id: companyInvoiceId,
     },
   });
   return response.data;

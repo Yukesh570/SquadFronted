@@ -16,6 +16,7 @@ interface ClientInvoiceViewClientModalProps {
   isOpen: boolean;
   onClose: () => void;
   companyName: string | null;
+  companyInvoiceId: number | null;
 }
 
 const rowsOptions = [
@@ -37,6 +38,7 @@ export const ClientInvoiceViewClientModal: React.FC<ClientInvoiceViewClientModal
   isOpen,
   onClose,
   companyName,
+  companyInvoiceId,
 }) => {
   const [allInvoices, setAllInvoices] = useState<CompanyClientInvoiceData[]>(
     [],
@@ -47,23 +49,20 @@ export const ClientInvoiceViewClientModal: React.FC<ClientInvoiceViewClientModal
   const [rowsPerPage, setRowsPerPage] = useState(50);
 
   useEffect(() => {
-    if (isOpen && companyName) {
+    if (isOpen && companyInvoiceId) {
       fetchInvoices();
     } else {
       setAllInvoices([]);
     }
     setCurrentPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, companyName]);
+  }, [isOpen, companyInvoiceId]);
 
   const fetchInvoices = async () => {
-    if (!companyName) return;
+    if (!companyInvoiceId) return;
     setIsLoading(true);
     try {
-      const res = await getClientInvoiceByCompanyApi(
-        companyName,
-        formatDateToday(),
-      );
+      const res = await getClientInvoiceByCompanyApi(companyInvoiceId);
       const list = res.results || (Array.isArray(res) ? res : []);
       setAllInvoices(list);
     } catch (err) {

@@ -2,8 +2,10 @@ import api from "../../../api/axiosInstance";
 
 export interface EmailSourceData {
   id?: number;
+  uniqueId?: string;
   allowedEmail?: string;
   allowedDomain?: string;
+  strictDomainMatch?: boolean;
   subjectPattern?: string;
   active?: boolean;
   vendor?: number;

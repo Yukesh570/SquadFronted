@@ -28,7 +28,6 @@ export const ImportBatchModal: React.FC<ImportBatchModalProps> = ({
     sourceType: "",
     currency: "",
     batchStatus: "PARSING",
-    approvalStatus: "PENDING",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,7 +38,6 @@ export const ImportBatchModal: React.FC<ImportBatchModalProps> = ({
         sourceType: editingData.sourceType || "",
         currency: editingData.currency || "",
         batchStatus: editingData.batchStatus || "PARSING",
-        approvalStatus: editingData.approvalStatus || "PENDING",
       });
     }
   }, [isOpen, editingData]);
@@ -63,7 +61,6 @@ export const ImportBatchModal: React.FC<ImportBatchModalProps> = ({
         sourceType: formData.sourceType,
         currency: formData.currency,
         batchStatus: formData.batchStatus,
-        approvalStatus: formData.approvalStatus,
         parserProfileId: editingData.parserProfileId,
         totalRows: editingData.totalRows,
         validRows: editingData.validRows,
@@ -119,18 +116,7 @@ export const ImportBatchModal: React.FC<ImportBatchModalProps> = ({
               ]}
               disabled={isViewMode}
             />
-            <Select
-              label="Approval Status"
-              value={formData.approvalStatus}
-              onChange={(v: string) => handleSelect("approvalStatus", v)}
-              options={[
-                { label: "Pending", value: "PENDING" },
-                { label: "Auto Approved", value: "AUTO_APPROVED" },
-                { label: "Manual Approved", value: "MANUAL_APPROVED" },
-                { label: "Rejected", value: "REJECTED" },
-              ]}
-              disabled={isViewMode}
-            />
+
           </div>
         </fieldset>
 
@@ -138,14 +124,16 @@ export const ImportBatchModal: React.FC<ImportBatchModalProps> = ({
           <fieldset className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <legend className="text-sm font-semibold text-primary px-2">Statistics</legend>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Input label="Total Rows" name="totalRows" value={String(editingData?.totalRows ?? 0)} disabled={true} onChange={() => {}} />
-              <Input label="Valid Rows" name="validRows" value={String(editingData?.validRows ?? 0)} disabled={true} onChange={() => {}} />
-              <Input label="Invalid Rows" name="invalidRows" value={String(editingData?.invalidRows ?? 0)} disabled={true} onChange={() => {}} />
-              <Input label="Unmapped Rows" name="unmappedRows" value={String(editingData?.unmappedRows ?? 0)} disabled={true} onChange={() => {}} />
-              <Input label="Updated Rows" name="updatedRows" value={String(editingData?.updatedRows ?? 0)} disabled={true} onChange={() => {}} />
-              <Input label="New Rows" name="newRows" value={String(editingData?.newRows ?? 0)} disabled={true} onChange={() => {}} />
-              {editingData?.effectiveDate && <Input label="Effective Date" name="effectiveDate" value={formatDateTime(editingData.effectiveDate)} disabled={true} onChange={() => {}} />}
-              {editingData?.publishedAt && <Input label="Published At" name="publishedAt" value={formatDateTime(editingData.publishedAt)} disabled={true} onChange={() => {}} />}
+              <Input label="Total Rows" name="totalRows" value={String(editingData?.totalRows ?? 0)} disabled={true} onChange={() => { }} />
+              <Input label="Valid Rows" name="validRows" value={String(editingData?.validRows ?? 0)} disabled={true} onChange={() => { }} />
+              <Input label="Invalid Rows" name="invalidRows" value={String(editingData?.invalidRows ?? 0)} disabled={true} onChange={() => { }} />
+              <Input label="Unmapped Rows" name="unmappedRows" value={String(editingData?.unmappedRows ?? 0)} disabled={true} onChange={() => { }} />
+              <Input label="Updated Rows" name="updatedRows" value={String(editingData?.updatedRows ?? 0)} disabled={true} onChange={() => { }} />
+              <Input label="Failure Reason" name="failureReason" value={String(editingData?.failureReason ?? "")} disabled={true} onChange={() => { }} />
+
+              <Input label="New Rows" name="newRows" value={String(editingData?.newRows ?? 0)} disabled={true} onChange={() => { }} />
+              {editingData?.effectiveDate && <Input label="Effective Date" name="effectiveDate" value={formatDateTime(editingData.effectiveDate)} disabled={true} onChange={() => { }} />}
+              {editingData?.publishedAt && <Input label="Published At" name="publishedAt" value={formatDateTime(editingData.publishedAt)} disabled={true} onChange={() => { }} />}
             </div>
           </fieldset>
         )}
