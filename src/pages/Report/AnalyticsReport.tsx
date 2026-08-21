@@ -16,8 +16,23 @@ import {
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 import { CountryFlag } from "../../components/ui/CountryFlag";
 
-interface ColumnConfig extends FilterColumn {
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_range"
+  | "number_gt_lt";
+
+interface ColumnConfig extends Omit<FilterColumn, "type" | "key" | "label"> {
+  key: string;
+  label: string;
+  type?: FilterColumnType;
   filterKey?: string;
+  isSearchOnly?: boolean;
+  isSearchable?: boolean;
+  tableLabel?: string;
 }
 
 const formatLocalDate = (date: Date) => {
@@ -27,20 +42,31 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+const formatLocalDateTime = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+};
+
 const normalizeDateStr = (dateStr: string) => {
   if (!dateStr) return "";
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return dateStr;
+  const clean = dateStr.split("T")[0];
+  const parts = clean.split("-");
+  if (parts.length !== 3) return clean;
   return `${parts[0]}-${parseInt(parts[1], 10)}-${parseInt(parts[2], 10)}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["date__range", "date"];
+const DEFAULT_SEARCH_COLUMNS = ["date", "date__gt_lt"];
 const BATCH_SIZE = 50;
 const LOAD_MORE_THRESHOLD_PX = 200;
 
 const allColumns: ColumnConfig[] = [
-  { key: "date", label: "Date Exact", type: "date" },
-  { key: "date__range", label: "Date Range", type: "date_range" },
+  { key: "date", label: "Date (Exact)", type: "date" },
+  { key: "date__gt_lt", label: "Date (After / Before)", type: "date_gt_lt", isSearchOnly: true },
   // { key: "date__gt", label: "Date After (>)", type: "date" },
   // { key: "date__gte", label: "Date From (>=)", type: "date" },
   // { key: "date__lt", label: "Date Before (<)", type: "date" },
@@ -231,6 +257,7 @@ const AnalyticsReport: React.FC = () => {
   const [nodeLoading, setNodeLoading] = useState<Record<string, boolean>>({});
 
   const tableWrapperRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [countryOptions, setCountryOptions] = useState<any[]>([]);
 
@@ -285,24 +312,37 @@ const AnalyticsReport: React.FC = () => {
     searchColumns.forEach((key) => {
       const val = activeFilters[key];
       if (!val) return;
+      const colDef = allColumns.find((c) => c.key === key);
 
-      if (key === "date_range" || key === "date__range") {
-        const [startRange, endRange] = val.split(",");
-        const startStr = startRange ? startRange.split("T")[0] : "";
-        const endStr = endRange ? endRange.split("T")[0] : "";
-
-        if (startStr && endStr) {
-          params.date__range = `${startStr},${endStr}`;
-        } else if (startStr) {
-          params.date__gte = startStr;
-        } else if (endStr) {
-          params.date__lte = endStr;
+      if (colDef?.type === "date") {
+        const rawKey = colDef.filterKey || key;
+        const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+        if (val.includes("T")) {
+          const [datePart, timePart] = val.split("T");
+          if (timePart === "00:00:00") {
+            params[`${baseKey}__range`] = `${datePart}T00:00:00,${datePart}T23:59:59`;
+          } else {
+            const [hh, mm] = timePart.split(":");
+            params[`${baseKey}__range`] = `${datePart}T${hh}:${mm}:00,${datePart}T${hh}:${mm}:59`;
+          }
+        } else {
+          params[`${baseKey}__range`] = `${val}T00:00:00,${val}T23:59:59`;
+        }
+      } else if (colDef?.type === "date_gt_lt") {
+        const rawKey = colDef.filterKey || key;
+        const baseKey = rawKey
+          .replace(/__gt_lt$/, "")
+          .replace(/__exact$/, "")
+          .replace(/__range$/, "");
+        const [gt, lt] = val.split(",");
+        if (gt && gt.trim() !== "") {
+          params[`${baseKey}__gte`] = gt.includes("T") ? gt : `${gt}T00:00:00`;
+        }
+        if (lt && lt.trim() !== "") {
+          params[`${baseKey}__lte`] = lt.includes("T") ? lt : `${lt}T23:59:59`;
         }
       } else {
-        const datePart = val.split("T")[0];
-        if (datePart) {
-          params[key] = datePart;
-        }
+        params[colDef?.filterKey || key] = val;
       }
     });
 
@@ -311,7 +351,7 @@ const AnalyticsReport: React.FC = () => {
 
     if (!hasExplicitDateFilter && currentPreset && currentPreset !== "custom") {
       const range = getPresetDateRange(currentPreset);
-      params.date__range = `${range.start},${range.end}`;
+      params.date__range = `${range.start}T00:00:00,${range.end}T23:59:59`;
     }
 
     return params;
@@ -323,6 +363,10 @@ const AnalyticsReport: React.FC = () => {
     customFilters?: Record<string, string>,
     presetOverride?: DatePresetKey
   ) => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const newController = new AbortController();
+    abortControllerRef.current = newController;
+
     if (append) setIsFetchingMore(true);
     else setIsLoading(true);
 
@@ -335,6 +379,8 @@ const AnalyticsReport: React.FC = () => {
       };
 
       const datesRes = await getAnalyticsDatesApi(searchParams);
+      if (newController.signal.aborted) return;
+
       const rawDates: string[] = Array.isArray(datesRes)
         ? datesRes
         : datesRes.results || [];
@@ -348,6 +394,7 @@ const AnalyticsReport: React.FC = () => {
         page_size: 1000,
         ...filterParams,
       });
+      if (newController.signal.aborted) return;
 
       const metricsList = Array.isArray(dailyMetricsRes)
         ? dailyMetricsRes
@@ -381,18 +428,25 @@ const AnalyticsReport: React.FC = () => {
       });
 
       setDateRows((prev) => (append ? [...prev, ...newDateRows] : newDateRows));
-    } catch (error) {
-      console.error("Failed to fetch dates:", error);
-      toast.error("Failed to retrieve analytics data from backend.");
-      if (!append) setDateRows([]);
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        console.error("Failed to fetch dates:", error);
+        toast.error("Failed to retrieve analytics data from backend.");
+        if (!append) setDateRows([]);
+      }
     } finally {
-      setIsLoading(false);
-      setIsFetchingMore(false);
+      if (abortControllerRef.current === newController) {
+        setIsLoading(false);
+        setIsFetchingMore(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchDatesAndOverallData(1, false);
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -529,8 +583,8 @@ const AnalyticsReport: React.FC = () => {
     let updatedFilters: Record<string, string> = {};
     setFilterValues((prev) => {
       const next = { ...prev };
-      delete next.date__range;
       delete next.date;
+      delete next.date__gt_lt;
       updatedFilters = next;
       return next;
     });
@@ -540,7 +594,7 @@ const AnalyticsReport: React.FC = () => {
   };
 
   const handleFilterChange = (key: string, value: string) => {
-    if (key === "date__range" || key === "date") {
+    if (key === "date" || key === "date__gt_lt") {
       setActivePreset("custom");
     }
     setFilterValues((prev) => ({ ...prev, [key]: value }));
@@ -558,8 +612,7 @@ const AnalyticsReport: React.FC = () => {
     fetchDatesAndOverallData(1, false, {}, "today");
   };
 
-  const paginationLabel = `${totalItems === 0 ? 0 : 1
-    }-${Math.min(dateRows.length, totalItems)} of ${totalItems}`;
+  const paginationLabel = `${totalItems === 0 ? 0 : 1}-${Math.min(dateRows.length, totalItems)} of ${totalItems}`;
 
   const maxAttempts = Math.max(...dateRows.map((d) => d.attempts || 1), 100);
   const maxRevenue = Math.max(...dateRows.map((d) => d.revenue || 1), 10);
@@ -579,6 +632,7 @@ const AnalyticsReport: React.FC = () => {
             <AdvancedFilter
               columns={allColumns}
               selectedColumns={searchColumns}
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
                 setSearchColumns(newCols);
                 setFilterValues((prev) => {
@@ -610,49 +664,52 @@ const AnalyticsReport: React.FC = () => {
         {visibleSearchFields.map((col) => {
           const baseLabel = getBaseLabel(col.label);
           if (col.type === "date") {
-            const rawVal = filterValues[col.key] || "";
-            const datePart = rawVal.split("T")[0];
-
             return (
               <DatePicker
                 key={col.key}
                 label={`Search ${baseLabel}`}
-                selected={datePart ? new Date(datePart) : null}
-                onChange={(val: Date | null) => {
-                  if (val) {
-                    const formatted = formatLocalDate(val);
-                    handleFilterChange(col.key, formatted);
-                  } else {
-                    handleFilterChange(col.key, "");
-                  }
-                }}
+                showTimeSelect={true}
+                selected={
+                  filterValues[col.key] ? new Date(filterValues[col.key]) : null
+                }
+                onChange={(val: Date | null) =>
+                  handleFilterChange(col.key, val ? formatLocalDateTime(val) : "")
+                }
+                placeholder="Select Date & Time"
               />
             );
           }
-          if (col.type === "date_range") {
-            const [startRange, endRange] = (filterValues[col.key] || "").split(",");
-            const startStr = startRange ? startRange.split("T")[0] : "";
-            const endStr = endRange ? endRange.split("T")[0] : "";
-
+          if (col.type === "date_gt_lt") {
+            const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
               <React.Fragment key={col.key}>
                 <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
+                  label={`Search ${baseLabel} (> After)`}
+                  showTimeSelect={true}
+                  selected={gtStr ? new Date(gtStr) : null}
                   onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    handleFilterChange(col.key, `${newStart},${currentEnd}`);
+                    const newGt = val ? formatLocalDateTime(val) : "";
+                    const currentLt = ltStr || "";
+                    handleFilterChange(
+                      col.key,
+                      newGt || currentLt ? `${newGt},${currentLt}` : "",
+                    );
                   }}
+                  placeholder="Select Date & Time"
                 />
                 <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
+                  label={`Search ${baseLabel} (< Before)`}
+                  showTimeSelect={true}
+                  selected={ltStr ? new Date(ltStr) : null}
                   onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    handleFilterChange(col.key, `${currentStart},${newEnd}`);
+                    const newLt = val ? formatLocalDateTime(val) : "";
+                    const currentGt = gtStr || "";
+                    handleFilterChange(
+                      col.key,
+                      currentGt || newLt ? `${currentGt},${newLt}` : "",
+                    );
                   }}
+                  placeholder="Select Date & Time"
                 />
               </React.Fragment>
             );

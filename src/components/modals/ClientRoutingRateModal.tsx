@@ -88,10 +88,22 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
       } catch (error: any) {
         setIsSubmitting(false);
         const serverError = error.response?.data;
-        if (serverError && serverError.detail) {
-           toast.error(serverError.detail);
+        if (serverError) {
+          if (typeof serverError === "string") {
+            toast.error(serverError);
+          } else if (serverError.detail) {
+            toast.error(serverError.detail);
+          } else if (serverError.error) {
+            toast.error(serverError.error);
+          } else if (typeof serverError === "object") {
+            Object.entries(serverError).forEach(([key, msgs]) => {
+              toast.error(`${key}: ${Array.isArray(msgs) ? msgs[0] : msgs}`);
+            });
+          } else {
+            toast.error("Error validating Route & Rate Plan.");
+          }
         } else {
-           toast.error("Error validating Route & Rate Plan.");
+          toast.error("Error validating Route & Rate Plan.");
         }
         return; 
       }
@@ -109,7 +121,24 @@ export const ClientRoutingRateModal: React.FC<ClientRoutingRateModalProps> = ({
       onSuccess();
       onClose();
     } catch (error: any) {
-      toast.error("Failed to update Route & Rate Plan.");
+      const serverError = error.response?.data;
+      if (serverError) {
+        if (typeof serverError === "string") {
+          toast.error(serverError);
+        } else if (serverError.detail) {
+          toast.error(serverError.detail);
+        } else if (serverError.error) {
+          toast.error(serverError.error);
+        } else if (typeof serverError === "object") {
+          Object.entries(serverError).forEach(([key, msgs]) => {
+            toast.error(`${key}: ${Array.isArray(msgs) ? msgs[0] : msgs}`);
+          });
+        } else {
+          toast.error("Failed to update Route & Rate Plan.");
+        }
+      } else {
+        toast.error("Failed to update Route & Rate Plan.");
+      }
     } finally {
       setIsSubmitting(false);
     }

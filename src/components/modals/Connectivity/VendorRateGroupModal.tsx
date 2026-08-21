@@ -56,7 +56,24 @@ export const VendorRateGroupModal: React.FC<VendorRateGroupModalProps> = ({
       onSuccess();
       onClose();
     } catch (error: any) {
-      toast.error("Failed to update Vendor Rate Group.");
+      const serverError = error.response?.data;
+      if (serverError) {
+        if (typeof serverError === "string") {
+          toast.error(serverError);
+        } else if (serverError.detail) {
+          toast.error(serverError.detail);
+        } else if (serverError.error) {
+          toast.error(serverError.error);
+        } else if (typeof serverError === "object") {
+          Object.entries(serverError).forEach(([key, msgs]) => {
+            toast.error(`${key}: ${Array.isArray(msgs) ? msgs[0] : msgs}`);
+          });
+        } else {
+          toast.error("Failed to update Vendor Rate Group.");
+        }
+      } else {
+        toast.error("Failed to update Vendor Rate Group.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -97,3 +114,5 @@ export const VendorRateGroupModal: React.FC<VendorRateGroupModalProps> = ({
     </Modal>
   );
 };
+
+export default VendorRateGroupModal;

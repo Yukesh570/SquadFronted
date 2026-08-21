@@ -64,11 +64,14 @@ const statusOptions: Option[] = [
   { label: "Uncertain", value: "UNCERTAIN" },
 ];
 
-const formatLocalDate = (date: Date) => {
+const formatLocalDateTime = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 };
 
 const DEFAULT_SEARCH_COLUMNS = [
@@ -442,12 +445,21 @@ const DetailedReport: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. request_time__range=2026-08-21T00:00:00,2026-08-21T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey
               .replace(/__exact$/, "")
               .replace(/__range$/, "");
-            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
+            if (value.includes("T")) {
+              const [datePart, timePart] = value.split("T");
+              if (timePart === "00:00:00") {
+                currentSearchParams[`${baseKey}__range`] = `${datePart}T00:00:00,${datePart}T23:59:59`;
+              } else {
+                const [hh, mm] = timePart.split(":");
+                currentSearchParams[`${baseKey}__range`] = `${datePart}T${hh}:${mm}:00,${datePart}T${hh}:${mm}:59`;
+              }
+            } else {
+              currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
+            }
           } else if (columnDef?.type === "date_gt_lt") {
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey
@@ -455,16 +467,12 @@ const DetailedReport: React.FC = () => {
               .replace(/__exact$/, "")
               .replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
-            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
-          } else if (columnDef?.type === "number_gt_lt") {
-            const rawKey = columnDef.filterKey || key;
-            const baseKey = rawKey
-              .replace(/__gt_lt$/, "")
-              .replace(/__exact$/, "");
-            const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
+            if (gt && gt.trim() !== "") {
+              currentSearchParams[`${baseKey}__gte`] = gt.includes("T") ? gt : `${gt}T00:00:00`;
+            }
+            if (lt && lt.trim() !== "") {
+              currentSearchParams[`${baseKey}__lte`] = lt.includes("T") ? lt : `${lt}T23:59:59`;
+            }
           } else if (
             columnDef?.type === "text" ||
             columnDef?.type === "boolean" ||
@@ -636,13 +644,14 @@ const DetailedReport: React.FC = () => {
               <DatePicker
                 key={col.key}
                 label={`Search ${baseLabel}`}
+                showTimeSelect={true}
                 selected={
                   filterValues[col.key] ? new Date(filterValues[col.key]) : null
                 }
                 onChange={(val: Date | null) =>
-                  handleFilterChange(col.key, val ? formatLocalDate(val) : "")
+                  handleFilterChange(col.key, val ? formatLocalDateTime(val) : "")
                 }
-                placeholder={`Select ${baseLabel}`}
+                placeholder="Select Date & Time"
               />
             );
           if (col.type === "date_gt_lt") {
@@ -651,29 +660,31 @@ const DetailedReport: React.FC = () => {
               <React.Fragment key={col.key}>
                 <DatePicker
                   label={`Search ${baseLabel} (> After)`}
+                  showTimeSelect={true}
                   selected={gtStr ? new Date(gtStr) : null}
                   onChange={(val: Date | null) => {
-                    const newGt = val ? formatLocalDate(val) : "";
+                    const newGt = val ? formatLocalDateTime(val) : "";
                     const currentLt = ltStr || "";
                     handleFilterChange(
                       col.key,
                       newGt || currentLt ? `${newGt},${currentLt}` : "",
                     );
                   }}
-                  placeholder="> After"
+                  placeholder="Select Date & Time"
                 />
                 <DatePicker
                   label={`Search ${baseLabel} (< Before)`}
+                  showTimeSelect={true}
                   selected={ltStr ? new Date(ltStr) : null}
                   onChange={(val: Date | null) => {
-                    const newLt = val ? formatLocalDate(val) : "";
+                    const newLt = val ? formatLocalDateTime(val) : "";
                     const currentGt = gtStr || "";
                     handleFilterChange(
                       col.key,
                       currentGt || newLt ? `${currentGt},${newLt}` : "",
                     );
                   }}
-                  placeholder="< Before"
+                  placeholder="Select Date & Time"
                 />
               </React.Fragment>
             );
