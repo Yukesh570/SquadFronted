@@ -23,7 +23,14 @@ interface Option {
   value: string;
 }
 
-type FilterColumnType = "number" | "boolean" | "date" | "date_range" | "date_gt_lt" | "text" | "number_range" | "number_gt_lt";
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_range"
+  | "number_gt_lt";
 
 interface ColumnConfig extends Omit<FilterColumn, 'type' | 'key' | 'label'> {
   key: string;
@@ -44,7 +51,7 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["vendor", "senderEmail__icontains", "subject__icontains", "status"];
+const DEFAULT_SEARCH_COLUMNS = ["vendor", "senderEmail", "subject", "status"];
 const DEFAULT_TABLE_COLUMNS = ["vendor", "senderEmail", "subject", "status", "receivedAt"];
 
 const ImportMail: React.FC = () => {
@@ -99,7 +106,7 @@ const ImportMail: React.FC = () => {
       list.forEach((v: any) => {
         const name = v.profileName || v.name || `Vendor ${v.id}`;
         map[String(v.id)] = name;
-        options.push({ label: name, value: String(v.id) });
+        options.push({ label: name, value: name });
       });
       setVendorMap(map);
       setVendorOptions(options.sort((a, b) => a.label.localeCompare(b.label)));
@@ -115,8 +122,7 @@ const ImportMail: React.FC = () => {
   ];
 
   const allColumns: ColumnConfig[] = [
-    { key: "vendor", label: "Vendor", type: "text", options: vendorOptions, filterKey: "vendor" },
-    { key: "vendor__profileName__icontains", label: "Vendor Profile (Search)", type: "text", isSearchOnly: true },
+    { key: "vendor", label: "Vendor", type: "text", options: vendorOptions, filterKey: "vendor__profileName__icontains" },
     { key: "senderEmail", label: "Sender Email", type: "text", filterKey: "senderEmail__icontains" },
     { key: "subject", label: "Subject", type: "text", filterKey: "subject__icontains" },
     {
@@ -125,7 +131,7 @@ const ImportMail: React.FC = () => {
       tableLabel: "Status",
       type: "text",
       options: statusOptions,
-      filterKey: "status",
+      filterKey: "status__icontains",
       render: (c) => {
         const val = c.status || "RECEIVED";
         const label = statusOptions.find(o => o.value === val)?.label || val;
@@ -142,11 +148,22 @@ const ImportMail: React.FC = () => {
     { key: "messageId", label: "Message ID", type: "text", filterKey: "messageId__icontains" },
     { key: "rawMailPath", label: "Raw Mail Path", type: "text", filterKey: "rawMailPath__icontains" },
     { key: "dedupeHash", label: "Dedupe Hash", type: "text", filterKey: "dedupeHash__icontains" },
-    { key: "failureReason", label: "Failure Reason", type: "text" },
-
-    { key: "receivedAt", label: "Received At (Exact)", tableLabel: "Received At", type: "date", filterKey: "receivedAt__date", render: (c) => (c.receivedAt ? formatDateTime(c.receivedAt) : "-") },
-    { key: "receivedAt__range", label: "Received At (Range)", type: "date_range", filterKey: "receivedAt", isSearchOnly: true },
-    { key: "receivedAt__gt_lt", label: "Received At (After / Before)", type: "date_gt_lt", filterKey: "receivedAt", isSearchOnly: true },
+    { key: "failureReason", label: "Failure Reason", type: "text", isSearchable: false },
+    {
+      key: "receivedAt",
+      label: "Received At (Exact)",
+      tableLabel: "Received At",
+      type: "date",
+      filterKey: "receivedAt",
+      render: (c) => (c.receivedAt ? formatDateTime(c.receivedAt) : "-"),
+    },
+    {
+      key: "receivedAt__gt_lt",
+      label: "Received At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "receivedAt",
+      isSearchOnly: true,
+    },
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
@@ -177,24 +194,27 @@ const ImportMail: React.FC = () => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
-          const baseKey = columnDef?.filterKey ? columnDef.filterKey.split("__")[0] : key.split("__")[0];
 
           if (columnDef?.options) {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
+            // Converts single date input into 24-hour range query (e.g. receivedAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const [start, end] = value.split(",");
-            if (start && end) currentSearchParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
-            else {
-              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
           } else if (columnDef?.type === "date_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "number_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
           } else if (columnDef?.type === "text" || columnDef?.type === "boolean" || columnDef?.type === "number") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -249,10 +269,7 @@ const ImportMail: React.FC = () => {
 
   const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
 
-  const getBaseLabel = (label: string) => {
-    if (!label) return "";
-    return label.split(" (")[0].trim();
-  };
+  const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -302,22 +319,13 @@ const ImportMail: React.FC = () => {
         {visibleSearchFields.map((col) => {
           const baseLabel = getBaseLabel(col.label || "");
           if (col.options) return <Select key={col.key} label={`Search ${baseLabel}`} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} allowCustomValue={true} />;
-          if (col.type === "date") return <DatePicker key={col.key} label={`Search ${baseLabel}`} selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null} onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")} />;
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker label={`Search ${baseLabel} (From)`} selected={startStr ? new Date(startStr) : null} onChange={(val: Date | null) => { const newStart = val ? formatLocalDate(val) : ""; const currentEnd = endStr || ""; handleFilterChange(col.key, newStart || currentEnd ? `${newStart},${currentEnd}` : ""); }} />
-                <DatePicker label={`Search ${baseLabel} (To)`} selected={endStr ? new Date(endStr) : null} onChange={(val: Date | null) => { const newEnd = val ? formatLocalDate(val) : ""; const currentStart = startStr || ""; handleFilterChange(col.key, currentStart || newEnd ? `${currentStart},${newEnd}` : ""); }} />
-              </React.Fragment>
-            );
-          }
+          if (col.type === "date") return <DatePicker key={col.key} label={`Search ${baseLabel}`} selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null} onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")} placeholder={`Select ${baseLabel}`} />;
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
               <React.Fragment key={col.key}>
-                <DatePicker label={`Search ${baseLabel} (> After)`} selected={gtStr ? new Date(gtStr) : null} onChange={(val: Date | null) => { const newGt = val ? formatLocalDate(val) : ""; const currentLt = ltStr || ""; handleFilterChange(col.key, newGt || currentLt ? `${newGt},${currentLt}` : ""); }} />
-                <DatePicker label={`Search ${baseLabel} (< Before)`} selected={ltStr ? new Date(ltStr) : null} onChange={(val: Date | null) => { const newLt = val ? formatLocalDate(val) : ""; const currentGt = gtStr || ""; handleFilterChange(col.key, currentGt || newLt ? `${currentGt},${newLt}` : ""); }} />
+                <DatePicker label={`Search ${baseLabel} (> After)`} selected={gtStr ? new Date(gtStr) : null} onChange={(val: Date | null) => { const newGt = val ? formatLocalDate(val) : ""; const currentLt = ltStr || ""; handleFilterChange(col.key, newGt || currentLt ? `${newGt},${currentLt}` : ""); }} placeholder={`> After`} />
+                <DatePicker label={`Search ${baseLabel} (< Before)`} selected={ltStr ? new Date(ltStr) : null} onChange={(val: Date | null) => { const newLt = val ? formatLocalDate(val) : ""; const currentGt = gtStr || ""; handleFilterChange(col.key, currentGt || newLt ? `${currentGt},${newLt}` : ""); }} placeholder={`< Before`} />
               </React.Fragment>
             );
           }

@@ -25,8 +25,6 @@ import ContextMenu, {
 } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
 import { formatDateTime } from "../../../helper/dateFormatter";
-
-// ⚡️ FIX: Import the StatusBadge component
 import { StatusBadge } from "../../../components/ui/StatusBadge";
 
 interface Option {
@@ -34,8 +32,20 @@ interface Option {
   value: string;
 }
 
-interface ColumnConfig extends FilterColumn {
-  render?: (data: CurrencyExchangeRateData) => React.ReactNode;
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_range"
+  | "number_gt_lt";
+
+interface ColumnConfig extends Omit<FilterColumn, "type" | "key" | "label"> {
+  key: string;
+  label: string;
+  type?: FilterColumnType;
+  render?: (data: any) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
@@ -47,6 +57,7 @@ const DEFAULT_SEARCH_COLUMNS = [
   "baseCurrency",
   "targetCurrency",
   "status",
+  "source",
 ];
 const DEFAULT_TABLE_COLUMNS = [
   "baseCurrency",
@@ -149,49 +160,47 @@ const CurrencyExchangeRate: React.FC = () => {
       key: "exchangeRate",
       label: "Exchange Rate",
       type: "number",
-      render: (c) => c.targetCurrency_symbol ? `${c.targetCurrency_symbol} ${c.exchangeRate}` : c.exchangeRate,
+      isSearchable: false,
+      render: (c) =>
+        c.targetCurrency_symbol
+          ? `${c.targetCurrency_symbol} ${c.exchangeRate}`
+          : c.exchangeRate,
     },
     {
       key: "version",
       label: "Version",
       type: "number",
-      render: (c) => c.version ? `${c.version}` : c.version,
+      isSearchable: false,
+      render: (c) => (c.version ? `${c.version}` : c.version),
     },
     {
       key: "status",
       label: "Status",
       type: "text",
       options: activeOptions,
+      filterKey: "status",
       render: (c) => <StatusBadge status={c.status} />,
     },
     {
       key: "source",
       label: "Source",
       type: "text",
-      render: (c) => (
-        <span>
-          {c.source ? c.source : "-"}
-        </span>
-      ),
+      filterKey: "source__icontains",
+      render: (c) => <span>{c.source ? c.source : "-"}</span>,
     },
     {
       key: "createdAt",
       label: "Created At (Exact)",
       tableLabel: "Created At",
       type: "date",
-      filterKey: "createdAt__date",
+      filterKey: "createdAt",
       render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-"),
-    },
-    {
-      key: "createdAt__range",
-      label: "Created At (Range)",
-      type: "date_range",
-      isSearchOnly: true,
     },
     {
       key: "createdAt__gt_lt",
       label: "Created At (After / Before)",
       type: "date_gt_lt",
+      filterKey: "createdAt",
       isSearchOnly: true,
     },
   ];
@@ -210,7 +219,11 @@ const CurrencyExchangeRate: React.FC = () => {
 
   const tableFilterColumns = allColumns
     .filter((c) => !c.isSearchOnly)
-    .map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
+    .map((c) => ({
+      key: c.key,
+      label: c.tableLabel || c.label,
+      type: c.type as FilterColumnType,
+    }));
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
@@ -234,27 +247,41 @@ const CurrencyExchangeRate: React.FC = () => {
           const columnDef = allColumns.find((c) => c.key === key);
 
           if (columnDef?.options) {
-            currentSearchParams[columnDef.filterKey || key] = value;
+            const selectedOption = columnDef.options.find(
+              (opt) => opt.value === value,
+            );
+            currentSearchParams[columnDef.filterKey || key] = selectedOption
+              ? selectedOption.value
+              : value;
           } else if (columnDef?.type === "date") {
-            currentSearchParams[`${key}__range`] =
-              `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const baseKey = key.split("__")[0];
-            const [start, end] = value.split(",");
-            if (start && end) {
-              currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
-            } else {
-              if (start)
-                currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end)
-                currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
+            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-21T00:00:00,2026-08-21T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey
+              .replace(/__exact$/, "")
+              .replace(/__range$/, "");
+            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_gt_lt") {
-            const baseKey = key.replace("__gt_lt", "");
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey
+              .replace(/__gt_lt$/, "")
+              .replace(/__exact$/, "")
+              .replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
-          } else if (columnDef?.type === "text") {
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "number_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey
+              .replace(/__gt_lt$/, "")
+              .replace(/__exact$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
+          } else if (
+            columnDef?.type === "text" ||
+            columnDef?.type === "boolean" ||
+            columnDef?.type === "number"
+          ) {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
           } else {
@@ -422,7 +449,7 @@ const CurrencyExchangeRate: React.FC = () => {
           </h1>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={tableFilterColumns}
+              columns={tableFilterColumns as any}
               selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={setTableColumns}
@@ -433,7 +460,7 @@ const CurrencyExchangeRate: React.FC = () => {
           </div>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={searchableColumns}
+              columns={searchableColumns as any}
               selectedColumns={searchColumns}
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
@@ -477,7 +504,8 @@ const CurrencyExchangeRate: React.FC = () => {
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              allowCustomValue={true} />
+                allowCustomValue={true}
+              />
             );
           }
 
@@ -492,37 +520,8 @@ const CurrencyExchangeRate: React.FC = () => {
                 onChange={(val: Date | null) =>
                   handleFilterChange(col.key, val ? formatLocalDate(val) : "")
                 }
+                placeholder={`Select ${baseLabel}`}
               />
-            );
-          }
-
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    const newVal =
-                      newStart || currentEnd ? `${newStart},${currentEnd}` : "";
-                    handleFilterChange(col.key, newVal);
-                  }}
-                />
-                <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    const newVal =
-                      currentStart || newEnd ? `${currentStart},${newEnd}` : "";
-                    handleFilterChange(col.key, newVal);
-                  }}
-                />
-              </React.Fragment>
             );
           }
 
@@ -536,10 +535,12 @@ const CurrencyExchangeRate: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newGt = val ? formatLocalDate(val) : "";
                     const currentLt = ltStr || "";
-                    const newVal =
-                      newGt || currentLt ? `${newGt},${currentLt}` : "";
-                    handleFilterChange(col.key, newVal);
+                    handleFilterChange(
+                      col.key,
+                      newGt || currentLt ? `${newGt},${currentLt}` : "",
+                    );
                   }}
+                  placeholder="> After"
                 />
                 <DatePicker
                   label={`Search ${baseLabel} (< Before)`}
@@ -547,10 +548,12 @@ const CurrencyExchangeRate: React.FC = () => {
                   onChange={(val: Date | null) => {
                     const newLt = val ? formatLocalDate(val) : "";
                     const currentGt = gtStr || "";
-                    const newVal =
-                      currentGt || newLt ? `${currentGt},${newLt}` : "";
-                    handleFilterChange(col.key, newVal);
+                    handleFilterChange(
+                      col.key,
+                      currentGt || newLt ? `${currentGt},${newLt}` : "",
+                    );
                   }}
+                  placeholder="< Before"
                 />
               </React.Fragment>
             );
@@ -630,10 +633,11 @@ const CurrencyExchangeRate: React.FC = () => {
               return (
                 <td
                   key={col.key}
-                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${col.key === "baseCurrency" || col.key === "targetCurrency"
-                    ? "font-medium text-text-primary dark:text-white"
-                    : ""
-                    }`}
+                  className={`px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap ${
+                    col.key === "baseCurrency" || col.key === "targetCurrency"
+                      ? "font-medium text-text-primary dark:text-white"
+                      : ""
+                  }`}
                 >
                   {cellData || "-"}
                 </td>

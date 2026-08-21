@@ -21,7 +21,7 @@ interface Option {
   value: string;
 }
 
-type FilterColumnType = "number" | "boolean" | "date" | "date_range" | "date_gt_lt" | "text" | "number_range" | "number_gt_lt";
+type FilterColumnType = "number" | "boolean" | "date" | "date_gt_lt" | "text" | "number_range" | "number_gt_lt";
 
 interface ColumnConfig extends Omit<FilterColumn, 'type' | 'key' | 'label'> {
   key: string;
@@ -42,7 +42,7 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["action__icontains", "actionBy__icontains", "batch__vendor__profileName__icontains"];
+const DEFAULT_SEARCH_COLUMNS = ["action", "actionBy", "vendorProfileName"];
 const DEFAULT_TABLE_COLUMNS = ["action", "actionBy", "actionTime", "batch", "notes"];
 
 const ImportAudit: React.FC = () => {
@@ -89,12 +89,44 @@ const ImportAudit: React.FC = () => {
   const allColumns: ColumnConfig[] = [
     { key: "action", label: "Action", type: "text", filterKey: "action__icontains" },
     { key: "actionBy", label: "Action By", type: "text", filterKey: "actionBy__icontains" },
-    { key: "batch__vendor__profileName__icontains", label: "Vendor Profile Name", type: "text", isSearchOnly: true },
-    { key: "batch", label: "Batch ID", type: "number", filterKey: "batch" },
-    { key: "notes", label: "Notes", type: "text" },
-    { key: "actionTime", label: "Action Time (Exact)", tableLabel: "Action Time", type: "date", filterKey: "actionTime__date", render: (c) => (c.actionTime ? formatDateTime(c.actionTime) : "-") },
-    { key: "actionTime__range", label: "Action Time (Range)", type: "date_range", filterKey: "actionTime", isSearchOnly: true },
-    { key: "actionTime__gt_lt", label: "Action Time (After / Before)", type: "date_gt_lt", filterKey: "actionTime", isSearchOnly: true },
+    { 
+      key: "vendorProfileName", 
+      label: "Vendor Profile Name", 
+      type: "text", 
+      filterKey: "batch__vendor__profileName__icontains", 
+      isSearchOnly: true 
+    },
+    { key: "batch", label: "Batch ID", type: "number", isSearchable: false },
+    { key: "notes", label: "Notes", type: "text", isSearchable: false },
+    { 
+      key: "createdBy", 
+      label: "Created By", 
+      type: "text", 
+      filterKey: "createdBy__username__icontains",
+      render: (c: any) => c.createdByName || c.createdBy || "-"
+    },
+    { 
+      key: "updatedBy", 
+      label: "Updated By", 
+      type: "text", 
+      filterKey: "updatedBy__username__icontains",
+      render: (c: any) => c.updatedByName || c.updatedBy || "-"
+    },
+    { 
+      key: "actionTime", 
+      label: "Action Time (Exact)", 
+      tableLabel: "Action Time", 
+      type: "date", 
+      filterKey: "actionTime", 
+      render: (c) => (c.actionTime ? formatDateTime(c.actionTime) : "-") 
+    },
+    { 
+      key: "actionTime__gt_lt", 
+      label: "Action Time (After / Before)", 
+      type: "date_gt_lt", 
+      filterKey: "actionTime", 
+      isSearchOnly: true 
+    },
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
@@ -125,24 +157,27 @@ const ImportAudit: React.FC = () => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
-          const baseKey = columnDef?.filterKey ? columnDef.filterKey.split("__")[0] : key.split("__")[0];
 
           if (columnDef?.options) {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
+            // Converts single date input into 24-hour range query (e.g. actionTime__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const [start, end] = value.split(",");
-            if (start && end) currentSearchParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
-            else {
-              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
           } else if (columnDef?.type === "date_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "number_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
           } else if (columnDef?.type === "text" || columnDef?.type === "boolean" || columnDef?.type === "number") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -247,15 +282,6 @@ const ImportAudit: React.FC = () => {
           const baseLabel = getBaseLabel(col.label || "");
           if (col.options) return <Select key={col.key} label={`Search ${baseLabel}`} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} allowCustomValue={true} />;
           if (col.type === "date") return <DatePicker key={col.key} label={`Search ${baseLabel}`} selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null} onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")} />;
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker label={`Search ${baseLabel} (From)`} selected={startStr ? new Date(startStr) : null} onChange={(val: Date | null) => { const newStart = val ? formatLocalDate(val) : ""; const currentEnd = endStr || ""; handleFilterChange(col.key, newStart || currentEnd ? `${newStart},${currentEnd}` : ""); }} />
-                <DatePicker label={`Search ${baseLabel} (To)`} selected={endStr ? new Date(endStr) : null} onChange={(val: Date | null) => { const newEnd = val ? formatLocalDate(val) : ""; const currentStart = startStr || ""; handleFilterChange(col.key, currentStart || newEnd ? `${currentStart},${newEnd}` : ""); }} />
-              </React.Fragment>
-            );
-          }
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (

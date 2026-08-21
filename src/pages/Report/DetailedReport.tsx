@@ -3,7 +3,10 @@ import { Home, Eye } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import { getDetailedReportsApi, type DetailedReportData } from "../../api/reportApi/detailedReportApi";
+import {
+  getDetailedReportsApi,
+  type DetailedReportData,
+} from "../../api/reportApi/detailedReportApi";
 import { DetailedReportModal } from "../../components/modals/Report/DetailedReportModal";
 
 import Input from "../../components/ui/Input";
@@ -11,16 +14,37 @@ import Select from "../../components/ui/Select";
 import DatePicker from "../../components/ui/DatePicker";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
-import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedFilter";
-import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
+import AdvancedFilter, {
+  type FilterColumn,
+} from "../../components/ui/AdvancedFilter";
+import ContextMenu, {
+  type ContextMenuItem,
+} from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
+import { formatDateTime } from "../../helper/dateFormatter";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { CountryFlag } from "../../components/ui/CountryFlag";
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
 
-interface Option { label: string; value: string; icon?: React.ReactNode; }
+interface Option {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+}
 
-interface ColumnConfig extends FilterColumn {
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_range"
+  | "number_gt_lt";
+
+interface ColumnConfig extends Omit<FilterColumn, "type" | "key" | "label"> {
+  key: string;
+  label: string;
+  type?: FilterColumnType;
   render?: (data: DetailedReportData) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
@@ -47,9 +71,22 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["client", "destination", "submitStatus", "countryName", "text_message_id"];
+const DEFAULT_SEARCH_COLUMNS = [
+  "client",
+  "destination",
+  "submitStatus",
+  "text_message_id",
+];
 const DEFAULT_TABLE_COLUMNS = [
-  "text_message_id", "destination", "senderId", "countryName", "submitStatus", "client", "vendor", "vendor_msg_id", "request_time"
+  "text_message_id",
+  "destination",
+  "senderId",
+  "countryName",
+  "submitStatus",
+  "client",
+  "vendor",
+  "vendor_msg_id",
+  "request_time",
 ];
 
 const BATCH_SIZE = 100;
@@ -66,10 +103,16 @@ const DetailedReport: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewLog, setViewLog] = useState<DetailedReportData | null>(null);
 
-  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [selectedRowLog, setSelectedRowLog] = useState<DetailedReportData | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [selectedRowLog, setSelectedRowLog] =
+    useState<DetailedReportData | null>(null);
 
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(
+    DEFAULT_SEARCH_COLUMNS,
+  );
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("detailed_table_columns");
@@ -90,8 +133,8 @@ const DetailedReport: React.FC = () => {
           data.map((item: any) => ({
             label: item.name || "Unknown",
             value: item.name || String(item.id),
-            ...(item.iso2 ? { icon: <CountryFlag iso2={item.iso2} /> } : {})
-          }))
+            ...(item.iso2 ? { icon: <CountryFlag iso2={item.iso2} /> } : {}),
+          })),
         );
       } catch (error) {
         console.error("Failed to fetch countries", error);
@@ -103,16 +146,22 @@ const DetailedReport: React.FC = () => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem("detailed_table_columns", JSON.stringify(tableColumns));
+    localStorage.setItem(
+      "detailed_table_columns",
+      JSON.stringify(tableColumns),
+    );
   }, [tableColumns]);
 
   const hasLoggedOpening = useRef(false);
   useEffect(() => {
     if (!hasLoggedOpening.current) {
       setTimeout(() => {
-        const activeLinks = document.querySelectorAll("aside a.active, nav a.active");
+        const activeLinks = document.querySelectorAll(
+          "aside a.active, nav a.active",
+        );
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel = activeItem?.innerText?.split("\n")[0].trim() || "Detailed Report";
+        let moduleLabel =
+          activeItem?.innerText?.split("\n")[0].trim() || "Detailed Report";
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100);
       hasLoggedOpening.current = true;
@@ -120,72 +169,249 @@ const DetailedReport: React.FC = () => {
   }, []);
 
   const allColumns: ColumnConfig[] = [
-    { key: "text_message_id", label: "Message ID", type: "text", filterKey: "text_message_id__icontains", render: (log) => (<span className="font-mono text-xs text-primary">{log.text_message_id || "-"}</span>) },
-    { key: "destination", label: "Destination", type: "text", filterKey: "destination__icontains", render: (log) => (<span className="text-sm font-medium text-text-primary dark:text-white">{log.destination}</span>) },
+    {
+      key: "text_message_id",
+      label: "Message ID",
+      type: "text",
+      filterKey: "text_message_id__icontains",
+      render: (log) => (
+        <span className="font-mono text-xs text-primary">
+          {log.text_message_id || "-"}
+        </span>
+      ),
+    },
+    {
+      key: "parent_message_id",
+      label: "Parent Message ID",
+      type: "text",
+      filterKey: "message__message_id__icontains",
+      isSearchOnly: true,
+    },
+    {
+      key: "destination",
+      label: "Destination",
+      type: "text",
+      filterKey: "destination__icontains",
+      render: (log) => (
+        <span className="text-sm font-medium text-text-primary dark:text-white">
+          {log.destination}
+        </span>
+      ),
+    },
     {
       key: "countryName",
       label: "Country",
       type: "text",
-      options: countryOptions,
-      filterKey: "message__country__name__icontains",
+      isSearchable: false,
       render: (log) => {
-        const match = countryOptions.find((opt) => opt.label === log.countryName);
+        const match = countryOptions.find(
+          (opt) => opt.label === log.countryName,
+        );
         return (
           <div className="flex items-center gap-1.5 text-sm font-medium text-text-primary dark:text-white">
             {match?.icon}
             <span>{log.countryName}</span>
           </div>
         );
-      }
+      },
     },
-
-    { key: "client", label: "Client", type: "text", filterKey: "client__icontains" },
-    { key: "vendor", label: "Vendor", type: "text", filterKey: "vendor__icontains" },
-    { key: "senderId", label: "Sender ID", type: "text", filterKey: "senderId__icontains" },
-    { key: "vendor_msg_id", label: "Vendor Msg ID", type: "text", filterKey: "vendor_msg_id__icontains" },
-
     {
-      key: "content", label: "Content", type: "text", filterKey: "text__icontains", render: (log) => (
-        <div className="max-w-xs truncate text-sm text-text-secondary cursor-pointer hover:text-primary transition-colors" title="Click to view full message" onClick={(e) => { e.stopPropagation(); setViewLog(log); setIsModalOpen(true); }}>
+      key: "countryMCC",
+      label: "Country MCC",
+      type: "text",
+      filterKey: "countryMCC__icontains",
+      isSearchOnly: true,
+    },
+    {
+      key: "operatorMNC",
+      label: "Operator MNC",
+      type: "text",
+      filterKey: "operatorMNC__icontains",
+      isSearchOnly: true,
+    },
+    {
+      key: "client",
+      label: "Client",
+      type: "text",
+      filterKey: "client__icontains",
+    },
+    {
+      key: "vendor",
+      label: "Vendor",
+      type: "text",
+      filterKey: "vendor__icontains",
+    },
+    {
+      key: "senderId",
+      label: "Sender ID",
+      type: "text",
+      filterKey: "senderId__icontains",
+    },
+    {
+      key: "vendor_msg_id",
+      label: "Vendor Msg ID",
+      type: "text",
+      filterKey: "vendor_msg_id__icontains",
+    },
+    {
+      key: "content",
+      label: "Content",
+      type: "text",
+      filterKey: "text__icontains",
+      render: (log) => (
+        <div
+          className="max-w-xs truncate text-sm text-text-secondary cursor-pointer hover:text-primary transition-colors"
+          title="Click to view full message"
+          onClick={(e) => {
+            e.stopPropagation();
+            setViewLog(log);
+            setIsModalOpen(true);
+          }}
+        >
           {log.content}
         </div>
-      )
+      ),
     },
-
     {
-      key: "submitStatus", label: "Status", type: "text", options: statusOptions, filterKey: "submitStatus", render: (log) => {
-        return <StatusBadge status={log.submitStatus} />;
-      }
+      key: "submitStatus",
+      label: "Status",
+      type: "text",
+      options: statusOptions,
+      filterKey: "submitStatus__icontains",
+      render: (log) => <StatusBadge status={log.submitStatus} />,
     },
-
-    { key: "clientRate", label: "Client Rate", type: "number", filterKey: "clientRate__icontains" },
-    { key: "client_charge", label: "Client Charge", type: "number", filterKey: "client_charge__icontains" },
-    { key: "vendorRate", label: "Vendor Rate", type: "number", filterKey: "vendorRate__icontains" },
-    { key: "vendor_charge", label: "Vendor Charge", type: "number", filterKey: "vendor_charge__icontains" },
-    { key: "part_total", label: "Parts", type: "number", filterKey: "part_total__icontains" },
-
-    { key: "request_time", label: "Request Time (Single Day)", tableLabel: "Request Time", type: "date", filterKey: "request_time__range", render: (log) => (<span>{log.request_time ? new Date(log.request_time).toLocaleString() : "-"}</span>) },
-    { key: "request_time__range", label: "Request Time (Range)", type: "date_range", filterKey: "request_time__range", isSearchOnly: true },
-
-    { key: "encoding", label: "Encoding", type: "text", filterKey: "encoding__icontains" },
-    { key: "characterCount", label: "Character Count", type: "text", filterKey: "characterCount__icontains" },
-    { key: "failure_reason", label: "Failure Reason", type: "text", filterKey: "failure_reason__icontains" },
-    { key: "message_queued_at", label: "Queued At", type: "date", filterKey: "message_queued_at__range", render: (log) => (<span>{log.message_queued_at || "-"}</span>) },
-    { key: "message_delivered_at", label: "Delivered At", type: "date", filterKey: "message_delivered_at__range", render: (log) => (<span>{log.message_delivered_at || "-"}</span>) },
-    { key: "message_failed_at", label: "Failed At", type: "date", filterKey: "message_failed_at__range", render: (log) => (<span>{log.message_failed_at || "-"}</span>) },
+    {
+      key: "clientRate",
+      label: "Client Rate",
+      type: "number",
+      filterKey: "clientRate__icontains",
+    },
+    {
+      key: "client_charge",
+      label: "Client Charge",
+      type: "number",
+      filterKey: "client_charge__icontains",
+    },
+    {
+      key: "vendorRate",
+      label: "Vendor Rate",
+      type: "number",
+      filterKey: "vendorRate__icontains",
+    },
+    {
+      key: "vendor_charge",
+      label: "Vendor Charge",
+      type: "number",
+      filterKey: "vendor_charge__icontains",
+    },
+    {
+      key: "part_total",
+      label: "Parts",
+      type: "number",
+      filterKey: "part_total__icontains",
+    },
+    {
+      key: "request_time",
+      label: "Request Time (Exact)",
+      tableLabel: "Request Time",
+      type: "date",
+      filterKey: "request_time",
+      render: (log) => (
+        <span>
+          {log.request_time ? formatDateTime(log.request_time) : "-"}
+        </span>
+      ),
+    },
+    {
+      key: "request_time__gt_lt",
+      label: "Request Time (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "request_time",
+      isSearchOnly: true,
+    },
+    {
+      key: "delivery_time",
+      label: "Delivery Time (Exact)",
+      tableLabel: "Delivery Time",
+      type: "date",
+      filterKey: "delivery_time",
+      render: (log: any) => (
+        <span>
+          {log.delivery_time ? formatDateTime(log.delivery_time) : "-"}
+        </span>
+      ),
+    },
+    {
+      key: "delivery_time__gt_lt",
+      label: "Delivery Time (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "delivery_time",
+      isSearchOnly: true,
+    },
+    {
+      key: "encoding",
+      label: "Encoding",
+      type: "text",
+      isSearchable: false,
+    },
+    {
+      key: "characterCount",
+      label: "Character Count",
+      type: "text",
+      isSearchable: false,
+    },
+    {
+      key: "failure_reason",
+      label: "Failure Reason",
+      type: "text",
+      isSearchable: false,
+    },
+    {
+      key: "message_queued_at",
+      label: "Queued At",
+      type: "date",
+      isSearchable: false,
+      render: (log) => <span>{log.message_queued_at || "-"}</span>,
+    },
+    {
+      key: "message_delivered_at",
+      label: "Delivered At",
+      type: "date",
+      isSearchable: false,
+      render: (log) => <span>{log.message_delivered_at || "-"}</span>,
+    },
+    {
+      key: "message_failed_at",
+      label: "Failed At",
+      type: "date",
+      isSearchable: false,
+      render: (log) => <span>{log.message_failed_at || "-"}</span>,
+    },
   ];
 
-  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
-  const visibleSearchFields = searchableColumns.filter((col) => searchColumns.includes(col.key));
+  const searchableColumns = allColumns.filter(
+    (col) => col.isSearchable !== false,
+  );
+  const visibleSearchFields = searchableColumns.filter((col) =>
+    searchColumns.includes(col.key),
+  );
 
   // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
 
-  const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
+  const tableFilterColumns = allColumns
+    .filter((c) => !c.isSearchOnly)
+    .map((c) => ({
+      key: c.key,
+      label: c.tableLabel || c.label,
+      type: c.type as FilterColumnType,
+    }));
 
-  const handleFilterChange = (key: string, value: string) => { setFilterValues((prev) => ({ ...prev, [key]: value })); };
+  const handleFilterChange = (key: string, value: string) => {
+    setFilterValues((prev) => ({ ...prev, [key]: value }));
+  };
 
   const fetchReports = async (
     filters: Record<string, string> | null = null,
@@ -205,23 +431,64 @@ const DetailedReport: React.FC = () => {
 
       searchColumns.forEach((key) => {
         const value = activeFilters[key];
-        if (!value) return;
-        const columnDef = allColumns.find((c) => c.key === key);
-        const baseKey = columnDef?.filterKey || key;
+        if (value) {
+          const columnDef = allColumns.find((c) => c.key === key);
 
-        if (columnDef?.options) {
-          const selectedOption = columnDef.options.find((opt) => opt.value === value);
-          currentSearchParams[baseKey] = selectedOption ? selectedOption.value : value;
-        } else {
-          currentSearchParams[baseKey] = value;
+          if (columnDef?.options) {
+            const selectedOption = columnDef.options.find(
+              (opt) => opt.value === value,
+            );
+            currentSearchParams[columnDef.filterKey || key] = selectedOption
+              ? selectedOption.value
+              : value;
+          } else if (columnDef?.type === "date") {
+            // Converts single date input into 24-hour range query (e.g. request_time__range=2026-08-21T00:00:00,2026-08-21T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey
+              .replace(/__exact$/, "")
+              .replace(/__range$/, "");
+            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
+          } else if (columnDef?.type === "date_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey
+              .replace(/__gt_lt$/, "")
+              .replace(/__exact$/, "")
+              .replace(/__range$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "number_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey
+              .replace(/__gt_lt$/, "")
+              .replace(/__exact$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
+          } else if (
+            columnDef?.type === "text" ||
+            columnDef?.type === "boolean" ||
+            columnDef?.type === "number"
+          ) {
+            const filterKey = columnDef.filterKey || `${key}__icontains`;
+            currentSearchParams[filterKey] = value;
+          } else {
+            currentSearchParams[columnDef?.filterKey || key] = value;
+          }
         }
       });
 
-      const response: any = await getDetailedReportsApi(page, BATCH_SIZE, currentSearchParams);
+      const response: any = await getDetailedReportsApi(
+        page,
+        BATCH_SIZE,
+        currentSearchParams,
+      );
 
       if (newController.signal.aborted) return;
       if (response && response.results) {
-        setReports((prev) => (append ? [...prev, ...response.results] : response.results));
+        setReports((prev) =>
+          append ? [...prev, ...response.results] : response.results,
+        );
         setTotalItems(response.count);
         setHasMore(Boolean(response.next));
         setLoadedPage(page);
@@ -231,7 +498,8 @@ const DetailedReport: React.FC = () => {
         setHasMore(false);
       }
     } catch (error: any) {
-      if (error.name !== "AbortError") toast.error("Failed to fetch detailed reports.");
+      if (error.name !== "AbortError")
+        toast.error("Failed to fetch detailed reports.");
     } finally {
       if (abortControllerRef.current === newController) {
         setIsLoading(false);
@@ -242,7 +510,9 @@ const DetailedReport: React.FC = () => {
 
   useEffect(() => {
     fetchReports(undefined, 1, false);
-    return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
   }, [searchColumns]);
 
   useEffect(() => {
@@ -263,8 +533,13 @@ const DetailedReport: React.FC = () => {
     return () => scrollEl.removeEventListener("scroll", handleScroll);
   }, [isLoading, isFetchingMore, hasMore, loadedPage, filterValues, reports.length]);
 
-  const handleSearch = () => { fetchReports(undefined, 1, false); };
-  const handleClearFilters = () => { setFilterValues({}); fetchReports({}, 1, false); };
+  const handleSearch = () => {
+    fetchReports(undefined, 1, false);
+  };
+  const handleClearFilters = () => {
+    setFilterValues({});
+    fetchReports({}, 1, false);
+  };
 
   const handleContextMenu = (e: React.MouseEvent, log: DetailedReportData) => {
     e.preventDefault();
@@ -272,21 +547,36 @@ const DetailedReport: React.FC = () => {
     setSelectedRowLog(log);
   };
 
-  const menuItems: ContextMenuItem[] = selectedRowLog ? [
-    { label: "View Details", icon: <Eye size={16} />, onClick: () => { setViewLog(selectedRowLog); setIsModalOpen(true); } },
-  ] : [];
+  const menuItems: ContextMenuItem[] = selectedRowLog
+    ? [
+        {
+          label: "View Details",
+          icon: <Eye size={16} />,
+          onClick: () => {
+            setViewLog(selectedRowLog);
+            setIsModalOpen(true);
+          },
+        },
+      ]
+    : [];
 
-  const tableHeaders = ["S.N", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
-  const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
+  const tableHeaders = [
+    "S.N",
+    ...visibleTableFields.map((col) => col.tableLabel || col.label),
+  ];
+  const getBaseLabel = (label: string) =>
+    label ? label.split(" (")[0].trim() : "";
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Detailed Report</h1>
+          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
+            Detailed Report
+          </h1>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={tableFilterColumns}
+              columns={tableFilterColumns as any}
               selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={setTableColumns}
@@ -297,7 +587,7 @@ const DetailedReport: React.FC = () => {
           </div>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={searchableColumns}
+              columns={searchableColumns as any}
               selectedColumns={searchColumns}
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
@@ -318,76 +608,86 @@ const DetailedReport: React.FC = () => {
         </div>
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
-          <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">Home</NavLink>
-          <span>/</span><span className="text-text-primary dark:text-white">Reports</span>
+          <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">
+            Home
+          </NavLink>
+          <span>/</span>
+          <span className="text-text-primary dark:text-white">Reports</span>
         </div>
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
           const baseLabel = getBaseLabel(col.label || "");
-          if (col.options) return <Select key={col.key} label={`Search ${baseLabel}`} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} allowCustomValue={true} />;
-          if (col.type === "date") {
-            const rawVal = filterValues[col.key] || "";
-            const datePart = rawVal.split("T")[0];
-
+          if (col.options)
+            return (
+              <Select
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                value={filterValues[col.key] || ""}
+                onChange={(val) => handleFilterChange(col.key, val)}
+                options={col.options}
+                placeholder={`Select ${baseLabel}`}
+                allowCustomValue={true}
+              />
+            );
+          if (col.type === "date")
             return (
               <DatePicker
                 key={col.key}
                 label={`Search ${baseLabel}`}
-                selected={datePart ? new Date(datePart) : null}
-                onChange={(val: Date | null) => {
-                  if (val) {
-                    const formatted = formatLocalDate(val);
-                    handleFilterChange(col.key, `${formatted}T00:00:00,${formatted}T23:59:59`);
-                  } else {
-                    handleFilterChange(col.key, "");
-                  }
-                }}
+                selected={
+                  filterValues[col.key] ? new Date(filterValues[col.key]) : null
+                }
+                onChange={(val: Date | null) =>
+                  handleFilterChange(col.key, val ? formatLocalDate(val) : "")
+                }
+                placeholder={`Select ${baseLabel}`}
               />
             );
-          }
-          if (col.type === "date_range") {
-            const [startRange, endRange] = (filterValues[col.key] || "").split(",");
-            const startStr = startRange ? startRange.split("T")[0] : "";
-            const endStr = endRange ? endRange.split("T")[0] : "";
-
+          if (col.type === "date_gt_lt") {
+            const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
               <React.Fragment key={col.key}>
                 <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
+                  label={`Search ${baseLabel} (> After)`}
+                  selected={gtStr ? new Date(gtStr) : null}
                   onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    if (newStart || currentEnd) {
-                      const startVal = newStart ? `${newStart}T00:00:00` : "";
-                      const endVal = currentEnd ? `${currentEnd}T23:59:59` : "";
-                      handleFilterChange(col.key, `${startVal},${endVal}`);
-                    } else {
-                      handleFilterChange(col.key, "");
-                    }
+                    const newGt = val ? formatLocalDate(val) : "";
+                    const currentLt = ltStr || "";
+                    handleFilterChange(
+                      col.key,
+                      newGt || currentLt ? `${newGt},${currentLt}` : "",
+                    );
                   }}
+                  placeholder="> After"
                 />
                 <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
+                  label={`Search ${baseLabel} (< Before)`}
+                  selected={ltStr ? new Date(ltStr) : null}
                   onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    if (currentStart || newEnd) {
-                      const startVal = currentStart ? `${currentStart}T00:00:00` : "";
-                      const endVal = newEnd ? `${newEnd}T23:59:59` : "";
-                      handleFilterChange(col.key, `${startVal},${endVal}`);
-                    } else {
-                      handleFilterChange(col.key, "");
-                    }
+                    const newLt = val ? formatLocalDate(val) : "";
+                    const currentGt = gtStr || "";
+                    handleFilterChange(
+                      col.key,
+                      currentGt || newLt ? `${currentGt},${newLt}` : "",
+                    );
                   }}
+                  placeholder="< Before"
                 />
               </React.Fragment>
             );
           }
-          return <Input key={col.key} type={col.type || "text"} label={`Search ${baseLabel}`} value={filterValues[col.key] || ""} onChange={(e) => handleFilterChange(col.key, e.target.value)} placeholder={`${baseLabel}`} />;
+          return (
+            <Input
+              key={col.key}
+              type={col.type || "text"}
+              label={`Search ${baseLabel}`}
+              value={filterValues[col.key] || ""}
+              onChange={(e) => handleFilterChange(col.key, e.target.value)}
+              placeholder={`${baseLabel}`}
+            />
+          );
         })}
       </FilterCard>
 
@@ -410,14 +710,33 @@ const DetailedReport: React.FC = () => {
             });
           }}
           renderRow={(log, index) => (
-            <tr key={log.id || index} onContextMenu={(e) => handleContextMenu(e, log)} className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors">
+            <tr
+              key={log.id || index}
+              onContextMenu={(e) => handleContextMenu(e, log)}
+              className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
+            >
               <td className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
                 {index + 1}
               </td>
               {visibleTableFields.map((col) => {
                 const cellData = (log as any)[col.key];
-                if (col.render) return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{col.render(log)}</td>;
-                return <td key={col.key} className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">{cellData || "-"}</td>;
+                if (col.render)
+                  return (
+                    <td
+                      key={col.key}
+                      className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+                    >
+                      {col.render(log)}
+                    </td>
+                  );
+                return (
+                  <td
+                    key={col.key}
+                    className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+                  >
+                    {cellData || "-"}
+                  </td>
+                );
               })}
             </tr>
           )}
@@ -429,9 +748,17 @@ const DetailedReport: React.FC = () => {
         )}
       </div>
 
-      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+      <ContextMenu
+        position={contextMenuPos}
+        items={menuItems}
+        onClose={() => setContextMenuPos(null)}
+      />
 
-      <DetailedReportModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} viewLog={viewLog} />
+      <DetailedReportModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        viewLog={viewLog}
+      />
     </div>
   );
 };

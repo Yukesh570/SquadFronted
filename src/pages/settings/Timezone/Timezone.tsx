@@ -21,14 +21,27 @@ import { TimezoneModal } from "../../../components/modals/Settings/timezonemodal
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
+import { formatDateTime } from "../../../helper/dateFormatter";
 
 interface Option {
   label: string;
   value: string;
 }
 
-interface ColumnConfig extends FilterColumn {
-  render: (timezone: TimezoneData) => React.ReactNode;
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_range"
+  | "number_gt_lt";
+
+interface ColumnConfig extends Omit<FilterColumn, "type" | "key" | "label"> {
+  key: string;
+  label: string;
+  type?: FilterColumnType;
+  render?: (timezone: any) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
@@ -43,8 +56,8 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["name", "abbreviation"];
-const DEFAULT_TABLE_COLUMNS = ["name", "utcOffset", "abbreviation"];
+const DEFAULT_SEARCH_COLUMNS = ["name"];
+const DEFAULT_TABLE_COLUMNS = ["name", "utcOffset", "abbreviation", "createdAt"];
 
 const TimeZone: React.FC = () => {
   const { canCreate, canUpdate, canDelete } = usePagePermissions();
@@ -85,6 +98,7 @@ const TimeZone: React.FC = () => {
 
   const pathParts = location.pathname.split("/").filter(Boolean);
   const routeName = pathParts[pathParts.length - 1] || "timezone";
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Column definitions for dynamic rendering, filtering, & visibility
   const allColumns: ColumnConfig[] = [
@@ -103,7 +117,7 @@ const TimeZone: React.FC = () => {
       key: "utcOffset",
       label: "UTC Offset",
       type: "text",
-      filterKey: "utcOffset__icontains",
+      isSearchable: false,
       render: (timezone) => timezone.utcOffset || "-",
     },
     {
@@ -111,8 +125,37 @@ const TimeZone: React.FC = () => {
       label: "Abbreviation",
       type: "text",
       options: abbreviationOptions,
-      filterKey: "abbreviation",
+      isSearchable: false,
       render: (timezone) => timezone.abbreviation || "-",
+    },
+    {
+      key: "createdBy",
+      label: "Created By",
+      type: "text",
+      filterKey: "createdBy__username__icontains",
+      render: (c: any) => c.createdByName || c.createdBy || "-",
+    },
+    {
+      key: "updatedBy",
+      label: "Updated By",
+      type: "text",
+      filterKey: "updatedBy__username__icontains",
+      render: (c: any) => c.updatedByName || c.updatedBy || "-",
+    },
+    {
+      key: "createdAt",
+      label: "Created At (Exact)",
+      tableLabel: "Created At",
+      type: "date",
+      filterKey: "createdAt",
+      render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-"),
+    },
+    {
+      key: "createdAt__gt_lt",
+      label: "Created At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "createdAt",
+      isSearchOnly: true,
     },
   ];
 
@@ -132,7 +175,11 @@ const TimeZone: React.FC = () => {
 
   const tableFilterColumns = allColumns
     .filter((c) => !c.isSearchOnly)
-    .map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
+    .map((c) => ({
+      key: c.key,
+      label: c.tableLabel || c.label,
+      type: c.type as FilterColumnType,
+    }));
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
@@ -162,7 +209,11 @@ const TimeZone: React.FC = () => {
   }, [routeName]);
 
   const fetchTimezones = async (overrideParams?: Record<string, string>) => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const newController = new AbortController();
+    abortControllerRef.current = newController;
     setIsLoading(true);
+
     try {
       const activeFilters = overrideParams || filterValues;
       const currentSearchParams: Record<string, string> = {};
@@ -171,6 +222,7 @@ const TimeZone: React.FC = () => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
+
           if (columnDef?.options) {
             const selectedOption = columnDef.options.find(
               (opt) => opt.value === value,
@@ -179,25 +231,23 @@ const TimeZone: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            currentSearchParams[`${key}__range`] =
-              `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const baseKey = key.split("__")[0];
-            const [start, end] = value.split(",");
-            if (start && end)
-              currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
-            else {
-              if (start)
-                currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end)
-                currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
+            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-21T00:00:00,2026-08-21T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_gt_lt") {
-            const baseKey = key.replace("__gt_lt", "");
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
-          } else if (columnDef?.type === "text") {
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "number_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
+          } else if (columnDef?.type === "text" || columnDef?.type === "boolean" || columnDef?.type === "number") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
           } else {
@@ -213,6 +263,8 @@ const TimeZone: React.FC = () => {
         currentSearchParams
       );
 
+      if (newController.signal.aborted) return;
+
       if (response && response.results) {
         setTimezones(response.results);
         setTotalItems(response.count);
@@ -223,15 +275,21 @@ const TimeZone: React.FC = () => {
         setTimezones([]);
         setTotalItems(0);
       }
-    } catch (error) {
-      console.error("Fetch error:", error);
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        console.error("Fetch error:", error);
+        toast.error("Failed to fetch timezones.");
+      }
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === newController) setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchTimezones();
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
   }, [routeName, currentPage, rowsPerPage, searchColumns]);
 
   const handleSearch = () => {
@@ -275,11 +333,7 @@ const TimeZone: React.FC = () => {
     ...(canDelete ? [{ label: "Delete Timezone", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowTimezone.id!) }] : []),
   ] : [];
 
-  const getBaseLabel = (label: string) => {
-    if (!label) return "";
-    return label.split(" (")[0].trim();
-  };
-
+  const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
   const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
@@ -305,7 +359,7 @@ const TimeZone: React.FC = () => {
           </h1>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={tableFilterColumns}
+              columns={tableFilterColumns as any}
               selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={(cols) => setTableColumns(cols)}
@@ -316,7 +370,7 @@ const TimeZone: React.FC = () => {
           </div>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={searchableColumns}
+              columns={searchableColumns as any}
               selectedColumns={searchColumns}
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
@@ -357,7 +411,8 @@ const TimeZone: React.FC = () => {
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              allowCustomValue={true} />
+                allowCustomValue={true}
+              />
             );
           if (col.type === "date")
             return (
@@ -370,39 +425,9 @@ const TimeZone: React.FC = () => {
                 onChange={(val: Date | null) =>
                   handleFilterChange(col.key, val ? formatLocalDate(val) : "")
                 }
+                placeholder={`Select ${baseLabel}`}
               />
             );
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    handleFilterChange(
-                      col.key,
-                      newStart || currentEnd ? `${newStart},${currentEnd}` : "",
-                    );
-                  }}
-                />
-                <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    handleFilterChange(
-                      col.key,
-                      currentStart || newEnd ? `${currentStart},${newEnd}` : "",
-                    );
-                  }}
-                />
-              </React.Fragment>
-            );
-          }
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
@@ -418,6 +443,7 @@ const TimeZone: React.FC = () => {
                       newGt || currentLt ? `${newGt},${currentLt}` : "",
                     );
                   }}
+                  placeholder="> After"
                 />
                 <DatePicker
                   label={`Search ${baseLabel} (< Before)`}
@@ -430,6 +456,7 @@ const TimeZone: React.FC = () => {
                       currentGt || newLt ? `${currentGt},${newLt}` : "",
                     );
                   }}
+                  placeholder="< Before"
                 />
               </React.Fragment>
             );
@@ -491,7 +518,7 @@ const TimeZone: React.FC = () => {
                 key={col.key}
                 className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
               >
-                {col.render(timezone)}
+                {col.render ? col.render(timezone) : (timezone as any)[col.key] || "-"}
               </td>
             ))}
           </tr>

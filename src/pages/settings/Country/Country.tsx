@@ -29,14 +29,28 @@ import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import ContextMenu, { type ContextMenuItem } from "../../../components/ui/ContextMenu";
 import { actionHelper } from "../../../helper/action";
 import { CountryFlag } from "../../../components/ui/CountryFlag";
+import { formatDateTime } from "../../../helper/dateFormatter";
+import { StatusBadge } from "../../../components/ui/StatusBadge";
 
 interface Option {
   label: string;
   value: string;
 }
 
-interface ColumnConfig extends FilterColumn {
-  render: (country: CountryData) => React.ReactNode;
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_range"
+  | "number_gt_lt";
+
+interface ColumnConfig extends Omit<FilterColumn, "type" | "key" | "label"> {
+  key: string;
+  label: string;
+  type?: FilterColumnType;
+  render?: (country: any) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
@@ -58,6 +72,7 @@ const DEFAULT_TABLE_COLUMNS = [
   "iso2",
   "region",
   "subRegion",
+  "createdAt",
 ];
 
 const Country: React.FC = () => {
@@ -97,6 +112,12 @@ const Country: React.FC = () => {
 
   const location = useLocation();
   const routeName = location.pathname.split("/")[1] || "country";
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const booleanOptions: Option[] = [
+    { label: "Active", value: "true" },
+    { label: "Inactive", value: "false" },
+  ];
 
   // Column definitions for dynamic rendering, filtering, & visibility
   const allColumns: ColumnConfig[] = [
@@ -140,6 +161,48 @@ const Country: React.FC = () => {
       filterKey: "subRegion__icontains",
       render: (country) => country.subRegion || "-",
     },
+    {
+      key: "isActive",
+      label: "Status",
+      type: "boolean",
+      options: booleanOptions,
+      filterKey: "isActive",
+      render: (c: any) => (
+        <StatusBadge
+          status={c.isActive ? "ACTIVE" : "EXPIRED"}
+          customText={c.isActive ? "Active" : "Inactive"}
+        />
+      ),
+    },
+    {
+      key: "createdBy",
+      label: "Created By",
+      type: "text",
+      filterKey: "createdBy__username__icontains",
+      render: (c: any) => c.createdByName || c.createdBy || "-",
+    },
+    {
+      key: "updatedBy",
+      label: "Updated By",
+      type: "text",
+      filterKey: "updatedBy__username__icontains",
+      render: (c: any) => c.updatedByName || c.updatedBy || "-",
+    },
+    {
+      key: "createdAt",
+      label: "Created At (Exact)",
+      tableLabel: "Created At",
+      type: "date",
+      filterKey: "createdAt",
+      render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-"),
+    },
+    {
+      key: "createdAt__gt_lt",
+      label: "Created At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "createdAt",
+      isSearchOnly: true,
+    },
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
@@ -158,7 +221,11 @@ const Country: React.FC = () => {
 
   const tableFilterColumns = allColumns
     .filter((c) => !c.isSearchOnly)
-    .map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
+    .map((c) => ({
+      key: c.key,
+      label: c.tableLabel || c.label,
+      type: c.type as FilterColumnType,
+    }));
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
@@ -223,7 +290,11 @@ const Country: React.FC = () => {
   };
 
   const fetchCountries = async (overrideParams?: Record<string, string>) => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const newController = new AbortController();
+    abortControllerRef.current = newController;
     setIsLoading(true);
+
     try {
       const activeFilters = overrideParams || filterValues;
       const currentSearchParams: Record<string, string> = {};
@@ -232,6 +303,7 @@ const Country: React.FC = () => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
+
           if (columnDef?.options) {
             const selectedOption = columnDef.options.find(
               (opt) => opt.value === value,
@@ -240,25 +312,23 @@ const Country: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            currentSearchParams[`${key}__range`] =
-              `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const baseKey = key.split("__")[0];
-            const [start, end] = value.split(",");
-            if (start && end)
-              currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
-            else {
-              if (start)
-                currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end)
-                currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
+            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-21T00:00:00,2026-08-21T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_gt_lt") {
-            const baseKey = key.replace("__gt_lt", "");
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
-          } else if (columnDef?.type === "text") {
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "number_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
+          } else if (columnDef?.type === "text" || columnDef?.type === "boolean" || columnDef?.type === "number") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
           } else {
@@ -274,6 +344,8 @@ const Country: React.FC = () => {
         currentSearchParams
       );
 
+      if (newController.signal.aborted) return;
+
       if (response && response.results) {
         setCountries(response.results);
         setTotalItems(response.count);
@@ -285,17 +357,22 @@ const Country: React.FC = () => {
         setTotalItems(0);
       }
     } catch (error: any) {
-      console.error("Fetch error:", error);
-      if (error.response && error.response.status !== 404) {
-        toast.error("Failed to fetch countries.");
+      if (error.name !== "AbortError") {
+        console.error("Fetch error:", error);
+        if (error.response && error.response.status !== 404) {
+          toast.error("Failed to fetch countries.");
+        }
       }
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === newController) setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchCountries();
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
   }, [routeName, currentPage, rowsPerPage, searchColumns]);
 
   const handleSearch = () => {
@@ -345,9 +422,9 @@ const Country: React.FC = () => {
   useEffect(() => {
     if (!hasLoggedOpening.current) {
       setTimeout(() => {
-        const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+        const activeLinks = document.querySelectorAll("aside a.active, nav a.active");
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+        let moduleLabel = activeItem?.innerText?.split("\n")[0].trim() || "Module";
         
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100); 
@@ -365,7 +442,7 @@ const Country: React.FC = () => {
           </h1>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={tableFilterColumns}
+              columns={tableFilterColumns as any}
               selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={(cols) => setTableColumns(cols)}
@@ -376,7 +453,7 @@ const Country: React.FC = () => {
           </div>
           <div className="relative z-20">
             <AdvancedFilter
-              columns={searchableColumns}
+              columns={searchableColumns as any}
               selectedColumns={searchColumns}
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
@@ -417,7 +494,8 @@ const Country: React.FC = () => {
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              allowCustomValue={true} />
+                allowCustomValue={true}
+              />
             );
           if (col.type === "date")
             return (
@@ -430,39 +508,9 @@ const Country: React.FC = () => {
                 onChange={(val: Date | null) =>
                   handleFilterChange(col.key, val ? formatLocalDate(val) : "")
                 }
+                placeholder={`Select ${baseLabel}`}
               />
             );
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    handleFilterChange(
-                      col.key,
-                      newStart || currentEnd ? `${newStart},${currentEnd}` : "",
-                    );
-                  }}
-                />
-                <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    handleFilterChange(
-                      col.key,
-                      currentStart || newEnd ? `${currentStart},${newEnd}` : "",
-                    );
-                  }}
-                />
-              </React.Fragment>
-            );
-          }
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
@@ -478,6 +526,7 @@ const Country: React.FC = () => {
                       newGt || currentLt ? `${newGt},${currentLt}` : "",
                     );
                   }}
+                  placeholder="> After"
                 />
                 <DatePicker
                   label={`Search ${baseLabel} (< Before)`}
@@ -490,6 +539,7 @@ const Country: React.FC = () => {
                       currentGt || newLt ? `${currentGt},${newLt}` : "",
                     );
                   }}
+                  placeholder="< Before"
                 />
               </React.Fragment>
             );
@@ -569,7 +619,7 @@ const Country: React.FC = () => {
                 key={col.key}
                 className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
               >
-                {col.render(country)}
+                {col.render ? col.render(country) : (country as any)[col.key] || "-"}
               </td>
             ))}
           </tr>

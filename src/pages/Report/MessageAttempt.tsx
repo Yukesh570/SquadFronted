@@ -15,10 +15,34 @@ import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedF
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { MessageAttemptModal } from "../../components/modals/Report/MessageAttemptModal";
 import { actionHelper } from "../../helper/action";
+import { formatDateTime } from "../../helper/dateFormatter";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
-interface Option { label: string; value: string; }
-interface ColumnConfig extends FilterColumn { render?: (data: any) => React.ReactNode; options?: Option[]; filterKey?: string; isSearchable?: boolean; isSearchOnly?: boolean; tableLabel?: string; }
+interface Option {
+  label: string;
+  value: string;
+}
+
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_range"
+  | "number_gt_lt";
+
+interface ColumnConfig extends Omit<FilterColumn, "type" | "key" | "label"> {
+  key: string;
+  label: string;
+  type?: FilterColumnType;
+  render?: (data: any) => React.ReactNode;
+  options?: Option[];
+  filterKey?: string;
+  isSearchable?: boolean;
+  isSearchOnly?: boolean;
+  tableLabel?: string;
+}
 
 const statusOptions: Option[] = [
   { label: "Attempting", value: "ATTEMPTING" },
@@ -32,14 +56,17 @@ const statusOptions: Option[] = [
   { label: "Expired", value: "EXPIRED" },
 ];
 
-const formatLocalDate = (date: Date) => {
+const formatLocalDateTime = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["provider", "status", "vendorMessageId"];
+const DEFAULT_SEARCH_COLUMNS = ["destination", "provider", "status", "vendorMessageId"];
 const DEFAULT_TABLE_COLUMNS = ["id", "attempt_number", "provider", "vendorMessageId", "status", "started_at"];
 
 const BATCH_SIZE = 100;
@@ -76,9 +103,10 @@ const MessageAttempt: React.FC = () => {
 
   const allColumns: ColumnConfig[] = [
     { key: "id", label: "Attempt ID", type: "text", isSearchable: false },
+    { key: "destination", label: "Destination", type: "text", filterKey: "message__destination__icontains" },
     { key: "message", label: "Message ID", type: "text", isSearchable: false },
     { key: "segment", label: "Segment ID", type: "text", isSearchable: false },
-    { key: "attempt_number", label: "Attempt Number", type: "text" , isSearchable: false },
+    { key: "attempt_number", label: "Attempt Number", type: "text", filterKey: "attempt_number__icontains" },
     { key: "provider", label: "Provider", type: "text", filterKey: "provider__icontains" },
     { key: "vendorMessageId", label: "Vendor Message ID", type: "text", filterKey: "vendorMessageId__icontains" },
     {
@@ -86,15 +114,41 @@ const MessageAttempt: React.FC = () => {
       label: "Status",
       type: "text",
       options: statusOptions,
-      filterKey: "status",
+      filterKey: "status__icontains",
       render: (log) => <StatusBadge status={log.status} />
     },
-    { key: "error_message", label: "Error Message", type: "text", filterKey: "error_message__icontains", isSearchable: false },
+    { key: "error_message", label: "Error Message", type: "text", isSearchable: false },
     
-    { key: "started_at", label: "Started At (Single Day)", tableLabel: "Started At", type: "date", filterKey: "started_at__range", render: (data: any) => data.started_at ? new Date(data.started_at).toLocaleString() : "-" },
-    { key: "started_at__range", label: "Started At (Range)", type: "date_range", filterKey: "started_at__range", isSearchOnly: true },
-    { key: "completed_at", label: "Completed At (Single Day)", tableLabel: "Completed At", type: "date", filterKey: "completed_at__range", render: (data: any) => data.completed_at ? new Date(data.completed_at).toLocaleString() : "-" },
-    { key: "completed_at__range", label: "Completed At (Range)", type: "date_range", filterKey: "completed_at__range", isSearchOnly: true },
+    {
+      key: "started_at",
+      label: "Started At (Exact)",
+      tableLabel: "Started At",
+      type: "date",
+      filterKey: "started_at",
+      render: (data: any) => data.started_at ? formatDateTime(data.started_at) : "-"
+    },
+    {
+      key: "started_at__gt_lt",
+      label: "Started At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "started_at",
+      isSearchOnly: true
+    },
+    {
+      key: "completed_at",
+      label: "Completed At (Exact)",
+      tableLabel: "Completed At",
+      type: "date",
+      filterKey: "completed_at",
+      render: (data: any) => data.completed_at ? formatDateTime(data.completed_at) : "-"
+    },
+    {
+      key: "completed_at__gt_lt",
+      label: "Completed At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "completed_at",
+      isSearchOnly: true
+    },
     
     { key: "request_payload", label: "Request Payload", type: "text", render: (data: any) => data.request_payload ? "{...}" : "-", isSearchable: false },
     { key: "response_payload", label: "Response Payload", type: "text", render: (data: any) => data.response_payload ? "{...}" : "-", isSearchable: false },
@@ -108,7 +162,7 @@ const MessageAttempt: React.FC = () => {
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
 
-  const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
+  const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type as FilterColumnType }));
 
   const fetchAttempts = async (
     filters: Record<string, string> | null = null,
@@ -126,13 +180,39 @@ const MessageAttempt: React.FC = () => {
         const value = activeFilters[key];
         if (!value) return;
         const colDef = allColumns.find((c) => c.key === key);
-        const baseKey = colDef?.filterKey || key;
 
         if (colDef?.options) {
           const selectedOption = colDef.options.find((opt) => opt.value === value);
-          cleanParams[baseKey] = selectedOption ? selectedOption.value : value;
+          cleanParams[colDef.filterKey || key] = selectedOption ? selectedOption.value : value;
+        } else if (colDef?.type === "date") {
+          const rawKey = colDef.filterKey || key;
+          const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+          if (value.includes("T")) {
+            const [datePart, timePart] = value.split("T");
+            if (timePart === "00:00:00") {
+              cleanParams[`${baseKey}__range`] = `${datePart}T00:00:00,${datePart}T23:59:59`;
+            } else {
+              const [hh, mm] = timePart.split(":");
+              cleanParams[`${baseKey}__range`] = `${datePart}T${hh}:${mm}:00,${datePart}T${hh}:${mm}:59`;
+            }
+          } else {
+            cleanParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
+          }
+        } else if (colDef?.type === "date_gt_lt") {
+          const rawKey = colDef.filterKey || key;
+          const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
+          const [gt, lt] = value.split(",");
+          if (gt && gt.trim() !== "") {
+            cleanParams[`${baseKey}__gte`] = gt.includes("T") ? gt : `${gt}T00:00:00`;
+          }
+          if (lt && lt.trim() !== "") {
+            cleanParams[`${baseKey}__lte`] = lt.includes("T") ? lt : `${lt}T23:59:59`;
+          }
+        } else if (colDef?.type === "text" || colDef?.type === "number") {
+          const filterKey = colDef.filterKey || `${key}__icontains`;
+          cleanParams[filterKey] = value;
         } else {
-          cleanParams[baseKey] = value;
+          cleanParams[colDef?.filterKey || key] = value;
         }
       });
 
@@ -202,7 +282,7 @@ const MessageAttempt: React.FC = () => {
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Message Attempts</h1>
           <div className="relative z-20">
             <AdvancedFilter 
-              columns={tableFilterColumns} 
+              columns={tableFilterColumns as any} 
               selectedColumns={tableColumns} 
               defaultColumns={DEFAULT_TABLE_COLUMNS}
               onFilter={setTableColumns} 
@@ -213,7 +293,7 @@ const MessageAttempt: React.FC = () => {
           </div>
           <div className="relative z-20">
             <AdvancedFilter 
-              columns={searchableColumns} 
+              columns={searchableColumns as any} 
               selectedColumns={searchColumns} 
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
               onFilter={(newCols) => {
@@ -253,65 +333,58 @@ const MessageAttempt: React.FC = () => {
                 onChange={(val) => setFilterValues(p => ({ ...p, [col.key]: val }))}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              allowCustomValue={true} />
+                allowCustomValue={true}
+              />
             );
           }
           if (col.type === "date") {
-            const rawVal = filterValues[col.key] || "";
-            const datePart = rawVal.split("T")[0];
-
             return (
               <DatePicker
                 key={col.key}
                 label={`Search ${baseLabel}`}
-                selected={datePart ? new Date(datePart) : null}
-                onChange={(val: Date | null) => {
-                  if (val) {
-                    const formatted = formatLocalDate(val);
-                    setFilterValues(p => ({ ...p, [col.key]: `${formatted}T00:00:00,${formatted}T23:59:59` }));
-                  } else {
-                    setFilterValues(p => ({ ...p, [col.key]: "" }));
-                  }
-                }}
+                showTimeSelect={true}
+                selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
+                onChange={(val: Date | null) =>
+                  setFilterValues((p) => ({
+                    ...p,
+                    [col.key]: val ? formatLocalDateTime(val) : "",
+                  }))
+                }
+                placeholder="Select Date & Time"
               />
             );
           }
-          if (col.type === "date_range") {
-            const [startRange, endRange] = (filterValues[col.key] || "").split(",");
-            const startStr = startRange ? startRange.split("T")[0] : "";
-            const endStr = endRange ? endRange.split("T")[0] : "";
-
+          if (col.type === "date_gt_lt") {
+            const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
               <React.Fragment key={col.key}>
                 <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
+                  label={`Search ${baseLabel} (> After)`}
+                  showTimeSelect={true}
+                  selected={gtStr ? new Date(gtStr) : null}
                   onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    if (newStart || currentEnd) {
-                      const startVal = newStart ? `${newStart}T00:00:00` : "";
-                      const endVal = currentEnd ? `${currentEnd}T23:59:59` : "";
-                      setFilterValues(p => ({ ...p, [col.key]: `${startVal},${endVal}` }));
-                    } else {
-                      setFilterValues(p => ({ ...p, [col.key]: "" }));
-                    }
+                    const newGt = val ? formatLocalDateTime(val) : "";
+                    const currentLt = ltStr || "";
+                    setFilterValues((p) => ({
+                      ...p,
+                      [col.key]: newGt || currentLt ? `${newGt},${currentLt}` : "",
+                    }));
                   }}
+                  placeholder="Select Date & Time"
                 />
                 <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
+                  label={`Search ${baseLabel} (< Before)`}
+                  showTimeSelect={true}
+                  selected={ltStr ? new Date(ltStr) : null}
                   onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    if (currentStart || newEnd) {
-                      const startVal = currentStart ? `${currentStart}T00:00:00` : "";
-                      const endVal = newEnd ? `${newEnd}T23:59:59` : "";
-                      setFilterValues(p => ({ ...p, [col.key]: `${startVal},${endVal}` }));
-                    } else {
-                      setFilterValues(p => ({ ...p, [col.key]: "" }));
-                    }
+                    const newLt = val ? formatLocalDateTime(val) : "";
+                    const currentGt = gtStr || "";
+                    setFilterValues((p) => ({
+                      ...p,
+                      [col.key]: currentGt || newLt ? `${currentGt},${newLt}` : "",
+                    }));
                   }}
+                  placeholder="Select Date & Time"
                 />
               </React.Fragment>
             );

@@ -15,10 +15,27 @@ import AdvancedFilter, { type FilterColumn } from "../../components/ui/AdvancedF
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { SmsMessagePartModal } from "../../components/modals/Report/SmsMessagePartModal";
 import { actionHelper } from "../../helper/action";
+import { formatDateTime } from "../../helper/dateFormatter";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
-interface Option { label: string; value: string; }
-interface ColumnConfig extends FilterColumn {
+interface Option {
+  label: string;
+  value: string;
+}
+
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_range"
+  | "number_gt_lt";
+
+interface ColumnConfig extends Omit<FilterColumn, "type" | "key" | "label"> {
+  key: string;
+  label: string;
+  type?: FilterColumnType;
   render?: (data: any) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
@@ -89,14 +106,17 @@ const renderBooleanBadge = (value?: boolean) => {
   return <StatusBadge status={statusKey} customText={labelText} />;
 };
 
-const formatLocalDate = (date: Date) => {
+const formatLocalDateTime = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["parent_message_destination", "client_msg_id", "submit_status", "vendor_msg_id"];
+const DEFAULT_SEARCH_COLUMNS = ["parent_message_destination", "submit_status", "vendor_msg_id"];
 const DEFAULT_TABLE_COLUMNS = ["id", "client_msg_id", "vendor_msg_id", "parent_message_destination", "part_no", "part_total", "submit_status", "created_at"];
 
 const BATCH_SIZE = 100;
@@ -132,7 +152,7 @@ const SmsMessagePart: React.FC = () => {
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   const allColumns: ColumnConfig[] = [
-    { key: "client_msg_id", label: "Message ID", type: "text", filterKey: "client_msg_id__icontains" },
+    { key: "client_msg_id", label: "Message ID", type: "text", isSearchable: false },
     { key: "parent_message_destination", label: "Destination", type: "text", filterKey: "message__destination__icontains" },
     {
       key: "text",
@@ -160,19 +180,25 @@ const SmsMessagePart: React.FC = () => {
       label: "Submit Status",
       type: "text",
       options: statusOptions,
-      filterKey: "submit_status",
+      filterKey: "submit_status__icontains",
       render: (log) => renderStatusBadge(log.submit_status)
     },
+    {
+      key: "vendor_submit_status",
+      label: "Vendor Submit Status",
+      type: "text",
+      options: statusOptions,
+      filterKey: "vendor_submit_status__icontains",
+      isSearchOnly: true
+    },
     { key: "vendor_msg_id", label: "Vendor Msg ID", type: "text", filterKey: "vendor_msg_id__icontains" },
-
     { key: "submit_attempts", label: "Submit Attempts", type: "text", filterKey: "submit_attempts__icontains" },
-
     {
       key: "clientDlrPushed",
       label: "Client DLR Pushed",
       type: "text",
       options: booleanOptions,
-      filterKey: "clientDlrPushed",
+      filterKey: "clientDlrPushed__icontains",
       render: (log) => renderBooleanBadge(log.clientDlrPushed)
     },
     {
@@ -180,40 +206,135 @@ const SmsMessagePart: React.FC = () => {
       label: "Client DLR Suppressed",
       type: "text",
       options: booleanOptions,
-      filterKey: "clientDlrSuppressed",
+      filterKey: "clientDlrSuppressed__icontains",
       render: (log) => renderBooleanBadge(log.clientDlrSuppressed)
     },
     {
       key: "clientDlrSuppressionReason",
       label: "Client DLR Suppression Reason",
       type: "text",
-      filterKey: "clientDlrSuppressionReason__icontains"
+      isSearchable: false
     },
-
-    { key: "clientDlrSuppressedAt", label: "Client DLR Suppressed At (Single Day)", tableLabel: "Client DLR Suppressed At", type: "date", filterKey: "clientDlrSuppressedAt__range", render: (data: any) => data.clientDlrSuppressedAt ? new Date(data.clientDlrSuppressedAt).toLocaleString() : "-" },
-    { key: "clientDlrSuppressedAt__range", label: "Client DLR Suppressed (Range)", type: "date_range", filterKey: "clientDlrSuppressedAt__range", isSearchOnly: true },
-
-    { key: "submitted_at", label: "Submitted At (Single Day)", tableLabel: "Submitted At", type: "date", filterKey: "submitted_at__range", render: (data: any) => data.submitted_at ? new Date(data.submitted_at).toLocaleString() : "-" },
-    { key: "submitted_at__range", label: "Submitted At (Range)", type: "date_range", filterKey: "submitted_at__range", isSearchOnly: true },
-
-    { key: "sent_at", label: "Sent At (Single Day)", tableLabel: "Sent At", type: "date", filterKey: "sent_at__range", render: (data: any) => data.sent_at ? new Date(data.sent_at).toLocaleString() : "-" },
-    { key: "sent_at__range", label: "Sent At (Range)", type: "date_range", filterKey: "sent_at__range", isSearchOnly: true },
-
-    { key: "delivered_at", label: "Delivered At (Single Day)", tableLabel: "Delivered At", type: "date", filterKey: "delivered_at__range", render: (data: any) => data.delivered_at ? new Date(data.delivered_at).toLocaleString() : "-" },
-    { key: "delivered_at__range", label: "Delivered At (Range)", type: "date_range", filterKey: "delivered_at__range", isSearchOnly: true },
-
-    { key: "failed_at", label: "Failed At (Single Day)", tableLabel: "Failed At", type: "date", filterKey: "failed_at__range", render: (data: any) => data.failed_at ? new Date(data.failed_at).toLocaleString() : "-" },
-    { key: "failed_at__range", label: "Failed At (Range)", type: "date_range", filterKey: "failed_at__range", isSearchOnly: true },
-
-    { key: "created_at", label: "Created At (Single Day)", tableLabel: "Created At", type: "date", filterKey: "created_at__range", render: (data: any) => data.created_at ? new Date(data.created_at).toLocaleString() : "-" },
-    { key: "created_at__range", label: "Created At (Range)", type: "date_range", filterKey: "created_at__range", isSearchOnly: true },
-
-    { key: "updated_at", label: "Updated At (Single Day)", tableLabel: "Updated At", type: "date", filterKey: "updated_at__range", render: (data: any) => data.updated_at ? new Date(data.updated_at).toLocaleString() : "-" },
-    { key: "updated_at__range", label: "Updated At (Range)", type: "date_range", filterKey: "updated_at__range", isSearchOnly: true },
-
-    { key: "last_submit_at", label: "Last Submit At (Single Day)", tableLabel: "Last Submit At", type: "date", filterKey: "last_submit_at__range", render: (data: any) => data.last_submit_at ? new Date(data.last_submit_at).toLocaleString() : "-" },
-    { key: "last_submit_at__range", label: "Last Submit At (Range)", type: "date_range", filterKey: "last_submit_at__range", isSearchOnly: true },
-
+    {
+      key: "clientDlrSuppressedAt",
+      label: "Client DLR Suppressed At (Exact)",
+      tableLabel: "Client DLR Suppressed At",
+      type: "date",
+      filterKey: "clientDlrSuppressedAt",
+      render: (data: any) => data.clientDlrSuppressedAt ? formatDateTime(data.clientDlrSuppressedAt) : "-"
+    },
+    {
+      key: "clientDlrSuppressedAt__gt_lt",
+      label: "Client DLR Suppressed At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "clientDlrSuppressedAt",
+      isSearchOnly: true
+    },
+    {
+      key: "submitted_at",
+      label: "Submitted At (Exact)",
+      tableLabel: "Submitted At",
+      type: "date",
+      filterKey: "submitted_at",
+      render: (data: any) => data.submitted_at ? formatDateTime(data.submitted_at) : "-"
+    },
+    {
+      key: "submitted_at__gt_lt",
+      label: "Submitted At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "submitted_at",
+      isSearchOnly: true
+    },
+    {
+      key: "sent_at",
+      label: "Sent At (Exact)",
+      tableLabel: "Sent At",
+      type: "date",
+      filterKey: "sent_at",
+      render: (data: any) => data.sent_at ? formatDateTime(data.sent_at) : "-"
+    },
+    {
+      key: "sent_at__gt_lt",
+      label: "Sent At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "sent_at",
+      isSearchOnly: true
+    },
+    {
+      key: "delivered_at",
+      label: "Delivered At (Exact)",
+      tableLabel: "Delivered At",
+      type: "date",
+      filterKey: "delivered_at",
+      render: (data: any) => data.delivered_at ? formatDateTime(data.delivered_at) : "-"
+    },
+    {
+      key: "delivered_at__gt_lt",
+      label: "Delivered At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "delivered_at",
+      isSearchOnly: true
+    },
+    {
+      key: "failed_at",
+      label: "Failed At (Exact)",
+      tableLabel: "Failed At",
+      type: "date",
+      filterKey: "failed_at",
+      render: (data: any) => data.failed_at ? formatDateTime(data.failed_at) : "-"
+    },
+    {
+      key: "failed_at__gt_lt",
+      label: "Failed At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "failed_at",
+      isSearchOnly: true
+    },
+    {
+      key: "created_at",
+      label: "Created At (Exact)",
+      tableLabel: "Created At",
+      type: "date",
+      filterKey: "created_at",
+      render: (data: any) => data.created_at ? formatDateTime(data.created_at) : "-"
+    },
+    {
+      key: "created_at__gt_lt",
+      label: "Created At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "created_at",
+      isSearchOnly: true
+    },
+    {
+      key: "updated_at",
+      label: "Updated At (Exact)",
+      tableLabel: "Updated At",
+      type: "date",
+      filterKey: "updated_at",
+      render: (data: any) => data.updated_at ? formatDateTime(data.updated_at) : "-"
+    },
+    {
+      key: "updated_at__gt_lt",
+      label: "Updated At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "updated_at",
+      isSearchOnly: true
+    },
+    {
+      key: "last_submit_at",
+      label: "Last Submit At (Exact)",
+      tableLabel: "Last Submit At",
+      type: "date",
+      filterKey: "last_submit_at",
+      render: (data: any) => data.last_submit_at ? formatDateTime(data.last_submit_at) : "-"
+    },
+    {
+      key: "last_submit_at__gt_lt",
+      label: "Last Submit At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "last_submit_at",
+      isSearchOnly: true
+    },
     { key: "failure_reason", label: "Failure Reason", type: "text", isSearchable: false },
   ];
 
@@ -225,7 +346,7 @@ const SmsMessagePart: React.FC = () => {
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
 
-  const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
+  const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type as FilterColumnType }));
 
   const fetchSegments = async (
     filters: Record<string, string> | null = null,
@@ -241,15 +362,42 @@ const SmsMessagePart: React.FC = () => {
 
       searchColumns.forEach((key) => {
         const value = activeFilters[key];
-        if (!value) return;
-        const colDef = allColumns.find((c) => c.key === key);
-        const baseKey = colDef?.filterKey || key;
+        if (value) {
+          const colDef = allColumns.find((c) => c.key === key);
 
-        if (colDef?.options) {
-          const selectedOption = colDef.options.find((opt) => opt.value === value);
-          cleanParams[baseKey] = selectedOption ? selectedOption.value : value;
-        } else {
-          cleanParams[baseKey] = value;
+          if (colDef?.options) {
+            const selectedOption = colDef.options.find((opt) => opt.value === value);
+            cleanParams[colDef.filterKey || key] = selectedOption ? selectedOption.value : value;
+          } else if (colDef?.type === "date") {
+            const rawKey = colDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+            if (value.includes("T")) {
+              const [datePart, timePart] = value.split("T");
+              if (timePart === "00:00:00") {
+                cleanParams[`${baseKey}__range`] = `${datePart}T00:00:00,${datePart}T23:59:59`;
+              } else {
+                const [hh, mm] = timePart.split(":");
+                cleanParams[`${baseKey}__range`] = `${datePart}T${hh}:${mm}:00,${datePart}T${hh}:${mm}:59`;
+              }
+            } else {
+              cleanParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
+            }
+          } else if (colDef?.type === "date_gt_lt") {
+            const rawKey = colDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt && gt.trim() !== "") {
+              cleanParams[`${baseKey}__gte`] = gt.includes("T") ? gt : `${gt}T00:00:00`;
+            }
+            if (lt && lt.trim() !== "") {
+              cleanParams[`${baseKey}__lte`] = lt.includes("T") ? lt : `${lt}T23:59:59`;
+            }
+          } else if (colDef?.type === "text" || colDef?.type === "number" || colDef?.type === "boolean") {
+            const filterKey = colDef.filterKey || `${key}__icontains`;
+            cleanParams[filterKey] = value;
+          } else {
+            cleanParams[colDef?.filterKey || key] = value;
+          }
         }
       });
 
@@ -370,65 +518,58 @@ const SmsMessagePart: React.FC = () => {
                 onChange={(val) => setFilterValues(p => ({ ...p, [col.key]: val }))}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              allowCustomValue={true} />
+                allowCustomValue={true}
+              />
             );
           }
           if (col.type === "date") {
-            const rawVal = filterValues[col.key] || "";
-            const datePart = rawVal.split("T")[0];
-
             return (
               <DatePicker
                 key={col.key}
                 label={`Search ${baseLabel}`}
-                selected={datePart ? new Date(datePart) : null}
-                onChange={(val: Date | null) => {
-                  if (val) {
-                    const formatted = formatLocalDate(val);
-                    setFilterValues(p => ({ ...p, [col.key]: `${formatted}T00:00:00,${formatted}T23:59:59` }));
-                  } else {
-                    setFilterValues(p => ({ ...p, [col.key]: "" }));
-                  }
-                }}
+                showTimeSelect={true}
+                selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null}
+                onChange={(val: Date | null) =>
+                  setFilterValues((p) => ({
+                    ...p,
+                    [col.key]: val ? formatLocalDateTime(val) : "",
+                  }))
+                }
+                placeholder="Select Date & Time"
               />
             );
           }
-          if (col.type === "date_range") {
-            const [startRange, endRange] = (filterValues[col.key] || "").split(",");
-            const startStr = startRange ? startRange.split("T")[0] : "";
-            const endStr = endRange ? endRange.split("T")[0] : "";
-
+          if (col.type === "date_gt_lt") {
+            const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
               <React.Fragment key={col.key}>
                 <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
+                  label={`Search ${baseLabel} (> After)`}
+                  showTimeSelect={true}
+                  selected={gtStr ? new Date(gtStr) : null}
                   onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    if (newStart || currentEnd) {
-                      const startVal = newStart ? `${newStart}T00:00:00` : "";
-                      const endVal = currentEnd ? `${currentEnd}T23:59:59` : "";
-                      setFilterValues(p => ({ ...p, [col.key]: `${startVal},${endVal}` }));
-                    } else {
-                      setFilterValues(p => ({ ...p, [col.key]: "" }));
-                    }
+                    const newGt = val ? formatLocalDateTime(val) : "";
+                    const currentLt = ltStr || "";
+                    setFilterValues((p) => ({
+                      ...p,
+                      [col.key]: newGt || currentLt ? `${newGt},${currentLt}` : "",
+                    }));
                   }}
+                  placeholder="Select Date & Time"
                 />
                 <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
+                  label={`Search ${baseLabel} (< Before)`}
+                  showTimeSelect={true}
+                  selected={ltStr ? new Date(ltStr) : null}
                   onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    if (currentStart || newEnd) {
-                      const startVal = currentStart ? `${currentStart}T00:00:00` : "";
-                      const endVal = newEnd ? `${newEnd}T23:59:59` : "";
-                      setFilterValues(p => ({ ...p, [col.key]: `${startVal},${endVal}` }));
-                    } else {
-                      setFilterValues(p => ({ ...p, [col.key]: "" }));
-                    }
+                    const newLt = val ? formatLocalDateTime(val) : "";
+                    const currentGt = gtStr || "";
+                    setFilterValues((p) => ({
+                      ...p,
+                      [col.key]: currentGt || newLt ? `${currentGt},${newLt}` : "",
+                    }));
                   }}
+                  placeholder="Select Date & Time"
                 />
               </React.Fragment>
             );

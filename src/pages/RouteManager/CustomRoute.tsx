@@ -35,7 +35,19 @@ interface Option {
   value: string;
 }
 
-interface ColumnConfig extends FilterColumn {
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_range"
+  | "number_gt_lt";
+
+interface ColumnConfig extends Omit<FilterColumn, "type" | "key" | "label"> {
+  key: string;
+  label: string;
+  type?: FilterColumnType;
   render?: (data: any) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
@@ -157,7 +169,7 @@ const CustomRoute: React.FC = () => {
       label: "Country",
       type: "text",
       options: countryOptions,
-      filterKey: "routeGroupCountry__countryName__icontains",
+      filterKey: "country__name__icontains",
       render: (c: any) => {
         if (c.routeGroupCountry && Array.isArray(c.routeGroupCountry) && c.routeGroupCountry.length > 0) {
           const full = c.routeGroupCountry.map((item: any) => item.countryName).join(", ");
@@ -179,23 +191,32 @@ const CustomRoute: React.FC = () => {
       render: (c: any) => <StatusBadge status={c.status} />,
     },
     {
+      key: "createdBy",
+      label: "Created By",
+      type: "text",
+      filterKey: "createdBy__username__icontains",
+      render: (c: any) => c.createdByName || c.createdBy || "-",
+    },
+    {
+      key: "updatedBy",
+      label: "Updated By",
+      type: "text",
+      filterKey: "updatedBy__username__icontains",
+      render: (c: any) => c.updatedByName || c.updatedBy || "-",
+    },
+    {
       key: "createdAt",
       label: "Created At (Exact)",
       tableLabel: "Created At",
       type: "date",
-      filterKey: "createdAt__date",
+      filterKey: "createdAt",
       render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-"),
-    },
-    {
-      key: "createdAt__range",
-      label: "Created At (From/To)",
-      type: "date_range",
-      isSearchOnly: true,
     },
     {
       key: "createdAt__gt_lt",
       label: "Created At (After / Before)",
       type: "date_gt_lt",
+      filterKey: "createdAt",
       isSearchOnly: true,
     },
   ];
@@ -213,7 +234,7 @@ const CustomRoute: React.FC = () => {
 
   const tableFilterColumns = allColumns
     .filter((c) => !c.isSearchOnly)
-    .map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type }));
+    .map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type as FilterColumnType }));
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
@@ -243,6 +264,7 @@ const CustomRoute: React.FC = () => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
+
           if (columnDef?.options) {
             const selectedOption = columnDef.options.find(
               (opt) => opt.value === value,
@@ -251,25 +273,27 @@ const CustomRoute: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            currentSearchParams[`${key}__range`] =
-              `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const baseKey = key.split("__")[0];
-            const [start, end] = value.split(",");
-            if (start && end)
-              currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
-            else {
-              if (start)
-                currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end)
-                currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
+            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_gt_lt") {
-            const baseKey = key.replace("__gt_lt", "");
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
-          } else if (columnDef?.type === "text") {
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "number_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
+          } else if (
+            columnDef?.type === "text" ||
+            columnDef?.type === "boolean" ||
+            columnDef?.type === "number"
+          ) {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
           } else {
@@ -529,39 +553,9 @@ const CustomRoute: React.FC = () => {
                 onChange={(val: Date | null) =>
                   handleFilterChange(col.key, val ? formatLocalDate(val) : "")
                 }
+                placeholder={`Select ${baseLabel}`}
               />
             );
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    handleFilterChange(
-                      col.key,
-                      newStart || currentEnd ? `${newStart},${currentEnd}` : "",
-                    );
-                  }}
-                />
-                <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    handleFilterChange(
-                      col.key,
-                      currentStart || newEnd ? `${currentStart},${newEnd}` : "",
-                    );
-                  }}
-                />
-              </React.Fragment>
-            );
-          }
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
@@ -577,6 +571,7 @@ const CustomRoute: React.FC = () => {
                       newGt || currentLt ? `${newGt},${currentLt}` : "",
                     );
                   }}
+                  placeholder={`> After`}
                 />
                 <DatePicker
                   label={`Search ${baseLabel} (< Before)`}
@@ -589,6 +584,7 @@ const CustomRoute: React.FC = () => {
                       currentGt || newLt ? `${currentGt},${newLt}` : "",
                     );
                   }}
+                  placeholder={`< Before`}
                 />
               </React.Fragment>
             );

@@ -30,6 +30,7 @@ import AdvancedFilter, {
   type FilterColumn,
 } from "../../components/ui/AdvancedFilter";
 import { actionHelper } from "../../helper/action";
+import { formatDateTime } from "../../helper/dateFormatter";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import { MessageReportModal } from "../../components/modals/Report/MessageReportModal";
 import { SubRouteTableModal } from "../../components/modals/RouteManager/SubRouteTableModal";
@@ -42,14 +43,25 @@ interface Option {
   icon?: React.ReactNode;
 }
 
-interface ColumnConfig extends FilterColumn {
-  render?: (data: MessageLogData) => React.ReactNode;
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_range"
+  | "number_gt_lt";
+
+interface ColumnConfig extends Omit<FilterColumn, "type" | "key" | "label"> {
+  key: string;
+  label: string;
+  render?: (data: any) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
   isSearchable?: boolean;
   isSearchOnly?: boolean;
   tableLabel?: string;
-  type: "text" | "number" | "date" | "date_range";
+  type: FilterColumnType;
 }
 
 const statusOptions: Option[] = [
@@ -79,7 +91,7 @@ const DEFAULT_SEARCH_COLUMNS = [
   "clientName",
   "countryName",
   "status",
-  "source_addr"
+  "source_addr",
 ];
 const DEFAULT_TABLE_COLUMNS = [
   "message_id",
@@ -91,14 +103,17 @@ const DEFAULT_TABLE_COLUMNS = [
   "clientName",
   "vendorName",
   "systemId",
-  "createdAt"
+  "createdAt",
 ];
 
-const formatLocalDate = (date: Date) => {
+const formatLocalDateTime = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 };
 
 const BATCH_SIZE = 100;
@@ -160,7 +175,7 @@ const MessageReport: React.FC = () => {
     return data.map((item: any) => ({
       label: item[labelKey] || item.name || "Unknown",
       value: item[valueKey] || item.name || String(item.id),
-      ...(item.iso2 ? { icon: <CountryFlag iso2={item.iso2} /> } : {})
+      ...(item.iso2 ? { icon: <CountryFlag iso2={item.iso2} /> } : {}),
     }));
   };
 
@@ -198,7 +213,7 @@ const MessageReport: React.FC = () => {
         label: "Country",
         type: "text",
         options: countryOptions,
-        filterKey: "country__name__icontains"
+        filterKey: "country__name__icontains",
       },
       { key: "destination", label: "Destination", type: "text", filterKey: "destination__icontains" },
       {
@@ -206,24 +221,24 @@ const MessageReport: React.FC = () => {
         label: "Client",
         type: "text",
         options: clientOptions,
-        filterKey: "client__name",
+        filterKey: "client__name__icontains",
       },
       {
-        key: "vendor__profileName",
+        key: "vendorName",
         label: "Vendor",
         type: "text",
         options: vendorOptions,
-        filterKey: "vendor__profileName",
+        filterKey: "vendor__profileName__icontains",
       },
       {
         key: "smppName",
         label: "SMPP",
         type: "text",
         options: smppOptions,
-        filterKey: "smpp__smppHost",
+        filterKey: "smpp__smppHost__icontains",
       },
       { key: "systemId", label: "System ID", type: "text", filterKey: "systemId__icontains" },
-      { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status" },
+      { key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status__icontains" },
       { key: "failure_reason", label: "Failure Reason", type: "text", filterKey: "failure_reason__icontains" },
       {
         key: "encoding",
@@ -235,16 +250,23 @@ const MessageReport: React.FC = () => {
       { key: "segmentNumber", label: "Segment Number", type: "text", isSearchable: false },
       { key: "characterCount", label: "Character Count", type: "text", isSearchable: false },
 
-      { key: "createdAt", label: "Created At (Single Day)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range" },
-      { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt__range", isSearchOnly: true },
-      { key: "queued_at", label: "Queued At (Single Day)", tableLabel: "Queued At", type: "date", filterKey: "queued_at__range" },
-      { key: "queued_at__range", label: "Queued At (Range)", type: "date_range", filterKey: "queued_at__range", isSearchOnly: true },
-      { key: "submitted_at", label: "Submitted At (Single Day)", tableLabel: "Submitted At", type: "date", filterKey: "submitted_at__range" },
-      { key: "submitted_at__range", label: "Submitted At (Range)", type: "date_range", filterKey: "submitted_at__range", isSearchOnly: true },
-      { key: "delivered_at", label: "Delivered At (Single Day)", tableLabel: "Delivered At", type: "date", filterKey: "delivered_at__range" },
-      { key: "delivered_at__range", label: "Delivered At (Range)", type: "date_range", filterKey: "delivered_at__range", isSearchOnly: true },
-      { key: "failed_at", label: "Failed At (Single Day)", tableLabel: "Failed At", type: "date", filterKey: "failed_at__range" },
-      { key: "failed_at__range", label: "Failed At (Range)", type: "date_range", filterKey: "failed_at__range", isSearchOnly: true },
+      { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt" },
+      { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", filterKey: "createdAt", isSearchOnly: true },
+
+      { key: "queued_at", label: "Queued At (Exact)", tableLabel: "Queued At", type: "date", filterKey: "queued_at" },
+      { key: "queued_at__gt_lt", label: "Queued At (After / Before)", type: "date_gt_lt", filterKey: "queued_at", isSearchOnly: true },
+
+      { key: "submitted_at", label: "Submitted At (Exact)", tableLabel: "Submitted At", type: "date", filterKey: "submitted_at" },
+      { key: "submitted_at__gt_lt", label: "Submitted At (After / Before)", type: "date_gt_lt", filterKey: "submitted_at", isSearchOnly: true },
+
+      { key: "sent_at", label: "Sent At (Exact)", tableLabel: "Sent At", type: "date", filterKey: "sent_at" },
+      { key: "sent_at__gt_lt", label: "Sent At (After / Before)", type: "date_gt_lt", filterKey: "sent_at", isSearchOnly: true },
+
+      { key: "delivered_at", label: "Delivered At (Exact)", tableLabel: "Delivered At", type: "date", filterKey: "delivered_at" },
+      { key: "delivered_at__gt_lt", label: "Delivered At (After / Before)", type: "date_gt_lt", filterKey: "delivered_at", isSearchOnly: true },
+
+      { key: "failed_at", label: "Failed At (Exact)", tableLabel: "Failed At", type: "date", filterKey: "failed_at" },
+      { key: "failed_at__gt_lt", label: "Failed At (After / Before)", type: "date_gt_lt", filterKey: "failed_at", isSearchOnly: true },
     ],
     [clientOptions, vendorOptions, smppOptions, countryOptions],
   );
@@ -257,7 +279,7 @@ const MessageReport: React.FC = () => {
         key: "message_id",
         label: "Message ID",
         type: "text",
-        render: (log) => (
+        render: (log: any) => (
           <span className="font-mono text-xs text-primary">
             {log.message_id}
           </span>
@@ -267,7 +289,7 @@ const MessageReport: React.FC = () => {
         key: "source_addr",
         label: "Sender ID",
         type: "text",
-        render: (log) => (
+        render: (log: any) => (
           <span className="text-sm">
             {log.source_addr}
           </span>
@@ -277,7 +299,7 @@ const MessageReport: React.FC = () => {
         key: "countryName",
         label: "Country",
         type: "text",
-        render: (log) => {
+        render: (log: any) => {
           const match = countryOptions.find((opt) => opt.label === log.countryName);
           return (
             <div className="flex items-center gap-1.5 text-sm">
@@ -291,7 +313,7 @@ const MessageReport: React.FC = () => {
         key: "destination",
         label: "Destination",
         type: "text",
-        render: (log) => (
+        render: (log: any) => (
           <span className="text-sm font-medium text-text-primary dark:text-white">
             {log.destination}
           </span>
@@ -301,7 +323,7 @@ const MessageReport: React.FC = () => {
         key: "text",
         label: "Text",
         type: "text",
-        render: (log) => (
+        render: (log: any) => (
           <div
             className="max-w-xs truncate text-sm text-text-secondary cursor-pointer hover:text-primary transition-colors"
             title="Click to view full message"
@@ -319,7 +341,7 @@ const MessageReport: React.FC = () => {
         key: "status",
         label: "Status",
         type: "text",
-        render: (log) => <StatusBadge status={log.status} />
+        render: (log: any) => <StatusBadge status={log.status} />,
       },
       { key: "encoding", label: "Encoding", type: "text" },
       { key: "segmentNumber", label: "Segment", type: "text" },
@@ -333,9 +355,9 @@ const MessageReport: React.FC = () => {
         key: "createdAt",
         label: "Created At",
         type: "date",
-        render: (log) => (
+        render: (log: any) => (
           <span>
-            {log.createdAt ? new Date(log.createdAt).toLocaleString() : "-"}
+            {log.createdAt ? formatDateTime(log.createdAt) : "-"}
           </span>
         ),
       },
@@ -343,9 +365,29 @@ const MessageReport: React.FC = () => {
         key: "queued_at",
         label: "Queued At",
         type: "date",
-        render: (log) => (
+        render: (log: any) => (
           <span>
-            {log.queued_at ? new Date(log.queued_at).toLocaleString() : "-"}
+            {log.queued_at ? formatDateTime(log.queued_at) : "-"}
+          </span>
+        ),
+      },
+      {
+        key: "submitted_at",
+        label: "Submitted At",
+        type: "date",
+        render: (log: any) => (
+          <span>
+            {log.submitted_at ? formatDateTime(log.submitted_at) : "-"}
+          </span>
+        ),
+      },
+      {
+        key: "sent_at",
+        label: "Sent At",
+        type: "date",
+        render: (log: any) => (
+          <span>
+            {(log as any).sent_at ? formatDateTime((log as any).sent_at) : "-"}
           </span>
         ),
       },
@@ -353,9 +395,9 @@ const MessageReport: React.FC = () => {
         key: "delivered_at",
         label: "Delivered At",
         type: "date",
-        render: (log) => (
+        render: (log: any) => (
           <span>
-            {log.delivered_at ? new Date(log.delivered_at).toLocaleString() : "-"}
+            {log.delivered_at ? formatDateTime(log.delivered_at) : "-"}
           </span>
         ),
       },
@@ -363,9 +405,9 @@ const MessageReport: React.FC = () => {
         key: "failed_at",
         label: "Failed At",
         type: "date",
-        render: (log) => (
+        render: (log: any) => (
           <span>
-            {log.failed_at ? new Date(log.failed_at).toLocaleString() : "-"}
+            {log.failed_at ? formatDateTime(log.failed_at) : "-"}
           </span>
         ),
       },
@@ -389,7 +431,7 @@ const MessageReport: React.FC = () => {
     overrideParams?: Record<string, any>,
     page: number = 1,
     append: boolean = false,
-    silent: boolean = false
+    silent: boolean = false,
   ) => {
     if (silent && (isLoading || isFetchingMore)) return;
 
@@ -408,15 +450,44 @@ const MessageReport: React.FC = () => {
 
       searchColumns.forEach((key) => {
         const value = sourceFilters[key];
-        if (!value) return;
-        const colDef = filterOptionsConfig.find((c) => c.key === key);
-        const baseKey = colDef?.filterKey || key;
+        if (value) {
+          const colDef = filterOptionsConfig.find((c) => c.key === key);
 
-        if (colDef?.options) {
-          const selectedOption = colDef.options.find((opt) => opt.value === value);
-          currentSearchParams[baseKey] = selectedOption ? selectedOption.value : value;
-        } else {
-          currentSearchParams[baseKey] = value;
+          if (colDef?.options) {
+            const selectedOption = colDef.options.find((opt) => opt.value === value);
+            currentSearchParams[colDef.filterKey || key] = selectedOption
+              ? selectedOption.value
+              : value;
+          } else if (colDef?.type === "date") {
+            const rawKey = colDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+            if (value.includes("T")) {
+              const [datePart, timePart] = value.split("T");
+              if (timePart === "00:00:00") {
+                currentSearchParams[`${baseKey}__range`] = `${datePart}T00:00:00,${datePart}T23:59:59`;
+              } else {
+                const [hh, mm] = timePart.split(":");
+                currentSearchParams[`${baseKey}__range`] = `${datePart}T${hh}:${mm}:00,${datePart}T${hh}:${mm}:59`;
+              }
+            } else {
+              currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
+            }
+          } else if (colDef?.type === "date_gt_lt") {
+            const rawKey = colDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt && gt.trim() !== "") {
+              currentSearchParams[`${baseKey}__gte`] = gt.includes("T") ? gt : `${gt}T00:00:00`;
+            }
+            if (lt && lt.trim() !== "") {
+              currentSearchParams[`${baseKey}__lte`] = lt.includes("T") ? lt : `${lt}T23:59:59`;
+            }
+          } else if (colDef?.type === "text") {
+            const filterKey = colDef.filterKey || `${key}__icontains`;
+            currentSearchParams[filterKey] = value;
+          } else {
+            currentSearchParams[colDef?.filterKey || key] = value;
+          }
         }
       });
 
@@ -463,7 +534,7 @@ const MessageReport: React.FC = () => {
 
   useEffect(() => {
     const liveUpdateTimer = setInterval(() => {
-      const isFiltering = Object.values(filterValues).some(val => val !== "");
+      const isFiltering = Object.values(filterValues).some((val) => val !== "");
 
       if (isAtTopRef.current && !isFiltering) {
         fetchLogs(undefined, 1, false, true);
@@ -526,7 +597,6 @@ const MessageReport: React.FC = () => {
     }
 
     try {
-      // 1. Direct match on Route Group
       let groupRes: any = await getGroupedCustomRoutesApi("customRoute", 1, 10, { name: targetName });
       let groupList = groupRes?.results || (Array.isArray(groupRes) ? groupRes : []);
 
@@ -542,7 +612,6 @@ const MessageReport: React.FC = () => {
         return;
       }
 
-      // 2. Lookup via Client profile
       if (clientName) {
         const clientRes: any = await getClientsApi("client", 1, 10, { name__icontains: clientName });
         const clientList = clientRes?.results || (Array.isArray(clientRes) ? clientRes : []);
@@ -567,7 +636,6 @@ const MessageReport: React.FC = () => {
         }
       }
 
-      // 3. Lookup via Vendor sub-routes
       if (vendorName) {
         const subRouteRes: any = await getCustomRoutesApi("customRoute", 1, 10, {
           terminatingVendorProfileName__icontains: vendorName,
@@ -581,7 +649,6 @@ const MessageReport: React.FC = () => {
         }
       }
 
-      // Fallback
       setActiveRouteGroup(targetName);
       setActiveRouteGroupId(null);
       setIsRouteModalOpen(true);
@@ -604,14 +671,14 @@ const MessageReport: React.FC = () => {
       onClick: () => {
         setViewLog(selectedRowLog);
         setIsModalOpen(true);
-      }
+      },
     },
     ...(connectedRouteTarget ? [
       {
         label: `View Custom Route (${connectedRouteTarget})`,
         icon: <Route size={16} />,
-        onClick: () => handleOpenRouteModal(selectedRowLog)
-      }
+        onClick: () => handleOpenRouteModal(selectedRowLog),
+      },
     ] : []),
   ] : [];
 
@@ -620,9 +687,9 @@ const MessageReport: React.FC = () => {
   useEffect(() => {
     if (!hasLoggedOpening.current) {
       setTimeout(() => {
-        const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
+        const activeLinks = document.querySelectorAll("aside a.active, nav a.active");
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
-        let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
+        let moduleLabel = activeItem?.innerText?.split("\n")[0].trim() || "Module";
 
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100);
@@ -686,122 +753,84 @@ const MessageReport: React.FC = () => {
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
-        {(() => {
-          const generalFields = visibleSearchFields.filter(c => c.type !== "date" && c.type !== "date_range");
-          const dateFields = visibleSearchFields.filter(c => c.type === "date" || c.type === "date_range");
+        {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label || "");
 
-          const renderField = (col: typeof visibleSearchFields[0]) => {
-            const baseLabel = getBaseLabel(col.label || "");
-
-            if (col.options) {
-              return (
-                <Select
-                  key={col.key}
-                  label={baseLabel}
-                  value={filterValues[col.key] || ""}
-                  onChange={(val) => handleFilterChange(col.key, val)}
-                  options={col.options}
-                  placeholder={`Select ${baseLabel}`}
-                  allowCustomValue={true}
-                />
-              );
-            }
-            if (col.type === "date") {
-              const rawVal = filterValues[col.key] || "";
-              const datePart = rawVal.split("T")[0];
-
-              return (
-                <DatePicker
-                  key={col.key}
-                  label={`Search ${baseLabel}`}
-                  selected={datePart ? new Date(datePart) : null}
-                  onChange={(val: Date | null) => {
-                    if (val) {
-                      const formatted = formatLocalDate(val);
-                      handleFilterChange(col.key, `${formatted}T00:00:00,${formatted}T23:59:59`);
-                    } else {
-                      handleFilterChange(col.key, "");
-                    }
-                  }}
-                />
-              );
-            }
-            if (col.type === "date_range") {
-              const [startRange, endRange] = (filterValues[col.key] || "").split(",");
-              const startStr = startRange ? startRange.split("T")[0] : "";
-              const endStr = endRange ? endRange.split("T")[0] : "";
-
-              return (
-                <div key={col.key} className="col-span-1 md:col-span-2 lg:col-span-2 flex flex-col w-full">
-                  <label className="mb-1.5 text-xs font-medium text-text-secondary dark:text-gray-400">
-                    Search {baseLabel} (Range)
-                  </label>
-                  <div className="flex gap-2 w-full">
-                    <div className="flex-1">
-                      <DatePicker
-                        label=""
-                        placeholder="From"
-                        selected={startStr ? new Date(startStr) : null}
-                        onChange={(val: Date | null) => {
-                          const newStart = val ? formatLocalDate(val) : "";
-                          const currentEnd = endStr || "";
-                          if (newStart || currentEnd) {
-                            const startVal = newStart ? `${newStart}T00:00:00` : "";
-                            const endVal = currentEnd ? `${currentEnd}T23:59:59` : "";
-                            handleFilterChange(col.key, `${startVal},${endVal}`);
-                          } else {
-                            handleFilterChange(col.key, "");
-                          }
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <DatePicker
-                        label=""
-                        placeholder="To"
-                        selected={endStr ? new Date(endStr) : null}
-                        onChange={(val: Date | null) => {
-                          const newEnd = val ? formatLocalDate(val) : "";
-                          const currentStart = startStr || "";
-                          if (currentStart || newEnd) {
-                            const startVal = currentStart ? `${currentStart}T00:00:00` : "";
-                            const endVal = newEnd ? `${newEnd}T23:59:59` : "";
-                            handleFilterChange(col.key, `${startVal},${endVal}`);
-                          } else {
-                            handleFilterChange(col.key, "");
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            }
+          if (col.options) {
             return (
-              <Input
+              <Select
                 key={col.key}
-                label={baseLabel}
+                label={`Search ${baseLabel}`}
                 value={filterValues[col.key] || ""}
-                onChange={(e) => handleFilterChange(col.key, e.target.value)}
-                placeholder={`Search ${baseLabel}`}
+                onChange={(val) => handleFilterChange(col.key, val)}
+                options={col.options}
+                placeholder={`Select ${baseLabel}`}
+                allowCustomValue={true}
               />
             );
-          };
-
+          }
+          if (col.type === "date") {
+            return (
+              <DatePicker
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                showTimeSelect={true}
+                selected={
+                  filterValues[col.key] ? new Date(filterValues[col.key]) : null
+                }
+                onChange={(val: Date | null) =>
+                  handleFilterChange(col.key, val ? formatLocalDateTime(val) : "")
+                }
+                placeholder="Select Date & Time"
+              />
+            );
+          }
+          if (col.type === "date_gt_lt") {
+            const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
+            return (
+              <React.Fragment key={col.key}>
+                <DatePicker
+                  label={`Search ${baseLabel} (> After)`}
+                  showTimeSelect={true}
+                  selected={gtStr ? new Date(gtStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newGt = val ? formatLocalDateTime(val) : "";
+                    const currentLt = ltStr || "";
+                    handleFilterChange(
+                      col.key,
+                      newGt || currentLt ? `${newGt},${currentLt}` : "",
+                    );
+                  }}
+                  placeholder="Select Date & Time"
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (< Before)`}
+                  showTimeSelect={true}
+                  selected={ltStr ? new Date(ltStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newLt = val ? formatLocalDateTime(val) : "";
+                    const currentGt = gtStr || "";
+                    handleFilterChange(
+                      col.key,
+                      currentGt || newLt ? `${currentGt},${newLt}` : "",
+                    );
+                  }}
+                  placeholder="Select Date & Time"
+                />
+              </React.Fragment>
+            );
+          }
           return (
-            <>
-              {generalFields.map(renderField)}
-
-              {dateFields.length > 0 && (
-                <div className="col-span-full border-b border-gray-100 dark:border-gray-700 pb-2 mt-4 text-sm font-semibold text-gray-800 dark:text-gray-200">
-                  Date Filters
-                </div>
-              )}
-
-              {dateFields.map(renderField)}
-            </>
+            <Input
+              key={col.key}
+              type={col.type || "text"}
+              label={`Search ${baseLabel}`}
+              value={filterValues[col.key] || ""}
+              onChange={(e) => handleFilterChange(col.key, e.target.value)}
+              placeholder={`Search ${baseLabel}`}
+            />
           );
-        })()}
+        })}
       </FilterCard>
 
       <div ref={tableWrapperRef}>

@@ -82,10 +82,10 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
       toast.error("Country is required");
       return;
     }
-    if (!formData.countryCode.trim()) {
-      toast.error("Country Code is required");
-      return;
-    }
+    // if (!formData.countryCode.trim()) {
+    //   toast.error("Country Code is required");
+    //   return;
+    // }
 
     if (!formData.network.trim()) {
       toast.error("Network is required");
@@ -182,7 +182,6 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             name="countryCode"
             value={formData.countryCode}
             onChange={handleChange}
-            required
             disabled={isViewMode}
           />
 
