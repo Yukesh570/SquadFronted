@@ -67,7 +67,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
     maxSession: "",
     sendQueueLimit: "",
     delayTime: "",
-    responseTimeout: "",
+    responseTimeout: "60",
     enquireLinkInterval: "",
     connectionTimeout: "",
     maxMessageRetries: "",
@@ -170,7 +170,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           maxSession: anyVendor.vendorPolicy?.maxSession != null ? String(anyVendor.vendorPolicy.maxSession) : "",
           sendQueueLimit: anyVendor.vendorPolicy?.sendQueueLimit != null ? String(anyVendor.vendorPolicy.sendQueueLimit) : "",
           delayTime: anyVendor.vendorPolicy?.delayTime != null ? String(anyVendor.vendorPolicy.delayTime) : "",
-          responseTimeout: anyVendor.vendorPolicy?.responseTimeout != null ? String(anyVendor.vendorPolicy.responseTimeout) : "",
+          responseTimeout: anyVendor.vendorPolicy?.responseTimeout != null ? String(anyVendor.vendorPolicy.responseTimeout) : "60",
           enquireLinkInterval: anyVendor.vendorPolicy?.enquireLinkInterval != null ? String(anyVendor.vendorPolicy.enquireLinkInterval) : "",
           connectionTimeout: anyVendor.vendorPolicy?.connectionTimeout != null ? String(anyVendor.vendorPolicy.connectionTimeout) : "",
           maxMessageRetries: anyVendor.vendorPolicy?.maxMessageRetries != null ? String(anyVendor.vendorPolicy.maxMessageRetries) : "",
@@ -234,7 +234,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           maxSession: "",
           sendQueueLimit: "",
           delayTime: "",
-          responseTimeout: "",
+          responseTimeout: "60",
           enquireLinkInterval: "",
           connectionTimeout: "",
           maxMessageRetries: "",
@@ -363,13 +363,13 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       if (vendorId) {
         const policyPayload: any = {
           logLevel: formData.logLevel,
+          responseTimeout: formData.responseTimeout !== "" ? Number(formData.responseTimeout) : 60,
         };
 
         if (formData.rateTps !== "") policyPayload.rateTps = Number(formData.rateTps);
         if (formData.maxSession !== "") policyPayload.maxSession = Number(formData.maxSession);
         if (formData.sendQueueLimit !== "") policyPayload.sendQueueLimit = Number(formData.sendQueueLimit);
         if (formData.delayTime !== "") policyPayload.delayTime = Number(formData.delayTime);
-        if (formData.responseTimeout !== "") policyPayload.responseTimeout = Number(formData.responseTimeout);
         if (formData.enquireLinkInterval !== "") policyPayload.enquireLinkInterval = Number(formData.enquireLinkInterval);
         if (formData.connectionTimeout !== "") policyPayload.connectionTimeout = Number(formData.connectionTimeout);
         if (formData.maxMessageRetries !== "") policyPayload.maxMessageRetries = Number(formData.maxMessageRetries);
@@ -520,8 +520,9 @@ export const VendorModal: React.FC<VendorModalProps> = ({
 
         {formData.connectionType === "SMPP" && (
           <div
-            className={`border border-gray-200 dark:border-gray-700 p-4 rounded-lg space-y-4 ${isLoadingDetails ? "opacity-50 pointer-events-none" : ""
-              }`}
+            className={`border border-gray-200 dark:border-gray-700 p-4 rounded-lg space-y-4 ${
+              isLoadingDetails ? "opacity-50 pointer-events-none" : ""
+            }`}
           >
             <h3 className="text-sm font-semibold text-primary">
               SMPP Configuration
@@ -660,7 +661,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               step="0.1"
               value={formData.responseTimeout}
               onChange={handleChange}
-              placeholder="60.0"
+              placeholder="60"
               disabled={isViewMode}
             />
             {/* <Input
@@ -826,10 +827,11 @@ export const VendorModal: React.FC<VendorModalProps> = ({
                 name="bindStatus"
                 value={formData.bindStatus}
                 disabled={true}
-                className={`font-semibold ${formData.bindStatus === "ONLINE"
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-red-500 dark:text-red-400"
-                  }`}
+                className={`font-semibold ${
+                  formData.bindStatus === "ONLINE"
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-500 dark:text-red-400"
+                }`}
               />
               <Input
                 label="Active Sessions / Allowed"
