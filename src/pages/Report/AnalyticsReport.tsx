@@ -84,19 +84,23 @@ const ExpandButton: React.FC<{ isExpanded: boolean }> = ({ isExpanded }) => {
 const DataBarCell: React.FC<{
   value: number;
   max: number;
-  type?: "volume" | "currency";
+  type?: "volume" | "currency" | "danger";
 }> = ({ value = 0, max = 1, type = "volume" }) => {
   const percentage = Math.min(Math.max((value / (max || 1)) * 100, 4), 100);
 
-  const containerStyle =
-    type === "volume"
-      ? "bg-sky-50/60 dark:bg-sky-950/20 border-sky-300 dark:border-sky-800"
-      : "bg-fuchsia-50/60 dark:bg-fuchsia-950/20 border-fuchsia-300 dark:border-fuchsia-800";
+  let containerStyle = "";
+  let fillStyle = "";
 
-  const fillStyle =
-    type === "volume"
-      ? "bg-sky-200/90 dark:bg-sky-900/60 border-sky-400 dark:border-sky-700"
-      : "bg-fuchsia-200/90 dark:bg-fuchsia-900/60 border-fuchsia-400 dark:border-fuchsia-700";
+  if (type === "volume") {
+    containerStyle = "bg-sky-50/60 dark:bg-sky-950/20 border-sky-300 dark:border-sky-800";
+    fillStyle = "bg-sky-200/90 dark:bg-sky-900/60 border-sky-400 dark:border-sky-700";
+  } else if (type === "currency") {
+    containerStyle = "bg-fuchsia-50/60 dark:bg-fuchsia-950/20 border-fuchsia-300 dark:border-fuchsia-800";
+    fillStyle = "bg-fuchsia-200/90 dark:bg-fuchsia-900/60 border-fuchsia-400 dark:border-fuchsia-700";
+  } else if (type === "danger") {
+    containerStyle = "bg-red-50/60 dark:bg-red-950/20 border-red-300 dark:border-red-800";
+    fillStyle = "bg-red-200/90 dark:bg-red-900/60 border-red-400 dark:border-red-700";
+  }
 
   return (
     <div className={`relative w-full h-7 flex items-center justify-end px-2 overflow-hidden rounded border shadow-xs ${containerStyle}`}>
@@ -157,8 +161,10 @@ const tableHeaders = [
   "Attempts",
   "Successful",
   "Submitted",
+  "ASR %",
   "DLR %",
   "Delivered",
+  "Failed",
   "Revenue ($)",
   "Vendor Cost ($)",
   "Margin ($)",
@@ -417,12 +423,13 @@ const AnalyticsReport: React.FC = () => {
           attempts: m.attempts || 0,
           successful: m.successful || 0,
           submitted: m.submitted || 0,
+          asrPct: m.asr_percent || 0,
+          dlrPct: m.dlr_percent || 0,
           delivered: m.delivered || 0,
           failed: m.failed || 0,
           revenue: m.revenue || 0,
           vendorCost: m.vendor_cost || 0,
           marginUsd: m.margin_usd || 0,
-          dlrPct: m.dlr_percent || 0,
           marginPct: m.margin_percent || 0,
         };
       });
@@ -665,52 +672,57 @@ const AnalyticsReport: React.FC = () => {
           const baseLabel = getBaseLabel(col.label);
           if (col.type === "date") {
             return (
-              <DatePicker
-                key={col.key}
-                label={`Search ${baseLabel}`}
-                showTimeSelect={true}
-                selected={
-                  filterValues[col.key] ? new Date(filterValues[col.key]) : null
-                }
-                onChange={(val: Date | null) =>
-                  handleFilterChange(col.key, val ? formatLocalDateTime(val) : "")
-                }
-                placeholder="Select Date & Time"
-              />
+              <div key={col.key} className="col-span-1 md:col-span-2 lg:col-span-2">
+                <DatePicker
+                  label={`Search ${baseLabel}`}
+                  showTimeSelect={true}
+                  selected={
+                    filterValues[col.key] ? new Date(filterValues[col.key]) : null
+                  }
+                  onChange={(val: Date | null) =>
+                    handleFilterChange(col.key, val ? formatLocalDateTime(val) : "")
+                  }
+                  placeholder="Select Date & Time"
+                />
+              </div>
             );
           }
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
               <React.Fragment key={col.key}>
-                <DatePicker
-                  label={`Search ${baseLabel} (> After)`}
-                  showTimeSelect={true}
-                  selected={gtStr ? new Date(gtStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newGt = val ? formatLocalDateTime(val) : "";
-                    const currentLt = ltStr || "";
-                    handleFilterChange(
-                      col.key,
-                      newGt || currentLt ? `${newGt},${currentLt}` : "",
-                    );
-                  }}
-                  placeholder="Select Date & Time"
-                />
-                <DatePicker
-                  label={`Search ${baseLabel} (< Before)`}
-                  showTimeSelect={true}
-                  selected={ltStr ? new Date(ltStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newLt = val ? formatLocalDateTime(val) : "";
-                    const currentGt = gtStr || "";
-                    handleFilterChange(
-                      col.key,
-                      currentGt || newLt ? `${currentGt},${newLt}` : "",
-                    );
-                  }}
-                  placeholder="Select Date & Time"
-                />
+                <div className="col-span-1 md:col-span-2 lg:col-span-2">
+                  <DatePicker
+                    label={`Search ${baseLabel} (> After)`}
+                    showTimeSelect={true}
+                    selected={gtStr ? new Date(gtStr) : null}
+                    onChange={(val: Date | null) => {
+                      const newGt = val ? formatLocalDateTime(val) : "";
+                      const currentLt = ltStr || "";
+                      handleFilterChange(
+                        col.key,
+                        newGt || currentLt ? `${newGt},${currentLt}` : "",
+                      );
+                    }}
+                    placeholder="Select Date & Time"
+                  />
+                </div>
+                <div className="col-span-1 md:col-span-2 lg:col-span-2">
+                  <DatePicker
+                    label={`Search ${baseLabel} (< Before)`}
+                    showTimeSelect={true}
+                    selected={ltStr ? new Date(ltStr) : null}
+                    onChange={(val: Date | null) => {
+                      const newLt = val ? formatLocalDateTime(val) : "";
+                      const currentGt = gtStr || "";
+                      handleFilterChange(
+                        col.key,
+                        currentGt || newLt ? `${currentGt},${newLt}` : "",
+                      );
+                    }}
+                    placeholder="Select Date & Time"
+                  />
+                </div>
               </React.Fragment>
             );
           }
@@ -816,8 +828,10 @@ const AnalyticsReport: React.FC = () => {
                         <td className="px-2 py-2"><DataBarCell value={dateRow.attempts} max={maxAttempts} /></td>
                         <td className="px-2 py-2"><DataBarCell value={dateRow.successful} max={maxAttempts} /></td>
                         <td className="px-2 py-2"><DataBarCell value={dateRow.submitted} max={maxAttempts} /></td>
+                        <td className="px-2 py-2"><DlrCell pct={dateRow.asrPct} /></td>
                         <td className="px-2 py-2"><DlrCell pct={dateRow.dlrPct} /></td>
                         <td className="px-2 py-2"><DataBarCell value={dateRow.delivered} max={maxAttempts} /></td>
+                        <td className="px-2 py-2"><DataBarCell value={dateRow.failed} max={maxAttempts} type="danger" /></td>
                         <td className="px-2 py-2"><DataBarCell value={dateRow.revenue} max={maxRevenue} type="currency" /></td>
                         <td className="px-2 py-2"><DataBarCell value={dateRow.vendorCost} max={maxRevenue} type="currency" /></td>
                         <td className="px-2 py-2"><DataBarCell value={dateRow.marginUsd} max={maxRevenue} type="currency" /></td>
@@ -828,11 +842,11 @@ const AnalyticsReport: React.FC = () => {
                       {isDateExpanded && (
                         isDateLoading ? (
                           <tr>
-                            <td colSpan={10} className="py-3 pl-10 text-xs text-gray-500 italic">Loading account managers...</td>
+                            <td colSpan={12} className="py-3 pl-10 text-xs text-gray-500 italic">Loading account managers...</td>
                           </tr>
                         ) : accountManagers.length === 0 ? (
                           <tr>
-                            <td colSpan={10} className="py-3 pl-10 text-xs text-gray-400 italic">No traffic found for {dateStr}.</td>
+                            <td colSpan={12} className="py-3 pl-10 text-xs text-gray-400 italic">No traffic found for {dateStr}.</td>
                           </tr>
                         ) : (
                           accountManagers.map((amRow: any) => {
@@ -861,8 +875,10 @@ const AnalyticsReport: React.FC = () => {
                                   <td className="px-2 py-1.5"><DataBarCell value={amRow.attempts} max={maxAttempts} /></td>
                                   <td className="px-2 py-1.5"><DataBarCell value={amRow.successful} max={maxAttempts} /></td>
                                   <td className="px-2 py-1.5"><DataBarCell value={amRow.submitted} max={maxAttempts} /></td>
+                                  <td className="px-2 py-1.5"><DlrCell pct={amRow.asr_percent} /></td>
                                   <td className="px-2 py-1.5"><DlrCell pct={amRow.dlr_percent} /></td>
                                   <td className="px-2 py-1.5"><DataBarCell value={amRow.delivered} max={maxAttempts} /></td>
+                                  <td className="px-2 py-1.5"><DataBarCell value={amRow.failed} max={maxAttempts} type="danger" /></td>
                                   <td className="px-2 py-1.5"><DataBarCell value={amRow.revenue} max={maxRevenue} type="currency" /></td>
                                   <td className="px-2 py-1.5"><DataBarCell value={amRow.vendor_cost} max={maxRevenue} type="currency" /></td>
                                   <td className="px-2 py-1.5"><DataBarCell value={amRow.margin_usd} max={maxRevenue} type="currency" /></td>
@@ -873,11 +889,11 @@ const AnalyticsReport: React.FC = () => {
                                 {isAmExpanded && (
                                   isAmLoading ? (
                                     <tr>
-                                      <td colSpan={10} className="py-2 pl-14 text-xs text-gray-500 italic">Loading client companies...</td>
+                                      <td colSpan={12} className="py-2 pl-14 text-xs text-gray-500 italic">Loading client companies...</td>
                                     </tr>
                                   ) : clients.length === 0 ? (
                                     <tr>
-                                      <td colSpan={10} className="py-2 pl-14 text-xs text-gray-400 italic">No client company traffic found for {amName}.</td>
+                                      <td colSpan={12} className="py-2 pl-14 text-xs text-gray-400 italic">No client company traffic found for {amName}.</td>
                                     </tr>
                                   ) : (
                                     clients.map((clientRow: any, cIdx: number) => {
@@ -907,8 +923,10 @@ const AnalyticsReport: React.FC = () => {
                                             <td className="px-2 py-1.5"><DataBarCell value={clientRow.attempts} max={maxAttempts} /></td>
                                             <td className="px-2 py-1.5"><DataBarCell value={clientRow.successful} max={maxAttempts} /></td>
                                             <td className="px-2 py-1.5"><DataBarCell value={clientRow.submitted} max={maxAttempts} /></td>
+                                            <td className="px-2 py-1.5"><DlrCell pct={clientRow.asr_percent} /></td>
                                             <td className="px-2 py-1.5"><DlrCell pct={clientRow.dlr_percent} /></td>
                                             <td className="px-2 py-1.5"><DataBarCell value={clientRow.delivered} max={maxAttempts} /></td>
+                                            <td className="px-2 py-1.5"><DataBarCell value={clientRow.failed} max={maxAttempts} type="danger" /></td>
                                             <td className="px-2 py-1.5"><DataBarCell value={clientRow.revenue} max={maxRevenue} type="currency" /></td>
                                             <td className="px-2 py-1.5"><DataBarCell value={clientRow.vendor_cost} max={maxRevenue} type="currency" /></td>
                                             <td className="px-2 py-1.5"><DataBarCell value={clientRow.margin_usd} max={maxRevenue} type="currency" /></td>
@@ -919,11 +937,11 @@ const AnalyticsReport: React.FC = () => {
                                           {isClientExpanded && (
                                             isClientLoading ? (
                                               <tr>
-                                                <td colSpan={10} className="py-2 pl-20 text-xs text-gray-500 italic">Loading countries...</td>
+                                                <td colSpan={12} className="py-2 pl-20 text-xs text-gray-500 italic">Loading countries...</td>
                                               </tr>
                                             ) : countries.length === 0 ? (
                                               <tr>
-                                                <td colSpan={10} className="py-2 pl-20 text-xs text-gray-400 italic">No country data found.</td>
+                                                <td colSpan={12} className="py-2 pl-20 text-xs text-gray-400 italic">No country data found.</td>
                                               </tr>
                                             ) : (
                                               countries.map((countryRow: any, coIdx: number) => {
@@ -956,8 +974,10 @@ const AnalyticsReport: React.FC = () => {
                                                       <td className="px-2 py-1.5"><DataBarCell value={countryRow.attempts} max={maxAttempts} /></td>
                                                       <td className="px-2 py-1.5"><DataBarCell value={countryRow.successful} max={maxAttempts} /></td>
                                                       <td className="px-2 py-1.5"><DataBarCell value={countryRow.submitted} max={maxAttempts} /></td>
+                                                      <td className="px-2 py-1.5"><DlrCell pct={countryRow.asr_percent} /></td>
                                                       <td className="px-2 py-1.5"><DlrCell pct={countryRow.dlr_percent} /></td>
                                                       <td className="px-2 py-1.5"><DataBarCell value={countryRow.delivered} max={maxAttempts} /></td>
+                                                      <td className="px-2 py-1.5"><DataBarCell value={countryRow.failed} max={maxAttempts} type="danger" /></td>
                                                       <td className="px-2 py-1.5"><DataBarCell value={countryRow.revenue} max={maxRevenue} type="currency" /></td>
                                                       <td className="px-2 py-1.5"><DataBarCell value={countryRow.vendor_cost} max={maxRevenue} type="currency" /></td>
                                                       <td className="px-2 py-1.5"><DataBarCell value={countryRow.margin_usd} max={maxRevenue} type="currency" /></td>
@@ -968,11 +988,11 @@ const AnalyticsReport: React.FC = () => {
                                                     {isCountryExpanded && (
                                                       isCountryLoading ? (
                                                         <tr>
-                                                          <td colSpan={10} className="py-2 pl-28 text-xs text-gray-500 italic">Loading vendor companies...</td>
+                                                          <td colSpan={12} className="py-2 pl-28 text-xs text-gray-500 italic">Loading vendor companies...</td>
                                                         </tr>
                                                       ) : vendors.length === 0 ? (
                                                         <tr>
-                                                          <td colSpan={10} className="py-2 pl-28 text-xs text-gray-400 italic">No vendor company traffic found.</td>
+                                                          <td colSpan={12} className="py-2 pl-28 text-xs text-gray-400 italic">No vendor company traffic found.</td>
                                                         </tr>
                                                       ) : (
                                                         vendors.map((vendorRow: any, vIdx: number) => {
@@ -994,8 +1014,10 @@ const AnalyticsReport: React.FC = () => {
                                                               <td className="px-2 py-1"><DataBarCell value={vendorRow.attempts} max={maxAttempts} /></td>
                                                               <td className="px-2 py-1"><DataBarCell value={vendorRow.successful} max={maxAttempts} /></td>
                                                               <td className="px-2 py-1"><DataBarCell value={vendorRow.submitted} max={maxAttempts} /></td>
+                                                              <td className="px-2 py-1"><DlrCell pct={vendorRow.asr_percent} /></td>
                                                               <td className="px-2 py-1"><DlrCell pct={vendorRow.dlr_percent} /></td>
                                                               <td className="px-2 py-1"><DataBarCell value={vendorRow.delivered} max={maxAttempts} /></td>
+                                                              <td className="px-2 py-1"><DataBarCell value={vendorRow.failed} max={maxAttempts} type="danger" /></td>
                                                               <td className="px-2 py-1"><DataBarCell value={vendorRow.revenue} max={maxRevenue} type="currency" /></td>
                                                               <td className="px-2 py-1"><DataBarCell value={vendorRow.vendor_cost} max={maxRevenue} type="currency" /></td>
                                                               <td className="px-2 py-1"><DataBarCell value={vendorRow.margin_usd} max={maxRevenue} type="currency" /></td>
