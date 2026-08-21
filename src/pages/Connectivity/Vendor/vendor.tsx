@@ -154,7 +154,7 @@ const Vendor: React.FC = () => {
         setVendorRateGroupOptions(
           rateList.map((r: any) => ({
             label: r.name,
-            value: r.name,
+            value: String(r.id),
           })),
         );
       } catch (err: any) {
