@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import PageTabs from "./PageTabs";
 import { NavItemsContext } from "../../context/navItemsContext";
 import { getGeneralSettingsApi } from "../../api/settingApi/generalSettingsApi/generalSettingsApi";
 
@@ -94,10 +95,15 @@ const Layout = () => {
         closeMobileSidebar={() => setIsMobileSidebarOpen(false)}
       />
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full w-full overflow-hidden relative">
+        {/* 1. Page Tabs (Positioned at the very top above Navbar) */}
+        <PageTabs />
+
+        {/* 2. Top Navbar */}
         <Navbar onToggleSidebar={toggleSidebar} />
 
+        {/* 3. Page Content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-secondary dark:bg-gray-900 p-4 md:p-6 w-full">
           <Outlet />
         </main>

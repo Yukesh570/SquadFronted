@@ -23,6 +23,7 @@ import ContextMenu, {
   type ContextMenuItem,
 } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
+import { formatDateTime } from "../../helper/dateFormatter";
 
 interface Option {
   label: string;
@@ -140,7 +141,12 @@ const MappingSetup: React.FC = () => {
       type: "text",
       filterKey: "countryCode__icontains",
     },
-
+    {
+      key: "timeZone",
+      label: "Timezone",
+      type: "text",
+      filterKey: "timeZone__icontains",
+    },
     {
       key: "network",
       label: "Network",
@@ -156,23 +162,28 @@ const MappingSetup: React.FC = () => {
       type: "text",
       filterKey: "effectiveFrom__icontains",
     },
-
-    // Only createdAt supports gt, lt, and range in this specific Meta
+    {
+      key: "createdBy",
+      label: "Created By",
+      type: "text",
+      filterKey: "createdBy__username__icontains",
+      render: (c: any) => c.createdByName || c.createdBy || "-",
+    },
+    {
+      key: "updatedBy",
+      label: "Updated By",
+      type: "text",
+      filterKey: "updatedBy__username__icontains",
+      render: (c: any) => c.updatedByName || c.updatedBy || "-",
+    },
     {
       key: "createdAt",
       label: "Created At (Exact)",
       tableLabel: "Created At",
       type: "date",
-      filterKey: "createdAt__date",
-      render: (c: any) =>
-        c.createdAt ? new Date(c.createdAt).toLocaleString() : "-",
-    },
-    {
-      key: "createdAt__range",
-      label: "Created At (From/To)",
-      type: "date_range",
       filterKey: "createdAt",
-      isSearchOnly: true,
+      render: (c: any) =>
+        c.createdAt ? formatDateTime(c.createdAt) : "-",
     },
     {
       key: "createdAt__gt_lt",
@@ -219,9 +230,6 @@ const MappingSetup: React.FC = () => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
-          const baseKey = columnDef?.filterKey
-            ? columnDef.filterKey.split("__")[0]
-            : key.split("__")[0];
 
           if (columnDef?.options) {
             const selectedOption = columnDef.options.find(
@@ -236,23 +244,29 @@ const MappingSetup: React.FC = () => {
                 : selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            currentSearchParams[`${baseKey}__range`] =
-              `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const [start, end] = value.split(",");
-            if (start && end)
-              currentSearchParams[`${baseKey}__range`] =
-                `${start}T00:00:00,${end}T23:59:59`;
-            else {
-              if (start)
-                currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end)
-                currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
+            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey
+              .replace(/__exact$/, "")
+              .replace(/__range$/, "");
+            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey
+              .replace(/__gt_lt$/, "")
+              .replace(/__exact$/, "")
+              .replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "number_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey
+              .replace(/__gt_lt$/, "")
+              .replace(/__exact$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -440,7 +454,8 @@ const MappingSetup: React.FC = () => {
                 onChange={(val) => handleFilterChange(col.key, val)}
                 options={col.options}
                 placeholder={`Select ${baseLabel}`}
-              allowCustomValue={true} />
+                allowCustomValue={true}
+              />
             );
           if (col.type === "date")
             return (
@@ -455,37 +470,6 @@ const MappingSetup: React.FC = () => {
                 }
               />
             );
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    handleFilterChange(
-                      col.key,
-                      newStart || currentEnd ? `${newStart},${currentEnd}` : "",
-                    );
-                  }}
-                />
-                <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    handleFilterChange(
-                      col.key,
-                      currentStart || newEnd ? `${currentStart},${newEnd}` : "",
-                    );
-                  }}
-                />
-              </React.Fragment>
-            );
-          }
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (

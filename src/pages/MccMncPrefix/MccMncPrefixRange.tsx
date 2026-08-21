@@ -30,7 +30,13 @@ interface Option {
   value: string;
 }
 
-type FilterColumnType = "number" | "boolean" | "date" | "date_range" | "date_gt_lt" | "text" | "number_range" | "number_gt_lt";
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_gt_lt";
 
 interface ColumnConfig extends Omit<FilterColumn, 'type' | 'key' | 'label'> {
   key: string;
@@ -52,7 +58,15 @@ const formatLocalDate = (date: Date) => {
 };
 
 const DEFAULT_SEARCH_COLUMNS = ["countryName", "mccmnc", "status"];
-const DEFAULT_TABLE_COLUMNS = ["countryName", "mccmnc", "externalPrefixId", "operatorPrefixStartRange", "operatorPrefixEndRange", "status", "sourceFileName"];
+const DEFAULT_TABLE_COLUMNS = [
+  "countryName",
+  "mccmnc",
+  "externalPrefixId",
+  "operatorPrefixStartRange",
+  "operatorPrefixEndRange",
+  "status",
+  "sourceFileName",
+];
 
 const MccMncPrefixRange: React.FC = () => {
   const { canUpdate, canDelete } = usePagePermissions();
@@ -85,9 +99,9 @@ const MccMncPrefixRange: React.FC = () => {
     const fetchCountries = async () => {
       try {
         const res = await getCountriesApi("country", 1, 1000);
-        const data = res.results || (Array.isArray(res) ? res : []);
+        const list = res.results || (Array.isArray(res) ? res : []);
         setCountryOptions(
-          data.map((item: any) => ({
+          list.map((item: any) => ({
             label: item.name || "Unknown",
             value: item.name || String(item.id),
             iso2: item.iso2,
@@ -129,7 +143,7 @@ const MccMncPrefixRange: React.FC = () => {
       key: "countryName", 
       label: "Country Name", 
       type: "text", 
-      filterKey: "country__name", 
+      filterKey: "country__name__icontains", 
       options: countryOptions,
       render: (c) => {
         const match = countryOptions.find((opt) => opt.value === c.countryName);
@@ -147,16 +161,83 @@ const MccMncPrefixRange: React.FC = () => {
       label: "Status",
       type: "text",
       options: statusOptions,
-      filterKey: "status",
-      render: (c) => <StatusBadge status={c.status === "ACTIVE" ? "ACTIVE" : "EXPIRED"} customText={c.status === "ACTIVE" ? "Active" : "Inactive"} />
+      filterKey: "status__icontains",
+      render: (c) => (
+        <StatusBadge 
+          status={c.status === "ACTIVE" ? "ACTIVE" : "EXPIRED"} 
+          customText={c.status === "ACTIVE" ? "Active" : "Inactive"} 
+        />
+      )
     },
-    { key: "operatorPrefixStartRange", label: "Start Range", type: "number", filterKey: "operatorPrefixStartRange" },
-    { key: "operatorPrefixEndRange", label: "End Range", type: "number", filterKey: "operatorPrefixEndRange" },
-    { key: "externalPrefixId", label: "External Prefix ID", type: "number", filterKey: "externalPrefixId__icontains" },
-    { key: "sourceFileName", label: "Source File Name", type: "text", filterKey: "sourceFileName__icontains" },
-    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__range", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
-    { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
-    { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", filterKey: "createdAt", isSearchOnly: true },
+    { 
+      key: "operatorPrefixStartRange", 
+      label: "Start Range (Exact)", 
+      tableLabel: "Start Range",
+      type: "number", 
+      filterKey: "operatorPrefixStartRange" 
+    },
+    { 
+      key: "operatorPrefixStartRange__gt_lt", 
+      label: "Start Range (> / <)", 
+      type: "number_gt_lt", 
+      filterKey: "operatorPrefixStartRange",
+      isSearchOnly: true,
+    },
+    { 
+      key: "operatorPrefixEndRange", 
+      label: "End Range (Exact)", 
+      tableLabel: "End Range",
+      type: "number", 
+      filterKey: "operatorPrefixEndRange" 
+    },
+    { 
+      key: "operatorPrefixEndRange__gt_lt", 
+      label: "End Range (> / <)", 
+      type: "number_gt_lt", 
+      filterKey: "operatorPrefixEndRange",
+      isSearchOnly: true,
+    },
+    { 
+      key: "externalPrefixId", 
+      label: "External Prefix ID", 
+      type: "text", 
+      filterKey: "externalPrefixId__icontains" 
+    },
+    { 
+      key: "sourceFileName", 
+      label: "Source File Name", 
+      type: "text", 
+      filterKey: "sourceFileName__icontains" 
+    },
+    {
+      key: "createdBy",
+      label: "Created By",
+      type: "text",
+      filterKey: "createdBy__username__icontains",
+      render: (c: any) => c.createdByName || c.createdBy || "-",
+    },
+    {
+      key: "updatedBy",
+      label: "Updated By",
+      type: "text",
+      filterKey: "updatedBy__username__icontains",
+      render: (c: any) => c.updatedByName || c.updatedBy || "-",
+    },
+    { 
+      key: "createdAt", 
+      label: "Created At (Exact)", 
+      tableLabel: "Created At", 
+      type: "date", 
+      filterKey: "createdAt", 
+      render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") 
+    },
+    { 
+      key: "createdAt__gt_lt", 
+      label: "Created At (After / Before)", 
+      type: "date_gt_lt", 
+      filterKey: "createdAt", 
+      isSearchOnly: true 
+    },
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
@@ -167,7 +248,9 @@ const MccMncPrefixRange: React.FC = () => {
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
 
-  const tableFilterColumns = allColumns.filter((c) => !c.isSearchOnly).map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type as FilterColumnType }));
+  const tableFilterColumns = allColumns
+    .filter((c) => !c.isSearchOnly)
+    .map((c) => ({ key: c.key, label: c.tableLabel || c.label, type: c.type as FilterColumnType }));
 
   const handleFilterChange = (key: string, value: string) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
@@ -187,24 +270,27 @@ const MccMncPrefixRange: React.FC = () => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
-          const baseKey = columnDef?.filterKey ? columnDef.filterKey.split("__")[0] : key.split("__")[0];
 
           if (columnDef?.options) {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
+            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const [start, end] = value.split(",");
-            if (start && end) currentSearchParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
-            else {
-              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
           } else if (columnDef?.type === "date_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "number_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
           } else if (columnDef?.type === "text" || columnDef?.type === "boolean" || columnDef?.type === "number") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -332,21 +418,43 @@ const MccMncPrefixRange: React.FC = () => {
           const baseLabel = getBaseLabel(col.label || "");
           if (col.options) return <Select key={col.key} label={`Search ${baseLabel}`} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} allowCustomValue={true} />;
           if (col.type === "date") return <DatePicker key={col.key} label={`Search ${baseLabel}`} selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null} onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")} />;
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker label={`Search ${baseLabel} (From)`} selected={startStr ? new Date(startStr) : null} onChange={(val: Date | null) => { const newStart = val ? formatLocalDate(val) : ""; const currentEnd = endStr || ""; handleFilterChange(col.key, newStart || currentEnd ? `${newStart},${currentEnd}` : ""); }} />
-                <DatePicker label={`Search ${baseLabel} (To)`} selected={endStr ? new Date(endStr) : null} onChange={(val: Date | null) => { const newEnd = val ? formatLocalDate(val) : ""; const currentStart = startStr || ""; handleFilterChange(col.key, currentStart || newEnd ? `${currentStart},${newEnd}` : ""); }} />
-              </React.Fragment>
-            );
-          }
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
               <React.Fragment key={col.key}>
                 <DatePicker label={`Search ${baseLabel} (> After)`} selected={gtStr ? new Date(gtStr) : null} onChange={(val: Date | null) => { const newGt = val ? formatLocalDate(val) : ""; const currentLt = ltStr || ""; handleFilterChange(col.key, newGt || currentLt ? `${newGt},${currentLt}` : ""); }} />
                 <DatePicker label={`Search ${baseLabel} (< Before)`} selected={ltStr ? new Date(ltStr) : null} onChange={(val: Date | null) => { const newLt = val ? formatLocalDate(val) : ""; const currentGt = gtStr || ""; handleFilterChange(col.key, currentGt || newLt ? `${currentGt},${newLt}` : ""); }} />
+              </React.Fragment>
+            );
+          }
+          if (col.type === "number_gt_lt") {
+            const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
+            return (
+              <React.Fragment key={col.key}>
+                <Input
+                  type="number"
+                  label={`Search ${baseLabel} (> Greater)`}
+                  value={gtStr || ""}
+                  onChange={(e) => {
+                    const newGt = e.target.value;
+                    const currentLt = ltStr || "";
+                    const newVal = newGt || currentLt ? `${newGt},${currentLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`> Greater than`}
+                />
+                <Input
+                  type="number"
+                  label={`Search ${baseLabel} (< Less)`}
+                  value={ltStr || ""}
+                  onChange={(e) => {
+                    const newLt = e.target.value;
+                    const currentGt = gtStr || "";
+                    const newVal = currentGt || newLt ? `${currentGt},${newLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`< Less than`}
+                />
               </React.Fragment>
             );
           }

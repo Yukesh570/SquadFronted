@@ -1,0 +1,211 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { NavItemsContext } from "./navItemsContext";
+
+export interface TabItem {
+  id: string;
+  title: string;
+  path: string;
+  icon?: string;
+  closable: boolean;
+}
+
+interface TabContextType {
+  tabs: TabItem[];
+  activeTabPath: string;
+  openTab: (tab: Omit<TabItem, "id">) => void;
+  closeTab: (path: string, e?: React.MouseEvent) => void;
+  closeOtherTabs: (path: string) => void;
+  closeTabsToRight: (path: string) => void;
+  closeAllTabs: () => void;
+  switchTab: (path: string) => void;
+}
+
+const DASHBOARD_TAB: TabItem = {
+  id: "/dashboard",
+  title: "Start page",
+  path: "/dashboard",
+  icon: "Home",
+  closable: false,
+};
+
+export const TabContext = createContext<TabContextType>({
+  tabs: [DASHBOARD_TAB],
+  activeTabPath: "/dashboard",
+  openTab: () => {},
+  closeTab: () => {},
+  closeOtherTabs: () => {},
+  closeTabsToRight: () => {},
+  closeAllTabs: () => {},
+  switchTab: () => {},
+});
+
+export const TabProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { navItems } = useContext(NavItemsContext);
+
+  const [tabs, setTabs] = useState<TabItem[]>(() => {
+    const saved = sessionStorage.getItem("app_open_tabs");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (err) {
+        console.error("Failed to parse saved tabs", err);
+      }
+    }
+    return [DASHBOARD_TAB];
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem("app_open_tabs", JSON.stringify(tabs));
+  }, [tabs]);
+
+  const findNavMeta = useCallback(
+    (pathname: string): { title: string; icon?: string } => {
+      const cleanPath = pathname.replace(/^\//, "");
+
+      if (cleanPath === "dashboard" || cleanPath === "") {
+        return { title: "Start page", icon: "Home" };
+      }
+      if (cleanPath === "change-password") {
+        return { title: "Change Password", icon: "KeyRound" };
+      }
+      if (cleanPath === "notifications") {
+        return { title: "Notifications", icon: "Bell" };
+      }
+
+      if (navItems?.results) {
+        for (const item of navItems.results) {
+          if (item.url === cleanPath) {
+            return { title: item.label, icon: item.icon };
+          }
+          if (item.children) {
+            const child = item.children.find((c) => c.url === cleanPath);
+            if (child) {
+              return { title: child.label, icon: child.icon || item.icon };
+            }
+          }
+        }
+      }
+
+      const fallbackTitle = cleanPath
+        .split("/")
+        .pop()
+        ?.replace(/([A-Z])/g, " $1")
+        .replace(/^./, (str) => str.toUpperCase()) || "Page";
+
+      return { title: fallbackTitle, icon: "FileText" };
+    },
+    [navItems]
+  );
+
+  useEffect(() => {
+    const currentPath = location.pathname;
+
+    if (currentPath === "/login" || currentPath === "/") return;
+
+    setTabs((prevTabs) => {
+      const exists = prevTabs.some((t) => t.path === currentPath);
+      if (exists) return prevTabs;
+
+      const meta = findNavMeta(currentPath);
+      const newTab: TabItem = {
+        id: currentPath,
+        title: meta.title,
+        path: currentPath,
+        icon: meta.icon,
+        closable: currentPath !== "/dashboard",
+      };
+
+      return [...prevTabs, newTab];
+    });
+  }, [location.pathname, findNavMeta]);
+
+  const switchTab = (path: string) => {
+    if (location.pathname !== path) {
+      navigate(path);
+    }
+  };
+
+  const openTab = (newTab: Omit<TabItem, "id">) => {
+    setTabs((prev) => {
+      const exists = prev.find((t) => t.path === newTab.path);
+      if (exists) return prev;
+      return [...prev, { ...newTab, id: newTab.path }];
+    });
+    navigate(newTab.path);
+  };
+
+  const closeTab = (path: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+
+    if (path === "/dashboard") return;
+
+    setTabs((prevTabs) => {
+      const targetIndex = prevTabs.findIndex((t) => t.path === path);
+      if (targetIndex === -1) return prevTabs;
+
+      const nextTabs = prevTabs.filter((t) => t.path !== path);
+
+      if (location.pathname === path) {
+        const nextActiveIndex = targetIndex >= nextTabs.length ? nextTabs.length - 1 : targetIndex;
+        const nextActivePath = nextTabs[nextActiveIndex]?.path || "/dashboard";
+        navigate(nextActivePath);
+      }
+
+      return nextTabs;
+    });
+  };
+
+  const closeOtherTabs = (path: string) => {
+    setTabs((prev) => prev.filter((t) => t.path === path || !t.closable));
+    if (location.pathname !== path) {
+      navigate(path);
+    }
+  };
+
+  const closeTabsToRight = (path: string) => {
+    setTabs((prev) => {
+      const index = prev.findIndex((t) => t.path === path);
+      if (index === -1) return prev;
+
+      const keptTabs = prev.filter((t, idx) => idx <= index || !t.closable);
+      const isCurrentActiveClosed = !keptTabs.some((t) => t.path === location.pathname);
+
+      if (isCurrentActiveClosed) {
+        navigate(path);
+      }
+
+      return keptTabs;
+    });
+  };
+
+  const closeAllTabs = () => {
+    setTabs([DASHBOARD_TAB]);
+    navigate("/dashboard");
+  };
+
+  return (
+    <TabContext.Provider
+      value={{
+        tabs,
+        activeTabPath: location.pathname,
+        openTab,
+        closeTab,
+        closeOtherTabs,
+        closeTabsToRight,
+        closeAllTabs,
+        switchTab,
+      }}
+    >
+      {children}
+    </TabContext.Provider>
+  );
+};
+
+export const useTabs = () => useContext(TabContext);

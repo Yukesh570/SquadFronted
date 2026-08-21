@@ -186,9 +186,35 @@ const VendorRate: React.FC = () => {
       filterKey: "status",
       render: (c: any) => <StatusBadge status={c.status} />,
     },
-    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
-    { key: "createdAt__range", label: "Created At (From/To)", type: "date_range", isSearchOnly: true },
-    { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
+    {
+      key: "createdBy",
+      label: "Created By",
+      type: "text",
+      filterKey: "createdBy__username__icontains",
+      render: (c: any) => c.createdByName || c.createdBy || "-",
+    },
+    {
+      key: "updatedBy",
+      label: "Updated By",
+      type: "text",
+      filterKey: "updatedBy__username__icontains",
+      render: (c: any) => c.updatedByName || c.updatedBy || "-",
+    },
+    { 
+      key: "createdAt", 
+      label: "Created At (Exact)", 
+      tableLabel: "Created At", 
+      type: "date", 
+      filterKey: "createdAt", 
+      render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-") 
+    },
+    { 
+      key: "createdAt__gt_lt", 
+      label: "Created At (After / Before)", 
+      type: "date_gt_lt", 
+      filterKey: "createdAt", 
+      isSearchOnly: true 
+    },
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
@@ -217,24 +243,27 @@ const VendorRate: React.FC = () => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
+
           if (columnDef?.options) {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
-            currentSearchParams[`${key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const baseKey = key.split("__")[0];
-            const [start, end] = value.split(",");
-            if (start && end) currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
-            else {
-              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
+            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_gt_lt") {
-            const baseKey = key.replace("__gt_lt", "");
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "number_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -247,11 +276,20 @@ const VendorRate: React.FC = () => {
       const response: any = await getVendorRateGroupsApi(routeName, currentPage, rowsPerPage, currentSearchParams);
 
       if (newController.signal.aborted) return;
-      if (response && response.results) { setGroupedRates(response.results); setTotalItems(response.count); } 
-      else if (Array.isArray(response)) { setGroupedRates(response); setTotalItems(response.length); } 
-      else { setGroupedRates([]); setTotalItems(0); }
+      if (response && response.results) { 
+        setGroupedRates(response.results); 
+        setTotalItems(response.count); 
+      } else if (Array.isArray(response)) { 
+        setGroupedRates(response); 
+        setTotalItems(response.length); 
+      } else { 
+        setGroupedRates([]); 
+        setTotalItems(0); 
+      }
     } catch (error: any) {
-      if (error.name !== "AbortError") { toast.error("Failed to fetch vendor rate groups."); }
+      if (error.name !== "AbortError") { 
+        toast.error("Failed to fetch vendor rate groups."); 
+      }
     } finally {
       if (abortControllerRef.current === newController) setIsLoading(false);
     }
@@ -346,15 +384,6 @@ const VendorRate: React.FC = () => {
           const baseLabel = getBaseLabel(col.label || "");
           if (col.options) return <Select key={col.key} label={`Search ${baseLabel}`} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} allowCustomValue={true} />;
           if (col.type === "date") return <DatePicker key={col.key} label={`Search ${baseLabel}`} selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null} onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")} />;
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker label={`Search ${baseLabel} (From)`} selected={startStr ? new Date(startStr) : null} onChange={(val: Date | null) => { const newStart = val ? formatLocalDate(val) : ""; const currentEnd = endStr || ""; handleFilterChange(col.key, newStart || currentEnd ? `${newStart},${currentEnd}` : ""); }} />
-                <DatePicker label={`Search ${baseLabel} (To)`} selected={endStr ? new Date(endStr) : null} onChange={(val: Date | null) => { const newEnd = val ? formatLocalDate(val) : ""; const currentStart = startStr || ""; handleFilterChange(col.key, currentStart || newEnd ? `${currentStart},${newEnd}` : ""); }} />
-              </React.Fragment>
-            );
-          }
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (

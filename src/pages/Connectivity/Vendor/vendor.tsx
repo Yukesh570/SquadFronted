@@ -29,6 +29,7 @@ import ContextMenu, {
 } from "../../../components/ui/ContextMenu";
 import { usePagePermissions } from "../../../hooks/usePagePermissions";
 import { actionHelper } from "../../../helper/action";
+import { formatDateTime } from "../../../helper/dateFormatter";
 
 import { StatusBadge, STATUS_COLORS } from "../../../components/ui/StatusBadge";
 
@@ -236,6 +237,7 @@ const Vendor: React.FC = () => {
     { label: "suspended", value: "SUSPENDED" },
   ];
 
+  /*
   const logLevelOptions: Option[] = [
     { label: "DEBUG", value: "DEBUG" },
     { label: "INFO", value: "INFO" },
@@ -243,6 +245,7 @@ const Vendor: React.FC = () => {
     { label: "ERROR", value: "ERROR" },
     { label: "CRITICAL", value: "CRITICAL" },
   ];
+  */
 
   const renderSessionBadge = (vendor: any) => {
     const current = vendor.active_session_count || 0;
@@ -303,7 +306,7 @@ const Vendor: React.FC = () => {
     },
     {
       key: "smppName",
-      label: "SMPP Name",
+      label: "SMPP Host",
       type: "text",
       filterKey: "smpp__smppHost__icontains",
     },
@@ -368,14 +371,14 @@ const Vendor: React.FC = () => {
       filterKey: "vendorPolicy__rateTps",
       render: (c) => c.vendorPolicy?.rateTps ?? "-"
     },
-    {
-      key: "logLevel",
-      label: "Log Level",
-      type: "text",
-      options: logLevelOptions,
-      filterKey: "vendorPolicy__logLevel__icontains",
-      render: (c) => c.vendorPolicy?.logLevel ?? "-"
-    },
+    // {
+    //   key: "logLevel",
+    //   label: "Log Level",
+    //   type: "text",
+    //   options: logLevelOptions,
+    //   filterKey: "vendorPolicy__logLevel__icontains",
+    //   render: (c) => c.vendorPolicy?.logLevel ?? "-"
+    // },
     {
       key: "responseTimeout",
       label: "Response Timeout (s)",
@@ -383,12 +386,41 @@ const Vendor: React.FC = () => {
       filterKey: "vendorPolicy__responseTimeout",
       render: (c) => c.vendorPolicy?.responseTimeout ?? "-"
     },
+    // {
+    //   key: "maxMessageRetries",
+    //   label: "Max Msg Retries",
+    //   type: "number",
+    //   filterKey: "vendorPolicy__maxMessageRetries",
+    //   render: (c) => c.vendorPolicy?.maxMessageRetries ?? "-"
+    // },
     {
-      key: "maxMessageRetries",
-      label: "Max Msg Retries",
-      type: "number",
-      filterKey: "vendorPolicy__maxMessageRetries",
-      render: (c) => c.vendorPolicy?.maxMessageRetries ?? "-"
+      key: "createdBy",
+      label: "Created By",
+      type: "text",
+      filterKey: "createdBy__username__icontains",
+      render: (c: any) => c.createdByName || c.createdBy || "-",
+    },
+    {
+      key: "updatedBy",
+      label: "Updated By",
+      type: "text",
+      filterKey: "updatedBy__username__icontains",
+      render: (c: any) => c.updatedByName || c.updatedBy || "-",
+    },
+    {
+      key: "createdAt",
+      label: "Created At (Exact)",
+      tableLabel: "Created At",
+      type: "date",
+      filterKey: "createdAt",
+      render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-"),
+    },
+    {
+      key: "createdAt__gt_lt",
+      label: "Created At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "createdAt",
+      isSearchOnly: true,
     },
   ];
 
@@ -435,38 +467,22 @@ const Vendor: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            currentSearchParams[`${columnDef.filterKey || key}__range`] =
-              `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const baseKey = key.replace("__range", "");
-            const [start, end] = value.split(",");
-            if (start && end) {
-              currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
-            } else {
-              if (start)
-                currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end)
-                currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
+            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_gt_lt") {
-            const baseKey = key.replace("__gt_lt", "");
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
-          } else if (columnDef?.type === "number_range") {
-            const baseKey = key.replace("__range", "");
-            const [start, end] = value.split(",");
-            if (start && end) {
-              currentSearchParams[key] = value;
-            } else {
-              if (start) currentSearchParams[`${baseKey}__gt`] = start;
-              if (end) currentSearchParams[`${baseKey}__lt`] = end;
-            }
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
           } else if (columnDef?.type === "number_gt_lt") {
-            const baseKey = key.replace("__gt_lt", "");
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = lt;
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -754,36 +770,6 @@ const Vendor: React.FC = () => {
             );
           }
 
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    const newVal =
-                      newStart || currentEnd ? `${newStart},${currentEnd}` : "";
-                    handleFilterChange(col.key, newVal);
-                  }}
-                />
-                <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    const newVal =
-                      currentStart || newEnd ? `${currentStart},${newEnd}` : "";
-                    handleFilterChange(col.key, newVal);
-                  }}
-                />
-              </React.Fragment>
-            );
-          }
-
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
@@ -809,40 +795,6 @@ const Vendor: React.FC = () => {
                       currentGt || newLt ? `${currentGt},${newLt}` : "";
                     handleFilterChange(col.key, newVal);
                   }}
-                />
-              </React.Fragment>
-            );
-          }
-
-          if (col.type === "number_range") {
-            const [minStr, maxStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <Input
-                  type="number"
-                  label={`Search ${baseLabel} (Min)`}
-                  value={minStr || ""}
-                  onChange={(e) => {
-                    const newMin = e.target.value;
-                    const currentMax = maxStr || "";
-                    const newVal =
-                      newMin || currentMax ? `${newMin},${currentMax}` : "";
-                    handleFilterChange(col.key, newVal);
-                  }}
-                  placeholder={`> Min`}
-                />
-                <Input
-                  type="number"
-                  label={`Search ${baseLabel} (Max)`}
-                  value={maxStr || ""}
-                  onChange={(e) => {
-                    const newMax = e.target.value;
-                    const currentMin = minStr || "";
-                    const newVal =
-                      currentMin || newMax ? `${currentMin},${newMax}` : "";
-                    handleFilterChange(col.key, newVal);
-                  }}
-                  placeholder={`< Max`}
                 />
               </React.Fragment>
             );

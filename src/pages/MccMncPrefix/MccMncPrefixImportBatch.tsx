@@ -30,7 +30,14 @@ interface Option {
   value: string;
 }
 
-type FilterColumnType = "number" | "boolean" | "date" | "date_range" | "date_gt_lt" | "text" | "number_range" | "number_gt_lt";
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_range"
+  | "number_gt_lt";
 
 interface ColumnConfig extends Omit<FilterColumn, 'type' | 'key' | 'label'> {
   key: string;
@@ -51,7 +58,7 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["fileName__icontains", "status"];
+const DEFAULT_SEARCH_COLUMNS = ["fileName", "status"];
 const DEFAULT_TABLE_COLUMNS = ["fileName", "status", "totalRows", "successRows", "failedRows", "uploadedAt"];
 
 const MccMncPrefixImportBatch: React.FC = () => {
@@ -112,7 +119,7 @@ const MccMncPrefixImportBatch: React.FC = () => {
       label: "Status", 
       type: "text", 
       options: batchStatusOptions, 
-      filterKey: "status",
+      filterKey: "status__icontains",
       render: (c) => {
          const val = c.status || "PENDING";
          const label = batchStatusOptions.find(o => o.value === val)?.label || val;
@@ -129,14 +136,58 @@ const MccMncPrefixImportBatch: React.FC = () => {
     { key: "failedRows", label: "Failed Rows", type: "number", filterKey: "failedRows" },
     { key: "duplicateRows", label: "Duplicate Rows", type: "number", filterKey: "duplicateRows" },
     { key: "overlapRows", label: "Overlap Rows", type: "number", filterKey: "overlapRows" },
-    { key: "uploadedBy__username__icontains", label: "Uploaded By", type: "text", isSearchOnly: true },
-    { key: "uploadedAt", label: "Uploaded At (Exact)", tableLabel: "Uploaded At", type: "date", filterKey: "uploadedAt__date", render: (c) => (c.uploadedAt ? formatDateTime(c.uploadedAt) : "-") },
-    { key: "uploadedAt__range", label: "Uploaded At (Range)", type: "date_range", filterKey: "uploadedAt", isSearchOnly: true },
-    { key: "uploadedAt__gt_lt", label: "Uploaded At (After / Before)", type: "date_gt_lt", filterKey: "uploadedAt", isSearchOnly: true },
-    { key: "completedAt", label: "Completed At (Exact)", tableLabel: "Completed At", type: "date", filterKey: "completedAt__date", render: (c) => (c.completedAt ? formatDateTime(c.completedAt) : "-") },
-    { key: "completedAt__range", label: "Completed At (Range)", type: "date_range", filterKey: "completedAt", isSearchOnly: true },
-    { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt__date", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
-    { key: "createdAt__range", label: "Created At (Range)", type: "date_range", filterKey: "createdAt", isSearchOnly: true },
+    { 
+      key: "uploadedBy", 
+      label: "Uploaded By", 
+      type: "text", 
+      filterKey: "uploadedBy__username__icontains",
+      render: (c: any) => c.uploadedByName || c.uploadedBy || "-"
+    },
+    { 
+      key: "uploadedAt", 
+      label: "Uploaded At (Exact)", 
+      tableLabel: "Uploaded At", 
+      type: "date", 
+      filterKey: "uploadedAt", 
+      render: (c) => (c.uploadedAt ? formatDateTime(c.uploadedAt) : "-") 
+    },
+    { 
+      key: "uploadedAt__gt_lt", 
+      label: "Uploaded At (After / Before)", 
+      type: "date_gt_lt", 
+      filterKey: "uploadedAt", 
+      isSearchOnly: true 
+    },
+    { 
+      key: "completedAt", 
+      label: "Completed At (Exact)", 
+      tableLabel: "Completed At", 
+      type: "date", 
+      filterKey: "completedAt", 
+      render: (c) => (c.completedAt ? formatDateTime(c.completedAt) : "-") 
+    },
+    { 
+      key: "completedAt__gt_lt", 
+      label: "Completed At (After / Before)", 
+      type: "date_gt_lt", 
+      filterKey: "completedAt", 
+      isSearchOnly: true 
+    },
+    { 
+      key: "createdAt", 
+      label: "Created At (Exact)", 
+      tableLabel: "Created At", 
+      type: "date", 
+      filterKey: "createdAt", 
+      render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") 
+    },
+    { 
+      key: "createdAt__gt_lt", 
+      label: "Created At (After / Before)", 
+      type: "date_gt_lt", 
+      filterKey: "createdAt", 
+      isSearchOnly: true 
+    },
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
@@ -167,24 +218,27 @@ const MccMncPrefixImportBatch: React.FC = () => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
-          const baseKey = columnDef?.filterKey ? columnDef.filterKey.split("__")[0] : key.split("__")[0];
 
           if (columnDef?.options) {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
+            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const [start, end] = value.split(",");
-            if (start && end) currentSearchParams[`${baseKey}__range`] = `${start}T00:00:00,${end}T23:59:59`;
-            else {
-              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
           } else if (columnDef?.type === "date_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "number_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
           } else if (columnDef?.type === "text" || columnDef?.type === "boolean" || columnDef?.type === "number") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -294,15 +348,6 @@ const MccMncPrefixImportBatch: React.FC = () => {
           const baseLabel = getBaseLabel(col.label || "");
           if (col.options) return <Select key={col.key} label={`Search ${baseLabel}`} value={filterValues[col.key] || ""} onChange={(val) => handleFilterChange(col.key, val)} options={col.options} placeholder={`Select ${baseLabel}`} allowCustomValue={true} />;
           if (col.type === "date") return <DatePicker key={col.key} label={`Search ${baseLabel}`} selected={filterValues[col.key] ? new Date(filterValues[col.key]) : null} onChange={(val: Date | null) => handleFilterChange(col.key, val ? formatLocalDate(val) : "")} />;
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker label={`Search ${baseLabel} (From)`} selected={startStr ? new Date(startStr) : null} onChange={(val: Date | null) => { const newStart = val ? formatLocalDate(val) : ""; const currentEnd = endStr || ""; handleFilterChange(col.key, newStart || currentEnd ? `${newStart},${currentEnd}` : ""); }} />
-                <DatePicker label={`Search ${baseLabel} (To)`} selected={endStr ? new Date(endStr) : null} onChange={(val: Date | null) => { const newEnd = val ? formatLocalDate(val) : ""; const currentStart = startStr || ""; handleFilterChange(col.key, currentStart || newEnd ? `${currentStart},${newEnd}` : ""); }} />
-              </React.Fragment>
-            );
-          }
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (

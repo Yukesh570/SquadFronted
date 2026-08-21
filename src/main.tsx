@@ -4,6 +4,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { ThemeProvider } from "./context/themeContext.tsx";
 import { NavItemProvider } from "./context/navItemsContext.tsx";
+import { TabProvider } from "./context/TabContext.tsx";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.tsx";
 
@@ -13,7 +14,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <ThemeProvider>
         <AuthProvider>
           <NavItemProvider>
-            <App />
+            <TabProvider>
+              <App />
+            </TabProvider>
           </NavItemProvider>
         </AuthProvider>
       </ThemeProvider>

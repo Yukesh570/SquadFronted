@@ -145,6 +145,12 @@ const ClientSession: React.FC = () => {
       filterKey: "systemId__icontains",
     },
     {
+      key: "instanceId",
+      label: "Instance ID",
+      type: "text",
+      filterKey: "instanceId__icontains",
+    },
+    {
       key: "bindType",
       label: "Bind Type",
       type: "text",
@@ -179,13 +185,6 @@ const ClientSession: React.FC = () => {
       render: (c) => (c.connectedAt ? formatDateTime(c.connectedAt) : "-"),
     },
     {
-      key: "connectedAt__range",
-      label: "Connected At (Range)",
-      type: "date_range",
-      filterKey: "connectedAt",
-      isSearchOnly: true,
-    },
-    {
       key: "connectedAt__gt_lt",
       label: "Connected At (After/Before)",
       type: "date_gt_lt",
@@ -200,13 +199,6 @@ const ClientSession: React.FC = () => {
       type: "date",
       filterKey: "boundAt",
       render: (c) => (c.boundAt ? formatDateTime(c.boundAt) : "-"),
-    },
-    {
-      key: "boundAt__range",
-      label: "Bound At (Range)",
-      type: "date_range",
-      filterKey: "boundAt",
-      isSearchOnly: true,
     },
     {
       key: "boundAt__gt_lt",
@@ -248,13 +240,6 @@ const ClientSession: React.FC = () => {
       filterKey: "last_activityAt",
       render: (c) =>
         c.last_activityAt ? formatDateTime(c.last_activityAt) : "-",
-    },
-    {
-      key: "last_activityAt__range",
-      label: "Last Activity (Range)",
-      type: "date_range",
-      filterKey: "last_activityAt",
-      isSearchOnly: true,
     },
     {
       key: "last_activityAt__gt_lt",
@@ -299,21 +284,16 @@ const ClientSession: React.FC = () => {
           const columnDef = allColumns.find((c) => c.key === key);
           
           if (columnDef?.type === "date") {
-            currentSearchParams[`${columnDef.filterKey || key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const baseKey = key.replace("__range", "");
-            const [start, end] = value.split(",");
-            if (start && end) {
-              currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
-            } else {
-              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
+            // Converts single date input into 24-hour range query (e.g. connectedAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_gt_lt") {
-            const baseKey = key.replace("__gt_lt", "");
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}T00:00:00`;
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -520,35 +500,6 @@ const ClientSession: React.FC = () => {
                 }
               />
             );
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    const newVal =
-                      newStart || currentEnd ? `${newStart},${currentEnd}` : "";
-                    handleFilterChange(col.key, newVal);
-                  }}
-                />
-                <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    const newVal =
-                      currentStart || newEnd ? `${currentStart},${newEnd}` : "";
-                    handleFilterChange(col.key, newVal);
-                  }}
-                />
-              </React.Fragment>
-            );
-          }
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (

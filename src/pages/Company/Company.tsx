@@ -32,6 +32,7 @@ import ContextMenu, {
 } from "../../components/ui/ContextMenu";
 import { actionHelper } from "../../helper/action";
 import { CountryFlag } from "../../components/ui/CountryFlag";
+import { formatDateTime } from "../../helper/dateFormatter";
 
 interface Option {
   label: string;
@@ -55,7 +56,7 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["name", "countryName", "currency"];
+const DEFAULT_SEARCH_COLUMNS = ["name", "country", "currency"];
 const DEFAULT_TABLE_COLUMNS = [
   "name",
   "shortName",
@@ -127,7 +128,7 @@ const CompanyList: React.FC = () => {
         setter(
           list.map((item: any) => ({
             label: item.name,
-            value: String(item.id),
+            value: item.name,
             ...(item.iso2 && module === "country" ? { icon: <CountryFlag iso2={item.iso2} /> } : {})
           })),
         );
@@ -150,9 +151,8 @@ const CompanyList: React.FC = () => {
     { key: "accountManagerName", label: "Account Manager", type: "text", filterKey: "accountManager__username__icontains" },
     { key: "phone", label: "Phone", type: "text", filterKey: "phone__icontains" },
     { key: "companyEmail", label: "Company Email", type: "text", filterKey: "companyEmail__icontains" },
-    { key: "usedCustomerCredit", label: "Used Customer Credit", type: "text", filterKey: "usedCustomerCredit__icontains" },
-    { key: "usedVendorCredit", label: "Used Vendor Credit", type: "text", filterKey: "usedVendorCredit__icontains" },
-
+    { key: "usedCustomerCredit", label: "Used Customer Credit", type: "text", isSearchable: false },
+    { key: "usedVendorCredit", label: "Used Vendor Credit", type: "text", isSearchable: false },
     { key: "supportEmail", label: "Support Email", type: "text", filterKey: "supportEmail__icontains" },
     { key: "billingEmail", label: "Billing Email", type: "text", filterKey: "billingEmail__icontains" },
     { key: "amEmail", label: "AM Email", type: "text", filterKey: "amEmail__icontains" },
@@ -165,12 +165,12 @@ const CompanyList: React.FC = () => {
       options: countries,
       filterKey: "country__name__icontains",
       render: (c: any) => {
-        const match = countries.find((opt: any) => opt.value === String(c.country));
-        const countryName = match ? match.label : c.country;
+        const match = countries.find((opt: any) => opt.value === String(c.countryName || c.country));
+        const countryName = match ? match.label : (c.countryName || c.country);
         return (
           <div className="flex items-center gap-1.5">
             {match?.icon}
-            <span>{countryName}</span>
+            <span>{countryName || "-"}</span>
           </div>
         );
       }
@@ -181,6 +181,7 @@ const CompanyList: React.FC = () => {
       type: "text",
       options: categories,
       filterKey: "category__name__icontains",
+      render: (c: any) => c.categoryName || c.category || "-",
     },
     {
       key: "status",
@@ -188,6 +189,7 @@ const CompanyList: React.FC = () => {
       type: "text",
       options: statuses,
       filterKey: "status__name__icontains",
+      render: (c: any) => c.statusName || c.status || "-",
     },
     {
       key: "currency",
@@ -195,6 +197,7 @@ const CompanyList: React.FC = () => {
       type: "text",
       options: currencies,
       filterKey: "currency__name__icontains",
+      render: (c: any) => c.currencyName || c.currency || "-",
     },
     {
       key: "timeZone",
@@ -202,12 +205,46 @@ const CompanyList: React.FC = () => {
       type: "text",
       options: timeZones,
       filterKey: "timeZone__name__icontains",
+      render: (c: any) => c.timeZoneName || c.timeZone || "-",
     },
-    { key: "customerCreditLimit", label: "Cust. Credit", type: "number", filterKey: "customerCreditLimit" },
-    { key: "vendorCreditLimit", label: "Vend. Credit", type: "number", filterKey: "vendorCreditLimit" },
-    { key: "balanceAlertAmount", label: "Bal. Alert", type: "number", filterKey: "balanceAlertAmount" },
+    { key: "customerCreditLimit", label: "Cust. Credit (Exact)", tableLabel: "Cust. Credit", type: "number", filterKey: "customerCreditLimit" },
+    { key: "customerCreditLimit__gt_lt", label: "Cust. Credit (> / <)", type: "number_gt_lt", filterKey: "customerCreditLimit", isSearchOnly: true },
+    { key: "vendorCreditLimit", label: "Vend. Credit (Exact)", tableLabel: "Vend. Credit", type: "number", filterKey: "vendorCreditLimit" },
+    { key: "vendorCreditLimit__gt_lt", label: "Vend. Credit (> / <)", type: "number_gt_lt", filterKey: "vendorCreditLimit", isSearchOnly: true },
+    { key: "balanceAlertAmount", label: "Bal. Alert (Exact)", tableLabel: "Bal. Alert", type: "number", filterKey: "balanceAlertAmount" },
+    { key: "balanceAlertAmount__gt_lt", label: "Bal. Alert (> / <)", type: "number_gt_lt", filterKey: "balanceAlertAmount", isSearchOnly: true },
     { key: "referencNumber", label: "Ref. Number", type: "text", filterKey: "referencNumber__icontains" },
+    { key: "vatNumber", label: "VAT Number", type: "text", filterKey: "vatNumber__icontains" },
     { key: "address", label: "Address", type: "text", filterKey: "address__icontains" },
+    {
+      key: "createdBy",
+      label: "Created By",
+      type: "text",
+      filterKey: "createdBy__username__icontains",
+      render: (c: any) => c.createdByName || c.createdBy || "-",
+    },
+    {
+      key: "updatedBy",
+      label: "Updated By",
+      type: "text",
+      filterKey: "updatedBy__username__icontains",
+      render: (c: any) => c.updatedByName || c.updatedBy || "-",
+    },
+    {
+      key: "createdAt",
+      label: "Created At (Exact)",
+      tableLabel: "Created At",
+      type: "date",
+      filterKey: "createdAt",
+      render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-"),
+    },
+    {
+      key: "createdAt__gt_lt",
+      label: "Created At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "createdAt",
+      isSearchOnly: true,
+    },
   ];
 
   const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
@@ -243,19 +280,34 @@ const CompanyList: React.FC = () => {
         const value = activeFilters[key];
         if (value) {
           const columnDef = allColumns.find((c) => c.key === key);
+
           if (columnDef?.options) {
-            if (columnDef.filterKey) {
-              const selectedOption = columnDef.options.find(
-                (opt) => opt.value === value,
-              );
-              currentSearchParams[columnDef.filterKey] = selectedOption
-                ? (columnDef.type === "boolean" ? selectedOption.value : selectedOption.label)
-                : value;
-            } else {
-              currentSearchParams[key] = value;
-            }
-          } else if (columnDef?.type === "text") {
-            currentSearchParams[columnDef.filterKey || `${key}__icontains`] = value;
+            const selectedOption = columnDef.options.find(
+              (opt) => opt.value === value,
+            );
+            currentSearchParams[columnDef.filterKey || key] = selectedOption
+              ? selectedOption.value
+              : value;
+          } else if (columnDef?.type === "date") {
+            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
+          } else if (columnDef?.type === "date_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "number_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
+          } else if (columnDef?.type === "text" || columnDef?.type === "number") {
+            const filterKey = columnDef.filterKey || `${key}__icontains`;
+            currentSearchParams[filterKey] = value;
           } else {
             currentSearchParams[columnDef?.filterKey || key] = value;
           }
@@ -529,16 +581,82 @@ const CompanyList: React.FC = () => {
                 onChange={(val: Date | null) =>
                   handleFilterChange(col.key, val ? formatLocalDate(val) : "")
                 }
+                placeholder={`Select ${baseLabel}`}
               />
+            );
+          }
+          if (col.type === "date_gt_lt") {
+            const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
+            return (
+              <React.Fragment key={col.key}>
+                <DatePicker
+                  label={`Search ${baseLabel} (> After)`}
+                  selected={gtStr ? new Date(gtStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newGt = val ? formatLocalDate(val) : "";
+                    const currentLt = ltStr || "";
+                    const newVal =
+                      newGt || currentLt ? `${newGt},${currentLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`> After`}
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (< Before)`}
+                  selected={ltStr ? new Date(ltStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newLt = val ? formatLocalDate(val) : "";
+                    const currentGt = gtStr || "";
+                    const newVal =
+                      currentGt || newLt ? `${currentGt},${newLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`< Before`}
+                />
+              </React.Fragment>
+            );
+          }
+          if (col.type === "number_gt_lt") {
+            const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
+            return (
+              <React.Fragment key={col.key}>
+                <Input
+                  type="number"
+                  label={`Search ${baseLabel} (> Greater)`}
+                  value={gtStr || ""}
+                  onChange={(e) => {
+                    const newGt = e.target.value;
+                    const currentLt = ltStr || "";
+                    const newVal =
+                      newGt || currentLt ? `${newGt},${currentLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`> Greater than`}
+                />
+                <Input
+                  type="number"
+                  label={`Search ${baseLabel} (< Less)`}
+                  value={ltStr || ""}
+                  onChange={(e) => {
+                    const newLt = e.target.value;
+                    const currentGt = gtStr || "";
+                    const newVal =
+                      currentGt || newLt ? `${currentGt},${newLt}` : "";
+                    handleFilterChange(col.key, newVal);
+                  }}
+                  placeholder={`< Less than`}
+                />
+              </React.Fragment>
             );
           }
           return (
             <Input
               key={col.key}
+              type={col.type || "text"}
               label={`Search ${baseLabel}`}
               value={filterValues[col.key] || ""}
               onChange={(e) => handleFilterChange(col.key, e.target.value)}
-              placeholder={`Search ${baseLabel}`}
+              placeholder={`${baseLabel}`}
             />
           );
         })}

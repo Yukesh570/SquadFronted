@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Save, Upload, Image as ImageIcon, Crop as CropIcon, X, Check, ZoomIn } from "lucide-react";
+import { 
+  Home, 
+  Save, 
+  Upload, 
+  Image as ImageIcon, 
+  Crop as CropIcon, 
+  X, 
+  Check, 
+  ZoomIn, 
+  Eye, 
+  EyeOff 
+} from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import Cropper from 'react-easy-crop';
@@ -49,6 +60,8 @@ const GeneralSettings: React.FC = () => {
   const [crop, setCrop] = useState({ x: 0, y: 0 }); 
   const [zoom, setZoom] = useState(1); 
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+
+  const [showApiKey, setShowApiKey] = useState(false);
 
   const [formData, setFormData] = useState<GeneralSettingsData>({
     companyName: "",
@@ -292,7 +305,31 @@ const GeneralSettings: React.FC = () => {
                 <hr className="dark:border-gray-700" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <Input label="Currency API" name="currencyApi" value={formData.currencyApi || ""} onChange={handleChange} placeholder="Enter Currency API" autoComplete="new-password" />
-                  <Input label="API Key" name="apiKey" value={formData.apiKey || ""} onChange={handleChange} placeholder="Enter API Key" type="password" autoComplete="new-password" />
+                  
+                  {/* API Key field with aligned Show/Hide toggle button & hidden clear X button */}
+                  <div className="relative [&_button:has(svg.lucide-x)]:hidden [&_.lucide-x]:hidden">
+                    <Input 
+                      label="API Key" 
+                      name="apiKey" 
+                      value={formData.apiKey || ""} 
+                      onChange={handleChange} 
+                      placeholder="Enter API Key" 
+                      type={showApiKey ? "text" : "password"} 
+                      autoComplete="new-password" 
+                      // @ts-ignore
+                      clearable={false}
+                      // @ts-ignore
+                      showClear={false}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey((prev) => !prev)}
+                      className="absolute right-3.5 top-[34px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors focus:outline-none z-10 flex items-center justify-center"
+                      title={showApiKey ? "Hide API Key" : "Show API Key"}
+                    >
+                      {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
                 <div className="pt-3 flex justify-end gap-3">
                   <Button type="submit" variant="primary" className="w-full md:w-auto text-base py-2.5 px-8" leftIcon={<Save size={18} />} disabled={isSubmitting || !canUpdate}>

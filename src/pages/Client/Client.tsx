@@ -164,7 +164,7 @@ const Client: React.FC = () => {
       try {
         const compRes: any = await getCompaniesApi("company", 1, 1000);
         const compList = compRes.results || (Array.isArray(compRes) ? compRes : []);
-        setCompanies(compList.map((c: any) => ({ label: c.name, value: String(c.id) })));
+        setCompanies(compList.map((c: any) => ({ label: c.name, value: c.name })));
       } catch (err) {
         console.error("Company Dropdown load error:", err);
       }
@@ -261,7 +261,7 @@ const Client: React.FC = () => {
 
   const allColumns: ColumnConfig[] = [
     { key: "name", label: "Client Name", type: "text", options: clientOptions, filterKey: "name__icontains" },
-    { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company" },
+    { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company__name" },
     { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroupFilter, filterKey: "routeGroup__name" },
     { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, isSearchable: false },
     {
@@ -302,16 +302,29 @@ const Client: React.FC = () => {
     { key: "allowNetting", label: "Allow Netting", type: "boolean", options: booleanOptions, filterKey: "allowNetting", render: (c) => renderBooleanBadge(c.allowNetting) },
     { key: "enableDlr", label: "Enable Dlr", type: "boolean", options: booleanOptions, isSearchable: false, render: (c) => renderBooleanBadge(c.enableDlr) },
     { key: "smppUsername", label: "SMPP Username", type: "text", filterKey: "smppUsername__icontains" },
-    { key: "bindStatus", label: "Bind Status", type: "text", options: bindStatusOptions, filterKey: "bindStatus", render: (c) => <StatusBadge status={c.bindStatus} /> },
+    { key: "bindStatus", label: "Bind Status", type: "text", options: bindStatusOptions, isSearchable: false, render: (c) => <StatusBadge status={c.bindStatus} /> },
     { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", isSearchable: false, render: (c) => renderSessionBadge(c) },
     { key: "maxTps", label: "Max TPS", type: "number", filterKey: "clientPolicy__maxTps", render: (c) => c.clientPolicy?.maxTps ?? "-" },
     { key: "maxSessions", label: "Max Sessions", type: "number", filterKey: "clientPolicy__maxSessions", render: (c) => c.clientPolicy?.maxSessions ?? "-" },
-    { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number", filterKey: "clientPolicy__maxWindowGlobal", render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-" },
-    { key: "maxWindowPerSession", label: "Max Window (Per Session)", type: "number", filterKey: "clientPolicy__maxWindowPerSession", render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-" },
+    // { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number", filterKey: "clientPolicy__maxWindowGlobal", render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-" },
+    // { key: "maxWindowPerSession", label: "Max Window (Per Session)", type: "number", filterKey: "clientPolicy__maxWindowPerSession", render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-" },
     { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number", filterKey: "clientPolicy__idleTimeoutSec", render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-" },
     { key: "submitTimeoutSec", label: "Response Timeout (s)", type: "number", filterKey: "clientPolicy__submitTimeoutSec", render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-" },
+    {
+      key: "createdBy",
+      label: "Created By",
+      type: "text",
+      filterKey: "createdBy__username__icontains",
+      render: (c: any) => c.createdByName || c.createdBy || "-",
+    },
+    {
+      key: "updatedBy",
+      label: "Updated By",
+      type: "text",
+      filterKey: "updatedBy__username__icontains",
+      render: (c: any) => c.updatedByName || c.updatedBy || "-",
+    },
     { key: "createdAt", label: "Created At (Exact)", tableLabel: "Created At", type: "date", filterKey: "createdAt", render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-") },
-    { key: "createdAt__range", label: "Created At (Range)", type: "date_range", isSearchOnly: true },
     { key: "createdAt__gt_lt", label: "Created At (After / Before)", type: "date_gt_lt", isSearchOnly: true },
   ];
 
@@ -349,35 +362,22 @@ const Client: React.FC = () => {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
-            currentSearchParams[`${columnDef.filterKey || key}__range`] = `${value}T00:00:00,${value}T23:59:59`;
-          } else if (columnDef?.type === "date_range") {
-            const baseKey = key.replace("__range", "");
-            const [start, end] = value.split(",");
-            if (start && end) {
-              currentSearchParams[key] = `${start}T00:00:00,${end}T23:59:59`;
-            } else {
-              if (start) currentSearchParams[`${baseKey}__gt`] = `${start}T00:00:00`;
-              if (end) currentSearchParams[`${baseKey}__lt`] = `${end}T23:59:59`;
-            }
+            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_gt_lt") {
-            const baseKey = key.replace("__gt_lt", "");
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = `${gt}T23:59:59`;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = `${lt}00:00:00`;
-          } else if (columnDef?.type === "number_range") {
-            const baseKey = key.replace("__range", "");
-            const [start, end] = value.split(",");
-            if (start && end) {
-              currentSearchParams[key] = value;
-            } else {
-              if (start) currentSearchParams[`${baseKey}__gt`] = start;
-              if (end) currentSearchParams[`${baseKey}__lt`] = end;
-            }
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
           } else if (columnDef?.type === "number_gt_lt") {
-            const baseKey = key.replace("__gt_lt", "");
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "");
             const [gt, lt] = value.split(",");
-            if (gt) currentSearchParams[`${baseKey}__gt`] = gt;
-            if (lt) currentSearchParams[`${baseKey}__lt`] = lt;
+            if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
           } else if (columnDef?.type === "text") {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
@@ -725,36 +725,6 @@ const Client: React.FC = () => {
             );
           }
 
-          if (col.type === "date_range") {
-            const [startStr, endStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <DatePicker
-                  label={`Search ${baseLabel} (From)`}
-                  selected={startStr ? new Date(startStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newStart = val ? formatLocalDate(val) : "";
-                    const currentEnd = endStr || "";
-                    const newVal =
-                      newStart || currentEnd ? `${newStart},${currentEnd}` : "";
-                    handleFilterChange(col.key, newVal);
-                  }}
-                />
-                <DatePicker
-                  label={`Search ${baseLabel} (To)`}
-                  selected={endStr ? new Date(endStr) : null}
-                  onChange={(val: Date | null) => {
-                    const newEnd = val ? formatLocalDate(val) : "";
-                    const currentStart = startStr || "";
-                    const newVal =
-                      currentStart || newEnd ? `${currentStart},${newEnd}` : "";
-                    handleFilterChange(col.key, newVal);
-                  }}
-                />
-              </React.Fragment>
-            );
-          }
-
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
@@ -780,40 +750,6 @@ const Client: React.FC = () => {
                       currentGt || newLt ? `${currentGt},${newLt}` : "";
                     handleFilterChange(col.key, newVal);
                   }}
-                />
-              </React.Fragment>
-            );
-          }
-
-          if (col.type === "number_range") {
-            const [minStr, maxStr] = (filterValues[col.key] || "").split(",");
-            return (
-              <React.Fragment key={col.key}>
-                <Input
-                  type="number"
-                  label={`Search ${baseLabel} (Min)`}
-                  value={minStr || ""}
-                  onChange={(e) => {
-                    const newMin = e.target.value;
-                    const currentMax = maxStr || "";
-                    const newVal =
-                      newMin || currentMax ? `${newMin},${currentMax}` : "";
-                    handleFilterChange(col.key, newVal);
-                  }}
-                  placeholder={`> Min`}
-                />
-                <Input
-                  type="number"
-                  label={`Search ${baseLabel} (Max)`}
-                  value={maxStr || ""}
-                  onChange={(e) => {
-                    const newMax = e.target.value;
-                    const currentMin = minStr || "";
-                    const newVal =
-                      currentMin || newMax ? `${currentMin},${newMax}` : "";
-                    handleFilterChange(col.key, newVal);
-                  }}
-                  placeholder={`< Max`}
                 />
               </React.Fragment>
             );
