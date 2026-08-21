@@ -660,7 +660,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               step="0.1"
               value={formData.responseTimeout}
               onChange={handleChange}
-              placeholder="30.0"
+              placeholder="60.0"
               disabled={isViewMode}
             />
             {/* <Input
