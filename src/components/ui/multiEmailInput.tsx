@@ -1,4 +1,4 @@
-import React, { useState, type KeyboardEvent } from "react";
+import React, { useState, type KeyboardEvent, useRef } from "react";
 
 interface MultiEmailInputProps {
   label: string;
@@ -18,6 +18,7 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
   disabled,
 }) => {
   const [inputValue, setInputValue] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const emails = value ? value.split(",").filter((e) => e.trim() !== "") : [];
 
@@ -30,6 +31,11 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
         const newValue = [...emails, newEmail].join(",");
         onChange(name, newValue);
         setInputValue("");
+        setTimeout(() => {
+          if (containerRef.current) {
+            containerRef.current.scrollLeft = containerRef.current.scrollWidth;
+          }
+        }, 10);
       }
     } else if (e.key === "Backspace" && !inputValue && emails.length > 0) {
       const newEmails = [...emails];
@@ -65,35 +71,47 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full">
       <label
         htmlFor={`${name}-input`}
-        className="mb-1.5 block text-xs font-medium text-text-secondary dark:text-gray-400"
+        className="mb-1.5 block text-xs font-medium text-text-secondary dark:text-gray-400 truncate"
       >
         {label}
       </label>
       <div
-        className={`flex flex-wrap gap-2 items-center p-2 border border-gray-300 dark:border-gray-700 rounded-md focus-within:ring-1 focus-within:ring-primary focus-within:border-primary bg-white dark:bg-gray-800 min-h-[42px] ${
+        ref={containerRef}
+        onClick={() => {
+          const input = document.getElementById(`${name}-input`) as HTMLInputElement;
+          input?.focus();
+        }}
+        className={`flex flex-nowrap gap-1.5 items-center px-2.5 h-[42px] border border-gray-300 dark:border-gray-700 rounded-lg focus-within:ring-1 focus-within:ring-primary focus-within:border-primary bg-white dark:bg-gray-800 overflow-x-auto overflow-y-hidden scrollbar-none cursor-text transition-colors ${
           disabled ? "bg-gray-100 dark:bg-gray-900 cursor-not-allowed opacity-70" : ""
         }`}
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {emails.map((email, index) => (
           <span
             key={index}
-            className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded text-sm"
+            className="flex-shrink-0 inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded text-xs whitespace-nowrap"
           >
             <span
-              onClick={() => editEmail(index)}
-              className={!disabled ? "cursor-pointer hover:underline" : ""}
-              title={!disabled ? "Click to edit" : undefined}
+              onClick={(e) => {
+                e.stopPropagation();
+                editEmail(index);
+              }}
+              className={!disabled ? "cursor-pointer hover:underline truncate max-w-[160px]" : "truncate max-w-[160px]"}
+              title={!disabled ? `${email} (Click to edit)` : email}
             >
               {email}
             </span>
             {!disabled && (
               <button
                 type="button"
-                onClick={() => removeEmail(index)}
-                className="text-gray-400 dark:text-gray-400 hover:text-red-500 focus:outline-none ml-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeEmail(index);
+                }}
+                className="text-gray-400 hover:text-red-500 focus:outline-none ml-0.5 leading-none text-sm font-semibold"
               >
                 &times;
               </button>
@@ -101,9 +119,10 @@ const MultiEmailInput: React.FC<MultiEmailInputProps> = ({
           </span>
         ))}
         <input
+          id={`${name}-input`}
           type="text"
           autoComplete="off"
-          className="flex-grow min-w-[120px] outline-none border-none focus:ring-0 p-0 text-sm bg-transparent dark:text-white disabled:cursor-not-allowed"
+          className="flex-1 min-w-[100px] outline-none border-none focus:ring-0 p-0 text-sm bg-transparent dark:text-white disabled:cursor-not-allowed"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
