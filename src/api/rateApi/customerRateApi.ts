@@ -149,12 +149,10 @@ export const deleteCustomerRateApi = async (
 
 export const importCustomerRatesApi = async (
   file: File,
-  mappingId: string,
   rateGroupId: number,
 ): Promise<{ task_id: string }> => {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("mapped", mappingId);
 
   const response = await api.post(`/customer-rate/import/${rateGroupId}/`, formData, {
     headers: { "Content-Type": "multipart/form-data" },

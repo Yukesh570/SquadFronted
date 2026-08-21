@@ -435,25 +435,15 @@ const ImportBatch: React.FC = () => {
       if (response && response.results) {
         setData(response.results);
         setTotalItems(response.count);
-        const needsPolling = response.results.some(
-          (batch: ImportBatchData) => {
-            return ![
-              "PUBLISHED",
-              "ROLLED_BACK",
-              "FAILED",
-            ].includes(batch.batchStatus || "");
-          }
-        );
+        const needsPolling = response.results.some((batch: ImportBatchData) => {
+          return !["PUBLISHED", "ROLLED_BACK", "FAILED", "READY_FOR_REVIEW", "IDENTIFIED"].includes(batch.batchStatus || "");
+        });
         setIsPolling(needsPolling);
       } else if (Array.isArray(response)) {
         setData(response);
         setTotalItems(response.length);
         const needsPolling = response.some((batch: ImportBatchData) => {
-          return ![
-            "PUBLISHED",
-            "ROLLED_BACK",
-            "FAILED",
-          ].includes(batch.batchStatus || "");
+          return !["PUBLISHED", "ROLLED_BACK", "FAILED", "READY_FOR_REVIEW", "IDENTIFIED"].includes(batch.batchStatus || "");
         });
         setIsPolling(needsPolling);
       } else {
@@ -528,28 +518,28 @@ const ImportBatch: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowData
     ? [
-        {
-          label: "View Details",
-          icon: <Eye size={16} />,
-          onClick: () => handleView(selectedRowData),
-        },
-        {
-          label: "Edit Status",
-          icon: <Edit size={16} />,
-          onClick: () => handleEdit(selectedRowData),
-        },
-        ...(selectedRowData.batchStatus === "READY_FOR_REVIEW"
-          ? [
-              {
-                label: "Approve Batch",
-                icon: (
-                  <CheckCircle size={16} className="text-green-500" />
-                ),
-                onClick: () => handleApprove(selectedRowData),
-              },
-            ]
-          : []),
-      ]
+      {
+        label: "View Details",
+        icon: <Eye size={16} />,
+        onClick: () => handleView(selectedRowData),
+      },
+      {
+        label: "Edit Status",
+        icon: <Edit size={16} />,
+        onClick: () => handleEdit(selectedRowData),
+      },
+      ...(selectedRowData.batchStatus === "READY_FOR_REVIEW"
+        ? [
+          {
+            label: "Approve Batch",
+            icon: (
+              <CheckCircle size={16} className="text-green-500" />
+            ),
+            onClick: () => handleApprove(selectedRowData),
+          },
+        ]
+        : []),
+    ]
     : [];
 
   const tableHeaders = [

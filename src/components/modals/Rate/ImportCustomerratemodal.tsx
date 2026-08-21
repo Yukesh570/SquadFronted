@@ -11,13 +11,7 @@ import {
   importCustomerRatesApi,
 } from "../../../api/rateApi/customerRateApi";
 import { getImportStatusApi } from "../../../api/rateApi/vendorRateApi";
-import {
-  getMappingSetupsApi,
-  type MappingSetupData,
-} from "../../../api/mappingSetupApi/mappingSetupApi";
 import Button from "../../ui/Button";
-import Select from "../../ui/Select";
-import Input from "../../ui/Input";
 import Modal from "../../ui/Modal";
 
 interface ImportCustomerRateModalProps {
@@ -33,23 +27,10 @@ export const ImportCustomerRateModal: React.FC<ImportCustomerRateModalProps> = (
   onSuccess,
   rateGroupId,
 }) => {
-  const [allMappings, setAllMappings] = useState<MappingSetupData[]>([]);
-  const [mappingOptions, setMappingOptions] = useState<
-    { label: string; value: string }[]
-  >([]);
 
-  const [selectedMappingId, setSelectedMappingId] = useState("");
+
   const [csvFile, setCsvFile] = useState<File | null>(null);
 
-  const [formData, setFormData] = useState({
-    country: "",
-    countryCode: "",
-    network: "",
-    MCC: "",
-    MNC: "",
-    rate: "",
-    effectiveFrom: "",
-  });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
@@ -70,58 +51,15 @@ export const ImportCustomerRateModal: React.FC<ImportCustomerRateModalProps> = (
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      getMappingSetupsApi("mappingSetup", 1, 1000).then((res: any) => {
-        if (!isMounted.current) return;
-        let list: MappingSetupData[] = [];
-        if (res && res.results) list = res.results;
-        else if (Array.isArray(res)) list = res;
-
-        setAllMappings(list);
-        setMappingOptions(
-          list.map((m) => ({
-            label: m.name || String(m.id),
-            value: String(m.id),
-          })),
-        );
-      });
-    } else {
+    if (!isOpen) {
       setCsvFile(null);
-      setSelectedMappingId("");
       setProgress(null);
       setIsSubmitting(false);
       if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (selectedMappingId) {
-      const selected = allMappings.find(
-        (m) => String(m.id) === selectedMappingId,
-      );
-      if (selected) {
-        setFormData({
-          country: selected.country || "",
-          countryCode: selected.countryCode || "",
-          network: selected.network || "",
-          MCC: selected.MCC || "",
-          MNC: selected.MNC || "",
-          rate: selected.rate || "",
-          effectiveFrom: selected.effectiveFrom || "",
-        });
-      }
-    } else {
-      setFormData({
-        country: "",
-        countryCode: "",
-        network: "",
-        MCC: "",
-        MNC: "",
-        rate: "",
-        effectiveFrom: "",
-      });
-    }
-  }, [selectedMappingId, allMappings]);
+
 
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -218,8 +156,8 @@ export const ImportCustomerRateModal: React.FC<ImportCustomerRateModalProps> = (
 
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedMappingId || !csvFile) {
-      toast.error("Please select a mapping setup and a CSV file.");
+    if (!csvFile) {
+      toast.error("Please select a CSV file.");
       return;
     }
 
@@ -234,7 +172,6 @@ export const ImportCustomerRateModal: React.FC<ImportCustomerRateModalProps> = (
     try {
       const response = (await importCustomerRatesApi(
         csvFile,
-        selectedMappingId,
         rateGroupId,
       )) as any;
 
@@ -283,42 +220,31 @@ export const ImportCustomerRateModal: React.FC<ImportCustomerRateModalProps> = (
       isOpen={isOpen}
       onClose={onClose}
       title="Import Customer Rates"
-      className="max-w-4xl"
+      className="max-w-md"
     >
       <form onSubmit={handleImport} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-          <Select
-            label="Select Mapping Setup"
-            value={selectedMappingId}
-            onChange={setSelectedMappingId}
-            options={mappingOptions}
-            placeholder="Choose a mapping"
-            disabled={isSubmitting}
-          />
-
-          <div className="space-y-2">
-            <label className="block text-xs font-medium text-text-secondary">
-              CSV File
-            </label>
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => fileInputRef.current?.click()}
-                leftIcon={<Upload size={16} />}
-                disabled={isSubmitting}
-                className="w-full"
-              >
-                {csvFile ? "Change File" : "Select File"}
-              </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelected}
-                className="hidden"
-                accept=".csv,.xlsx,.xls"
-              />
-            </div>
+        <div className="space-y-2 mt-4">
+          <label className="block text-xs font-medium text-text-secondary">
+            CSV File
+          </label>
+          <div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => fileInputRef.current?.click()}
+              leftIcon={<Upload size={16} />}
+              disabled={isSubmitting}
+              className="w-full"
+            >
+              {csvFile ? "Change File" : "Select File"}
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelected}
+              className="hidden"
+              accept=".csv,.xlsx,.xls"
+            />
           </div>
         </div>
 
@@ -336,74 +262,6 @@ export const ImportCustomerRateModal: React.FC<ImportCustomerRateModalProps> = (
             </button>
           </div>
         )}
-
-        <hr className="border-gray-100 dark:border-gray-700" />
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-              Expected File Headers
-            </h4>
-            {selectedMappingId && (
-              <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100 flex items-center">
-                <AlertTriangle size={12} className="mr-1" />
-                File MUST match these headers
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 opacity-80">
-            <Input
-              label="Country Header"
-              value={formData.country}
-              readOnly
-              disabled
-              placeholder="-"
-            />
-            <Input
-              label="Country Code Header"
-              value={formData.countryCode}
-              readOnly
-              disabled
-              placeholder="-"
-            />
-            <Input
-              label="Network Header"
-              value={formData.network}
-              readOnly
-              disabled
-              placeholder="-"
-            />
-            <Input
-              label="MCC Header"
-              value={formData.MCC}
-              readOnly
-              disabled
-              placeholder="-"
-            />
-            <Input
-              label="MNC Header"
-              value={formData.MNC}
-              readOnly
-              disabled
-              placeholder="-"
-            />
-            <Input
-              label="Rate Header"
-              value={formData.rate}
-              readOnly
-              disabled
-              placeholder="-"
-            />
-            <Input
-              label="Effective From Header"
-              value={formData.effectiveFrom}
-              readOnly
-              disabled
-              placeholder="-"
-            />
-          </div>
-        </div>
 
         {isSubmitting && (
           <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-4">
@@ -429,7 +287,7 @@ export const ImportCustomerRateModal: React.FC<ImportCustomerRateModalProps> = (
           <Button
             type="submit"
             variant="primary"
-            disabled={isSubmitting || !csvFile || !selectedMappingId}
+            disabled={isSubmitting || !csvFile}
           >
             {isSubmitting ? (
               <>
