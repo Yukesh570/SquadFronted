@@ -19,6 +19,8 @@ const userTypeOptions = [
   { value: "NOC", label: "NOC" },
   { value: "RATE", label: "RATE" },
   { value: "FINANCE", label: "FINANCE" },
+  { value: "ACCOUNT_MANAGER", label: "Account Manager" },
+
 ];
 
 type PermissionKeys = "read" | "write" | "delete" | "put";
@@ -129,7 +131,7 @@ const PermissionsTable = () => {
       setIsSaving(false);
     }
   };
-const hasLoggedOpening = useRef(false);
+  const hasLoggedOpening = useRef(false);
 
   useEffect(() => {
     if (!hasLoggedOpening.current) {
@@ -138,10 +140,10 @@ const hasLoggedOpening = useRef(false);
         const activeLinks = document.querySelectorAll('aside a.active, nav a.active');
         const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
         let moduleLabel = activeItem?.innerText?.split('\n')[0].trim() || "Module";
-        
+
         actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
       }, 100); // Waits 0.1 seconds
-      
+
       hasLoggedOpening.current = true;
     }
   }, []);
