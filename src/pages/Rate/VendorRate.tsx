@@ -4,12 +4,12 @@ import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
 // ⚡️ FIX: Using the Group API
-import { 
-  getVendorRateGroupsApi, 
-  deleteVendorRateGroupApi, 
-  createVendorRateGroupApi, 
+import {
+  getVendorRateGroupsApi,
+  deleteVendorRateGroupApi,
+  createVendorRateGroupApi,
   updateVendorRateGroupApi,
-  type VendorRateGroupData 
+  type VendorRateGroupData
 } from "../../api/rateApi/vendorRateApi";
 
 import { getCountriesApi } from "../../api/settingApi/countryApi/countryApi";
@@ -54,7 +54,7 @@ const formatLocalDate = (date: Date) => {
 };
 
 const DEFAULT_SEARCH_COLUMNS = ["name", "status"];
-const DEFAULT_TABLE_COLUMNS = ["name", "status", "createdAt"];
+const DEFAULT_TABLE_COLUMNS = ["name", "status", "total_rates", "createdAt"];
 
 // ⚡️ Modal for Creating/Editing Vendor Rate Groups
 const GroupModal = ({ isOpen, onClose, onSuccess, moduleName, editingGroup }: any) => {
@@ -177,6 +177,7 @@ const VendorRate: React.FC = () => {
   ];
 
   const allColumns: ColumnConfig[] = [
+
     { key: "name", label: "Rate Group Name", type: "text", filterKey: "name__icontains" },
     {
       key: "status",
@@ -185,6 +186,13 @@ const VendorRate: React.FC = () => {
       options: statusOptions,
       filterKey: "status",
       render: (c: any) => <StatusBadge status={c.status} />,
+    },
+    {
+      key: "total_rates",
+      label: "Total Rates",
+      type: "number",
+      filterKey: "total_rates",
+      render: (c: any) => c.total_rates || 0,
     },
     {
       key: "createdBy",
@@ -200,20 +208,20 @@ const VendorRate: React.FC = () => {
       filterKey: "updatedBy__username__icontains",
       render: (c: any) => c.updatedByName || c.updatedBy || "-",
     },
-    { 
-      key: "createdAt", 
-      label: "Created At (Exact)", 
-      tableLabel: "Created At", 
-      type: "date", 
-      filterKey: "createdAt", 
-      render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-") 
+    {
+      key: "createdAt",
+      label: "Created At (Exact)",
+      tableLabel: "Created At",
+      type: "date",
+      filterKey: "createdAt",
+      render: (c: any) => (c.createdAt ? formatDateTime(c.createdAt) : "-")
     },
-    { 
-      key: "createdAt__gt_lt", 
-      label: "Created At (After / Before)", 
-      type: "date_gt_lt", 
-      filterKey: "createdAt", 
-      isSearchOnly: true 
+    {
+      key: "createdAt__gt_lt",
+      label: "Created At (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "createdAt",
+      isSearchOnly: true
     },
   ];
 
@@ -276,19 +284,19 @@ const VendorRate: React.FC = () => {
       const response: any = await getVendorRateGroupsApi(routeName, currentPage, rowsPerPage, currentSearchParams);
 
       if (newController.signal.aborted) return;
-      if (response && response.results) { 
-        setGroupedRates(response.results); 
-        setTotalItems(response.count); 
-      } else if (Array.isArray(response)) { 
-        setGroupedRates(response); 
-        setTotalItems(response.length); 
-      } else { 
-        setGroupedRates([]); 
-        setTotalItems(0); 
+      if (response && response.results) {
+        setGroupedRates(response.results);
+        setTotalItems(response.count);
+      } else if (Array.isArray(response)) {
+        setGroupedRates(response);
+        setTotalItems(response.length);
+      } else {
+        setGroupedRates([]);
+        setTotalItems(0);
       }
     } catch (error: any) {
-      if (error.name !== "AbortError") { 
-        toast.error("Failed to fetch vendor rate groups."); 
+      if (error.name !== "AbortError") {
+        toast.error("Failed to fetch vendor rate groups.");
       }
     } finally {
       if (abortControllerRef.current === newController) setIsLoading(false);
@@ -322,12 +330,12 @@ const VendorRate: React.FC = () => {
 
   const openSubTableModal = (groupItem: any) => {
     setActiveRateGroup(groupItem.name);
-    setActiveRateGroupId(groupItem.id); 
+    setActiveRateGroupId(groupItem.id);
     setIsSubTableModalOpen(true);
   };
 
   const menuItems: ContextMenuItem[] = selectedRowGroup ? [
-    { label: "Manage Rates", icon: <Layers size={16} />, onClick: () => openSubTableModal(selectedRowGroup) }, 
+    { label: "Manage Rates", icon: <Layers size={16} />, onClick: () => openSubTableModal(selectedRowGroup) },
     ...(canUpdate ? [{ label: "Edit Group", icon: <Edit size={16} />, onClick: () => { setEditingGroup(selectedRowGroup); setIsCreateModalOpen(true); } }] : []),
     ...(canDelete ? [{ label: "Delete Group", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRowGroup.id!) }] : []),
   ] : [];
@@ -341,34 +349,34 @@ const VendorRate: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">Vendor Rates Manager</h1>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={tableFilterColumns as any} 
-              selectedColumns={tableColumns} 
+            <AdvancedFilter
+              columns={tableFilterColumns as any}
+              selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
-              onFilter={(cols: any) => setTableColumns(cols)} 
-              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)} 
-              buttonLabel="Columns" 
+              onFilter={(cols: any) => setTableColumns(cols)}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
               enableReorder={true}
             />
           </div>
           <div className="relative z-20">
-            <AdvancedFilter 
-              columns={searchableColumns as any} 
-              selectedColumns={searchColumns} 
+            <AdvancedFilter
+              columns={searchableColumns as any}
+              selectedColumns={searchColumns}
               defaultColumns={DEFAULT_SEARCH_COLUMNS}
-              onFilter={(newCols: any) => { 
-                setSearchColumns(newCols); 
-                setFilterValues((prev) => { 
-                  const next = { ...prev }; 
-                  Object.keys(next).forEach((k) => { 
-                    if (!newCols.includes(k)) delete next[k]; 
-                  }); 
-                  return next; 
-                }); 
-              }} 
-              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)} 
-              isLoading={isLoading} 
-              buttonLabel="Search Fields" 
+              onFilter={(newCols: any) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
             />
           </div>
         </div>
@@ -397,17 +405,17 @@ const VendorRate: React.FC = () => {
         })}
       </FilterCard>
 
-      <DataTable 
-        serverSide={true} 
-        data={groupedRates} 
-        totalItems={totalItems} 
-        currentPage={currentPage} 
-        rowsPerPage={rowsPerPage} 
-        onPageChange={setCurrentPage} 
-        onRowsPerPageChange={setRowsPerPage} 
-        density="compact" 
-        headers={tableHeaders} 
-        isLoading={isLoading} 
+      <DataTable
+        serverSide={true}
+        data={groupedRates}
+        totalItems={totalItems}
+        currentPage={currentPage}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setCurrentPage}
+        onRowsPerPageChange={setRowsPerPage}
+        density="compact"
+        headers={tableHeaders}
+        isLoading={isLoading}
         onReorderColumns={(fromIdx, toIdx) => {
           setTableColumns((prev) => {
             const next = [...prev];
@@ -426,8 +434,8 @@ const VendorRate: React.FC = () => {
               if (col.options) { const match = col.options.find((opt) => opt.value === String(cellData)); cellData = match ? match.label : cellData; }
               if (col.key === "name") {
                 return (
-                  <td 
-                    key={col.key} 
+                  <td
+                    key={col.key}
                     className="px-4 py-4 text-sm font-semibold text-primary cursor-pointer hover:underline"
                     onClick={() => openSubTableModal(routeGroupObj)}
                   >
