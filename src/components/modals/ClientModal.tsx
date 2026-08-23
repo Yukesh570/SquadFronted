@@ -731,7 +731,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               disabled={isViewMode}
             />
             <Input
-              label="Response Timeout (Seconds)"
+              label="Submit Timeout (Seconds)"
               name="submitTimeoutSec"
               type="number"
               value={formData.submitTimeoutSec}
