@@ -16,7 +16,6 @@ import {
 import ReactQuill from "react-quill-new";
 
 import "../../../quillDark.css";
-
 import { getClientsApi } from "../../../api/clientApi/clientApi";
 
 interface CampaignModalProps {
