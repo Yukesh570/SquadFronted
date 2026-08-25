@@ -429,97 +429,103 @@ const Dashboard: React.FC = () => {
     }
 
     const wsUrl = `${wsBase}/ws/status/`;
-    console.log(`Attempting to connect to WebSocket at: ${wsUrl}`);
+    let ws: WebSocket;
+    let reconnectTimeout: ReturnType<typeof setTimeout>;
 
-    const ws = new WebSocket(wsUrl);
+    const connectWebSocket = () => {
+      console.log(`Attempting to connect to WebSocket at: ${wsUrl}`);
+      ws = new WebSocket(wsUrl);
 
-    ws.onopen = () => {
-      console.log("WebSocket connected successfully!");
-    };
+      ws.onopen = () => {
+        console.log("WebSocket connected successfully!");
+      };
 
-    ws.onerror = (error) => {
-      console.error("WebSocket encountered an error. Is the backend ASGI server running?", error);
-    };
+      ws.onerror = (error) => {
+        console.error("WebSocket encountered an error. Is the backend ASGI server running?", error);
+      };
 
-    ws.onclose = (event) => {
-      console.warn("WebSocket closed.", event.reason);
-    };
+      ws.onclose = (event) => {
+        console.warn("WebSocket closed.", event.reason);
+        reconnectTimeout = setTimeout(connectWebSocket, 3000);
+      };
 
-    ws.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        console.log("WebSocket Message Received:", payload);
-        if (payload.action === "session_update") {
-          if (isMetricsLiveRef.current) fetchActiveSessions();
-          if (isAnalyticsLiveRef.current) fetchClientSessionSummary();
-        } else if (payload.action === "dashboard_metrics_update") {
-          const { data } = payload;
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          console.log("WebSocket Message Received:", payload);
+          if (payload.action === "session_update") {
+            if (isMetricsLiveRef.current) fetchActiveSessions();
+            if (isAnalyticsLiveRef.current) fetchClientSessionSummary();
+          } else if (payload.action === "dashboard_metrics_update") {
+            const { data } = payload;
 
-          if (isMetricsLiveRef.current && activeRangeRef.current === "today") {
-            if (data.smsStats) {
-              setTotalSms(Number(data.smsStats.count).toLocaleString());
-              setDeliveredCount(Number(data.smsStats.deliveredCount).toLocaleString());
-              setFailedCount(Number(data.smsStats.failedCount).toLocaleString());
-              setDeliveryRate(`${data.smsStats.deliveryRate}%`);
-              setIsStatsLoading(false);
+            if (isMetricsLiveRef.current && activeRangeRef.current === "today") {
+              if (data.smsStats) {
+                setTotalSms(Number(data.smsStats.count).toLocaleString());
+                setDeliveredCount(Number(data.smsStats.deliveredCount).toLocaleString());
+                setFailedCount(Number(data.smsStats.failedCount).toLocaleString());
+                setDeliveryRate(`${data.smsStats.deliveryRate}%`);
+                setIsStatsLoading(false);
+              }
+              if (data.dlrStats) {
+                setDlrData([
+                  { name: "Delivered", value: data.dlrStats.deliveredPercent || 0, color: DLR_COLORS.Delivered },
+                  { name: "Failed", value: data.dlrStats.failedPercent || 0, color: DLR_COLORS.Failed },
+                  { name: "Pending", value: data.dlrStats.pendingPercent || 0, color: DLR_COLORS.Pending },
+                  { name: "Rejected", value: data.dlrStats.rejectedPercent || 0, color: DLR_COLORS.Rejected },
+                ]);
+                setIsDlrLoading(false);
+              }
+              if (data.onlineClients !== undefined) {
+                setOnlineClients(data.onlineClients);
+              }
+              if (data.onlineVendors !== undefined) {
+                setOnlineVendors(data.onlineVendors);
+              }
+              if (data.revenue) {
+                setRevenue(data.revenue);
+              }
+              if (data.trafficData) {
+                setTrafficData(data.trafficData);
+                setIsTrafficLoading(false);
+              }
             }
-            if (data.dlrStats) {
-              setDlrData([
-                { name: "Delivered", value: data.dlrStats.deliveredPercent || 0, color: DLR_COLORS.Delivered },
-                { name: "Failed", value: data.dlrStats.failedPercent || 0, color: DLR_COLORS.Failed },
-                { name: "Pending", value: data.dlrStats.pendingPercent || 0, color: DLR_COLORS.Pending },
-                { name: "Rejected", value: data.dlrStats.rejectedPercent || 0, color: DLR_COLORS.Rejected },
-              ]);
-              setIsDlrLoading(false);
-            }
-            // we commented it out because dashboard metric websocket also handles the active session.
 
-            // if (data.activeSessionsCount !== undefined) {
-            //   setActiveSessionsCount(data.activeSessionsCount);
-            // }            
-            if (data.onlineClients !== undefined) {
-              setOnlineClients(data.onlineClients);
-            }
-            if (data.onlineVendors !== undefined) {
-              setOnlineVendors(data.onlineVendors);
-            }
-            if (data.revenue) {
-              setRevenue(data.revenue);
-            }
-            if (data.trafficData) {
-              setTrafficData(data.trafficData);
-              setIsTrafficLoading(false);
+            if (isAnalyticsLiveRef.current && activeRangeRef.current === "today") {
+              if (data.failureBreakdown) {
+                setFailureBreakdown(data.failureBreakdown);
+                setIsFailureLoading(false);
+              }
+              if (data.vendorPerformance) {
+                setVendorPerformance(data.vendorPerformance);
+                setIsVendorLoading(false);
+              }
+              if (data.clientPerformance) {
+                setClientPerformance(data.clientPerformance);
+                setIsClientLoading(false);
+              }
+              if (data.geoBreakdown) {
+                setGeoBreakdown(data.geoBreakdown);
+                setIsGeoLoading(false);
+              }
+              if (data.latencyStats) {
+                setLatencyStats(data.latencyStats);
+                setIsLatencyLoading(false);
+              }
             }
           }
-
-          if (isAnalyticsLiveRef.current && activeRangeRef.current === "today") {
-            if (data.failureBreakdown) {
-              setFailureBreakdown(data.failureBreakdown);
-              setIsFailureLoading(false);
-            }
-            if (data.vendorPerformance) {
-              setVendorPerformance(data.vendorPerformance);
-              setIsVendorLoading(false);
-            }
-            if (data.clientPerformance) {
-              setClientPerformance(data.clientPerformance);
-              setIsClientLoading(false);
-            }
-            if (data.geoBreakdown) {
-              setGeoBreakdown(data.geoBreakdown);
-              setIsGeoLoading(false);
-            }
-            if (data.latencyStats) {
-              setLatencyStats(data.latencyStats);
-              setIsLatencyLoading(false);
-            }
-          }
+        } catch (err) {
+          console.error("WebSocket parse error in Dashboard", err);
         }
-      } catch (err) {
-        console.error("WebSocket parse error in Dashboard", err);
-      }
+      };
     };
-    return () => ws.close();
+
+    connectWebSocket();
+
+    return () => {
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (ws) ws.close();
+    };
   }, []);
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
