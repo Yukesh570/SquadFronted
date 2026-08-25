@@ -814,7 +814,7 @@ const AnalyticsReport: React.FC = () => {
                                           <td className="px-2 py-1"><DataBarCell value={vendorRow.failed} max={maxAttempts} type="danger" /></td>
                                           <td className="px-2 py-1"><DataBarCell value={vendorRow.revenue} max={maxRevenue} type="currency" /></td>
                                           <td className="px-2 py-1"><DataBarCell value={vendorRow.vendor_cost} max={maxRevenue} type="currency" /></td>
-                                          <td className="px-2 py-1"><DataBarCell value={vendorRow.marginUsd} max={maxRevenue} type="currency" /></td>
+                                          <td className="px-2 py-1"><DataBarCell value={vendorRow.margin_usd} max={maxRevenue} type="currency" /></td>
                                           <td className="px-2 py-1"><MarginPctCell pct={vendorRow.margin_percent} /></td>
                                         </tr>
                                       );
