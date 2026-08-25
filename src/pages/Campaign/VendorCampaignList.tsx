@@ -1,12 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Home, Trash } from "lucide-react";
-import { NavLink } from "react-router-dom";
-import { toast } from "react-toastify";
 import {
-  getNotificationApi,
-  deleteNotificationApi,
-  type NotificationData,
-} from "../../api/userActionApi/notificationApi";
+  Home,
+  Plus,
+  Trash,
+  Megaphone,
+  Calendar,
+  Eye,
+} from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
+
+// --- APIs ---
+import {
+  getCampaignVendorsApi,
+  deleteCampaignVendorApi,
+  type CampaignVendorFormData,
+} from "../../api/campaignApi/campaignVendorApi";
+
+// --- Components ---
+import { VendorCampaignModal } from "../../components/modals/VendorCampaignModal";
+import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import DatePicker from "../../components/ui/DatePicker";
@@ -16,7 +29,10 @@ import AdvancedFilter, {
   type FilterColumn,
 } from "../../components/ui/AdvancedFilter";
 import { DeleteModal } from "../../components/modals/DeleteModal";
-import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
+import ContextMenu, {
+  type ContextMenuItem,
+} from "../../components/ui/ContextMenu";
+import { usePagePermissions } from "../../hooks/usePagePermissions";
 import { actionHelper } from "../../helper/action";
 import { formatDateTime } from "../../helper/dateFormatter";
 
@@ -38,7 +54,7 @@ interface ColumnConfig extends Omit<FilterColumn, "type" | "key" | "label"> {
   key: string;
   label: string;
   type?: FilterColumnType;
-  render?: (notification: any) => React.ReactNode;
+  render?: (campaign: any) => React.ReactNode;
   options?: Option[];
   filterKey?: string;
   isSearchOnly?: boolean;
@@ -53,22 +69,41 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["title"];
-const DEFAULT_TABLE_COLUMNS = ["title", "description", "createdAt"];
+const DEFAULT_SEARCH_COLUMNS = ["name", "vendorName", "objective", "content"];
+const DEFAULT_TABLE_COLUMNS = [
+  "name",
+  "vendorName",
+  "objective",
+  "content",
+  "schedule",
+  "createdAt",
+];
 
-const AllNotifications: React.FC = () => {
-  const [notifications, setNotifications] = useState<NotificationData[]>([]);
+const VendorCampaignList: React.FC = () => {
+  const { canCreate, canDelete } = usePagePermissions();
+  const [campaigns, setCampaigns] = useState<CampaignVendorFormData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  // --- Modal States ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] =
+    useState<CampaignVendorFormData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isViewMode, setIsViewMode] = useState(false);
 
-  // --- Context Menu States ---
-  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [selectedRow, setSelectedRow] = useState<NotificationData | null>(null);
+  // --- Context Menu State ---
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [selectedRowCampaign, setSelectedRowCampaign] =
+    useState<CampaignVendorFormData | null>(null);
 
-  // --- Dynamic Search & Filter States ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  // --- Search & Filter States ---
+  const [searchColumns, setSearchColumns] = useState<string[]>(
+    DEFAULT_SEARCH_COLUMNS,
+  );
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [rowsPerPage, setRowsPerPage] = useState(50);
@@ -76,68 +111,131 @@ const AllNotifications: React.FC = () => {
 
   // --- Column Order State & Persistence ---
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
-    const saved = localStorage.getItem("allnotifications_table_columns");
+    const saved = localStorage.getItem("vendor_campaign_table_columns");
     return saved ? JSON.parse(saved) : DEFAULT_TABLE_COLUMNS;
   });
 
   useEffect(() => {
-    localStorage.setItem("allnotifications_table_columns", JSON.stringify(tableColumns));
+    localStorage.setItem(
+      "vendor_campaign_table_columns",
+      JSON.stringify(tableColumns),
+    );
   }, [tableColumns]);
 
+  const location = useLocation();
+  const routeName = location.pathname.split("/")[1] || "campaignVendor";
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const hasLoggedOpening = useRef(false);
-  useEffect(() => {
-    if (!hasLoggedOpening.current) {
-      setTimeout(() => {
-        actionHelper("Notifications", "Opened All Notifications Module", false);
-      }, 100);
-      hasLoggedOpening.current = true;
-    }
-  }, []);
+  const formatContent = (content?: string) => {
+    if (!content) return "";
+    const strippedContent = content.replace(/<[^>]*>/g, "");
+    const limit = 30;
+    return strippedContent.length > limit
+      ? `${strippedContent.substring(0, limit)}...`
+      : strippedContent;
+  };
 
-  // Column definitions for dynamic rendering, filtering, & visibility
+  const objectiveOptions: Option[] = [
+    { label: "Promotion", value: "Promotion" },
+    { label: "Announcement", value: "Announcement" },
+    { label: "Re-engagement", value: "Re-engagement" },
+  ];
+
+  // Column definitions for dynamic rendering & filtering
   const allColumns: ColumnConfig[] = [
     {
-      key: "title",
-      label: "Title",
+      key: "name",
+      label: "Name",
       type: "text",
-      filterKey: "title__icontains",
-      render: (n) => (
+      filterKey: "name__icontains",
+      render: (c) => (
         <span className="font-medium text-text-primary dark:text-white">
-          {n.title || "-"}
+          {c.name}
         </span>
       ),
     },
     {
-      key: "description",
-      label: "Description",
+      key: "vendorName",
+      label: "Vendor",
       type: "text",
-      filterKey: "description__icontains",
-      render: (n) => (
-        <span className="max-w-xl truncate block">
-          {n.description || "-"}
+      filterKey: "vendor__profileName__icontains",
+      render: (c) => c.vendorName || "-",
+    },
+    {
+      key: "objective",
+      label: "Objective",
+      type: "text",
+      options: objectiveOptions,
+      filterKey: "objective__icontains",
+      render: (c) => (
+        <span className="flex items-center gap-2">
+          <Megaphone size={14} /> {c.objective}
         </span>
       ),
+    },
+    {
+      key: "content",
+      label: "Content",
+      type: "text",
+      filterKey: "content__icontains",
+      render: (c) => (
+        <span title={c.content?.replace(/<[^>]*>/g, "")}>
+          {formatContent(c.content)}
+        </span>
+      ),
+    },
+    {
+      key: "templateName",
+      label: "Template Name",
+      type: "text",
+      filterKey: "template__name__icontains",
+      isSearchOnly: true,
+    },
+    {
+      key: "schedule",
+      label: "Schedule",
+      type: "text",
+      filterKey: "schedule__icontains",
+      render: (c) => (
+        <span className="flex items-center gap-2">
+          <Calendar size={14} /> {c.schedule}
+        </span>
+      ),
+    },
+    {
+      key: "createdBy",
+      label: "Created By",
+      type: "text",
+      filterKey: "createdBy__username__icontains",
+      render: (c: any) => c.createdByName || c.createdBy || "-",
+    },
+    {
+      key: "updatedBy",
+      label: "Updated By",
+      type: "text",
+      filterKey: "updatedBy__username__icontains",
+      render: (c: any) => c.updatedByName || c.updatedBy || "-",
     },
     {
       key: "createdAt",
-      label: "Date (Exact)",
-      tableLabel: "Date",
+      label: "Created At (Exact)",
+      tableLabel: "Created At",
       type: "date",
       filterKey: "createdAt",
-      render: (n) => (n.createdAt ? formatDateTime(n.createdAt) : "-"),
+      render: (c) => (c.createdAt ? formatDateTime(c.createdAt) : "-"),
     },
     {
       key: "createdAt__gt_lt",
-      label: "Date (After / Before)",
+      label: "Created At (After / Before)",
       type: "date_gt_lt",
       filterKey: "createdAt",
       isSearchOnly: true,
     },
   ];
 
-  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+  const searchableColumns = allColumns.filter(
+    (col) => col.isSearchable !== false,
+  );
   const visibleSearchFields = searchableColumns.filter((col) =>
     searchColumns.includes(col.key),
   );
@@ -163,7 +261,7 @@ const AllNotifications: React.FC = () => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const fetchNotifications = async (overrideParams?: Record<string, string>) => {
+  const fetchCampaigns = async (overrideParams?: Record<string, string>) => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const newController = new AbortController();
     abortControllerRef.current = newController;
@@ -187,21 +285,32 @@ const AllNotifications: React.FC = () => {
               : value;
           } else if (columnDef?.type === "date") {
             const rawKey = columnDef.filterKey || key;
-            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+            const baseKey = rawKey
+              .replace(/__exact$/, "")
+              .replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
           } else if (columnDef?.type === "date_gt_lt") {
             const rawKey = columnDef.filterKey || key;
-            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
+            const baseKey = rawKey
+              .replace(/__gt_lt$/, "")
+              .replace(/__exact$/, "")
+              .replace(/__range$/, "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
             if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
           } else if (columnDef?.type === "number_gt_lt") {
             const rawKey = columnDef.filterKey || key;
-            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "");
+            const baseKey = rawKey
+              .replace(/__gt_lt$/, "")
+              .replace(/__exact$/, "");
             const [gt, lt] = value.split(",");
             if (gt) currentSearchParams[`${baseKey}__gte`] = gt;
             if (lt) currentSearchParams[`${baseKey}__lte`] = lt;
-          } else if (columnDef?.type === "text" || columnDef?.type === "boolean" || columnDef?.type === "number") {
+          } else if (
+            columnDef?.type === "text" ||
+            columnDef?.type === "boolean" ||
+            columnDef?.type === "number"
+          ) {
             const filterKey = columnDef.filterKey || `${key}__icontains`;
             currentSearchParams[filterKey] = value;
           } else {
@@ -210,28 +319,29 @@ const AllNotifications: React.FC = () => {
         }
       });
 
-      const response: any = await getNotificationApi(
+      const response: any = await getCampaignVendorsApi(
+        routeName,
         currentPage,
         rowsPerPage,
-        currentSearchParams
+        currentSearchParams,
       );
 
       if (newController.signal.aborted) return;
 
       if (response && response.results) {
-        setNotifications(response.results);
+        setCampaigns(response.results);
         setTotalItems(response.count);
       } else if (Array.isArray(response)) {
-        setNotifications(response);
+        setCampaigns(response);
         setTotalItems(response.length);
       } else {
-        setNotifications([]);
+        setCampaigns([]);
         setTotalItems(0);
       }
     } catch (error: any) {
       if (error.name !== "AbortError") {
         console.error("Fetch error:", error);
-        toast.error("Failed to fetch notifications.");
+        toast.error("Failed to fetch vendor campaigns");
       }
     } finally {
       if (abortControllerRef.current === newController) setIsLoading(false);
@@ -239,64 +349,113 @@ const AllNotifications: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchNotifications();
+    fetchCampaigns();
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [currentPage, rowsPerPage, searchColumns]);
+  }, [routeName, currentPage, rowsPerPage, searchColumns]);
 
+  // --- Handlers ---
   const handleSearch = () => {
     setCurrentPage(1);
-    fetchNotifications();
+    fetchCampaigns();
   };
 
   const handleClearFilters = () => {
     setFilterValues({});
     setCurrentPage(1);
-    fetchNotifications({});
+    fetchCampaigns({});
   };
 
   const handleDelete = async () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       try {
-        await deleteNotificationApi(deleteId);
-        toast.success("Notification deleted.");
-        fetchNotifications();
+        await deleteCampaignVendorApi(deleteId, routeName);
+        toast.success("Vendor campaign deleted.");
+        fetchCampaigns();
       } catch (error) {
-        toast.error("Failed to delete notification.");
+        toast.error("Failed to delete vendor campaign.");
       }
       setDeleteId(null);
     }
   };
 
-  const handleContextMenu = (e: React.MouseEvent, item: NotificationData) => {
+  const handleAdd = () => {
+    if (!canCreate) return;
+    setSelectedCampaign(null);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleView = (campaign: CampaignVendorFormData) => {
+    setSelectedCampaign(campaign);
+    setIsViewMode(true);
+    setIsModalOpen(true);
+  };
+
+  // --- Context Menu Logic ---
+  const handleContextMenu = (
+    e: React.MouseEvent,
+    campaign: CampaignVendorFormData,
+  ) => {
     e.preventDefault();
     setContextMenuPos({ x: e.clientX, y: e.clientY });
-    setSelectedRow(item);
+    setSelectedRowCampaign(campaign);
   };
 
-  const menuItems: ContextMenuItem[] = selectedRow ? [
-    { label: "Delete Notification", icon: <Trash size={16} />, variant: "danger" as const, onClick: () => setDeleteId(selectedRow.id!) },
-  ] : [];
+  const menuItems: ContextMenuItem[] = selectedRowCampaign
+    ? [
+        {
+          label: "View Details",
+          icon: <Eye size={16} />,
+          onClick: () => handleView(selectedRowCampaign),
+        },
+        ...(canDelete
+          ? [
+              {
+                label: "Delete Campaign",
+                icon: <Trash size={16} />,
+                variant: "danger" as const,
+                onClick: () => setDeleteId(selectedRowCampaign.id!),
+              },
+            ]
+          : []),
+      ]
+    : [];
 
-  const getBaseLabel = (label: string) => {
-    if (!label) return "";
-    return label.split(" (")[0].trim();
-  };
+  const getBaseLabel = (label: string) => label.split(" (")[0].trim();
+  const hasLoggedOpening = useRef(false);
+
+  useEffect(() => {
+    if (!hasLoggedOpening.current) {
+      setTimeout(() => {
+        const activeLinks = document.querySelectorAll(
+          "aside a.active, nav a.active",
+        );
+        const activeItem = activeLinks[activeLinks.length - 1] as HTMLElement;
+        let moduleLabel =
+          activeItem?.innerText?.split("\n")[0].trim() || "Vendor Campaign";
+
+        actionHelper(moduleLabel, `Opened ${moduleLabel} Module`, false);
+      }, 100);
+
+      hasLoggedOpening.current = true;
+    }
+  }, []);
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
-            All Notifications
+            Vendor Campaigns
           </h1>
           <div className="relative z-20">
             <AdvancedFilter
               columns={tableFilterColumns as any}
               selectedColumns={tableColumns}
               defaultColumns={DEFAULT_TABLE_COLUMNS}
-              onFilter={setTableColumns}
+              onFilter={(cols) => setTableColumns(cols)}
               onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
               buttonLabel="Columns"
               enableReorder={true}
@@ -329,13 +488,15 @@ const AllNotifications: React.FC = () => {
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary dark:text-white">Notifications</span>
+          <span className="text-text-primary dark:text-white">
+            Vendor Campaigns
+          </span>
         </div>
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
-          const baseLabel = getBaseLabel(col.label || "");
+          const baseLabel = getBaseLabel(col.label);
           if (col.options)
             return (
               <Select
@@ -410,7 +571,7 @@ const AllNotifications: React.FC = () => {
 
       <DataTable
         serverSide={true}
-        data={notifications}
+        data={campaigns}
         totalItems={totalItems}
         currentPage={currentPage}
         rowsPerPage={rowsPerPage}
@@ -427,51 +588,64 @@ const AllNotifications: React.FC = () => {
             return next;
           });
         }}
-        renderRow={(notification, index) => (
+        headerActions={
+          canCreate ? (
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              leftIcon={<Plus size={18} />}
+            >
+              Create Vendor Campaign
+            </Button>
+          ) : null
+        }
+        renderRow={(campaign, index) => (
           <tr
-            key={notification.id || index}
-            onContextMenu={(e) => handleContextMenu(e, notification)}
+            key={campaign.id || index}
+            onContextMenu={(e) => handleContextMenu(e, campaign)}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 cursor-context-menu transition-colors"
           >
             <td className="px-4 py-4 text-sm text-text-primary dark:text-white">
               {(currentPage - 1) * rowsPerPage + index + 1}
             </td>
-            {visibleTableFields.map((col) => {
-              let cellData = (notification as any)[col.key];
-              if (col.render) {
-                return (
-                  <td
-                    key={col.key}
-                    className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
-                  >
-                    {col.render(notification)}
-                  </td>
-                );
-              }
-              return (
-                <td
-                  key={col.key}
-                  className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
-                >
-                  {cellData || "-"}
-                </td>
-              );
-            })}
+            {visibleTableFields.map((col) => (
+              <td
+                key={col.key}
+                className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
+              >
+                {col.render
+                  ? col.render(campaign)
+                  : (campaign as any)[col.key] || "-"}
+              </td>
+            ))}
           </tr>
         )}
       />
 
-      <ContextMenu position={contextMenuPos} items={menuItems} onClose={() => setContextMenuPos(null)} />
+      <ContextMenu
+        position={contextMenuPos}
+        items={menuItems}
+        onClose={() => setContextMenuPos(null)}
+      />
+
+      <VendorCampaignModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchCampaigns}
+        moduleName={routeName}
+        selectedCampaign={selectedCampaign}
+        isViewMode={isViewMode}
+      />
 
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Notification"
-        message="Are you sure you want to delete this notification? It will be permanently removed from your history."
+        title="Delete Vendor Campaign"
+        message="Are you sure you want to delete this vendor campaign? This action cannot be undone."
       />
     </div>
   );
 };
 
-export default AllNotifications;
+export default VendorCampaignList;
