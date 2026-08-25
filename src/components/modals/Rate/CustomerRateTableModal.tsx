@@ -275,7 +275,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
   const currencyCode = latestRates.length > 0 ? latestRates[0].currencyCode : "";
 
   const headers = [
-    "Country", "MCC", "MNC", "Network", "Country Code", `Rate ${currencyCode ? `(${currencyCode})` : ""}`, "Version", "Status",
+    "Country", "MCC", "MNC", "Network", "Country Code", `Rate ${currencyCode ? `(${currencyCode})` : ""}`, "Version", "Status", "Remark",
     "Effective From", "Effective To",
   ];
 
@@ -384,6 +384,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
                       <Select label="" value={columnFilters["status"] || ""} onChange={(val: string) => { handleFilterChange("status", val); setApiFilters((prev) => ({ ...prev, status: val })); setCurrentPage(1); }} options={[{ label: "All", value: "" }, ...statusOptions]} placeholder="All" placement="bottom" />
                     </div>
                   </th>
+                  <th className="p-1 border-b border-r dark:border-gray-600 font-normal"><FilterInput fieldKey="remark" placeholder="Search..." value={columnFilters["remark"] || ""} onChange={handleFilterChange} onEnter={handleFilterApply} minWidth="100px" /></th>
                   <th className="p-1 border-b border-r dark:border-gray-600 font-normal relative z-[60]">
                     <div className="filter-crt-wrapper" style={{ minWidth: "130px" }}>
                       <DatePicker
@@ -421,6 +422,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 font-medium whitespace-nowrap">{v.rate || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">v{v.version || 0}</td>
                       <td className="py-3 px-4"><StatusBadge status={v.status} /></td>
+                      <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.remark || "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.effectiveFrom ? new Date(v.effectiveFrom).toLocaleString() : "-"}</td>
                       <td className="py-3 px-4 text-text-secondary dark:text-gray-300 whitespace-nowrap">{v.effectiveTo ? new Date(v.effectiveTo).toLocaleString() : "-"}</td>
                     </tr>

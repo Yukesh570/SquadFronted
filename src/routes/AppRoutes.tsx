@@ -65,6 +65,7 @@ import MccMncPrefixImportBatch from "../pages/MccMncPrefix/MccMncPrefixImportBat
 import FindRoute from "../pages/RouteManager/FindRoute";
 import AnalyticsReport from "../pages/Report/AnalyticsReport";
 import UserCreation from "../pages/UserCreation/UserCreation";
+import VendorCampaignList from "../pages/Campaign/VendorCampaignList";
 
 const componentMap: Record<string, JSX.Element> = {
   dashboard: <Dashboard />,
@@ -125,7 +126,8 @@ const componentMap: Record<string, JSX.Element> = {
   mccMncPrefixImportBatch: <MccMncPrefixImportBatch />,
   findRoute: <FindRoute />,
   analyticsReport: <AnalyticsReport />,
-  userCreation: <UserCreation />
+  userCreation: <UserCreation />,
+  vendorCampaignList: <VendorCampaignList />,
 };
 
 const AppRoutes = () => {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Select from "./Select";
 import { ChevronLeft, ChevronRight, Database, GripVertical } from "lucide-react";
 
@@ -59,6 +59,38 @@ export function DataTable<T extends { id?: number | string }>({
   const [draggedHeaderIdx, setDraggedHeaderIdx] = useState<number | null>(null);
   const [dragOverHeaderIdx, setDragOverHeaderIdx] = useState<number | null>(null);
   const [dropSide, setDropSide] = useState<"left" | "right" | null>(null);
+
+  // Track scroll container viewport width to perfectly center sticky empty states
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (scrollContainerRef.current) {
+        setContainerWidth(scrollContainerRef.current.clientWidth);
+      }
+    };
+
+    updateWidth();
+
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        updateWidth();
+      });
+      resizeObserver.observe(el);
+    } else {
+      window.addEventListener("resize", updateWidth);
+    }
+
+    return () => {
+      if (resizeObserver) resizeObserver.disconnect();
+      else window.removeEventListener("resize", updateWidth);
+    };
+  }, []);
 
   const activePage = serverSide ? currentPage : clientPage;
   const activeRows = serverSide ? rowsPerPage : clientRows;
@@ -227,7 +259,10 @@ export function DataTable<T extends { id?: number | string }>({
       )}
 
       {/* SCROLLABLE DATA TABLE */}
-      <div className="overflow-auto max-h-[65vh] min-h-[300px] relative z-0 custom-scrollbar">
+      <div
+        ref={scrollContainerRef}
+        className="overflow-auto max-h-[65vh] min-h-[300px] relative z-0 custom-scrollbar"
+      >
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
           <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10 shadow-sm">
             <tr>
@@ -282,18 +317,27 @@ export function DataTable<T extends { id?: number | string }>({
               <tr>
                 <td
                   colSpan={headers.length}
-                  className="px-4 py-12 text-center text-text-secondary dark:text-gray-400"
+                  className="p-0 border-none"
                 >
-                  Loading...
+                  <div
+                    className="sticky left-0 flex flex-col items-center justify-center py-16 text-center text-text-secondary dark:text-gray-400"
+                    style={{ width: containerWidth ? `${containerWidth}px` : "100%" }}
+                  >
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                    <span>Loading...</span>
+                  </div>
                 </td>
               </tr>
             ) : displayData.length === 0 ? (
               <tr>
                 <td
                   colSpan={headers.length}
-                  className="px-4 py-12 text-center text-text-secondary dark:text-gray-400"
+                  className="p-0 border-none"
                 >
-                  <div className="flex flex-col items-center justify-center">
+                  <div
+                    className="sticky left-0 flex flex-col items-center justify-center py-16 text-center text-text-secondary dark:text-gray-400"
+                    style={{ width: containerWidth ? `${containerWidth}px` : "100%" }}
+                  >
                     <Database
                       size={32}
                       className="text-gray-300 dark:text-gray-600 mb-2"

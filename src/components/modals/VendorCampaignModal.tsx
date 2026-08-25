@@ -8,26 +8,26 @@ import CustomDatePicker from "../ui/DatePicker";
 import Modal from "../ui/Modal";
 import { toast } from "react-toastify";
 import {
-  createCampaignApi,
+  createCampaignVendorApi,
   getTemplatesApi,
-  type CampaignFormData,
-} from "../../api/campaignApi/campaignApi";
+  type CampaignVendorFormData,
+} from "../../api/campaignApi/campaignVendorApi";
 // @ts-ignore
 import ReactQuill from "react-quill-new";
 import "../../quillDark.css";
-import { getClientsApi } from "../../api/clientApi/clientApi";
+import { getVendorsApi } from "../../api/connectivityApi/vendorApi";
 
-interface CampaignModalProps {
+interface VendorCampaignModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   moduleName: string;
-  selectedCampaign?: CampaignFormData | null;
-  editingCampaign?: CampaignFormData | null;
+  selectedCampaign?: CampaignVendorFormData | null;
+  editingCampaign?: CampaignVendorFormData | null;
   isViewMode?: boolean;
 }
 
-const CampaignModal: React.FC<CampaignModalProps> = ({
+export const VendorCampaignModal: React.FC<VendorCampaignModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
@@ -40,7 +40,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
   const [formData, setFormData] = useState({
     campaignName: "",
-    client: "",
+    vendor: "",
     objective: "Promotion",
     audienceType: "specify",
     contactNumber: "",
@@ -55,7 +55,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
   const [templateOptions, setTemplateOptions] = useState<
     { label: string; value: string; content: string }[]
   >([]);
-  const [clientOptions, setClientOptions] = useState<
+  const [vendorOptions, setVendorOptions] = useState<
     { label: string; value: string }[]
   >([]);
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -82,22 +82,22 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     if (isOpen) {
       setIsDataReady(false);
 
-      getClientsApi("client", 1, 1000)
+      getVendorsApi("vendor", 1, 1000)
         .then((res: any) => {
-          let list = res.results || (Array.isArray(res) ? res : []);
-          setClientOptions(
+          const list = res.results || (Array.isArray(res) ? res : []);
+          setVendorOptions(
             list.map((v: any) => ({
-              label: v.name,
+              label: v.profileName || v.name || `Vendor #${v.id}`,
               value: String(v.id),
             })),
           );
         })
-        .catch((err) => console.error("Failed to load clients", err));
+        .catch((err) => console.error("Failed to load vendors", err));
 
       if (isViewMode && activeCampaign) {
         setFormData({
           campaignName: activeCampaign.name || "",
-          client: activeCampaign.client ? String(activeCampaign.client) : "",
+          vendor: activeCampaign.vendor ? String(activeCampaign.vendor) : "",
           objective: activeCampaign.objective || "Promotion",
           audienceType: "specify",
           contactNumber: "",
@@ -133,7 +133,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
         setFormData({
           campaignName: "",
-          client: "",
+          vendor: "",
           objective: "Promotion",
           audienceType: "specify",
           contactNumber: "",
@@ -207,8 +207,8 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       toast.error("Campaign name is required.");
       return;
     }
-    if (!formData.client.trim()) {
-      toast.error("Client is required.");
+    if (!formData.vendor.trim()) {
+      toast.error("Vendor is required.");
       return;
     }
 
@@ -231,7 +231,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     try {
       const dataToUpload = new FormData();
       dataToUpload.append("name", formData.campaignName);
-      dataToUpload.append("client", formData.client);
+      dataToUpload.append("vendor", formData.vendor);
       dataToUpload.append("objective", formData.objective);
       dataToUpload.append("content", quillContent);
 
@@ -261,15 +261,15 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
         dataToUpload.append("csvFile", csvFile);
       }
 
-      await createCampaignApi(dataToUpload, moduleName);
-      toast.success("Campaign created successfully!");
+      await createCampaignVendorApi(dataToUpload, moduleName);
+      toast.success("Vendor campaign created successfully!");
 
       onSuccess();
       onClose();
 
       setFormData({
         campaignName: "",
-        client: "",
+        vendor: "",
         objective: "Promotion",
         audienceType: "specify",
         contactNumber: "",
@@ -290,7 +290,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
           toast.error(`${key}: ${Array.isArray(msgs) ? msgs[0] : msgs}`);
         });
       } else {
-        toast.error("Failed to save campaign.");
+        toast.error("Failed to save vendor campaign.");
       }
     } finally {
       setIsSubmitting(false);
@@ -303,7 +303,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isViewMode ? "View Campaign" : "Create New Campaign"}
+      title={isViewMode ? "View Vendor Campaign" : "Create New Vendor Campaign"}
       className="max-w-3xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
@@ -318,11 +318,11 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Select
-            label="Client"
-            value={formData.client}
-            onChange={(v) => handleSelectChange("client", v)}
-            options={clientOptions}
-            placeholder="Select Client"
+            label="Vendor"
+            value={formData.vendor}
+            onChange={(v) => handleSelectChange("vendor", v)}
+            options={vendorOptions}
+            placeholder="Select Vendor"
             required
             disabled={isViewMode}
           />
@@ -465,4 +465,4 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
   );
 };
 
-export default CampaignModal;
+export default VendorCampaignModal;

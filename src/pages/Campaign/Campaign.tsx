@@ -3,7 +3,6 @@ import {
   Home,
   Plus,
   Trash,
-  Edit,
   Megaphone,
   Calendar,
   Eye,
@@ -70,7 +69,7 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["name", "objective", "content"];
+const DEFAULT_SEARCH_COLUMNS = ["name", "clientName", "objective", "content"];
 const DEFAULT_TABLE_COLUMNS = [
   "name",
   "clientName",
@@ -81,14 +80,14 @@ const DEFAULT_TABLE_COLUMNS = [
 ];
 
 const CampaignList: React.FC = () => {
-  const { canCreate, canUpdate, canDelete } = usePagePermissions();
+  const { canCreate, canDelete } = usePagePermissions();
   const [campaigns, setCampaigns] = useState<CampaignFormData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // --- Modal States ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCampaign, setEditingCampaign] =
+  const [selectedCampaign, setSelectedCampaign] =
     useState<CampaignFormData | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -161,7 +160,7 @@ const CampaignList: React.FC = () => {
       key: "clientName",
       label: "Client",
       type: "text",
-      isSearchable: false,
+      filterKey: "client__name__icontains",
       render: (c) => c.clientName || "-",
     },
     {
@@ -289,7 +288,6 @@ const CampaignList: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-21T00:00:00,2026-08-21T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
@@ -375,22 +373,15 @@ const CampaignList: React.FC = () => {
     }
   };
 
-  const handleEdit = (campaign: CampaignFormData) => {
-    if (!canUpdate) return;
-    setEditingCampaign(campaign);
-    setIsViewMode(false);
-    setIsModalOpen(true);
-  };
-
   const handleAdd = () => {
     if (!canCreate) return;
-    setEditingCampaign(null);
+    setSelectedCampaign(null);
     setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleView = (campaign: CampaignFormData) => {
-    setEditingCampaign(campaign);
+    setSelectedCampaign(campaign);
     setIsViewMode(true);
     setIsModalOpen(true);
   };
@@ -412,15 +403,6 @@ const CampaignList: React.FC = () => {
           icon: <Eye size={16} />,
           onClick: () => handleView(selectedRowCampaign),
         },
-        ...(canUpdate
-          ? [
-              {
-                label: "Edit Campaign",
-                icon: <Edit size={16} />,
-                onClick: () => handleEdit(selectedRowCampaign),
-              },
-            ]
-          : []),
         ...(canDelete
           ? [
               {
@@ -640,7 +622,7 @@ const CampaignList: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchCampaigns}
         moduleName={routeName}
-        editingCampaign={editingCampaign}
+        selectedCampaign={selectedCampaign}
         isViewMode={isViewMode}
       />
 

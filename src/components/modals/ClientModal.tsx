@@ -338,12 +338,19 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       toast.error("Invoice Policy is required.");
       return;
     }
+
+    // --- SMPP Credentials Validation ---
     if (!formData.smppUsername.trim()) {
       toast.error("SMPP Username is required.");
       return;
     }
+
     if (!formData.smppPassword.trim()) {
       toast.error("SMPP Password is required.");
+      return;
+    }
+    if (formData.smppPassword.trim().length > 8) {
+      toast.error("SMPP Password must not exceed 8 characters.");
       return;
     }
 
@@ -626,6 +633,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.smppUsername}
               onChange={handleChange}
               disabled={isViewMode}
+              placeholder="System ID"
               required
             />
             <Input
@@ -635,6 +643,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               value={formData.smppPassword}
               onChange={handleChange}
               disabled={isViewMode}
+              placeholder="Max. 8 characters"
+              maxLength={8}
               required
               rightIcon={
                 <button
