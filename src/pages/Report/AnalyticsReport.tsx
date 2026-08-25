@@ -49,11 +49,12 @@ const formatLocalDateTime = (date: Date) => {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 };
 
-const DEFAULT_SEARCH_COLUMNS = ["date", "date__gt_lt"];
+const DEFAULT_SEARCH_COLUMNS = ["client_company", "date", "date__gt_lt"];
 const BATCH_SIZE = 50;
 const LOAD_MORE_THRESHOLD_PX = 200;
 
 const allColumns: ColumnConfig[] = [
+  { key: "client_company", label: "Company", type: "text", filterKey: "client_company" },
   { key: "date", label: "Date (Exact)", type: "date" },
   { key: "date__gt_lt", label: "Date (After / Before)", type: "date_gt_lt", isSearchOnly: true },
   // { key: "date__gt", label: "Date After (>)", type: "date" },
@@ -560,57 +561,52 @@ const AnalyticsReport: React.FC = () => {
           const baseLabel = getBaseLabel(col.label);
           if (col.type === "date") {
             return (
-              <div key={col.key} className="col-span-1 md:col-span-2 lg:col-span-2">
-                <DatePicker
-                  label={`Search ${baseLabel}`}
-                  showTimeSelect={true}
-                  selected={
-                    filterValues[col.key] ? new Date(filterValues[col.key]) : null
-                  }
-                  onChange={(val: Date | null) =>
-                    handleFilterChange(col.key, val ? formatLocalDateTime(val) : "")
-                  }
-                  placeholder="Select Date & Time"
-                />
-              </div>
+              <DatePicker
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                showTimeSelect={true}
+                selected={
+                  filterValues[col.key] ? new Date(filterValues[col.key]) : null
+                }
+                onChange={(val: Date | null) =>
+                  handleFilterChange(col.key, val ? formatLocalDateTime(val) : "")
+                }
+                placeholder="Select Date & Time"
+              />
             );
           }
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (
               <React.Fragment key={col.key}>
-                <div className="col-span-1 md:col-span-2 lg:col-span-2">
-                  <DatePicker
-                    label={`Search ${baseLabel} (> After)`}
-                    showTimeSelect={true}
-                    selected={gtStr ? new Date(gtStr) : null}
-                    onChange={(val: Date | null) => {
-                      const newGt = val ? formatLocalDateTime(val) : "";
-                      const currentLt = ltStr || "";
-                      handleFilterChange(
-                        col.key,
-                        newGt || currentLt ? `${newGt},${currentLt}` : "",
-                      );
-                    }}
-                    placeholder="Select Date & Time"
-                  />
-                </div>
-                <div className="col-span-1 md:col-span-2 lg:col-span-2">
-                  <DatePicker
-                    label={`Search ${baseLabel} (< Before)`}
-                    showTimeSelect={true}
-                    selected={ltStr ? new Date(ltStr) : null}
-                    onChange={(val: Date | null) => {
-                      const newLt = val ? formatLocalDateTime(val) : "";
-                      const currentGt = gtStr || "";
-                      handleFilterChange(
-                        col.key,
-                        currentGt || newLt ? `${currentGt},${newLt}` : "",
-                      );
-                    }}
-                    placeholder="Select Date & Time"
-                  />
-                </div>
+                <DatePicker
+                  label={`Search ${baseLabel} (> After)`}
+                  showTimeSelect={true}
+                  selected={gtStr ? new Date(gtStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newGt = val ? formatLocalDateTime(val) : "";
+                    const currentLt = ltStr || "";
+                    handleFilterChange(
+                      col.key,
+                      newGt || currentLt ? `${newGt},${currentLt}` : "",
+                    );
+                  }}
+                  placeholder="Select Date & Time"
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (< Before)`}
+                  showTimeSelect={true}
+                  selected={ltStr ? new Date(ltStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newLt = val ? formatLocalDateTime(val) : "";
+                    const currentGt = gtStr || "";
+                    handleFilterChange(
+                      col.key,
+                      currentGt || newLt ? `${currentGt},${newLt}` : "",
+                    );
+                  }}
+                  placeholder="Select Date & Time"
+                />
               </React.Fragment>
             );
           }
@@ -818,7 +814,7 @@ const AnalyticsReport: React.FC = () => {
                                           <td className="px-2 py-1"><DataBarCell value={vendorRow.failed} max={maxAttempts} type="danger" /></td>
                                           <td className="px-2 py-1"><DataBarCell value={vendorRow.revenue} max={maxRevenue} type="currency" /></td>
                                           <td className="px-2 py-1"><DataBarCell value={vendorRow.vendor_cost} max={maxRevenue} type="currency" /></td>
-                                          <td className="px-2 py-1"><DataBarCell value={vendorRow.margin_usd} max={maxRevenue} type="currency" /></td>
+                                          <td className="px-2 py-1"><DataBarCell value={vendorRow.marginUsd} max={maxRevenue} type="currency" /></td>
                                           <td className="px-2 py-1"><MarginPctCell pct={vendorRow.margin_percent} /></td>
                                         </tr>
                                       );
