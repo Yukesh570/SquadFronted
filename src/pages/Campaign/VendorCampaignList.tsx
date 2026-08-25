@@ -18,7 +18,7 @@ import {
 } from "../../api/campaignApi/campaignVendorApi";
 
 // --- Components ---
-import { VendorCampaignModal } from "../../components/modals/VendorCampaignModal";
+import { VendorCampaignModal } from "../../components/modals/Campaign/VendorCampaignModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";

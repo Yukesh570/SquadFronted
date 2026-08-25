@@ -13,7 +13,8 @@ import Button from "../ui/Button";
 import Select from "../ui/Select";
 import Modal from "../ui/Modal";
 import type { LucideProps } from "lucide-react";
-import ToggleSwitch from "../ui/ToggleSwitch"; // ⚡️ ADD THIS
+import ToggleSwitch from "../ui/ToggleSwitch";
+
 interface ModuleModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -46,7 +47,6 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
   });
 
   const [parentOptions, setParentOptions] = useState<Option[]>([]);
-  const [allModules, setAllModules] = useState<SideBarApi[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showIconModal, setShowIconModal] = useState(false);
@@ -70,8 +70,6 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
         let list: SideBarApi[] = [];
         if (res && res.results) list = res.results;
         else if (Array.isArray(res)) list = res;
-
-        setAllModules(list);
 
         setParentOptions(
           list.map((m) => ({ label: m.label, value: String(m.id) })),
@@ -108,44 +106,20 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
   const handleToggle = (name: string, value: boolean) => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
+
   const handleSelect = (name: string, value: string) => {
-    if (name === "parent") {
-      let newUrl = formData.url;
-
-      if (formData.url) {
-        const parts = formData.url.split("/").filter((p) => p !== "");
-        const leafSlug =
-          parts.length > 0 ? parts[parts.length - 1] : formData.url;
-
-        if (value) {
-          const parentMod = allModules.find((m) => String(m.id) === value);
-          if (parentMod) {
-            const parentPath = parentMod.url.replace(/^\/+|\/+$/g, "");
-            newUrl = `${parentPath}/${leafSlug}`;
-          }
-        } else {
-          newUrl = leafSlug;
-        }
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        parent: value,
-        url: newUrl,
-        order: "",
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === "parent" ? { order: "" } : {}),
+    }));
   };
 
   const handleOpenIconModal = (e: React.MouseEvent) => {
@@ -372,3 +346,5 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
     </>
   );
 };
+
+export default ModuleModal;

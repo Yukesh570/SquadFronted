@@ -1,21 +1,21 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Send, Upload, Clock, Phone, Zap, FileSpreadsheet } from "lucide-react";
-import Input from "../ui/Input";
-import Button from "../ui/Button";
-import Select from "../ui/Select";
-import SegmentedControl from "../ui/SegmentedControl";
-import CustomDatePicker from "../ui/DatePicker";
-import Modal from "../ui/Modal";
+import Input from "../../ui/Input";
+import Button from "../../ui/Button";
+import Select from "../../ui/Select";
+import SegmentedControl from "../../ui/SegmentedControl";
+import CustomDatePicker from "../../ui/DatePicker";
+import Modal from "../../ui/Modal";
 import { toast } from "react-toastify";
 import {
   createCampaignApi,
   getTemplatesApi,
   type CampaignFormData,
-} from "../../api/campaignApi/campaignApi";
+} from "../../../api/campaignApi/campaignApi";
 // @ts-ignore
 import ReactQuill from "react-quill-new";
 import "../../quillDark.css";
-import { getClientsApi } from "../../api/clientApi/clientApi";
+import { getClientsApi } from "../../../api/clientApi/clientApi";
 
 interface CampaignModalProps {
   isOpen: boolean;

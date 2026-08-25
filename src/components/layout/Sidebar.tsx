@@ -53,7 +53,7 @@ const Sidebar = ({ isCollapsed, isMobileOpen, closeMobileSidebar }: SidebarProps
     }
   }, [location.pathname, navItems]);
 
-  // Auto-scroll active item into view when route or opened accordion state changes
+  // Auto-scroll active item into view only on route change
   useEffect(() => {
     const timer = setTimeout(() => {
       if (navRef.current) {
@@ -69,7 +69,7 @@ const Sidebar = ({ isCollapsed, isMobileOpen, closeMobileSidebar }: SidebarProps
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [location.pathname, openItems]);
+  }, [location.pathname]);
 
   const toggleItem = (id?: number) => {
     if (!id) return;
