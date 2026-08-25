@@ -73,7 +73,7 @@ const componentMap: Record<string, JSX.Element> = {
   role: <PermissionsTable />,
   changePassword: <ChangePassword />,
   template: <TemplatePage />,
-  campaign: <CreateCampaignForm />,
+  clientcampaign: <CreateCampaignForm />,
   smtp: <SmtpServer />,
   imap: <ImapServer />,
   emailTemplate: <EmailTemplatePage />,

@@ -18,7 +18,7 @@ import {
 } from "../../api/campaignApi/campaignApi";
 
 // --- Components ---
-import CampaignModal from "../../components/modals/CampaignModal";
+import CampaignModal from "../../components/modals/Campaign/CampaignModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -334,7 +334,7 @@ const CampaignList: React.FC = () => {
     } catch (error: any) {
       if (error.name !== "AbortError") {
         console.error("Fetch error:", error);
-        toast.error("Failed to fetch campaigns");
+        toast.error("Failed to fetch client campaigns");
       }
     } finally {
       if (abortControllerRef.current === newController) setIsLoading(false);
@@ -364,10 +364,10 @@ const CampaignList: React.FC = () => {
     if (deleteId && canDelete) {
       try {
         await deleteCampaignApi(deleteId, routeName);
-        toast.success("Campaign deleted.");
+        toast.success("Client campaign deleted.");
         fetchCampaigns();
       } catch (error) {
-        toast.error("Failed to delete campaign.");
+        toast.error("Failed to delete client campaign.");
       }
       setDeleteId(null);
     }
@@ -406,7 +406,7 @@ const CampaignList: React.FC = () => {
         ...(canDelete
           ? [
               {
-                label: "Delete Campaign",
+                label: "Delete Client Campaign",
                 icon: <Trash size={16} />,
                 variant: "danger" as const,
                 onClick: () => setDeleteId(selectedRowCampaign.id!),
@@ -441,7 +441,7 @@ const CampaignList: React.FC = () => {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
-            Campaigns
+            Client Campaigns
           </h1>
           <div className="relative z-20">
             <AdvancedFilter
@@ -481,7 +481,7 @@ const CampaignList: React.FC = () => {
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary dark:text-white">Campaigns</span>
+          <span className="text-text-primary dark:text-white">Client Campaigns</span>
         </div>
       </div>
 
@@ -586,7 +586,7 @@ const CampaignList: React.FC = () => {
               onClick={handleAdd}
               leftIcon={<Plus size={18} />}
             >
-              Create Campaign
+              Create Client Campaign
             </Button>
           ) : null
         }
@@ -630,8 +630,8 @@ const CampaignList: React.FC = () => {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Campaign"
-        message="Are you sure you want to delete this campaign? This action cannot be undone."
+        title="Delete Client Campaign"
+        message="Are you sure you want to delete this client campaign? This action cannot be undone."
       />
     </div>
   );
