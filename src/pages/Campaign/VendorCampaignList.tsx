@@ -18,7 +18,7 @@ import {
 } from "../../api/campaignApi/campaignVendorApi";
 
 // --- Components ---
-import { VendorCampaignModal } from "../../components/modals/Campaign/VendorCampaignModal";
+import { VendorCampaignModal } from "../../components/modals/VendorCampaignModal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
@@ -405,22 +405,22 @@ const VendorCampaignList: React.FC = () => {
 
   const menuItems: ContextMenuItem[] = selectedRowCampaign
     ? [
-        {
-          label: "View Details",
-          icon: <Eye size={16} />,
-          onClick: () => handleView(selectedRowCampaign),
-        },
-        ...(canDelete
-          ? [
-              {
-                label: "Delete Campaign",
-                icon: <Trash size={16} />,
-                variant: "danger" as const,
-                onClick: () => setDeleteId(selectedRowCampaign.id!),
-              },
-            ]
-          : []),
-      ]
+      {
+        label: "View Details",
+        icon: <Eye size={16} />,
+        onClick: () => handleView(selectedRowCampaign),
+      },
+      ...(canDelete
+        ? [
+          {
+            label: "Delete Campaign",
+            icon: <Trash size={16} />,
+            variant: "danger" as const,
+            onClick: () => setDeleteId(selectedRowCampaign.id!),
+          },
+        ]
+        : []),
+    ]
     : [];
 
   const getBaseLabel = (label: string) => label.split(" (")[0].trim();
