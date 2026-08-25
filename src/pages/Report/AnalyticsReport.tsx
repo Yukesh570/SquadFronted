@@ -643,8 +643,8 @@ const AnalyticsReport: React.FC = () => {
                   type="button"
                   onClick={() => handlePresetClick(preset.key)}
                   className={`px-3 py-1 text-xs font-medium rounded-lg border transition-all duration-200 focus:outline-none shadow-xs ${isActive
-                      ? "bg-primary text-white border-primary dark:bg-primary dark:border-primary"
-                      : "bg-white text-text-secondary border-gray-200 hover:border-primary hover:text-primary dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary"
+                    ? "bg-primary text-white border-primary dark:bg-primary dark:border-primary"
+                    : "bg-white text-text-secondary border-gray-200 hover:border-primary hover:text-primary dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary"
                     }`}
                 >
                   {preset.label}
