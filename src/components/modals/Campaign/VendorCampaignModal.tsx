@@ -14,7 +14,7 @@ import {
 } from "../../../api/campaignApi/campaignVendorApi";
 // @ts-ignore
 import ReactQuill from "react-quill-new";
-import "../../../quillDark.css";
+import "../../quillDark.css";
 import { getVendorsApi } from "../../../api/connectivityApi/vendorApi";
 
 interface VendorCampaignModalProps {
