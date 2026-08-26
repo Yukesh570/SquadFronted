@@ -36,7 +36,7 @@ import { MessageReportModal } from "../../components/modals/Report/MessageReport
 import { SubRouteTableModal } from "../../components/modals/RouteManager/SubRouteTableModal";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
-import { DownloadReportModal } from "../../components/modals/Report/DownloadCSVModal";
+import { DownloadReportModal } from "../../components/modals/Report/DownloadModalCSV";
 
 interface Option {
   label: string;
