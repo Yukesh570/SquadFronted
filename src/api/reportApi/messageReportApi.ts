@@ -69,3 +69,15 @@ export const exportMessageLogsApi = async (
   });
   return response.data;
 };
+
+
+export const downloadCSVApi = async (
+  module: string,
+  searchParams?: Record<string, any>,
+) => {
+  // Remove responseType: "blob" here!
+  const response = await api.get(`/smppSMS/${module}/downloadCsv/`, {
+    params: searchParams,
+  });
+  return response.data; // This will now correctly be the { task_id: ... } JSON
+};
