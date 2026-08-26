@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Home, Eye, Route } from "lucide-react";
+import { Home, Eye, Route, Download } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -36,6 +36,7 @@ import { MessageReportModal } from "../../components/modals/Report/MessageReport
 import { SubRouteTableModal } from "../../components/modals/RouteManager/SubRouteTableModal";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { usePagePermissions } from "../../hooks/usePagePermissions";
+import { DownloadReportModal } from "../../components/modals/Report/DownloadCSVModal";
 
 interface Option {
   label: string;
@@ -151,6 +152,7 @@ const MessageReport: React.FC = () => {
   const [activeRouteGroupId, setActiveRouteGroupId] = useState<number | null>(null);
   const [activeCountryName, setActiveCountryName] = useState<string | null>(null);
   const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRowLog, setSelectedRowLog] = useState<MessageLogData | null>(null);
@@ -680,6 +682,13 @@ const MessageReport: React.FC = () => {
         onClick: () => handleOpenRouteModal(selectedRowLog),
       },
     ] : []),
+    {
+      label: "Download CSV Report",
+      icon: <Download size={16} />,
+      onClick: () => {
+        setIsDownloadModalOpen(true);
+      },
+    },
   ] : [];
 
   const hasLoggedOpening = useRef(false);
@@ -913,6 +922,12 @@ const MessageReport: React.FC = () => {
         moduleName="customRoute"
         canUpdate={canUpdate}
         canDelete={canDelete}
+      />
+
+      <DownloadReportModal
+        isOpen={isDownloadModalOpen}
+        onClose={() => setIsDownloadModalOpen(false)}
+        moduleName={moduleName}
       />
     </div>
   );
