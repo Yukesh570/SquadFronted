@@ -202,7 +202,6 @@ const Entity: React.FC = () => {
             const selectedOption = columnDef.options.find((opt: Option) => opt.value === value);
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-21T00:00:00,2026-08-21T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
@@ -283,6 +282,7 @@ const Entity: React.FC = () => {
         toast.error("Failed to delete entity.");
       }
       setDeleteId(null);
+      setSelectedRowEntity(null);
     }
   };
 
@@ -330,6 +330,10 @@ const Entity: React.FC = () => {
       hasLoggedOpening.current = true;
     }
   }, []);
+
+  const entityIdentifier = selectedRowEntity
+    ? selectedRowEntity.companyName || selectedRowEntity.legalEntityName || `Entity #${selectedRowEntity.id}`
+    : "";
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -517,10 +521,13 @@ const Entity: React.FC = () => {
       />
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowEntity(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Entity"
-        message="Are you sure you want to delete this entity? This action cannot be undone."
+        message={`Are you sure you want to delete entity "${entityIdentifier}"? This action cannot be undone.`}
       />
     </div>
   );

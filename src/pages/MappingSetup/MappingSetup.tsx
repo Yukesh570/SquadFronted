@@ -244,7 +244,6 @@ const MappingSetup: React.FC = () => {
                 : selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey
               .replace(/__exact$/, "")
@@ -325,6 +324,7 @@ const MappingSetup: React.FC = () => {
         toast.error("Failed to delete mapping.");
       }
       setDeleteId(null);
+      setSelectedRowMapping(null);
     }
   };
 
@@ -598,10 +598,13 @@ const MappingSetup: React.FC = () => {
       />
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowMapping(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Mapping Setup"
-        message="Are you sure you want to delete this mapping setup? This action cannot be undone."
+        message={`Are you sure you want to delete mapping setup "${selectedRowMapping?.name || ""}"? This action cannot be undone.`}
       />
     </div>
   );

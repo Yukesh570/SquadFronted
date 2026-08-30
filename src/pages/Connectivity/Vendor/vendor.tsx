@@ -237,7 +237,7 @@ const Vendor: React.FC = () => {
     { label: "suspended", value: "SUSPENDED" },
   ];
 
-  /*
+   /*
   const logLevelOptions: Option[] = [
     { label: "DEBUG", value: "DEBUG" },
     { label: "INFO", value: "INFO" },
@@ -370,7 +370,7 @@ const Vendor: React.FC = () => {
       type: "number",
       filterKey: "vendorPolicy__rateTps",
       render: (c) => c.vendorPolicy?.rateTps ?? "-"
-    },
+    }, 
     // {
     //   key: "logLevel",
     //   label: "Log Level",
@@ -467,7 +467,6 @@ const Vendor: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
@@ -546,6 +545,7 @@ const Vendor: React.FC = () => {
         toast.error("Failed to delete vendor.");
       }
       setDeleteId(null);
+      setSelectedRowVendor(null);
     }
   };
 
@@ -968,10 +968,13 @@ const Vendor: React.FC = () => {
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowVendor(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Vendor"
-        message="Are you sure you want to delete this vendor? This action cannot be undone."
+        message={`Are you sure you want to delete vendor "${selectedRowVendor?.profileName || ""}"? This action cannot be undone.`}
       />
     </div>
   );

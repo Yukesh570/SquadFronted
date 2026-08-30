@@ -292,7 +292,6 @@ const ClientInvoice: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
@@ -358,6 +357,7 @@ const ClientInvoice: React.FC = () => {
         toast.error("Failed to delete.");
       }
       setDeleteId(null);
+      setSelectedRow(null);
     }
   };
 
@@ -758,10 +758,13 @@ const ClientInvoice: React.FC = () => {
       />
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRow(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Invoice"
-        message="Are you sure you want to delete this invoice?"
+        message={`Are you sure you want to delete invoice "${selectedRow?.invoiceNumber || ""}"? This action cannot be undone.`}
       />
       <ClientInvoiceViewClientModal
         isOpen={isViewClientModalOpen}

@@ -292,7 +292,6 @@ const InvoiceSetup: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey
               .replace(/__exact$/, "")
@@ -377,6 +376,7 @@ const InvoiceSetup: React.FC = () => {
         toast.error("Failed to delete setup.");
       }
       setDeleteId(null);
+      setSelectedRow(null);
     }
   };
 
@@ -695,10 +695,13 @@ const InvoiceSetup: React.FC = () => {
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRow(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Setup"
-        message="Are you sure you want to delete this invoice setup? This action cannot be undone."
+        message={`Are you sure you want to delete invoice setup for "${selectedRow?.companyName || (selectedRow as any)?.company || ""}"? This action cannot be undone.`}
       />
     </div>
   );

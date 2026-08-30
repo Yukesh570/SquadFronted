@@ -377,6 +377,7 @@ const VendorCampaignList: React.FC = () => {
         toast.error("Failed to delete vendor campaign.");
       }
       setDeleteId(null);
+      setSelectedRowCampaign(null);
     }
   };
 

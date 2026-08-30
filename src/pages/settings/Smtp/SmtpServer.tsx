@@ -262,7 +262,6 @@ const SmtpServer: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-21T00:00:00,2026-08-21T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
@@ -344,6 +343,7 @@ const SmtpServer: React.FC = () => {
         toast.error("Failed to delete host.");
       }
       setDeleteId(null);
+      setSelectedRowServer(null);
     }
   };
 
@@ -381,6 +381,10 @@ const SmtpServer: React.FC = () => {
       hasLoggedOpening.current = true;
     }
   }, []);
+
+  const smtpServerIdentifier = selectedRowServer
+    ? selectedRowServer.name || selectedRowServer.smtpHost || `SMTP Server #${selectedRowServer.id}`
+    : "";
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -577,10 +581,13 @@ const SmtpServer: React.FC = () => {
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowServer(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Host"
-        message="Are you sure you want to delete this email host? This action cannot be undone."
+        message={`Are you sure you want to delete SMTP server "${smtpServerIdentifier}"? This action cannot be undone.`}
       />
     </div>
   );

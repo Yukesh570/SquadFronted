@@ -266,6 +266,7 @@ const AllNotifications: React.FC = () => {
         toast.error("Failed to delete notification.");
       }
       setDeleteId(null);
+      setSelectedRow(null);
     }
   };
 
@@ -465,10 +466,13 @@ const AllNotifications: React.FC = () => {
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRow(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Notification"
-        message="Are you sure you want to delete this notification? It will be permanently removed from your history."
+        message={`Are you sure you want to delete notification "${selectedRow?.title || ""}"? It will be permanently removed from your history.`}
       />
     </div>
   );

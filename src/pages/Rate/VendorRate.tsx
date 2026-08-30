@@ -256,7 +256,6 @@ const VendorRate: React.FC = () => {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
@@ -319,6 +318,7 @@ const VendorRate: React.FC = () => {
         fetchGroupedRates();
       } catch (error) { toast.error("Failed to delete group."); }
       setDeleteId(null);
+      setSelectedRowGroup(null);
     }
   };
 
@@ -465,7 +465,16 @@ const VendorRate: React.FC = () => {
         timezoneMap={timezoneMap}
       />
 
-      <DeleteModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Rate Group" message="Are you sure you want to delete this Rate Group? All rates inside it will be affected." />
+      <DeleteModal 
+        isOpen={!!deleteId} 
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowGroup(null);
+        }} 
+        onConfirm={handleDelete} 
+        title="Delete Rate Group" 
+        message={`Are you sure you want to delete vendor rate group "${selectedRowGroup?.name || ""}"? All rates inside it will be affected.`} 
+      />
     </div>
   );
 };

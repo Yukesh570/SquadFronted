@@ -354,6 +354,7 @@ const VendorInvoice: React.FC = () => {
         toast.error("Failed to delete.");
       }
       setDeleteId(null);
+      setSelectedRow(null);
     }
   };
 
@@ -754,10 +755,13 @@ const VendorInvoice: React.FC = () => {
       />
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRow(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Invoice"
-        message="Are you sure you want to delete this invoice?"
+        message={`Are you sure you want to delete invoice "${selectedRow?.invoiceNumber || ""}"? This action cannot be undone.`}
       />
       <VendorInvoiceViewVendorModal
         isOpen={isViewVendorModalOpen}

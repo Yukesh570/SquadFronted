@@ -199,6 +199,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
         toast.error("Failed to delete rate.");
       }
       setDeleteId(null);
+      setSelectedRate(null);
     }
   };
 
@@ -242,7 +243,6 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
         errorMsg = Array.isArray(firstVal) ? firstVal[0] : String(firstVal);
       }
 
-      // Check if message is "No new rates found to export." to render with toast.info
       if (errorMsg.toLowerCase().includes("no new rates found to export")) {
         toast.info(errorMsg);
       } else {
@@ -289,6 +289,10 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
       </div>
     );
   };
+
+  const rateItemName = selectedRate
+    ? selectedRate.countryName || countryMap[String(selectedRate.country)] || selectedRate.network || `MCC: ${selectedRate.MCC || "-"}`
+    : "";
 
   return (
     <>
@@ -436,7 +440,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
         <ContextMenu
           position={contextMenuPos}
           items={menuItems}
-          onClose={() => { setContextMenuPos(null); setSelectedRate(null); }}
+          onClose={() => setContextMenuPos(null)}
         />
       </Modal>
 
@@ -505,10 +509,13 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRate(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Customer Rate"
-        message="Are you sure you want to delete this specific rate? This action cannot be undone."
+        message={`Are you sure you want to delete rate for "${rateItemName}"? This action cannot be undone.`}
       />
 
       <CustomerRateModal

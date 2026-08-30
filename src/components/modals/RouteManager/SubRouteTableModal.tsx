@@ -253,7 +253,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
             variant: "danger" as const,
             onClick: () => {
               const vendorMatch = vendorOptions.find(v => String(v.value) === String(selectedRoute.terminatingVendor));
-              const displayName = selectedRoute.name || vendorMatch?.label || `Route #${selectedRoute.id}`;
+              const displayName = selectedRoute.name || (selectedRoute as any).terminatingVendorProfileName || vendorMatch?.label || `Route #${selectedRoute.id}`;
               setDeleteRouteData({
                 id: selectedRoute.id!,
                 name: displayName,
@@ -545,6 +545,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       toast.success("Route deleted successfully.");
       fetchSectionRoutes(deleteRouteData.countryId);
       setDeleteRouteData(null);
+      setSelectedRoute(null);
     } catch {
       toast.error("Failed to delete route.");
     }
@@ -1686,7 +1687,6 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                             </td>
                                             <td className="px-3 py-1.5 border-b border-r dark:border-gray-700 text-xs text-gray-500 font-mono">
                                               {row.vendorRate ? (row.vendorRate === "N/A" || row.vendorRate === "Error" ? <span className="text-red-400">{row.vendorRate}</span> : <span>{row.vendorRate} {row.vendorCurrencyCode || ''}</span>) : "—"}
-                                              {row.vendorRate ? (row.vendorRate === "N/A" || row.vendorRate === "Error" ? <span className="text-red-400">{row.vendorRate}</span> : <span>{row.vendorRate} {row.vendorCurrencyCode || ''}</span>) : "—"}
                                             </td>
                                             <td className={`px-3 py-1.5 border-b border-r dark:border-gray-700 font-mono text-xs text-center ${rowMargin !== null ? (rowMargin < 0 ? 'text-red-500 font-medium' : rowMargin > 0 ? 'text-green-600 font-medium' : 'text-gray-500') : 'text-gray-500'}`}>
                                               {rowMargin !== null ? `${rowMargin.toFixed(6)} ${row.baseCurrencyCode || ''}` : "—"}
@@ -1831,7 +1831,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                                                 <button
                                                   type="button"
                                                   onClick={() => {
-                                                    const displayName = route.name || vendorName || `Route #${route.id}`;
+                                                    const displayName = route.name || (route as any).terminatingVendorProfileName || vendorName || `Route #${route.id}`;
                                                     setDeleteRouteData({
                                                       id: route.id!,
                                                       name: displayName,
@@ -1913,10 +1913,13 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       {/* DYNAMIC DELETE ROUTE MODAL */}
       <DeleteModal
         isOpen={!!deleteRouteData}
-        onClose={() => setDeleteRouteData(null)}
+        onClose={() => {
+          setDeleteRouteData(null);
+          setSelectedRoute(null);
+        }}
         onConfirm={handleDeleteRoute}
         title="Delete Route"
-        message={deleteRouteData ? `Are you sure you want to delete route "${deleteRouteData.name}"? This action cannot be undone.` : "Are you sure you want to delete this route?"}
+        message={`Are you sure you want to delete route "${deleteRouteData?.name || "this route"}"? This action cannot be undone.`}
       />
 
       {/* DYNAMIC DELETE COUNTRY CONFIG MODAL */}
@@ -1925,7 +1928,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
         onClose={() => setDeleteConfigData(null)}
         onConfirm={handleDeleteConfig}
         title="Remove Country"
-        message={deleteConfigData ? `Are you sure you want to remove routing configuration for "${deleteConfigData.countryName}"? Its routes will no longer be active.` : "Remove this country's routing configuration?"}
+        message={`Are you sure you want to remove routing configuration for "${deleteConfigData?.countryName || "this country"}"? Its routes will no longer be active.`}
       />
 
       <style dangerouslySetInnerHTML={{
@@ -1959,3 +1962,5 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
     </>
   );
 };
+
+export default SubRouteTableModal;

@@ -168,6 +168,7 @@ const ModuleList: React.FC = () => {
         toast.error("Failed to delete module.");
       }
       setDeleteId(null);
+      setSelectedRowModule(null);
     }
   };
 
@@ -337,10 +338,13 @@ const ModuleList: React.FC = () => {
       />
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowModule(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Module"
-        message="Are you sure you want to delete this module? This action cannot be undone."
+        message={`Are you sure you want to delete module "${selectedRowModule?.label || ""}"? This action cannot be undone.`}
       />
     </div>
   );

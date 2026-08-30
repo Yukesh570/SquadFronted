@@ -1,3 +1,4 @@
+import React, { useContext, useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import Login from "../pages/Auth/Login";
@@ -29,7 +30,6 @@ import MappingSetup from "../pages/MappingSetup/MappingSetup";
 import UserLog from "../pages/UserLog/UserLog";
 import CustomRoute from "../pages/RouteManager/CustomRoute";
 import { NavItemsContext } from "../context/navItemsContext";
-import { useContext, useState, useEffect, type JSX } from "react";
 import TimeZone from "../pages/settings/Timezone/Timezone";
 import NotFound from "../pages/error/notFound";
 import LiveTraffic from "../pages/Report/LiveTraffic";
@@ -67,108 +67,103 @@ import AnalyticsReport from "../pages/Report/AnalyticsReport";
 import UserCreation from "../pages/UserCreation/UserCreation";
 import VendorCampaignList from "../pages/Campaign/VendorCampaignList";
 
-const componentMap: Record<string, JSX.Element> = {
-  dashboard: <Dashboard />,
-  createSidebar: <CreateSidebar />,
-  role: <PermissionsTable />,
-  changePassword: <ChangePassword />,
-  template: <TemplatePage />,
-  clientcampaign: <CreateCampaignForm />,
-  smtp: <SmtpServer />,
-  imap: <ImapServer />,
-  emailTemplate: <EmailTemplatePage />,
-  sendMail: <SendMailPage />,
-  country: <Country />,
-  state: <State />,
-  currency: <Currency />,
-  entity: <Entity />,
-  companyCategory: <CompanyCategory />,
-  companyStatus: <CompanyStatus />,
-  timeZone: <TimeZone />,
-  company: <Company />,
-  vendor: <Vendor />,
-  smpp: <Smpp />,
-  client: <Client />,
-  vendorRate: <VendorRate />,
-  customerRate: <CustomerRate />,
-  mappingSetup: <MappingSetup />,
-  // operators: <Operators />,
-  userLog: <UserLog />,
-  userAction: <UserAction />,
-  customRoute: <CustomRoute />,
-  liveTraffic: <LiveTraffic />,
-  messageReport: <MessageReport />,
-  addCredit: <AddCredit />,
-  detailedReport: <DetailedReport />,
-  clientTransaction: <ClientTransaction />,
-  vendorTransaction: <VendorTransaction />,
-  invoiceSetup: <InvoiceSetup />,
-  clientInvoice: <ClientInvoice />,
-  generateClientInvoice: <GenerateClientInvoice />,
-  vendorInvoice: <VendorInvoice />,
-  generateVendorInvoice: <GenerateVendorInvoice />,
-  messageAttempt: <MessageAttempt />,
-  dlrEvent: <DLREvent />,
-  rejectedSMSLog: <RejectedSMSLog />,
-  smsMessagePart: <SmsMessagePart />,
-  operatorNetworkCode: <OperatorNetworkCode />,
-  clientSession: <ClientSession />,
-  generalSettings: <GeneralSettings />,
-  currencyExchangeRate: <CurrencyExchangeRate />,
-  serverInfo: <ServerInfo />,
-  emailSource: <EmailSource />,
-  importAttachment: <ImportAttachment />,
-  importAudit: <ImportAudit />,
-  importBatch: <ImportBatch />,
-  importMail: <ImportMail />,
-  importRow: <ImportRow />,
-  mccMncPrefixRange: <MccMncPrefixRange />,
-  mccMncPrefixImportBatch: <MccMncPrefixImportBatch />,
-  findRoute: <FindRoute />,
-  analyticsReport: <AnalyticsReport />,
-  userCreation: <UserCreation />,
-  vendorCampaignList: <VendorCampaignList />,
+export const componentRegistry: Record<string, React.ComponentType<any>> = {
+  dashboard: Dashboard,
+  createSidebar: CreateSidebar,
+  role: PermissionsTable,
+  changePassword: ChangePassword,
+  "change-password": ChangePassword,
+  notifications: AllNotifications,
+  template: TemplatePage,
+  clientcampaign: CreateCampaignForm,
+  smtp: SmtpServer,
+  imap: ImapServer,
+  emailTemplate: EmailTemplatePage,
+  sendMail: SendMailPage,
+  country: Country,
+  state: State,
+  currency: Currency,
+  entity: Entity,
+  companyCategory: CompanyCategory,
+  companyStatus: CompanyStatus,
+  timeZone: TimeZone,
+  company: Company,
+  vendor: Vendor,
+  smpp: Smpp,
+  client: Client,
+  vendorRate: VendorRate,
+  customerRate: CustomerRate,
+  mappingSetup: MappingSetup,
+  // operators: Operators,
+  userLog: UserLog,
+  userAction: UserAction,
+  customRoute: CustomRoute,
+  liveTraffic: LiveTraffic,
+  messageReport: MessageReport,
+  addCredit: AddCredit,
+  detailedReport: DetailedReport,
+  clientTransaction: ClientTransaction,
+  vendorTransaction: VendorTransaction,
+  invoiceSetup: InvoiceSetup,
+  clientInvoice: ClientInvoice,
+  generateClientInvoice: GenerateClientInvoice,
+  vendorInvoice: VendorInvoice,
+  generateVendorInvoice: GenerateVendorInvoice,
+  messageAttempt: MessageAttempt,
+  dlrEvent: DLREvent,
+  rejectedSMSLog: RejectedSMSLog,
+  smsMessagePart: SmsMessagePart,
+  operatorNetworkCode: OperatorNetworkCode,
+  clientSession: ClientSession,
+  generalSettings: GeneralSettings,
+  currencyExchangeRate: CurrencyExchangeRate,
+  serverInfo: ServerInfo,
+  emailSource: EmailSource,
+  importAttachment: ImportAttachment,
+  importAudit: ImportAudit,
+  importBatch: ImportBatch,
+  importMail: ImportMail,
+  importRow: ImportRow,
+  mccMncPrefixRange: MccMncPrefixRange,
+  mccMncPrefixImportBatch: MccMncPrefixImportBatch,
+  findRoute: FindRoute,
+  analyticsReport: AnalyticsReport,
+  userCreation: UserCreation,
+  vendorCampaignList: VendorCampaignList,
+};
+
+export const getComponentByPath = (pathname: string): React.ComponentType<any> => {
+  const cleanPath = pathname.replace(/^\//, "");
+
+  if (!cleanPath || cleanPath === "dashboard") return Dashboard;
+  if (cleanPath === "change-password") return ChangePassword;
+  if (cleanPath === "notifications") return AllNotifications;
+
+  if (componentRegistry[cleanPath]) return componentRegistry[cleanPath];
+
+  const lastSegment = cleanPath.split("/").pop();
+  if (lastSegment && componentRegistry[lastSegment]) {
+    return componentRegistry[lastSegment];
+  }
+
+  return NotFound;
 };
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
-
   const { navItems, loading: isNavLoading, error: hasNavError } = useContext(NavItemsContext);
   const [navTimeout, setNavTimeout] = useState(false);
 
-  type NavUrl = {
-    url: string;
-    label: string;
-  };
-
-  const extractUrlsWithLabels = (items: any[]): NavUrl[] => {
-    const result: NavUrl[] = [];
-    const walk = (list: any[]) => {
-      list.forEach((item) => {
-        if (item.url && item.label) {
-          result.push({ url: item.url, label: item.label });
-        }
-        if (item.children && item.children.length > 0) {
-          walk(item.children);
-        }
-      });
-    };
-    walk(items);
-    return result;
-  };
-
-  // Safety net: If authenticated but navItems don't load within 5 seconds, assume backend is dead.
   useEffect(() => {
-    let timer: number; // ⚡️ FIX: Used number instead of NodeJS.Timeout for standard browser typings
+    let timer: number;
     if (isAuthenticated && (!navItems || !navItems.results || navItems.results.length === 0)) {
       timer = window.setTimeout(() => {
         setNavTimeout(true);
-      }, 10000); // 5 second timeout
+      }, 10000);
     }
     return () => window.clearTimeout(timer);
   }, [isAuthenticated, navItems]);
 
-  // 1. Initial Auth Check (Is token valid?)
   if (isAuthLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
@@ -180,7 +175,6 @@ const AppRoutes = () => {
     );
   }
 
-  // 2. NOT Authenticated? -> Show Login Routes immediately.
   if (!isAuthenticated) {
     return (
       <Routes>
@@ -190,7 +184,6 @@ const AppRoutes = () => {
     );
   }
 
-  // 3. Backend Unreachable Safety Check (Immediate Feedback OR Timeout)
   if (hasNavError || navTimeout) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900 px-4">
@@ -217,7 +210,6 @@ const AppRoutes = () => {
     );
   }
 
-  // 4. Authenticated? -> NOW we wait for NavItems.
   if (isNavLoading || !navItems || !navItems.results || navItems.results.length === 0) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
@@ -229,29 +221,10 @@ const AppRoutes = () => {
     );
   }
 
-  // 5. Authenticated AND NavItems Loaded -> Show Protected App
-  const urls = extractUrlsWithLabels(navItems.results);
-
   return (
     <Routes>
       <Route path="/login" element={<Navigate to="/dashboard" />} />
-
-      <Route path="/" element={<Layout />}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
-
-        <Route path="change-password" element={<ChangePassword />} />
-        <Route path="notifications" element={<AllNotifications />} />
-
-        {urls.map((item) => {
-          const lastSegment = item.url.split("/").pop();
-          const Component = lastSegment ? componentMap[lastSegment] : null;
-          return Component ? (
-            <Route key={item.url} path={item.url} element={Component} />
-          ) : null;
-        })}
-
-        <Route path="*" element={<NotFound />} />
-      </Route>
+      <Route path="/*" element={<Layout />} />
     </Routes>
   );
 };
