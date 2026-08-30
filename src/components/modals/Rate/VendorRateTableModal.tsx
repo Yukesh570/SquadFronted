@@ -200,6 +200,7 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
         toast.error("Failed to delete rate.");
       }
       setDeleteId(null);
+      setSelectedRate(null);
     }
   };
 
@@ -284,6 +285,10 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
       </div>
     );
   };
+
+  const rateItemName = selectedRate
+    ? selectedRate.countryName || countryMap[String(selectedRate.country)] || selectedRate.network || `MCC: ${selectedRate.MCC || "-"}`
+    : "";
 
   return (
     <>
@@ -433,7 +438,7 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
         <ContextMenu
           position={contextMenuPos}
           items={menuItems}
-          onClose={() => { setContextMenuPos(null); setSelectedRate(null); }}
+          onClose={() => setContextMenuPos(null)}
         />
       </Modal>
 
@@ -502,10 +507,13 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRate(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Vendor Rate"
-        message="Are you sure you want to delete this specific rate? This action cannot be undone."
+        message={`Are you sure you want to delete rate for "${rateItemName}"? This action cannot be undone.`}
       />
 
       <VendorRateModal

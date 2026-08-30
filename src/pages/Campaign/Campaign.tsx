@@ -370,6 +370,7 @@ const CampaignList: React.FC = () => {
         toast.error("Failed to delete client campaign.");
       }
       setDeleteId(null);
+      setSelectedRowCampaign(null);
     }
   };
 
@@ -628,10 +629,13 @@ const CampaignList: React.FC = () => {
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowCampaign(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Client Campaign"
-        message="Are you sure you want to delete this client campaign? This action cannot be undone."
+        message={`Are you sure you want to delete client campaign "${selectedRowCampaign?.name || ""}"? This action cannot be undone.`}
       />
     </div>
   );

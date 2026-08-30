@@ -312,7 +312,6 @@ const Country: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-21T00:00:00,2026-08-21T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
@@ -396,6 +395,7 @@ const Country: React.FC = () => {
         toast.error("Failed to delete country.");
       }
       setDeleteId(null);
+      setSelectedRowCountry(null);
     }
   };
 
@@ -651,10 +651,13 @@ const Country: React.FC = () => {
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowCountry(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Country"
-        message="Are you sure you want to delete this country? This action cannot be undone."
+        message={`Are you sure you want to delete country "${selectedRowCountry?.name || ""}"? This action cannot be undone.`}
       />
     </div>
   );

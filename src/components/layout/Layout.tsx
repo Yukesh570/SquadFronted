@@ -1,23 +1,86 @@
-import { useState, useEffect, useContext } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useContext, useMemo } from "react";
+import { useLocation, UNSAFE_LocationContext as LocationContext } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import PageTabs from "./PageTabs";
 import { NavItemsContext } from "../../context/navItemsContext";
+import { TabContext } from "../../context/TabContext";
 import { getGeneralSettingsApi } from "../../api/settingApi/generalSettingsApi/generalSettingsApi";
+import { getComponentByPath } from "../../routes/AppRoutes";
 
-const Layout = () => {
-  // If no saved state found, default to 'false' (Expanded)
+// Scoped Tab Pane: Freezes the location for this tab so background pages never detect global URL changes
+const TabPane: React.FC<{
+  tabPath: string;
+  tabId: string;
+  isActive: boolean;
+  Component: React.ComponentType<any>;
+}> = React.memo(
+  ({ tabPath, tabId, isActive, Component }) => {
+    const scopedLocationValue = useMemo(
+      () => ({
+        location: {
+          pathname: tabPath,
+          search: "",
+          hash: "",
+          state: null,
+          key: tabId,
+        },
+        navigationType: "PUSH" as any,
+      }),
+      [tabPath, tabId]
+    );
+
+    return (
+      <div
+        className={isActive ? "w-full" : "hidden"}
+        style={{ display: isActive ? "block" : "none" }}
+      >
+        <LocationContext.Provider value={scopedLocationValue}>
+          <Component />
+        </LocationContext.Provider>
+      </div>
+    );
+  },
+  (prev, next) => prev.isActive === next.isActive && prev.tabPath === next.tabPath
+);
+
+const Layout: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     const savedState = localStorage.getItem("sidebar_collapsed");
     return savedState ? JSON.parse(savedState) : false;
   });
 
-  // Mobile: Open/Closed (Drawer) state
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const location = useLocation();
   const { navItems } = useContext(NavItemsContext);
+  const { tabs } = useContext(TabContext);
+
+  // Lazy tab state: Tracks which tabs have been viewed
+  // Only the active tab on refresh will be mounted initially
+  const [visitedTabs, setVisitedTabs] = useState<Record<string, boolean>>(() => {
+    const currentPath = window.location.pathname;
+    return { [currentPath]: true };
+  });
+
+  // Mark the active tab as visited when navigating
+  useEffect(() => {
+    if (!visitedTabs[location.pathname]) {
+      setVisitedTabs((prev) => ({ ...prev, [location.pathname]: true }));
+    }
+  }, [location.pathname, visitedTabs]);
+
+  // Clean up visited tabs list when tabs are closed
+  useEffect(() => {
+    const openPaths = new Set(tabs.map((t) => t.path));
+    setVisitedTabs((prev) => {
+      const next: Record<string, boolean> = {};
+      Object.keys(prev).forEach((path) => {
+        if (openPaths.has(path)) next[path] = true;
+      });
+      return next;
+    });
+  }, [tabs]);
 
   useEffect(() => {
     localStorage.setItem(
@@ -26,7 +89,6 @@ const Layout = () => {
     );
   }, [isSidebarCollapsed]);
 
-  // Auto-fetch and cache the global timezone when the app loads
   useEffect(() => {
     const initializeTimezone = async () => {
       try {
@@ -38,11 +100,10 @@ const Layout = () => {
         console.error("Failed to fetch initial timezone settings:", error);
       }
     };
-    
+
     initializeTimezone();
   }, []);
 
-  // Intelligent Toggle: Works for both Mobile and Desktop
   const toggleSidebar = () => {
     if (window.innerWidth < 768) {
       setIsMobileSidebarOpen(!isMobileSidebarOpen);
@@ -51,12 +112,10 @@ const Layout = () => {
     }
   };
 
-  // Close mobile sidebar when route changes
   useEffect(() => {
     setIsMobileSidebarOpen(false);
   }, [location.pathname]);
 
-  // Automatic Dynamic Title Logic
   useEffect(() => {
     const currentPath = location.pathname.replace(/^\//, "");
     let title = "Xenon SMS";
@@ -95,17 +154,34 @@ const Layout = () => {
         closeMobileSidebar={() => setIsMobileSidebarOpen(false)}
       />
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full w-full overflow-hidden relative">
-        {/* 1. Page Tabs (Positioned at the very top above Navbar) */}
         <PageTabs />
 
-        {/* 2. Top Navbar */}
         <Navbar onToggleSidebar={toggleSidebar} />
 
-        {/* 3. Page Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-secondary dark:bg-gray-900 p-4 md:p-6 w-full">
-          <Outlet />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-secondary dark:bg-gray-900 p-4 md:p-6 w-full relative">
+          {tabs.map((tab) => {
+            const isActive =
+              location.pathname === tab.path ||
+              (tab.path !== "/dashboard" && location.pathname.startsWith(`${tab.path}/`));
+
+            const hasBeenVisited = visitedTabs[tab.path] || isActive;
+
+            // Do not mount tabs that have never been viewed
+            if (!hasBeenVisited) return null;
+
+            const Component = getComponentByPath(tab.path);
+
+            return (
+              <TabPane
+                key={tab.id}
+                tabId={tab.id}
+                tabPath={tab.path}
+                isActive={isActive}
+                Component={Component}
+              />
+            );
+          })}
         </main>
       </div>
     </div>

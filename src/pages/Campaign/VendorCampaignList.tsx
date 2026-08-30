@@ -377,6 +377,7 @@ const VendorCampaignList: React.FC = () => {
         toast.error("Failed to delete vendor campaign.");
       }
       setDeleteId(null);
+      setSelectedRowCampaign(null);
     }
   };
 
@@ -413,7 +414,7 @@ const VendorCampaignList: React.FC = () => {
       ...(canDelete
         ? [
           {
-            label: "Delete Campaign",
+            label: "Delete Vendor Campaign",
             icon: <Trash size={16} />,
             variant: "danger" as const,
             onClick: () => setDeleteId(selectedRowCampaign.id!),
@@ -639,10 +640,13 @@ const VendorCampaignList: React.FC = () => {
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowCampaign(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Vendor Campaign"
-        message="Are you sure you want to delete this vendor campaign? This action cannot be undone."
+        message={`Are you sure you want to delete vendor campaign "${selectedRowCampaign?.name || ""}"? This action cannot be undone.`}
       />
     </div>
   );

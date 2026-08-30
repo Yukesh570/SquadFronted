@@ -332,7 +332,6 @@ const OperatorNetworkCode: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey
               .replace(/__exact$/, "")
@@ -422,6 +421,7 @@ const OperatorNetworkCode: React.FC = () => {
         toast.error("Failed to delete network code.");
       }
       setDeleteId(null);
+      setSelectedRow(null);
     }
   };
 
@@ -492,6 +492,10 @@ const OperatorNetworkCode: React.FC = () => {
     if (!label) return "";
     return label.split(" (")[0].trim();
   };
+
+  const operatorNetworkCodeIdentifier = selectedRow
+    ? selectedRow.operator_name || selectedRow.operator || (selectedRow.MCC && selectedRow.MNC ? `${selectedRow.MCC}-${selectedRow.MNC}` : `Network Code #${selectedRow.id}`)
+    : "";
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -737,10 +741,13 @@ const OperatorNetworkCode: React.FC = () => {
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRow(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Network Code"
-        message="Are you sure you want to delete this Operator Network Code?"
+        message={`Are you sure you want to delete operator network code "${operatorNetworkCodeIdentifier}"? This action cannot be undone.`}
       />
     </div>
   );

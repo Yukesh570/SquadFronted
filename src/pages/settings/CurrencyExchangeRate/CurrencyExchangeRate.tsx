@@ -254,7 +254,6 @@ const CurrencyExchangeRate: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-21T00:00:00,2026-08-21T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey
               .replace(/__exact$/, "")
@@ -345,6 +344,7 @@ const CurrencyExchangeRate: React.FC = () => {
         toast.error("Failed to delete exchange rate.");
       }
       setDeleteId(null);
+      setSelectedRowRate(null);
     }
   };
 
@@ -439,6 +439,10 @@ const CurrencyExchangeRate: React.FC = () => {
       hasLoggedOpening.current = true;
     }
   }, []);
+
+  const exchangeRateIdentifier = selectedRowRate
+    ? `${selectedRowRate.baseCurrency || selectedRowRate.baseCurrency_name || ""} to ${selectedRowRate.targetCurrency || selectedRowRate.targetCurrency_name || ""}`.trim() || `Exchange Rate #${selectedRowRate.id}`
+    : "";
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -671,10 +675,13 @@ const CurrencyExchangeRate: React.FC = () => {
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowRate(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Currency Exchange Rate"
-        message="Are you sure you want to delete this currency exchange rate? This action cannot be undone."
+        message={`Are you sure you want to delete currency exchange rate for "${exchangeRateIdentifier}"? This action cannot be undone.`}
       />
     </div>
   );

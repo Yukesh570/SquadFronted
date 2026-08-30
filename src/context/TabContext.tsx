@@ -47,15 +47,30 @@ export const TabProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [tabs, setTabs] = useState<TabItem[]>(() => {
     const saved = sessionStorage.getItem("app_open_tabs");
+    let initialTabs = [DASHBOARD_TAB];
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) initialTabs = parsed;
       } catch (err) {
         console.error("Failed to parse saved tabs", err);
       }
     }
-    return [DASHBOARD_TAB];
+
+    const currentPath = window.location.pathname;
+    if (currentPath && currentPath !== "/" && currentPath !== "/login" && currentPath !== "/dashboard") {
+      if (!initialTabs.some((t) => t.path === currentPath)) {
+        initialTabs.push({
+          id: currentPath,
+          title: currentPath.replace(/^\//, "").split("/").pop() || "Page",
+          path: currentPath,
+          icon: "FileText",
+          closable: true,
+        });
+      }
+    }
+
+    return initialTabs;
   });
 
   useEffect(() => {

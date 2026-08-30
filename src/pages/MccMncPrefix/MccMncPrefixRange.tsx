@@ -36,6 +36,7 @@ type FilterColumnType =
   | "date"
   | "date_gt_lt"
   | "text"
+  | "number_range"
   | "number_gt_lt";
 
 interface ColumnConfig extends Omit<FilterColumn, 'type' | 'key' | 'label'> {
@@ -347,6 +348,7 @@ const MccMncPrefixRange: React.FC = () => {
         toast.error("Failed to delete prefix range.");
       }
       setDeleteId(null);
+      setSelectedRowData(null);
     }
   };
 
@@ -368,6 +370,12 @@ const MccMncPrefixRange: React.FC = () => {
     if (!label) return "";
     return label.split(" (")[0].trim();
   };
+
+  const prefixRangeIdentifier = selectedRowData
+    ? selectedRowData.countryName
+      ? `${selectedRowData.countryName} (${selectedRowData.mccmnc || "-"})`
+      : selectedRowData.mccmnc || selectedRowData.externalPrefixId || `Range #${selectedRowData.id}`
+    : "";
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -515,10 +523,13 @@ const MccMncPrefixRange: React.FC = () => {
 
       <DeleteModal 
         isOpen={!!deleteId} 
-        onClose={() => setDeleteId(null)} 
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowData(null);
+        }} 
         onConfirm={handleDelete} 
         title="Delete Prefix Range" 
-        message="Are you sure you want to delete this prefix range? This action cannot be undone." 
+        message={`Are you sure you want to delete prefix range "${prefixRangeIdentifier}"? This action cannot be undone.`} 
       />
     </div>
   );

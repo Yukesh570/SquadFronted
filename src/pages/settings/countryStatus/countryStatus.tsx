@@ -201,7 +201,6 @@ const CompanyStatus: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-21T00:00:00,2026-08-21T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey
               .replace(/__exact$/, "")
@@ -294,6 +293,7 @@ const CompanyStatus: React.FC = () => {
         toast.error("Failed to delete Company Status.");
       }
       setDeleteId(null);
+      setSelectedRowStatus(null);
     }
   };
 
@@ -572,10 +572,13 @@ const CompanyStatus: React.FC = () => {
       />
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowStatus(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Company Status"
-        message="Are you sure you want to delete this company status? This action cannot be undone."
+        message={`Are you sure you want to delete company status "${selectedRowStatus?.name || ""}"? This action cannot be undone.`}
       />
     </div>
   );

@@ -306,7 +306,7 @@ const Client: React.FC = () => {
     { key: "session", label: "Sessions (Current/Max)", tableLabel: "Sessions", type: "text", isSearchable: false, render: (c) => renderSessionBadge(c) },
     { key: "maxTps", label: "Max TPS", type: "number", filterKey: "clientPolicy__maxTps", render: (c) => c.clientPolicy?.maxTps ?? "-" },
     { key: "maxSessions", label: "Max Sessions", type: "number", filterKey: "clientPolicy__maxSessions", render: (c) => c.clientPolicy?.maxSessions ?? "-" },
-    // { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number", filterKey: "clientPolicy__maxWindowGlobal", render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-" },
+     // { key: "maxWindowGlobal", label: "Max Window (Global)", type: "number", filterKey: "clientPolicy__maxWindowGlobal", render: (c) => c.clientPolicy?.maxWindowGlobal ?? "-" },
     // { key: "maxWindowPerSession", label: "Max Window (Per Session)", type: "number", filterKey: "clientPolicy__maxWindowPerSession", render: (c) => c.clientPolicy?.maxWindowPerSession ?? "-" },
     { key: "idleTimeoutSec", label: "Idle Timeout (s)", type: "number", filterKey: "clientPolicy__idleTimeoutSec", render: (c) => c.clientPolicy?.idleTimeoutSec ?? "-" },
     { key: "submitTimeoutSec", label: "Submit Timeout (s)", type: "number", filterKey: "clientPolicy__submitTimeoutSec", render: (c) => c.clientPolicy?.submitTimeoutSec ?? "-" },
@@ -362,7 +362,6 @@ const Client: React.FC = () => {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
@@ -490,6 +489,7 @@ const Client: React.FC = () => {
         toast.error("Failed to delete client.");
       }
       setDeleteId(null);
+      setSelectedRowClient(null);
     }
   };
 
@@ -941,10 +941,13 @@ const Client: React.FC = () => {
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowClient(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Client"
-        message="Are you sure you want to delete this client? This action cannot be undone."
+        message={`Are you sure you want to delete client "${selectedRowClient?.name || ""}"? This action cannot be undone.`}
       />
     </div>
   );

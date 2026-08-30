@@ -260,7 +260,6 @@ const EmailSource: React.FC = () => {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
@@ -322,6 +321,7 @@ const EmailSource: React.FC = () => {
         fetchData();
       } catch (error) { toast.error("Failed to delete email source."); }
       setDeleteId(null);
+      setSelectedRowData(null);
     }
   };
 
@@ -343,6 +343,10 @@ const EmailSource: React.FC = () => {
 
   const tableHeaders = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
   const getBaseLabel = (label: string) => (label ? label.split(" (")[0].trim() : "");
+
+  const emailSourceIdentifier = selectedRowData
+    ? vendorMap[String(selectedRowData.vendor)] || (selectedRowData as any).vendorName || selectedRowData.allowedEmail || selectedRowData.allowedDomain || `Email Source #${selectedRowData.id}`
+    : "";
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -446,7 +450,16 @@ const EmailSource: React.FC = () => {
       
       <EmailSourceModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchData} moduleName={routeName} editingData={editingData} isViewMode={isViewMode} />
 
-      <DeleteModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Email Source" message="Are you sure you want to delete this Email Source? This action cannot be undone." />
+      <DeleteModal 
+        isOpen={!!deleteId} 
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowData(null);
+        }} 
+        onConfirm={handleDelete} 
+        title="Delete Email Source" 
+        message={`Are you sure you want to delete email source for "${emailSourceIdentifier}"? This action cannot be undone.`} 
+      />
     </div>
   );
 };

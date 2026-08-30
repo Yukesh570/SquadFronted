@@ -273,6 +273,7 @@ const ImapServer: React.FC = () => {
       }
     }
     setDeleteId(null);
+    setSelectedRowServer(null);
   };
 
   const handleEdit = (server: ImapServerData) => { if (!canUpdate) return; setEditingServer(server); setIsViewMode(false); setIsModalOpen(true); };
@@ -302,6 +303,9 @@ const ImapServer: React.FC = () => {
     }
   }, []);
 
+  const imapServerIdentifier = selectedRowServer
+    ? selectedRowServer.name || selectedRowServer.imapHost || `IMAP Server #${selectedRowServer.id}`
+    : "";
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -518,10 +522,13 @@ const ImapServer: React.FC = () => {
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowServer(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Host"
-        message="Are you sure you want to delete this IMAP host? This action cannot be undone."
+        message={`Are you sure you want to delete IMAP host "${imapServerIdentifier}"? This action cannot be undone.`}
       />
     </div>
   );

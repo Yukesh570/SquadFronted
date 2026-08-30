@@ -272,6 +272,7 @@ const UserCreation: React.FC = () => {
       }
       setDeleteId(null);
       setDeleteUsername("");
+      setSelectedRowUser(null);
     }
   };
 
@@ -347,6 +348,10 @@ const UserCreation: React.FC = () => {
       hasLoggedOpening.current = true;
     }
   }, []);
+
+  const userIdentifier = selectedRowUser
+    ? selectedRowUser.username || selectedRowUser.email || `User #${selectedRowUser.id}`
+    : deleteUsername || "";
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -543,14 +548,11 @@ const UserCreation: React.FC = () => {
         onClose={() => {
           setDeleteId(null);
           setDeleteUsername("");
+          setSelectedRowUser(null);
         }}
         onConfirm={handleDelete}
         title="Delete User"
-        message={
-          deleteUsername
-            ? `Are you sure you want to delete user "${deleteUsername}"? This action cannot be undone.`
-            : "Are you sure you want to delete this user?"
-        }
+        message={`Are you sure you want to delete user "${userIdentifier}"? This action cannot be undone.`}
       />
     </div>
   );

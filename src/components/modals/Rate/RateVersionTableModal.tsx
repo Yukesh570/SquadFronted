@@ -117,6 +117,7 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
       toast.error("Failed to delete rate version.");
     }
     setDeleteId(null);
+    setSelectedVersion(null);
   };
 
   const handleContextMenu = (e: React.MouseEvent, version: any, isLatest: boolean) => {
@@ -157,6 +158,10 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
   };
   
   const title = `Rate Plan Versions: ${ratePlan || ""}`;
+
+  const versionName = selectedVersion
+    ? `v${selectedVersion.version || 0} (${selectedVersion.countryName || countryMap[String(selectedVersion.country)] || selectedVersion.network || ratePlan || "-"})`
+    : "";
 
   return (
     <>
@@ -245,16 +250,19 @@ export const RateVersionTableModal: React.FC<RateVersionTableModalProps> = ({
         <ContextMenu
           position={contextMenuPos}
           items={menuItems}
-          onClose={() => { setContextMenuPos(null); setSelectedVersion(null); }}
+          onClose={() => setContextMenuPos(null)}
         />
       </Modal>
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedVersion(null);
+        }}
         onConfirm={handleConfirmDelete}
         title="Delete Version"
-        message="Are you sure you want to delete this specific version? This action cannot be undone."
+        message={`Are you sure you want to delete version "${versionName}"? This action cannot be undone.`}
       />
     </>
   );

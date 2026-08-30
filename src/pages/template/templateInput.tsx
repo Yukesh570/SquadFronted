@@ -215,7 +215,6 @@ const CampaignTemplatePage: React.FC = () => {
               ? selectedOption.value
               : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-21T00:00:00,2026-08-21T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
@@ -298,6 +297,7 @@ const CampaignTemplatePage: React.FC = () => {
         );
       }
       setDeleteId(null);
+      setSelectedRowTemplate(null);
     }
   };
 
@@ -334,6 +334,10 @@ const CampaignTemplatePage: React.FC = () => {
       hasLoggedOpening.current = true;
     }
   }, []);
+
+  const templateIdentifier = selectedRowTemplate
+    ? selectedRowTemplate.name || `Template #${selectedRowTemplate.id}`
+    : "";
 
   return (
     <div className="container mx-auto" onClick={() => setContextMenuPos(null)}>
@@ -525,10 +529,13 @@ const CampaignTemplatePage: React.FC = () => {
 
       <DeleteModal
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setSelectedRowTemplate(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Template"
-        message="Are you sure you want to delete this template? This action cannot be undone."
+        message={`Are you sure you want to delete template "${templateIdentifier}"? This action cannot be undone.`}
       />
     </div>
   );
