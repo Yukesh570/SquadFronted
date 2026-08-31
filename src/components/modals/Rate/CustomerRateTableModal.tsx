@@ -133,6 +133,8 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(50);
 
+  const [isPolling, setIsPolling] = useState(false);
+  const [pollCount, setPollCount] = useState(0);
   useEffect(() => { setCurrentPage(1); }, [rateGroup, moduleName]);
 
   useEffect(() => {
@@ -144,8 +146,23 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
     }
   }, [isOpen, rateGroup, currentPage, rowsPerPage, apiFilters]);
 
-  const fetchLatestRates = async () => {
-    setIsLoading(true);
+
+  useEffect(() => {
+    let interval: number | undefined;
+    if (isPolling && pollCount < 3) { // Poll up to 3 times (18 seconds)
+      interval = window.setInterval(() => {
+        fetchLatestRates(true);
+        setPollCount((prev) => prev + 1);
+      }, 1500);
+    } else if (pollCount >= 3) {
+      setIsPolling(false);
+      setPollCount(0);
+    }
+    return () => clearInterval(interval);
+  }, [isPolling, pollCount, currentPage, rowsPerPage, apiFilters]);
+
+  const fetchLatestRates = async (background = false) => {
+    if (!background) setIsLoading(true);
     try {
       const searchParams: Record<string, any> = { rateGroup__name: rateGroup };
       Object.keys(apiFilters).forEach((key) => {
@@ -170,7 +187,7 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
       console.error(err);
       toast.error("Failed to load rates.");
     } finally {
-      setIsLoading(false);
+      if (!background) setIsLoading(false);
     }
   };
 
@@ -521,7 +538,15 @@ export const CustomerRateTableModal: React.FC<CustomerRateTableModalProps> = ({
       <CustomerRateModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={fetchLatestRates}
+        onSuccess={(isBulk) => {
+          if (isBulk) {
+            setIsPolling(true);
+            setPollCount(0);
+            toast.info("Updating rates in background, please wait...");
+          } else {
+            fetchLatestRates();
+          }
+        }}
         moduleName={moduleName}
         editingRate={editingRate}
         isViewMode={isViewMode}
