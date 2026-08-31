@@ -17,11 +17,12 @@ import Modal from "../../ui/Modal";
 import { CountryFlag } from "../../ui/CountryFlag";
 import TextArea from "../../ui/TextArea";
 import CustomDatePicker from "../../ui/DatePicker";
+import ToggleSwitch from "../../ui/ToggleSwitch";
 
 interface VendorRateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (isBulkUpgrade?: boolean) => void;
   moduleName: string;
   editingRate: VendorRateData | null;
   isViewMode?: boolean;
@@ -70,6 +71,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
 
   // Track whether user manually picked a custom date in the DatePicker
   const [hasUserSelectedCustomDate, setHasUserSelectedCustomDate] = useState(false);
+  const [applyForAll, setApplyForAll] = useState(false);
 
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [fullCountriesList, setFullCountriesList] = useState<CountryData[]>([]);
@@ -314,6 +316,9 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
         status: formData.status,
         effectiveFrom: finalEffectiveFrom,
       };
+      if (applyForAll) {
+        payload.applyForAll = true;
+      }
     } else {
       payload = {
         country: Number(formData.country),
@@ -347,7 +352,7 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
         await createVendorRateApi(payload, moduleName);
         toast.success("Vendor rate created!");
       }
-      onSuccess();
+      onSuccess(isEditMode ? applyForAll : false);
       onClose();
     } catch (error: any) {
       console.error(error);
@@ -379,11 +384,24 @@ export const VendorRateModal: React.FC<VendorRateModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={
-        isViewMode
-          ? "View Vendor Rate"
-          : editingRate
-            ? "Edit/Upgrade Vendor Rate"
-            : "Create Vendor Rate"
+        <div className="flex items-center gap-6">
+          <span>
+            {isViewMode
+              ? "View Vendor Rate"
+              : editingRate
+                ? "Edit/Upgrade Vendor Rate"
+                : "Create Vendor Rate"}
+          </span>
+          {editingRate && !isViewMode && (
+            <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+              <ToggleSwitch
+                label="Apply for all"
+                checked={applyForAll}
+                onChange={setApplyForAll}
+              />
+            </div>
+          )}
+        </div>
       }
       className="max-w-4xl"
     >
