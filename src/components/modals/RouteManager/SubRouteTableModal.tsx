@@ -6,6 +6,7 @@ import {
   getCustomRoutesApi,
   getRouteGroupCountriesApi,
   createRouteGroupCountryApi,
+  updateRouteGroupCountryApi,
   deleteRouteGroupCountryApi,
   createCustomRouteApi,
   updateCustomRouteApi,
@@ -26,6 +27,7 @@ import Input from "../../ui/Input";
 import { StatusBadge } from "../../ui/StatusBadge";
 import { CountryFlag } from "../../ui/CountryFlag";
 import ContextMenu, { type ContextMenuItem } from "../../ui/ContextMenu";
+import ToggleSwitch from "../../ui/ToggleSwitch";
 import {
   Plus,
   Trash2,
@@ -193,6 +195,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
   const [newCountry, setNewCountry] = useState("");
   const [newRoutingType, setNewRoutingType] = useState("PRIORITY");
   const [newConfigStatus, setNewConfigStatus] = useState("ACTIVE");
+  const [newLowCostPolicy, setNewLowCostPolicy] = useState(false);
   const [isAddingConfig, setIsAddingConfig] = useState(false);
 
   const [countrySearchTerm, setCountrySearchTerm] = useState("");
@@ -504,6 +507,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
           country: Number(newCountry),
           routingType: newRoutingType as "PRIORITY" | "PERCENTAGE",
           status: newConfigStatus as "ACTIVE" | "INACTIVE",
+          lowCostPolicy: newLowCostPolicy,
         },
         moduleName,
       );
@@ -511,6 +515,7 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       setNewCountry("");
       setNewRoutingType("PRIORITY");
       setNewConfigStatus("ACTIVE");
+      setNewLowCostPolicy(false);
       fetchConfigs();
     } catch (err: any) {
       const data = err.response?.data;
@@ -535,6 +540,17 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
       fetchConfigs();
     } catch {
       toast.error("Failed to remove country.");
+    }
+  };
+
+  const handleToggleLowCostPolicy = async (config: RouteGroupCountryData, newValue: boolean) => {
+    if (!config.id) return;
+    try {
+      const updated = await updateRouteGroupCountryApi(config.id, { lowCostPolicy: newValue }, moduleName);
+      setSections(prev => prev.map(s => String(s.config.country) === String(config.country) ? { ...s, config: updated } : s));
+      toast.success(`Low Cost Policy ${newValue ? 'enabled' : 'disabled'} for ${config.countryName}.`);
+    } catch {
+      toast.error("Failed to update Low Cost Policy.");
     }
   };
 
@@ -1128,6 +1144,13 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                       <div className="w-32">
                         <Select label="Status" value={newConfigStatus} onChange={setNewConfigStatus} options={statusOptions} />
                       </div>
+                      <div className="flex items-center gap-2 mb-[2px] ml-2">
+                        <ToggleSwitch
+                          label="Low Cost Policy"
+                          checked={newLowCostPolicy}
+                          onChange={setNewLowCostPolicy}
+                        />
+                      </div>
                       <Button
                         type="button"
                         variant="primary"
@@ -1333,6 +1356,16 @@ export const SubRouteTableModal: React.FC<SubRouteTableModalProps> = ({
                       >
                         {isPercentage ? "Percentage" : "Priority"}
                       </span>
+                      {canUpdate && (
+                        <div onClick={(e) => e.stopPropagation()} className="ml-1 flex items-center">
+                          <ToggleSwitch
+                            label="LCP"
+                            checked={section.config.lowCostPolicy || false}
+                            onChange={(val) => handleToggleLowCostPolicy(section.config, val)}
+                          />
+                        </div>
+                      )}
+
                       {section.routes.length > 0 && (
                         <span className="text-xs text-gray-400 dark:text-gray-500">
                           {section.routes.length} route{section.routes.length > 1 ? "s" : ""}

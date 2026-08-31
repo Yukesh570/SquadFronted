@@ -12,8 +12,8 @@ import { VendorRateModal } from "./VendorRateModal";
 import { RateVersionTableModal } from "./RateVersionTableModal";
 import { ImportVendorRateModal } from "./ImportVendorRateModal";
 import { toast } from "react-toastify";
-import Button from "../../ui/Button"; 
-import { Plus, Edit, Trash, Layers, Upload, Download, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"; 
+import Button from "../../ui/Button";
+import { Plus, Edit, Trash, Layers, Upload, Download, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import Select from "../../ui/Select";
 import Input from "../../ui/Input";
 import DatePicker from "../../ui/DatePicker";
@@ -79,7 +79,7 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false); 
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [emailTemplateOptions, setEmailTemplateOptions] = useState<{ label: string; value: string }[]>([]);
   const [selectedEmailTemplate, setSelectedEmailTemplate] = useState<string>("");
@@ -134,6 +134,9 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(50);
 
+  const [isPolling, setIsPolling] = useState(false);
+  const [pollCount, setPollCount] = useState(0);
+
   useEffect(() => { setCurrentPage(1); }, [rateGroup, moduleName]);
 
   useEffect(() => {
@@ -145,23 +148,37 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
     }
   }, [isOpen, rateGroup, currentPage, rowsPerPage, apiFilters]);
 
-  const fetchLatestRates = async () => {
-    setIsLoading(true);
+  useEffect(() => {
+    let interval: number | undefined;
+    if (isPolling && pollCount < 3) { // Poll up to 3 times (18 seconds)
+      interval = window.setInterval(() => {
+        fetchLatestRates(true);
+        setPollCount((prev) => prev + 1);
+      }, 1500);
+    } else if (pollCount >= 3) {
+      setIsPolling(false);
+      setPollCount(0);
+    }
+    return () => clearInterval(interval);
+  }, [isPolling, pollCount, currentPage, rowsPerPage, apiFilters]);
+
+  const fetchLatestRates = async (background = false) => {
+    if (!background) setIsLoading(true);
     try {
       const searchParams: Record<string, any> = { rateGroup__name: rateGroup };
       Object.keys(apiFilters).forEach((key) => {
         const val = apiFilters[key];
         if (!val) return;
 
-        if      (key === "countryName") searchParams["country__name__icontains"] = val;
-        else if (key === "MCC")         searchParams["MCC__icontains"]           = val;
-        else if (key === "MNC")         searchParams["MNC__icontains"]           = val;
-        else if (key === "countryCode") searchParams["countryCode__icontains"]   = val;
-        else if (key === "network")     searchParams["network__icontains"]       = val;
-        else if (key === "rate")        searchParams["rate"]                     = val; 
-        else if (key === "version")     searchParams["version"]                  = val;
-        else if (key === "status")      searchParams["status__icontains"]        = val; 
-        else if (key === "effectiveFrom") searchParams["effectiveFrom"]          = val;
+        if (key === "countryName") searchParams["country__name__icontains"] = val;
+        else if (key === "MCC") searchParams["MCC__icontains"] = val;
+        else if (key === "MNC") searchParams["MNC__icontains"] = val;
+        else if (key === "countryCode") searchParams["countryCode__icontains"] = val;
+        else if (key === "network") searchParams["network__icontains"] = val;
+        else if (key === "rate") searchParams["rate"] = val;
+        else if (key === "version") searchParams["version"] = val;
+        else if (key === "status") searchParams["status__icontains"] = val;
+        else if (key === "effectiveFrom") searchParams["effectiveFrom"] = val;
       });
       const res = await getVendorRatesApi(moduleName, currentPage, rowsPerPage, searchParams);
       const list = res.results || (Array.isArray(res) ? res : []);
@@ -171,7 +188,7 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
       console.error(err);
       toast.error("Failed to load rates.");
     } finally {
-      setIsLoading(false);
+      if (!background) setIsLoading(false);
     }
   };
 
@@ -272,7 +289,7 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
 
   const headers = [
     "Country", "MCC", "MNC", "Country Code", "Network",
-    `Rate ${currencyCode ? `(${currencyCode})` : ""}`, "Version", "Status","Remark", "Effective From", "Effective To"
+    `Rate ${currencyCode ? `(${currencyCode})` : ""}`, "Version", "Status", "Remark", "Effective From", "Effective To"
   ];
 
   const renderCountry = (rate: any) => {
@@ -519,7 +536,15 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
       <VendorRateModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={fetchLatestRates}
+        onSuccess={(isBulk) => {
+          if (isBulk) {
+            setIsPolling(true);
+            setPollCount(0);
+            toast.info("Updating rates in background, please wait...");
+          } else {
+            fetchLatestRates();
+          }
+        }}
         moduleName={moduleName}
         editingRate={editingRate}
         isViewMode={isViewMode}
@@ -528,9 +553,9 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
 
       <RateVersionTableModal
         isOpen={isVersionsModalOpen}
-        onClose={() => { 
-          setIsVersionsModalOpen(false); 
-          setVersionTargetRate(null); 
+        onClose={() => {
+          setIsVersionsModalOpen(false);
+          setVersionTargetRate(null);
         }}
         ratePlan={rateGroup}
         ratePlanFilter={versionTargetRate}
@@ -553,7 +578,8 @@ export const VendorRateTableModal: React.FC<VendorRateTableModalProps> = ({
         rateGroupId={rateGroupId}
       />
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .filter-vrt-wrapper label { display: none !important; }
         .filter-vrt-wrapper > div { margin-bottom: 0 !important; }
         .filter-vrt-wrapper input, .filter-vrt-wrapper select, .filter-vrt-wrapper button {

@@ -146,6 +146,7 @@ export interface RouteGroupCountryData {
 
   routingType: "PRIORITY" | "PERCENTAGE";
   status: "ACTIVE" | "INACTIVE";
+  lowCostPolicy?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
