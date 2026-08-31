@@ -17,11 +17,12 @@ import Modal from "../../ui/Modal";
 import { CountryFlag } from "../../ui/CountryFlag";
 import TextArea from "../../ui/TextArea";
 import CustomDatePicker from "../../ui/DatePicker";
+import ToggleSwitch from "../../ui/ToggleSwitch";
 
 interface CustomerRateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (isBulkUpgrade?: boolean) => void;
   moduleName: string;
   editingRate: CustomerRateData | null;
   isViewMode?: boolean;
@@ -70,6 +71,7 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
 
   // Track whether user manually picked a custom date in the DatePicker
   const [hasUserSelectedCustomDate, setHasUserSelectedCustomDate] = useState(false);
+  const [applyForAll, setApplyForAll] = useState(false);
 
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
   const [fullCountriesList, setFullCountriesList] = useState<CountryData[]>([]);
@@ -323,6 +325,9 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         status: formData.status,
         effectiveFrom: finalEffectiveFrom,
       };
+      if (applyForAll) {
+        payload.applyForAll = true;
+      }
     } else {
       payload = {
         country: Number(formData.country),
@@ -355,7 +360,8 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
         await createCustomerRateApi(payload, moduleName);
         toast.success("Rate plan created!");
       }
-      onSuccess();
+      onSuccess(isEditMode ? applyForAll : false);
+
       onClose();
     } catch (error: any) {
       console.error(error);
@@ -387,11 +393,24 @@ export const CustomerRateModal: React.FC<CustomerRateModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={
-        isViewMode
-          ? "View Customer Rate"
-          : editingRate
-            ? "Edit/Upgrade Customer Rate"
-            : "Create Customer Rate"
+        <div className="flex items-center gap-6">
+          <span>
+            {isViewMode
+              ? "View Customer Rate"
+              : editingRate
+                ? "Edit/Upgrade Customer Rate"
+                : "Create Customer Rate"}
+          </span>
+          {editingRate && !isViewMode && (
+            <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+              <ToggleSwitch
+                label="Apply for all"
+                checked={applyForAll}
+                onChange={setApplyForAll}
+              />
+            </div>
+          )}
+        </div>
       }
       className="max-w-4xl"
     >
