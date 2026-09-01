@@ -241,16 +241,6 @@ const Vendor: React.FC = () => {
     { label: "suspended", value: "SUSPENDED" },
   ];
 
-    /*
-  const logLevelOptions: Option[] = [
-    { label: "DEBUG", value: "DEBUG" },
-    { label: "INFO", value: "INFO" },
-    { label: "WARNING", value: "WARNING" },
-    { label: "ERROR", value: "ERROR" },
-    { label: "CRITICAL", value: "CRITICAL" },
-  ];
-  */
-
   const renderSessionBadge = (vendor: any) => {
     const current = vendor.active_session_count || 0;
     const max = vendor.vendorPolicy?.maxSession || 1;
@@ -325,7 +315,7 @@ const Vendor: React.FC = () => {
       label: "Password",
       tableLabel: "Password",
       type: "text",
-      filterKey: "smpp__password__icontains",
+      isSearchable: false,
       render: (c: any) => c.smppPassword || c.password || "-",
     },
     {
@@ -400,15 +390,7 @@ const Vendor: React.FC = () => {
       type: "number",
       filterKey: "vendorPolicy__rateTps",
       render: (c) => c.vendorPolicy?.rateTps ?? "-"
-    }, 
-    // {
-    //   key: "logLevel",
-    //   label: "Log Level",
-    //   type: "text",
-    //   options: logLevelOptions,
-    //   filterKey: "vendorPolicy__logLevel__icontains",
-    //   render: (c) => c.vendorPolicy?.logLevel ?? "-"
-    // },
+    },
     {
       key: "responseTimeout",
       label: "Response Timeout (s)",
@@ -416,13 +398,6 @@ const Vendor: React.FC = () => {
       filterKey: "vendorPolicy__responseTimeout",
       render: (c) => c.vendorPolicy?.responseTimeout ?? "-"
     },
-    // {
-    //   key: "maxMessageRetries",
-    //   label: "Max Msg Retries",
-    //   type: "number",
-    //   filterKey: "vendorPolicy__maxMessageRetries",
-    //   render: (c) => c.vendorPolicy?.maxMessageRetries ?? "-"
-    // },
     {
       key: "createdBy",
       label: "Created By",
