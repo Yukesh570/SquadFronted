@@ -53,6 +53,10 @@ const DEFAULT_TABLE_COLUMNS = [
   "companyName",
   "vendorRateGroup",
   "connectionType",
+  "smppHost",
+  "smppPort",
+  "systemID",
+  "password",
   "bindStatus",
   "status",
   "invoicePolicy",
@@ -293,6 +297,38 @@ const Vendor: React.FC = () => {
       }
     },
     {
+      key: "smppHost",
+      label: "SMPP Host",
+      tableLabel: "SMPP Host",
+      type: "text",
+      filterKey: "smpp__smppHost__icontains",
+      render: (c: any) => c.smppHost || c.smppName || "-",
+    },
+    {
+      key: "smppPort",
+      label: "SMPP Port",
+      tableLabel: "SMPP Port",
+      type: "number",
+      filterKey: "smpp__smppPort",
+      render: (c: any) => (c.smppPort != null && c.smppPort !== "" ? c.smppPort : "-"),
+    },
+    {
+      key: "systemID",
+      label: "System ID",
+      tableLabel: "System ID",
+      type: "text",
+      filterKey: "smpp__systemID__icontains",
+      render: (c: any) => c.smppSystemId || c.systemID || "-",
+    },
+    {
+      key: "password",
+      label: "Password",
+      tableLabel: "Password",
+      type: "text",
+      filterKey: "smpp__password__icontains",
+      render: (c: any) => c.smppPassword || c.password || "-",
+    },
+    {
       key: "invoicePolicy",
       label: "Invoice Policy",
       type: "text",
@@ -303,12 +339,6 @@ const Vendor: React.FC = () => {
         const match = invoicePolicyOptions.find(opt => opt.value === c.invoicePolicy);
         return match ? match.label : c.invoicePolicy;
       }
-    },
-    {
-      key: "smppName",
-      label: "SMPP Host",
-      type: "text",
-      filterKey: "smpp__smppHost__icontains",
     },
     {
       key: "bindStatus",
