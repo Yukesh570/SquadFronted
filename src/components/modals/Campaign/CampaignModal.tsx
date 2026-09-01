@@ -14,10 +14,6 @@ import {
 } from "../../../api/campaignApi/campaignApi";
 // @ts-ignore
 import ReactQuill from "react-quill-new";
-<<<<<<< HEAD
-
-=======
->>>>>>> main
 import "../../../quillDark.css";
 import { getClientsApi } from "../../../api/clientApi/clientApi";
 
