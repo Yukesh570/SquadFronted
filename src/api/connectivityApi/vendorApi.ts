@@ -33,6 +33,12 @@ export interface VendorData {
   invoicePolicy: string;
   smpp?: number;
   smppName?: string;
+  smppHost?: string;
+  smppPort?: number | string;
+  smppSystemId?: string;
+  systemID?: string;
+  smppPassword?: string;
+  password?: string;
   bindStatus?: string;
   status?: "ACTIVE" | "TRIAL" | "SUSPENDED";
   active_session_count?: number;
