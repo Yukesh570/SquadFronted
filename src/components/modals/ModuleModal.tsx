@@ -170,7 +170,16 @@ export const ModuleModal: React.FC<ModuleModalProps> = ({
       onClose();
     } catch (error: any) {
       console.error(error);
-      toast.error("Failed to save module.");
+      const backendError =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.response?.data?.detail ||
+        (typeof error.response?.data === "string" ? error.response.data : null) ||
+        (error.response?.data && typeof error.response.data === "object"
+          ? Object.values(error.response.data).flat().join(" ")
+          : null);
+
+      toast.error(backendError || "Failed to save module.");
     } finally {
       setIsSubmitting(false);
     }

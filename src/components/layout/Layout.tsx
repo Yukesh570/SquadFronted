@@ -56,25 +56,29 @@ const Layout: React.FC = () => {
   const { navItems } = useContext(NavItemsContext);
   const { tabs } = useContext(TabContext);
 
-  // Lazy tab state: Tracks which tabs have been viewed
-  // Only the active tab on refresh will be mounted initially
+  // Normalize initial path so /dashboard is always marked as visited from start
   const [visitedTabs, setVisitedTabs] = useState<Record<string, boolean>>(() => {
-    const currentPath = window.location.pathname;
-    return { [currentPath]: true };
+    const currentPath = window.location.pathname === "/" ? "/dashboard" : window.location.pathname;
+    return {
+      "/dashboard": true,
+      [currentPath]: true,
+    };
   });
 
   // Mark the active tab as visited when navigating
   useEffect(() => {
-    if (!visitedTabs[location.pathname]) {
-      setVisitedTabs((prev) => ({ ...prev, [location.pathname]: true }));
+    const activePath = location.pathname === "/" ? "/dashboard" : location.pathname;
+    if (!visitedTabs[activePath]) {
+      setVisitedTabs((prev) => ({ ...prev, [activePath]: true }));
     }
   }, [location.pathname, visitedTabs]);
 
   // Clean up visited tabs list when tabs are closed
   useEffect(() => {
     const openPaths = new Set(tabs.map((t) => t.path));
+    openPaths.add("/dashboard");
     setVisitedTabs((prev) => {
-      const next: Record<string, boolean> = {};
+      const next: Record<string, boolean> = { "/dashboard": true };
       Object.keys(prev).forEach((path) => {
         if (openPaths.has(path)) next[path] = true;
       });
@@ -146,6 +150,8 @@ const Layout: React.FC = () => {
     document.title = title;
   }, [location, navItems]);
 
+  const activeNormalizedPath = location.pathname === "/" ? "/dashboard" : location.pathname;
+
   return (
     <div className="flex h-screen bg-white dark:bg-gray-900 overflow-hidden">
       <Sidebar
@@ -162,12 +168,11 @@ const Layout: React.FC = () => {
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-secondary dark:bg-gray-900 p-4 md:p-6 w-full relative">
           {tabs.map((tab) => {
             const isActive =
-              location.pathname === tab.path ||
-              (tab.path !== "/dashboard" && location.pathname.startsWith(`${tab.path}/`));
+              activeNormalizedPath === tab.path ||
+              (tab.path !== "/dashboard" && activeNormalizedPath.startsWith(`${tab.path}/`));
 
-            const hasBeenVisited = visitedTabs[tab.path] || isActive;
+            const hasBeenVisited = visitedTabs[tab.path] || isActive || tab.path === "/dashboard";
 
-            // Do not mount tabs that have never been viewed
             if (!hasBeenVisited) return null;
 
             const Component = getComponentByPath(tab.path);
