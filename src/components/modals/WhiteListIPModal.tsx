@@ -151,14 +151,14 @@ const IpWhitelistModal: React.FC<IpWhitelistModalProps> = ({
 
   if (!isOpen) return null;
 
-  const existingIps = existingRecords
-    .filter((r) => r.access_type === "IP")
-    .map((r) => r.ip)
-    .join(",");
-  const existingHosts = existingRecords
-    .filter((r) => r.access_type === "HOSTNAME" || r.access_type === "HOST")
-    .map((r) => r.hostname)
-    .join(",");
+  // const existingIps = existingRecords
+  //   .filter((r) => r.access_type === "IP")
+  //   .map((r) => r.ip)
+  //   .join(",");
+  // const existingHosts = existingRecords
+  //   .filter((r) => r.access_type === "HOSTNAME" || r.access_type === "HOST")
+  //   .map((r) => r.hostname)
+  //   .join(",");
 
   return (
     <Modal
