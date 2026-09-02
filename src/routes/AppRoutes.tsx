@@ -75,7 +75,7 @@ export const componentRegistry: Record<string, React.ComponentType<any>> = {
   "change-password": ChangePassword,
   notifications: AllNotifications,
   template: TemplatePage,
-  clientcampaign: CreateCampaignForm,
+  clientCampaign: CreateCampaignForm,
   smtp: SmtpServer,
   imap: ImapServer,
   emailTemplate: EmailTemplatePage,

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
+import { X } from "lucide-react";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import Select from "../ui/Select";
 import MultiEmailInput from "../ui/multiEmailInput";
 import {
   createIpWhitelistApi,
+  deleteIpWhitelistApi,
   getIpWhitelistApi,
   type IpWhitelistData,
 } from "../../api/ipWhitelistApi/ipWhitelistApi";
@@ -54,6 +56,20 @@ const IpWhitelistModal: React.FC<IpWhitelistModalProps> = ({
       } catch (e) {
         console.error("Failed to load existing access control records", e);
       }
+    }
+  };
+
+  const handleDelete = async (record: IpWhitelistData) => {
+    if (!record.id) return;
+    try {
+      await deleteIpWhitelistApi(record.id, "ipWhitelist");
+      const label = record.access_type === "IP" ? record.ip : record.hostname;
+      toast.success(`Removed: ${label}`);
+      fetchRecords();
+      onSuccess();
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to delete entry.");
     }
   };
 
@@ -222,23 +238,57 @@ const IpWhitelistModal: React.FC<IpWhitelistModalProps> = ({
 
           {showExisting && (
             <div className="space-y-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
-              {existingIps && (
-                <MultiEmailInput
-                  label="Saved IPs"
-                  name="existingIps"
-                  value={existingIps}
-                  onChange={() => {}}
-                  disabled={true}
-                />
+              {/* IP Tags */}
+              {existingRecords.filter((r) => r.access_type === "IP").length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Saved IPs</p>
+                  <div className="flex flex-wrap gap-2">
+                    {existingRecords
+                      .filter((r) => r.access_type === "IP")
+                      .map((r) => (
+                        <span
+                          key={r.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                        >
+                          {r.ip}
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(r)}
+                            className="ml-1 text-blue-500 hover:text-red-500 dark:text-blue-400 dark:hover:text-red-400 transition-colors"
+                            title={`Remove ${r.ip}`}
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                </div>
               )}
-              {existingHosts && (
-                <MultiEmailInput
-                  label="Saved Hostnames"
-                  name="existingHosts"
-                  value={existingHosts}
-                  onChange={() => {}}
-                  disabled={true}
-                />
+              {/* Hostname Tags */}
+              {existingRecords.filter((r) => r.access_type === "HOSTNAME" || r.access_type === "HOST").length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Saved Hostnames</p>
+                  <div className="flex flex-wrap gap-2">
+                    {existingRecords
+                      .filter((r) => r.access_type === "HOSTNAME" || r.access_type === "HOST")
+                      .map((r) => (
+                        <span
+                          key={r.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300"
+                        >
+                          {r.hostname}
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(r)}
+                            className="ml-1 text-purple-500 hover:text-red-500 dark:text-purple-400 dark:hover:text-red-400 transition-colors"
+                            title={`Remove ${r.hostname}`}
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                </div>
               )}
             </div>
           )}
