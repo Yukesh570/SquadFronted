@@ -78,19 +78,19 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
       toast.error("Name is required");
       return;
     }
-    if (!formData.country.trim()) {
-      toast.error("Country is required");
-      return;
-    }
+    // if (!formData.country.trim()) {
+    //   toast.error("Country is required");
+    //   return;
+    // }
     // if (!formData.countryCode.trim()) {
     //   toast.error("Country Code is required");
     //   return;
     // }
 
-    if (!formData.network.trim()) {
-      toast.error("Network is required");
-      return;
-    }
+    // if (!formData.network.trim()) {
+    //   toast.error("Network is required");
+    //   return;
+    // }
     if (!formData.MCC.trim()) {
       toast.error("MCC is required");
       return;
@@ -103,10 +103,10 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
       toast.error("Rate is required");
       return;
     }
-    if (!formData.effectiveFrom.trim()) {
-      toast.error("Effective From is required");
-      return;
-    }
+    // if (!formData.effectiveFrom.trim()) {
+    //   toast.error("Effective From is required");
+    //   return;
+    // }
 
     setIsSubmitting(true);
 
@@ -174,7 +174,6 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             name="country"
             value={formData.country}
             onChange={handleChange}
-            required
             disabled={isViewMode}
           />
           <Input
@@ -190,7 +189,6 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             name="network"
             value={formData.network}
             onChange={handleChange}
-            required
             disabled={isViewMode}
           />
           <Input
@@ -222,7 +220,7 @@ export const MappingSetupModal: React.FC<MappingSetupModalProps> = ({
             name="effectiveFrom"
             value={formData.effectiveFrom}
             onChange={handleChange}
-            required
+
             disabled={isViewMode}
           />
         </div>
