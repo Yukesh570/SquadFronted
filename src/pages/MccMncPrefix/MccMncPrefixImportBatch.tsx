@@ -77,7 +77,18 @@ const MccMncPrefixImportBatch: React.FC = () => {
   const [selectedRowData, setSelectedRowData] = useState<MccMncPrefixImportBatchData | null>(null);
 
   // Filters & Pagination
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("mcc_mnc_batch_search_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "mcc_mnc_batch_search_columns",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
@@ -152,26 +163,12 @@ const MccMncPrefixImportBatch: React.FC = () => {
       render: (c) => (c.uploadedAt ? formatDateTime(c.uploadedAt) : "-") 
     },
     { 
-      key: "uploadedAt__gt_lt", 
-      label: "Uploaded At (After / Before)", 
-      type: "date_gt_lt", 
-      filterKey: "uploadedAt", 
-      isSearchOnly: true 
-    },
-    { 
       key: "completedAt", 
       label: "Completed At (Exact)", 
       tableLabel: "Completed At", 
       type: "date", 
       filterKey: "completedAt", 
       render: (c) => (c.completedAt ? formatDateTime(c.completedAt) : "-") 
-    },
-    { 
-      key: "completedAt__gt_lt", 
-      label: "Completed At (After / Before)", 
-      type: "date_gt_lt", 
-      filterKey: "completedAt", 
-      isSearchOnly: true 
     },
     { 
       key: "createdAt", 
@@ -223,7 +220,6 @@ const MccMncPrefixImportBatch: React.FC = () => {
             const selectedOption = columnDef.options.find((opt) => opt.value === value);
             currentSearchParams[columnDef.filterKey || key] = selectedOption ? selectedOption.value : value;
           } else if (columnDef?.type === "date") {
-            // Converts single date input into 24-hour range query (e.g. createdAt__range=2026-08-18T00:00:00,2026-08-18T23:59:59)
             const rawKey = columnDef.filterKey || key;
             const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
             currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;

@@ -240,7 +240,18 @@ const AnalyticsReport: React.FC = () => {
 
   const [activePreset, setActivePreset] = useState<DatePresetKey>("today");
 
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("analytics_report_search_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "analytics_report_search_columns",
+      JSON.stringify(searchColumns)
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});

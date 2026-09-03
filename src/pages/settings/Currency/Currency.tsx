@@ -87,7 +87,18 @@ const Currency: React.FC = () => {
   const [selectedRowCurrency, setSelectedRowCurrency] = useState<CurrencyData | null>(null);
 
   // --- Dynamic Search & Filter States ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("currency_search_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "currency_search_columns",
+      JSON.stringify(searchColumns)
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [rowsPerPage, setRowsPerPage] = useState(50);

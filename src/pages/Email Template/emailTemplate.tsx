@@ -90,7 +90,18 @@ const EmailTemplatePage: React.FC = () => {
   const [selectedRowTemplate, setSelectedRowTemplate] = useState<EmailTemplateData | null>(null);
 
   // --- Dynamic Search & Filter States ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("emailtemplate_search_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "emailtemplate_search_columns",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [rowsPerPage, setRowsPerPage] = useState(50);

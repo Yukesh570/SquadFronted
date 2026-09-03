@@ -134,7 +134,21 @@ const MessageReport: React.FC = () => {
   const [smppOptions, setSmppOptions] = useState<Option[]>([]);
   const [countryOptions, setCountryOptions] = useState<Option[]>([]);
 
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("msg_search_columns");
+    try {
+      return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+    } catch (e) {
+      return DEFAULT_SEARCH_COLUMNS;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "msg_search_columns",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("msg_table_columns");

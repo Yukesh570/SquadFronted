@@ -92,9 +92,18 @@ const CustomRoute: React.FC = () => {
   } | null>(null);
   const [selectedRowGroup, setSelectedRowGroup] = useState<any | null>(null);
 
-  const [searchColumns, setSearchColumns] = useState<string[]>(
-    DEFAULT_SEARCH_COLUMNS,
-  );
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("customroute_search_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "customroute_search_columns",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {

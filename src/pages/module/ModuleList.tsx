@@ -85,9 +85,10 @@ const ModuleList: React.FC = () => {
   );
 
   // --- Dynamic Search & Filter States ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(
-    DEFAULT_SEARCH_COLUMNS,
-  );
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+  const saved = localStorage.getItem("module_search_columns");
+  return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+});
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [rowsPerPage, setRowsPerPage] = useState(50);
@@ -101,6 +102,13 @@ const ModuleList: React.FC = () => {
   useEffect(() => {
     localStorage.setItem("module_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
+
+  useEffect(() => {
+  localStorage.setItem(
+    "module_search_columns",
+    JSON.stringify(searchColumns),
+  );
+}, [searchColumns]);
 
   const { refreshNavItems } = useContext(NavItemsContext);
   const location = useLocation();
@@ -454,7 +462,7 @@ const ModuleList: React.FC = () => {
             Home
           </NavLink>
           <span>/</span>
-          <span className="text-text-primary dark:text-white">Modules</span>
+          <span className="text-text-primary dark:text-white">Module</span>
         </div>
       </div>
 

@@ -81,7 +81,22 @@ const Entity: React.FC = () => {
   const [selectedRowEntity, setSelectedRowEntity] = useState<EntityData | null>(null);
 
   // --- Advanced Filter States ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("entity_search_columns_v1");
+    try {
+      return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+    } catch (e) {
+      return DEFAULT_SEARCH_COLUMNS;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "entity_search_columns_v1",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("entity_table_columns_v1");
@@ -383,7 +398,7 @@ const Entity: React.FC = () => {
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
         {visibleSearchFields.map((col) => {
           const baseLabel = getBaseLabel(col.label || "");
-          if (col.options) {
+          if (col.options)
             return (
               <Select
                 key={col.key}
@@ -395,8 +410,7 @@ const Entity: React.FC = () => {
                 allowCustomValue={true}
               />
             );
-          }
-          if (col.type === "date") {
+          if (col.type === "date")
             return (
               <DatePicker
                 key={col.key}
@@ -406,7 +420,6 @@ const Entity: React.FC = () => {
                 placeholder={`Select ${baseLabel}`}
               />
             );
-          }
           if (col.type === "date_gt_lt") {
             const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
             return (

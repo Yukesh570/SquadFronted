@@ -8,7 +8,7 @@ import PermissionsTable from "../pages/role/role";
 import { useAuth } from "../context/AuthContext";
 import ChangePassword from "../pages/Auth/ChangePassword";
 import TemplatePage from "../pages/template/templateInput";
-import CreateCampaignForm from "../pages/Campaign/Campaign";
+import CampaignList from "../pages/Campaign/Campaign";
 import SmtpServer from "../pages/settings/Smtp/SmtpServer";
 import ImapServer from "../pages/settings/Imap/ImapServer";
 import EmailTemplatePage from "../pages/Email Template/emailTemplate";
@@ -65,7 +65,7 @@ import MccMncPrefixImportBatch from "../pages/MccMncPrefix/MccMncPrefixImportBat
 import FindRoute from "../pages/RouteManager/FindRoute";
 import AnalyticsReport from "../pages/Report/AnalyticsReport";
 import UserCreation from "../pages/UserCreation/UserCreation";
-import VendorCampaignList from "../pages/Campaign/VendorCampaignList";
+import VendorCampaign from "../pages/Campaign/VendorCampaignList";
 
 export const componentRegistry: Record<string, React.ComponentType<any>> = {
   dashboard: Dashboard,
@@ -75,7 +75,7 @@ export const componentRegistry: Record<string, React.ComponentType<any>> = {
   "change-password": ChangePassword,
   notifications: AllNotifications,
   template: TemplatePage,
-  clientCampaign: CreateCampaignForm,
+  clientCampaign: CampaignList,
   smtp: SmtpServer,
   imap: ImapServer,
   emailTemplate: EmailTemplatePage,
@@ -129,7 +129,7 @@ export const componentRegistry: Record<string, React.ComponentType<any>> = {
   findRoute: FindRoute,
   analyticsReport: AnalyticsReport,
   userCreation: UserCreation,
-  vendorCampaignList: VendorCampaignList,
+  vendorCampaign: VendorCampaign,
 };
 
 export const getComponentByPath = (pathname: string): React.ComponentType<any> => {

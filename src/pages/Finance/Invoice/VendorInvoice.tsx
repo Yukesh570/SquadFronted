@@ -84,9 +84,22 @@ const VendorInvoice: React.FC = () => {
   } | null>(null);
   const [selectedRow, setSelectedRow] = useState<VendorInvoiceData | null>(null);
 
-  const [searchColumns, setSearchColumns] = useState<string[]>(
-    DEFAULT_SEARCH_COLUMNS,
-  );
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("vendorInvoice_search_columns_v1");
+    try {
+      return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+    } catch (e) {
+      return DEFAULT_SEARCH_COLUMNS;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "vendorInvoice_search_columns_v1",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {

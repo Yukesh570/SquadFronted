@@ -112,9 +112,17 @@ const DetailedReport: React.FC = () => {
   const [selectedRowLog, setSelectedRowLog] =
     useState<DetailedReportData | null>(null);
 
-  const [searchColumns, setSearchColumns] = useState<string[]>(
-    DEFAULT_SEARCH_COLUMNS,
-  );
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("detailed_search_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "detailed_search_columns",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("detailed_table_columns");

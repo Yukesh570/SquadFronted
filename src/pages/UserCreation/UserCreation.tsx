@@ -76,7 +76,18 @@ const UserCreation: React.FC = () => {
   const [selectedRowUser, setSelectedRowUser] = useState<UserCreationData | null>(null);
 
   // --- Dynamic Search & Filter States ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("usercreation_search_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "usercreation_search_columns",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [rowsPerPage, setRowsPerPage] = useState(50);

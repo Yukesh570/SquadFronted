@@ -79,7 +79,7 @@ const DEFAULT_TABLE_COLUMNS = [
   "createdAt",
 ];
 
-const VendorCampaignList: React.FC = () => {
+const VendorCampaign: React.FC = () => {
   const { canCreate, canDelete } = usePagePermissions();
   const [campaigns, setCampaigns] = useState<CampaignVendorFormData[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -101,9 +101,18 @@ const VendorCampaignList: React.FC = () => {
     useState<CampaignVendorFormData | null>(null);
 
   // --- Search & Filter States ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(
-    DEFAULT_SEARCH_COLUMNS,
-  );
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("vendor_campaign_search_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "vendor_campaign_search_columns",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [rowsPerPage, setRowsPerPage] = useState(50);
@@ -652,4 +661,4 @@ const VendorCampaignList: React.FC = () => {
   );
 };
 
-export default VendorCampaignList;
+export default VendorCampaign;

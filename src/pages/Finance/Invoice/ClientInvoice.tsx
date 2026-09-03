@@ -85,9 +85,22 @@ const ClientInvoice: React.FC = () => {
   } | null>(null);
   const [selectedRow, setSelectedRow] = useState<ClientInvoiceData | null>(null);
 
-  const [searchColumns, setSearchColumns] = useState<string[]>(
-    DEFAULT_SEARCH_COLUMNS,
-  );
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("clientInvoice_search_columns_v3");
+    try {
+      return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+    } catch (e) {
+      return DEFAULT_SEARCH_COLUMNS;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "clientInvoice_search_columns_v3",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {

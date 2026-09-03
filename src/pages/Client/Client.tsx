@@ -54,7 +54,7 @@ interface ColumnConfig extends FilterColumn {
 }
 
 // --- Default Configuration ---
-const DEFAULT_SEARCH_COLUMNS = ["name", "status"];
+const DEFAULT_SEARCH_COLUMNS = ["name", "companyName" , "routeGroup", "customerRateGroup", "status"];
 const DEFAULT_TABLE_COLUMNS = [
   "name",
   "companyName",
@@ -104,7 +104,10 @@ const Client: React.FC = () => {
   const [selectedRowClient, setSelectedRowClient] = useState<ClientData | null>(null);
 
   // --- Dynamic Filters & Columns State ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+  const saved = localStorage.getItem("client_search_columns");
+  return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+}); 
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
@@ -123,6 +126,13 @@ const Client: React.FC = () => {
   useEffect(() => {
     localStorage.setItem("client_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
+
+   useEffect(() => {
+    localStorage.setItem(
+      "client_search_columns",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
 
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
@@ -263,7 +273,7 @@ const Client: React.FC = () => {
     { key: "name", label: "Client Name", type: "text", options: clientOptions, filterKey: "name__icontains" },
     { key: "companyName", label: "Company", type: "text", options: companies, filterKey: "company__name" },
     { key: "routeGroup", label: "RouteGroup", type: "text", options: routeGroupFilter, filterKey: "routeGroup__name" },
-    { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, isSearchable: false },
+    { key: "customerRateGroup", label: "Customer Rate Group", type: "text", options: customerRateGroupOptions, filterKey: "customerRateGroup__name" },
     {
       key: "status", label: "Status", type: "text", options: statusOptions, filterKey: "status", render: (c) => {
         const statusConfig = STATUS_COLORS[c.status?.toUpperCase() || "UNKNOWN"] || STATUS_COLORS.UNKNOWN;

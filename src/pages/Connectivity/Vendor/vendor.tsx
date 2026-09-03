@@ -104,9 +104,18 @@ const Vendor: React.FC = () => {
   );
 
   // --- Dynamic Filters & Columns State ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(
-    DEFAULT_SEARCH_COLUMNS,
-  );
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("vendor_search_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "vendor_search_columns",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
@@ -240,16 +249,6 @@ const Vendor: React.FC = () => {
     { label: "trial", value: "TRIAL" },
     { label: "suspended", value: "SUSPENDED" },
   ];
-
-   /*
-  const logLevelOptions: Option[] = [
-    { label: "DEBUG", value: "DEBUG" },
-    { label: "INFO", value: "INFO" },
-    { label: "WARNING", value: "WARNING" },
-    { label: "ERROR", value: "ERROR" },
-    { label: "CRITICAL", value: "CRITICAL" },
-  ];
-  */
 
   const renderSessionBadge = (vendor: any) => {
     const current = vendor.active_session_count || 0;

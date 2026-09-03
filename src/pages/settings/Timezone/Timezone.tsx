@@ -75,7 +75,18 @@ const TimeZone: React.FC = () => {
   const [selectedRowTimezone, setSelectedRowTimezone] = useState<TimezoneData | null>(null);
 
   // --- Dynamic Search & Filter States ---
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("timezone_search_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "timezone_search_columns",
+      JSON.stringify(searchColumns)
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   // --- Dropdown Options ---

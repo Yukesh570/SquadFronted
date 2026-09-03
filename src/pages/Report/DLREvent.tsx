@@ -84,7 +84,22 @@ const DLREvent: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewLog, setViewLog] = useState<DLREventData | null>(null);
 
-  const [searchColumns, setSearchColumns] = useState<string[]>(DEFAULT_SEARCH_COLUMNS);
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("dlr_event_search_columns_v3");
+    try {
+      return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+    } catch (e) {
+      return DEFAULT_SEARCH_COLUMNS;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "dlr_event_search_columns_v3",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
+
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("dlr_event_columns_v3");
