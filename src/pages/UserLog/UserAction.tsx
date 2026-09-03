@@ -6,6 +6,10 @@ import { getUserInformationApi } from "../../api/userLogApi/userLogApi";
 import DataTable from "../../components/ui/DataTable";
 import FilterCard from "../../components/ui/FilterCard";
 import Input from "../../components/ui/Input";
+import DatePicker from "../../components/ui/DatePicker";
+import AdvancedFilter, {
+  type FilterColumn,
+} from "../../components/ui/AdvancedFilter";
 import { UserActionModal } from "../../components/modals/UserActionModal";
 import ContextMenu, { type ContextMenuItem } from "../../components/ui/ContextMenu";
 import {
@@ -14,18 +18,40 @@ import {
 } from "../../api/userActionApi/LogApi";
 import { actionHelper } from "../../helper/action";
 
-interface ColumnConfig {
+type FilterColumnType =
+  | "number"
+  | "boolean"
+  | "date"
+  | "date_gt_lt"
+  | "text"
+  | "number_range"
+  | "number_gt_lt";
+
+interface ColumnConfig extends Omit<FilterColumn, "type" | "key" | "label"> {
   key: string;
   label: string;
-  render: (log: UserActionData) => React.ReactNode;
+  type?: FilterColumnType;
+  filterKey?: string;
+  render?: (log: UserActionData) => React.ReactNode;
+  isSearchOnly?: boolean;
+  isSearchable?: boolean;
+  tableLabel?: string;
 }
 
-const DEFAULT_TABLE_COLUMNS = ["username", "title", "action", "createdAt"];
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const formatDate = (dateString?: string) => {
   if (!dateString) return "-";
   return new Date(dateString).toLocaleString();
 };
+
+const DEFAULT_SEARCH_COLUMNS = ["username", "title", "action"];
+const DEFAULT_TABLE_COLUMNS = ["username", "title", "action", "createdAt"];
 
 const UserAction: React.FC = () => {
   const [logs, setLogs] = useState<UserActionData[]>([]);
@@ -35,12 +61,25 @@ const UserAction: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(50);
 
-  const [titleFilter, setTitleFilter] = useState("");
-  
   const [viewLog, setViewLog] = useState<UserActionData | null>(null);
 
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedRowLog, setSelectedRowLog] = useState<UserActionData | null>(null);
+
+  // --- Dynamic Search & Filter States ---
+  const [searchColumns, setSearchColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem("useraction_search_columns");
+    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "useraction_search_columns",
+      JSON.stringify(searchColumns),
+    );
+  }, [searchColumns]);
+
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
 
   // --- Column Order State & Persistence ---
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
@@ -52,11 +91,15 @@ const UserAction: React.FC = () => {
     localStorage.setItem("useraction_table_columns", JSON.stringify(tableColumns));
   }, [tableColumns]);
 
-  // Column definitions for dynamic rendering & dragging
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Column definitions for dynamic rendering, filtering, & dragging
   const allColumns: ColumnConfig[] = [
     {
       key: "username",
-      label: "UserName",
+      label: "User Name",
+      type: "text",
+      filterKey: "user__username__icontains",
       render: (log) => (
         <span className="font-mono text-sm text-text-secondary dark:text-gray-300">
           {log.username}
@@ -66,6 +109,8 @@ const UserAction: React.FC = () => {
     {
       key: "title",
       label: "Module",
+      type: "text",
+      filterKey: "title__icontains",
       render: (log) => (
         <span className="text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap">
           {log.title}
@@ -75,6 +120,8 @@ const UserAction: React.FC = () => {
     {
       key: "action",
       label: "Action",
+      type: "text",
+      filterKey: "action__icontains",
       render: (log) => (
         <div className="max-w-[150px] sm:max-w-[200px] md:max-w-[300px] truncate text-sm text-text-secondary dark:text-gray-300">
           {log.action}
@@ -83,7 +130,10 @@ const UserAction: React.FC = () => {
     },
     {
       key: "createdAt",
-      label: "Time",
+      label: "Time (Exact)",
+      tableLabel: "Time",
+      type: "date",
+      filterKey: "createdAt",
       render: (log) => (
         <div className="flex items-center gap-2 text-xs text-text-secondary dark:text-gray-300 whitespace-nowrap">
           <History size={14} className="text-orange-400" />
@@ -91,14 +141,38 @@ const UserAction: React.FC = () => {
         </div>
       ),
     },
+    {
+      key: "createdAt__gt_lt",
+      label: "Time (After / Before)",
+      type: "date_gt_lt",
+      filterKey: "createdAt",
+      isSearchOnly: true,
+    },
   ];
+
+  const searchableColumns = allColumns.filter((col) => col.isSearchable !== false);
+  const visibleSearchFields = searchableColumns.filter((col) =>
+    searchColumns.includes(col.key),
+  );
 
   // Map columns according to custom reordered user preference
   const visibleTableFields = tableColumns
     .map((key) => allColumns.find((col) => col.key === key))
     .filter((col): col is ColumnConfig => Boolean(col));
 
-  const headers = ["S.N.", ...visibleTableFields.map((col) => col.label)];
+  const headers = ["S.N.", ...visibleTableFields.map((col) => col.tableLabel || col.label)];
+
+  const tableFilterColumns = allColumns
+    .filter((c) => !c.isSearchOnly)
+    .map((c) => ({
+      key: c.key,
+      label: c.tableLabel || c.label,
+      type: c.type as FilterColumnType,
+    }));
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilterValues((prev) => ({ ...prev, [key]: value }));
+  };
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -112,22 +186,47 @@ const UserAction: React.FC = () => {
     fetchUserInfo();
   }, []);
 
-  const fetchUserLogs = async (overrideParams?: Record<string, string>) => {
+  const fetchUserLogs = async (filters: Record<string, string> | null = null) => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const newController = new AbortController();
+    abortControllerRef.current = newController;
     setIsLoading(true);
-    try {
-      const currentSearchParams = overrideParams || {
-        title: titleFilter,
-      };
 
-      const cleanParams = Object.fromEntries(
-        Object.entries(currentSearchParams).filter(([_, v]) => v !== ""),
-      );
+    try {
+      const activeFilters = filters || filterValues;
+      const currentSearchParams: Record<string, string> = {};
+
+      searchColumns.forEach((key) => {
+        const value = activeFilters[key];
+        if (value) {
+          const columnDef = allColumns.find((c) => c.key === key);
+
+          if (columnDef?.type === "date") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__exact$/, "").replace(/__range$/, "");
+            currentSearchParams[`${baseKey}__range`] = `${value}T00:00:00,${value}T23:59:59`;
+          } else if (columnDef?.type === "date_gt_lt") {
+            const rawKey = columnDef.filterKey || key;
+            const baseKey = rawKey.replace(/__gt_lt$/, "").replace(/__exact$/, "").replace(/__range$/, "");
+            const [gt, lt] = value.split(",");
+            if (gt) currentSearchParams[`${baseKey}__gte`] = `${gt}T00:00:00`;
+            if (lt) currentSearchParams[`${baseKey}__lte`] = `${lt}T23:59:59`;
+          } else if (columnDef?.type === "text" || columnDef?.type === "number") {
+            const filterKey = columnDef.filterKey || `${key}__icontains`;
+            currentSearchParams[filterKey] = value;
+          } else {
+            currentSearchParams[columnDef?.filterKey || key] = value;
+          }
+        }
+      });
 
       const response: any = await getUserActionApi(
         currentPage,
         rowsPerPage,
-        cleanParams,
+        currentSearchParams,
       );
+
+      if (newController.signal.aborted) return;
 
       let rawList: UserActionData[] = [];
       let totalCount = 0;
@@ -151,17 +250,22 @@ const UserAction: React.FC = () => {
         setLogs([]);
         setTotalItems(0);
       }
-    } catch (error) {
-      console.error("Log fetch error:", error);
-      toast.error("Failed to fetch user actions.");
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        console.error("Log fetch error:", error);
+        toast.error("Failed to fetch user actions.");
+      }
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === newController) setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchUserLogs();
-  }, [currentPage, rowsPerPage]);
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, [currentPage, rowsPerPage, searchColumns]);
 
   const handleSearch = () => {
     setCurrentPage(1);
@@ -169,9 +273,9 @@ const UserAction: React.FC = () => {
   };
 
   const handleClearFilters = () => {
-    setTitleFilter("");
+    setFilterValues({});
     setCurrentPage(1);
-    fetchUserLogs({ title: "" });
+    fetchUserLogs({});
   };
 
   const handleContextMenu = (e: React.MouseEvent, log: UserActionData) => {
@@ -213,10 +317,44 @@ const UserAction: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 pb-6 sm:px-6 lg:px-8" onClick={() => setContextMenuPos(null)}>
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-text-primary dark:text-white">
-          User Action
-        </h1>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <h1 className="text-2xl font-semibold text-text-primary dark:text-white mr-2">
+            User Action
+          </h1>
+          <div className="relative z-20">
+            <AdvancedFilter
+              columns={tableFilterColumns as any}
+              selectedColumns={tableColumns}
+              defaultColumns={DEFAULT_TABLE_COLUMNS}
+              onFilter={(cols) => setTableColumns(cols)}
+              onClear={() => setTableColumns(DEFAULT_TABLE_COLUMNS)}
+              buttonLabel="Columns"
+              enableReorder={true}
+            />
+          </div>
+          <div className="relative z-20">
+            <AdvancedFilter
+              columns={searchableColumns as any}
+              selectedColumns={searchColumns}
+              defaultColumns={DEFAULT_SEARCH_COLUMNS}
+              onFilter={(newCols) => {
+                setSearchColumns(newCols);
+                setFilterValues((prev) => {
+                  const next = { ...prev };
+                  Object.keys(next).forEach((k) => {
+                    if (!newCols.includes(k)) delete next[k];
+                  });
+                  return next;
+                });
+              }}
+              onClear={() => setSearchColumns(DEFAULT_SEARCH_COLUMNS)}
+              isLoading={isLoading}
+              buttonLabel="Search Fields"
+            />
+          </div>
+        </div>
+
         <div className="flex items-center space-x-2 text-sm text-text-secondary">
           <Home size={16} className="text-gray-400" />
           <NavLink to="/dashboard" className="text-gray-400 hover:text-primary">
@@ -228,13 +366,66 @@ const UserAction: React.FC = () => {
       </div>
 
       <FilterCard onSearch={handleSearch} onClear={handleClearFilters}>
-        <Input
-          label={`Search ${getBaseLabel("Module")}`}
-          value={titleFilter}
-          onChange={(e) => setTitleFilter(e.target.value)}
-          placeholder="Client"
-          className="md:col-span-3"
-        />
+        {visibleSearchFields.map((col) => {
+          const baseLabel = getBaseLabel(col.label || "");
+          if (col.type === "date")
+            return (
+              <DatePicker
+                key={col.key}
+                label={`Search ${baseLabel}`}
+                selected={
+                  filterValues[col.key] ? new Date(filterValues[col.key]) : null
+                }
+                onChange={(val: Date | null) =>
+                  handleFilterChange(col.key, val ? formatLocalDate(val) : "")
+                }
+                placeholder={`Select ${baseLabel}`}
+              />
+            );
+          if (col.type === "date_gt_lt") {
+            const [gtStr, ltStr] = (filterValues[col.key] || "").split(",");
+            return (
+              <React.Fragment key={col.key}>
+                <DatePicker
+                  label={`Search ${baseLabel} (> After)`}
+                  selected={gtStr ? new Date(gtStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newGt = val ? formatLocalDate(val) : "";
+                    const currentLt = ltStr || "";
+                    handleFilterChange(
+                      col.key,
+                      newGt || currentLt ? `${newGt},${currentLt}` : "",
+                    );
+                  }}
+                  placeholder="> After"
+                />
+                <DatePicker
+                  label={`Search ${baseLabel} (< Before)`}
+                  selected={ltStr ? new Date(ltStr) : null}
+                  onChange={(val: Date | null) => {
+                    const newLt = val ? formatLocalDate(val) : "";
+                    const currentGt = gtStr || "";
+                    handleFilterChange(
+                      col.key,
+                      currentGt || newLt ? `${currentGt},${newLt}` : "",
+                    );
+                  }}
+                  placeholder="< Before"
+                />
+              </React.Fragment>
+            );
+          }
+          return (
+            <Input
+              key={col.key}
+              type={col.type || "text"}
+              label={`Search ${baseLabel}`}
+              value={filterValues[col.key] || ""}
+              onChange={(e) => handleFilterChange(col.key, e.target.value)}
+              placeholder={`${baseLabel}`}
+            />
+          );
+        })}
       </FilterCard>
 
       <DataTable
@@ -258,7 +449,7 @@ const UserAction: React.FC = () => {
         }}
         renderRow={(log, index) => (
           <tr
-            key={log.id}
+            key={log.id || index}
             onContextMenu={(e) => handleContextMenu(e, log)}
             className="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 transition-colors cursor-context-menu"
           >
@@ -270,7 +461,7 @@ const UserAction: React.FC = () => {
                 key={col.key}
                 className="px-4 py-4 text-sm text-text-secondary dark:text-gray-300 whitespace-nowrap"
               >
-                {col.render(log)}
+                {col.render ? col.render(log) : (log as any)[col.key] || "-"}
               </td>
             ))}
           </tr>

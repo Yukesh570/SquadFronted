@@ -196,14 +196,14 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             setFormData((prev) => ({
               ...prev,
               smppHost: smppData.smppHost || "",
-              smppPort: String(smppData.smppPort) || "",
+              smppPort: smppData.smppPort != null ? String(smppData.smppPort) : "",
               systemID: smppData.systemID || "",
               password: smppData.password || "",
               bindMode: smppData.bindMode || "TRANSCEIVER",
-              sourceTON: String(smppData.sourceTON || ""),
-              sourceNPI: String(smppData.sourceNPI || ""),
-              destTON: String(smppData.destTON || ""),
-              destNPI: String(smppData.destNPI || ""),
+              sourceTON: smppData.sourceTON != null ? String(smppData.sourceTON) : "",
+              sourceNPI: smppData.sourceNPI != null ? String(smppData.sourceNPI) : "",
+              destTON: smppData.destTON != null ? String(smppData.destTON) : "",
+              destNPI: smppData.destNPI != null ? String(smppData.destNPI) : "",
             }));
           }
         } catch (error) {
@@ -312,10 +312,10 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           systemID: formData.systemID,
           password: formData.password,
           bindMode: formData.bindMode,
-          sourceTON: Number(formData.sourceTON),
-          sourceNPI: Number(formData.sourceNPI),
-          destTON: Number(formData.destTON),
-          destNPI: Number(formData.destNPI),
+          sourceTON: formData.sourceTON !== "" ? Number(formData.sourceTON) : 1,
+          sourceNPI: formData.sourceNPI !== "" ? Number(formData.sourceNPI) : 1,
+          destTON: formData.destTON !== "" ? Number(formData.destTON) : 1,
+          destNPI: formData.destNPI !== "" ? Number(formData.destNPI) : 1,
         };
 
         if (editingVendor && createdSmppId) {

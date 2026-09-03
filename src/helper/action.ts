@@ -12,6 +12,11 @@ export const actionHelper = async (
   action: string, 
   sendNotification: boolean = false 
 ) => {
+  // Ignore automatic page navigation / view logs
+  if (action.startsWith("Opened ") && action.endsWith(" Module")) {
+    return;
+  }
+
   try {
     // 1. Always log to User Action page
     await createUserActionApi({ title, action });
