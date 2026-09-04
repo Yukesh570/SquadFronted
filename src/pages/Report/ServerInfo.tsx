@@ -6,7 +6,7 @@ import {
   Lock, Send, Inbox, AlertOctagon, CreditCard,
   DollarSign, FileText, XCircle
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   AreaChart, Area, LineChart, Line, BarChart, Bar,
@@ -81,6 +81,7 @@ interface ServiceCardProps {
 }
 
 const ServerInfo: React.FC = () => {
+  const location = useLocation();
   const [serverData, setServerData] = useState<ServerInfoData | null>(null);
   const [healthData, setHealthData] = useState<ServerHealthData | null>(null);
   const [reconData, setReconData] = useState<ReconciliationResponse | null>(null);
@@ -164,12 +165,19 @@ const ServerInfo: React.FC = () => {
 
   useEffect(() => {
     fetchAllTelemetry(false);
-    const intervalId = setInterval(() => { fetchAllTelemetry(true); }, 10000);
+    const intervalId = setInterval(() => { 
+      const currentGlobalPath = window.location.pathname === "/" ? "/dashboard" : window.location.pathname;
+      const isTabActive = currentGlobalPath === location.pathname || currentGlobalPath.startsWith(`${location.pathname}/`);
+      
+      if (isTabActive) {
+        fetchAllTelemetry(true); 
+      }
+    }, 10000);
     return () => {
       clearInterval(intervalId);
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, []);
+  }, [location.pathname]);
 
   const hasLoggedOpening = useRef(false);
   useEffect(() => {

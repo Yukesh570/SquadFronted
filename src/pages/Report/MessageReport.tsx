@@ -552,13 +552,16 @@ const MessageReport: React.FC = () => {
     const liveUpdateTimer = setInterval(() => {
       const isFiltering = Object.values(filterValues).some((val) => val !== "");
 
-      if (isAtTopRef.current && !isFiltering) {
+      const currentGlobalPath = window.location.pathname === "/" ? "/dashboard" : window.location.pathname;
+      const isTabActive = currentGlobalPath === location.pathname || currentGlobalPath.startsWith(`${location.pathname}/`);
+
+      if (isAtTopRef.current && !isFiltering && isTabActive) {
         fetchLogs(undefined, 1, false, true);
       }
     }, 5000);
 
     return () => clearInterval(liveUpdateTimer);
-  }, [filterValues, isLoading, isFetchingMore]);
+  }, [filterValues, isLoading, isFetchingMore, location.pathname]);
 
   useEffect(() => {
     const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(
