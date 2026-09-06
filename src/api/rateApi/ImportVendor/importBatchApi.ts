@@ -30,7 +30,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getImportBatchesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -40,16 +40,16 @@ export const getImportBatchesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendorRateImportBatch/${module}/`, { params });
+  const response = await api.get(`/vendorRateImportBatch/`, { params });
   return response.data;
 };
 
 export const updateImportBatchApi = async (
   id: number,
   data: any,
-  module: string
+  _module?: string
 ): Promise<ImportBatchData> => {
-  const response = await api.patch(`/vendorRateImportBatch/${module}/${id}/`, data);
+  const response = await api.patch(`/vendorRateImportBatch/${id}/`, data);
   return response.data;
 };
 

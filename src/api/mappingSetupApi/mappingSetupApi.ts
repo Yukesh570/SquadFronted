@@ -23,7 +23,7 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getMappingSetupsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -33,16 +33,16 @@ export const getMappingSetupsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/mappingSetup/${module}/`, { params });
+  const response = await api.get(`/mappingSetup/`, { params });
   return response.data;
 };
 
 // POST
 export const createMappingSetupApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<MappingSetupData> => {
-  const response = await api.post(`/mappingSetup/${module}/`, data);
+  const response = await api.post(`/mappingSetup/`, data);
   return response.data;
 };
 
@@ -50,16 +50,16 @@ export const createMappingSetupApi = async (
 export const updateMappingSetupApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<MappingSetupData> => {
-  const response = await api.patch(`/mappingSetup/${module}/${id}/`, data);
+  const response = await api.patch(`/mappingSetup/${id}/`, data);
   return response.data;
 };
 
 // DELETE
 export const deleteMappingSetupApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/mappingSetup/${module}/${id}/`);
+  await api.delete(`/mappingSetup/${id}/`);
 };

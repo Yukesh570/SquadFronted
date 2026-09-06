@@ -19,7 +19,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getImapServersApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, string>,
@@ -29,30 +29,30 @@ export const getImapServersApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/imapHost/${module}/`, { params });
+  const response = await api.get(`/imapHost/`, { params });
   return response.data;
 };
 
 export const createImapServerApi = async (
   data: Omit<ImapServerData, "id">,
-  module: string,
+  _module?: string,
 ): Promise<ImapServerData> => {
-  const response = await api.post(`/imapHost/${module}/`, data);
+  const response = await api.post(`/imapHost/`, data);
   return response.data;
 };
 
 export const updateImapServerApi = async (
   id: number,
   data: Omit<ImapServerData, "id">,
-  module: string,
+  _module?: string,
 ): Promise<ImapServerData> => {
-  const response = await api.patch(`/imapHost/${module}/${id}/`, data);
+  const response = await api.patch(`/imapHost/${id}/`, data);
   return response.data;
 };
 
 export const deleteImapServerApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/imapHost/${module}/${id}/`);
+  await api.delete(`/imapHost/${id}/`);
 };

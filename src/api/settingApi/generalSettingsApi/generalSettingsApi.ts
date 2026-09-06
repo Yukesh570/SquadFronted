@@ -24,35 +24,35 @@ export interface DashboardImageData {
 }
 
 // GET (Authenticated)
-export const getGeneralSettingsApi = async (module: string): Promise<GeneralSettingsData> => {
-  const response = await api.get(`/generalSettings/${module}/`);
+export const getGeneralSettingsApi = async (_module?: string): Promise<GeneralSettingsData> => {
+  const response = await api.get(`/generalSettings/`);
   return response?.data;
 };
 
 // POST (Authenticated)
 export const createGeneralSettingsApi = async (
   data: Partial<GeneralSettingsData>,
-  module: string
+  _module?: string
 ): Promise<GeneralSettingsData> => {
-  const response = await api.post(`/generalSettings/${module}/`, data);
+  const response = await api.post(`/generalSettings/`, data);
   return response?.data;
 };
 
 // PUT (Authenticated)
 export const putGeneralSettingsApi = async (
   data: Partial<GeneralSettingsData>,
-  module: string
+  _module?: string
 ): Promise<GeneralSettingsData> => {
-  const response = await api.put(`/generalSettings/${module}/`, data);
+  const response = await api.put(`/generalSettings/`, data);
   return response?.data;
 };
 
 // PATCH (Authenticated)
 export const updateGeneralSettingsApi = async (
   data: Partial<GeneralSettingsData>,
-  module: string
+  _module?: string
 ): Promise<GeneralSettingsData> => {
-  const response = await api.patch(`/generalSettings/${module}/`, data);
+  const response = await api.patch(`/generalSettings/`, data);
   return response?.data;
 };
 

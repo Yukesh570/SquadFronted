@@ -55,7 +55,7 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getCompaniesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -65,16 +65,16 @@ export const getCompaniesApi = async (
     page_size: pageSize,
     ...searchParams
   };
-  const response = await api.get(`/company/${module}/`, { params });
+  const response = await api.get(`/company/`, { params });
   return response.data;
 };
 
 // POST
 export const createCompanyApi = async (
   data: any,
-  module: string
+  _module?: string
 ): Promise<CompanyData> => {
-  const response = await api.post(`/company/${module}/`, data);
+  const response = await api.post(`/company/`, data);
   return response.data;
 };
 
@@ -82,35 +82,35 @@ export const createCompanyApi = async (
 export const updateCompanyApi = async (
   id: number,
   data: any,
-  module: string
+  _module?: string
 ): Promise<CompanyData> => {
-  const response = await api.patch(`/company/${module}/${id}/`, data);
+  const response = await api.patch(`/company/${id}/`, data);
   return response.data;
 };
 
 // DELETE
 export const deleteCompanyApi = async (
   id: number,
-  module: string
+  _module?: string
 ): Promise<void> => {
-  await api.delete(`/company/${module}/${id}/`);
+  await api.delete(`/company/${id}/`);
 };
 
 // --- Add Credit API ---
 // POST
 export const addCreditApi = async (
   data: { company: number; creditType: string; creditAmount: number },
-  module: string
+  _module?: string
 ) => {
-  const response = await api.post(`/addCreditForCompnay/${module}/`, data);
+  const response = await api.post(`/addCreditForCompany/`, data);
   return response.data;
 };
 
 // GET Credit History
 export const getCreditTransactionHistoryApi = async (
-  module: string,
-  companyId: number
+  _module?: string,
+  companyId?: number
 ) => {
-  const response = await api.get(`/addCreditForCompnay/${module}/?company__id=${companyId}`);
+  const response = await api.get(`/addCreditForCompany/?company__id=${companyId}`);
   return response.data;
 };

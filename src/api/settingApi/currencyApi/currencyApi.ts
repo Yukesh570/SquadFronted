@@ -20,7 +20,7 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getCurrenciesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -30,16 +30,16 @@ export const getCurrenciesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/currency/${module}/`, { params });
+  const response = await api.get(`/currency/`, { params });
   return response.data;
 };
 
 // POST
 export const createCurrencyApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CurrencyData> => {
-  const response = await api.post(`/currency/${module}/`, data);
+  const response = await api.post(`/currency/`, data);
   return response.data;
 };
 
@@ -47,18 +47,18 @@ export const createCurrencyApi = async (
 export const updateCurrencyApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CurrencyData> => {
-  const response = await api.patch(`/currency/${module}/${id}/`, data);
+  const response = await api.patch(`/currency/${id}/`, data);
   return response.data;
 };
 
 // DELETE
 export const deleteCurrencyApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/currency/${module}/${id}/`);
+  await api.delete(`/currency/${id}/`);
 };
 
 // IMPORT

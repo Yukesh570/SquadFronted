@@ -5,7 +5,7 @@ export interface TerminatingVendor {
   name: string;
   system_id: string;
   company_name: string;
-  currencyCode: string
+  currencyCode: string;
 }
 
 export interface RouteItem {
@@ -30,7 +30,7 @@ export interface ClientInfo {
   id: number;
   name: string;
   smpp_username: string;
-  currencyCode: string
+  currencyCode: string;
 }
 
 export interface RouteLookupResponse {
@@ -48,14 +48,14 @@ export interface RouteLookupResponse {
 }
 
 export const getRouteLookupApi = async (
-  moduleName: string,
-  number: string,
+  _moduleName?: string,
+  number?: string,
   clientId?: string
 ): Promise<RouteLookupResponse> => {
   const params: Record<string, any> = { number };
   if (clientId) {
     params.client_id = clientId;
   }
-  const response = await api.get(`/routeLookup/${moduleName}/`, { params });
+  const response = await api.get(`/routeLookup/`, { params });
   return response.data;
 };

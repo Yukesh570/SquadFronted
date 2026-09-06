@@ -45,7 +45,7 @@ export const getTemplatesApi = async (
 };
 
 export const getCampaignVendorsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -55,12 +55,12 @@ export const getCampaignVendorsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/campaignVendor/${module}/`, { params });
+  const response = await api.get(`/campaignVendor/`, { params });
   return response.data;
 };
 
-export const createCampaignVendorApi = async (data: FormData, module: string) => {
-  const response = await api.post(`/campaignVendor/${module}/`, data, {
+export const createCampaignVendorApi = async (data: FormData, _module?: string) => {
+  const response = await api.post(`/campaignVendor/`, data, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
@@ -69,9 +69,9 @@ export const createCampaignVendorApi = async (data: FormData, module: string) =>
 export const updateCampaignVendorApi = async (
   id: number,
   data: FormData,
-  module: string,
+  _module?: string,
 ) => {
-  const response = await api.patch(`/campaignVendor/${module}/${id}/`, data, {
+  const response = await api.patch(`/campaignVendor/${id}/`, data, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
@@ -79,7 +79,7 @@ export const updateCampaignVendorApi = async (
 
 export const deleteCampaignVendorApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/campaignVendor/${module}/${id}/`);
+  await api.delete(`/campaignVendor/${id}/`);
 };

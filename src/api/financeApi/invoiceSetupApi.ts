@@ -23,7 +23,7 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getInvoiceSetupsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -33,16 +33,16 @@ export const getInvoiceSetupsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/invoiceSetup/${module}/`, { params });
+  const response = await api.get(`/invoiceSetup/`, { params });
   return response.data;
 };
 
 // POST
 export const createInvoiceSetupApi = async (
   data: any,
-  module: string
+  _module?: string
 ): Promise<InvoiceSetupData> => {
-  const response = await api.post(`/invoiceSetup/${module}/`, data);
+  const response = await api.post(`/invoiceSetup/`, data);
   return response.data;
 };
 
@@ -50,9 +50,9 @@ export const createInvoiceSetupApi = async (
 export const putInvoiceSetupApi = async (
   id: number,
   data: any,
-  module: string
+  _module?: string
 ): Promise<InvoiceSetupData> => {
-  const response = await api.put(`/invoiceSetup/${module}/${id}/`, data);
+  const response = await api.put(`/invoiceSetup/${id}/`, data);
   return response.data;
 };
 
@@ -60,16 +60,16 @@ export const putInvoiceSetupApi = async (
 export const updateInvoiceSetupApi = async (
   id: number,
   data: any,
-  module: string
+  _module?: string
 ): Promise<InvoiceSetupData> => {
-  const response = await api.patch(`/invoiceSetup/${module}/${id}/`, data);
+  const response = await api.patch(`/invoiceSetup/${id}/`, data);
   return response.data;
 };
 
 // DELETE
 export const deleteInvoiceSetupApi = async (
   id: number,
-  module: string
+  _module?: string
 ): Promise<void> => {
-  await api.delete(`/invoiceSetup/${module}/${id}/`);
+  await api.delete(`/invoiceSetup/${id}/`);
 };

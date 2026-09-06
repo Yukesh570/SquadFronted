@@ -54,9 +54,9 @@ export interface AnalyticsFilterParams {
 }
 
 export const getAnalyticsReportApi = async (
-  moduleName: string,
+  _moduleName?: string,
   params?: AnalyticsFilterParams
 ): Promise<DateAnalytics[]> => {
-  const response = await api.get(`/report/${moduleName}/analytics/`, { params });
+  const response = await api.get(`/report/analytics/`, { params });
   return response.data;
 };

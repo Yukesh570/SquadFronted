@@ -19,7 +19,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getImportAuditsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -29,15 +29,15 @@ export const getImportAuditsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendorRateImportAudit/${module}/`, { params });
+  const response = await api.get(`/vendorRateImportAudit/`, { params });
   return response.data;
 };
 
 export const updateImportAuditApi = async (
   id: number,
   data: any,
-  module: string
+  _module?: string
 ): Promise<ImportAuditData> => {
-  const response = await api.patch(`/vendorRateImportAudit/${module}/${id}/`, data);
+  const response = await api.patch(`/vendorRateImportAudit/${id}/`, data);
   return response.data;
 };

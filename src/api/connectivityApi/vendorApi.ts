@@ -64,7 +64,7 @@ export interface PaginatedResponse<T> {
 
 // GET - Vendors
 export const getVendorsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -74,16 +74,16 @@ export const getVendorsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendor/${module}/`, { params });
+  const response = await api.get(`/vendor/`, { params });
   return response.data;
 };
 
 // POST - Vendors
 export const createVendorApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<VendorData> => {
-  const response = await api.post(`/vendor/${module}/`, data);
+  const response = await api.post(`/vendor/`, data);
   return response.data;
 };
 
@@ -91,23 +91,23 @@ export const createVendorApi = async (
 export const updateVendorApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<VendorData> => {
-  const response = await api.patch(`/vendor/${module}/${id}/`, data);
+  const response = await api.patch(`/vendor/${id}/`, data);
   return response.data;
 };
 
 // DELETE - Vendors
 export const deleteVendorApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/vendor/${module}/${id}/`);
+  await api.delete(`/vendor/${id}/`);
 };
 
 // GET - Vendor Rate Groups
 export const getVendorRateGroupsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -117,7 +117,7 @@ export const getVendorRateGroupsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendorRateGroup/${module}/`, { params });
+  const response = await api.get(`/vendorRateGroup/`, { params });
   return response.data;
 };
 
@@ -136,7 +136,7 @@ export const getVendorRateByVendorApi = async (params: {
   [key: string]: any;
 }): Promise<PaginatedResponse<VendorRateData>> => {
   const { vendor_id, page = 1, page_size = 10, ...rest } = params;
-  const response = await api.get(`/vendorRateByVendor/vendor`, {
+  const response = await api.get(`/vendorRateByVendor/`, {
     params: { vendor_id, page, page_size, ...rest },
   });
   return response.data;

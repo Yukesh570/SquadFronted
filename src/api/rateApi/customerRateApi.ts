@@ -41,7 +41,7 @@ export interface PaginatedResponse<T> {
 // ==========================================
 
 export const getCustomerRateGroupsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -51,32 +51,32 @@ export const getCustomerRateGroupsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/customerRateGroup/${module}/`, { params });
+  const response = await api.get(`/customerRateGroup/`, { params });
   return response.data;
 };
 
 export const createCustomerRateGroupApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CustomerRateGroupData> => {
-  const response = await api.post(`/customerRateGroup/${module}/`, data);
+  const response = await api.post(`/customerRateGroup/`, data);
   return response.data;
 };
 
 export const updateCustomerRateGroupApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CustomerRateGroupData> => {
-  const response = await api.patch(`/customerRateGroup/${module}/${id}/`, data);
+  const response = await api.patch(`/customerRateGroup/${id}/`, data);
   return response.data;
 };
 
 export const deleteCustomerRateGroupApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/customerRateGroup/${module}/${id}/`);
+  await api.delete(`/customerRateGroup/${id}/`);
 };
 
 
@@ -85,7 +85,7 @@ export const deleteCustomerRateGroupApi = async (
 // ==========================================
 
 export const getCustomerRatesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -95,12 +95,12 @@ export const getCustomerRatesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/customerRate/${module}/`, { params });
+  const response = await api.get(`/customerRate/`, { params });
   return response.data;
 };
 
 export const getCustomerRatesPerMNCMCCApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -110,7 +110,7 @@ export const getCustomerRatesPerMNCMCCApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/customerRatePerQuery/${module}/`, { params });
+  const response = await api.get(`/customerRatePerQuery/`, { params });
   return response.data;
 };
 
@@ -124,9 +124,9 @@ export const findCustomerRateApi = async (
 
 export const createCustomerRateApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CustomerRateData> => {
-  const response = await api.post(`/customerRate/${module}/`, data);
+  const response = await api.post(`/customerRate/`, data);
   return response.data;
 };
 
@@ -134,17 +134,17 @@ export const createCustomerRateApi = async (
 export const updateCustomerRateApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CustomerRateData> => {
-  const response = await api.post(`/customerRate/upgrade_rate/${module}/${id}/`, data);
+  const response = await api.post(`/customerRate/upgrade_rate/${id}/`, data);
   return response.data;
 };
 
 export const deleteCustomerRateApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/customerRate/${module}/${id}/`);
+  await api.delete(`/customerRate/${id}/`);
 };
 
 export const importCustomerRatesApi = async (
@@ -160,12 +160,12 @@ export const importCustomerRatesApi = async (
   return response.data;
 };
 
-// ⚡️ Correct API: /customerRateGroup/<str:module>/<int:pk>/export_rates_email/
+// ⚡️ Correct API: /customerRateGroup/<int:pk>/export_rates_email/
 export const exportCustomerRatesEmailApi = async (
   rateGroupId: number,
   data: { exportOnlyNew: boolean; emailTemplateId: number },
-  module: string = "customerRateGroup",
+  _module?: string,
 ): Promise<any> => {
-  const response = await api.post(`/customerRateGroup/${module}/${rateGroupId}/export_rates_email/`, data);
+  const response = await api.post(`/customerRateGroup/${rateGroupId}/export_rates_email/`, data);
   return response.data;
 };

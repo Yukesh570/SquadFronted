@@ -22,7 +22,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getDLREventApi = async (
-  moduleName: string,
+  _moduleName?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -32,6 +32,6 @@ export const getDLREventApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/dlrEvent/${moduleName}/`, { params });
+  const response = await api.get(`/dlrEvent/`, { params });
   return response.data;
 };

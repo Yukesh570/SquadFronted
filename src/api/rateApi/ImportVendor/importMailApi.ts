@@ -24,7 +24,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getImportMailsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -34,15 +34,15 @@ export const getImportMailsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendorRateImportMail/${module}/`, { params });
+  const response = await api.get(`/vendorRateImportMail/`, { params });
   return response.data;
 };
 
 export const updateImportMailApi = async (
   id: number,
   data: any,
-  module: string
+  _module?: string
 ): Promise<ImportMailData> => {
-  const response = await api.patch(`/vendorRateImportMail/${module}/${id}/`, data);
+  const response = await api.patch(`/vendorRateImportMail/${id}/`, data);
   return response.data;
 };

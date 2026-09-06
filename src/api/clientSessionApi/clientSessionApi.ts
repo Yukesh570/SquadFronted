@@ -35,7 +35,7 @@ export interface ClientSessionSummaryData {
 
 // GET (Read-Only)
 export const getClientSessionsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -45,12 +45,12 @@ export const getClientSessionsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/clientSession/${module}/`, { params });
+  const response = await api.get(`/clientSession/`, { params });
   return response.data;
 };
 
 // GET (Read-Only)
 export const getClientSessionSummaryApi = async (): Promise<ClientSessionSummaryData[]> => {
-  const response = await api.get(`/clientSessionSummary/clientSession/`);
+  const response = await api.get(`/clientSession/`);
   return response.data;
 };

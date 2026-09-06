@@ -27,7 +27,7 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getOperatorNetworkCodesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -37,7 +37,7 @@ export const getOperatorNetworkCodesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/operatorNetworkCode/${module}/`, { params });
+  const response = await api.get(`/operatorNetworkCode/`, { params });
   return response.data;
 };
 
@@ -60,9 +60,9 @@ export const getOperatorNetworkCodelookupApi = async (
 // POST
 export const createOperatorNetworkCodeApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<OperatorNetworkCodeData> => {
-  const response = await api.post(`/operatorNetworkCode/${module}/`, data);
+  const response = await api.post(`/operatorNetworkCode/`, data);
   return response.data;
 };
 
@@ -70,9 +70,9 @@ export const createOperatorNetworkCodeApi = async (
 export const putOperatorNetworkCodeApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<OperatorNetworkCodeData> => {
-  const response = await api.put(`/operatorNetworkCode/${module}/${id}/`, data);
+  const response = await api.put(`/operatorNetworkCode/${id}/`, data);
   return response.data;
 };
 
@@ -80,10 +80,10 @@ export const putOperatorNetworkCodeApi = async (
 export const updateOperatorNetworkCodeApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<OperatorNetworkCodeData> => {
   const response = await api.patch(
-    `/operatorNetworkCode/${module}/${id}/`,
+    `/operatorNetworkCode/${id}/`,
     data,
   );
   return response.data;
@@ -92,9 +92,9 @@ export const updateOperatorNetworkCodeApi = async (
 // DELETE
 export const deleteOperatorNetworkCodeApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/operatorNetworkCode/${module}/${id}/`);
+  await api.delete(`/operatorNetworkCode/${id}/`);
 };
 
 // IMPORT

@@ -19,7 +19,7 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getIpWhitelistApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -29,16 +29,16 @@ export const getIpWhitelistApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/accessControl/${module}/`, { params });
+  const response = await api.get(`/accessControl/`, { params });
   return response.data;
 };
 
 // POST
 export const createIpWhitelistApi = async (
   data: any,
-  module: string
+  _module?: string
 ): Promise<IpWhitelistData> => {
-  const response = await api.post(`/accessControl/${module}/`, data);
+  const response = await api.post(`/accessControl/`, data);
   return response.data;
 };
 
@@ -46,16 +46,16 @@ export const createIpWhitelistApi = async (
 export const updateIpWhitelistApi = async (
   id: number,
   data: any,
-  module: string
+  _module?: string
 ): Promise<IpWhitelistData> => {
-  const response = await api.put(`/accessControl/${module}/${id}/`, data);
+  const response = await api.put(`/accessControl/${id}/`, data);
   return response.data;
 };
 
 // DELETE
 export const deleteIpWhitelistApi = async (
   id: number,
-  module: string
+  _module?: string
 ): Promise<void> => {
-  await api.delete(`/accessControl/${module}/${id}/`);
+  await api.delete(`/accessControl/${id}/`);
 };

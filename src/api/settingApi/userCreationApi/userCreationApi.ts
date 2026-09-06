@@ -37,9 +37,9 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// GET Users List: /allUser/{module}/
+// GET Users List: /allUser/
 export const getUsersApi = async (
-  module: string = "userCreation",
+  _module?: string,
   page: number = 1,
   pageSize: number = 50,
   searchParams?: Record<string, any>,
@@ -49,7 +49,7 @@ export const getUsersApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/allUser/${module}/`, { params });
+  const response = await api.get(`/allUser/`, { params });
   return response.data;
 };
 
@@ -70,20 +70,20 @@ export const createUserApi = async (
   return response.data;
 };
 
-// PATCH Update User: /user/edit/{module}/{id}/
+// PATCH Update User: /user/edit/{id}/
 export const updateUserApi = async (
   id: number,
   data: Partial<UserCreationData>,
-  module: string = "userCreation",
+  _module?: string,
 ): Promise<UserCreationData> => {
-  const response = await api.patch(`/user/edit/${module}/${id}/`, data);
+  const response = await api.patch(`/user/edit/${id}/`, data);
   return response.data;
 };
 
-// DELETE User: /user/delete/{module}/{id}/
+// DELETE User: /user/delete/{id}/
 export const deleteUserApi = async (
   id: number,
-  module: string = "userCreation",
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/user/delete/${module}/${id}/`);
+  await api.delete(`/user/delete/${id}/`);
 };

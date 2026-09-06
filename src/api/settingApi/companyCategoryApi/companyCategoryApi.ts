@@ -1,4 +1,5 @@
 import api from "../../axiosInstance";
+
 export interface CompanyCategoryData {
   id?: number;
   name: string;
@@ -13,7 +14,7 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getCompanyCategoryApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -23,16 +24,16 @@ export const getCompanyCategoryApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/companyCategory/${module}/`, { params });
+  const response = await api.get(`/companyCategory/`, { params });
   return response.data;
 };
 
 // POST
 export const createCompanyCategoryApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CompanyCategoryData> => {
-  const response = await api.post(`/companyCategory/${module}/`, data);
+  const response = await api.post(`/companyCategory/`, data);
   return response.data;
 };
 
@@ -40,16 +41,16 @@ export const createCompanyCategoryApi = async (
 export const updateCompanyCategoryApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CompanyCategoryData> => {
-  const response = await api.patch(`/companyCategory/${module}/${id}/`, data);
+  const response = await api.patch(`/companyCategory/${id}/`, data);
   return response.data;
 };
 
 // DELETE
 export const deleteCompanyCategoryApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/companyCategory/${module}/${id}/`);
+  await api.delete(`/companyCategory/${id}/`);
 };

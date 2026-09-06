@@ -42,30 +42,30 @@ export const getTemplatesApi = async (
 
 export const createTemplate = async (
   data: templateData,
-  module: string,
+  _module?: string,
 ): Promise<templateData> => {
-  const response = await api.post(`/template/${module}/`, data);
+  const response = await api.post(`/template/`, data);
   return response.data;
 };
 
 export const updateTemplateApi = async (
   id: number,
   data: templateData,
-  module: string,
+  _module?: string,
 ): Promise<templateData> => {
-  const response = await api.patch(`/template/${module}/${id}/`, data);
+  const response = await api.patch(`/template/${id}/`, data);
   return response.data;
 };
 
 export const deleteTemplateApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/template/${module}/${id}/`);
+  await api.delete(`/template/${id}/`);
 };
 
 export const getCampaignsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -75,12 +75,12 @@ export const getCampaignsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/campaign/${module}/`, { params });
+  const response = await api.get(`/campaign/`, { params });
   return response.data;
 };
 
-export const createCampaignApi = async (data: FormData, module: string) => {
-  const response = await api.post(`/campaign/${module}/`, data, {
+export const createCampaignApi = async (data: FormData, _module?: string) => {
+  const response = await api.post(`/campaign/`, data, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
@@ -89,9 +89,9 @@ export const createCampaignApi = async (data: FormData, module: string) => {
 export const updateCampaignApi = async (
   id: number,
   data: FormData,
-  module: string,
+  _module?: string,
 ) => {
-  const response = await api.patch(`/campaign/${module}/${id}/`, data, {
+  const response = await api.patch(`/campaign/${id}/`, data, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
@@ -99,9 +99,9 @@ export const updateCampaignApi = async (
 
 export const deleteCampaignApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/campaign/${module}/${id}/`);
+  await api.delete(`/campaign/${id}/`);
 };
 
 export const uploadCampaignCsvApi = async (file: File) => {

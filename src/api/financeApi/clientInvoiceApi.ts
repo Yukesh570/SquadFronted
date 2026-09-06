@@ -27,7 +27,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getClientInvoicesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -37,7 +37,7 @@ export const getClientInvoicesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/clientCompanyInvoice/${module}/`, { params });
+  const response = await api.get(`/clientCompanyInvoice/`, { params });
   return response.data;
 };
 
@@ -59,10 +59,11 @@ export const generateClientInvoiceApi = async (
 
 export const deleteClientInvoiceApi = async (
   id: number,
-  module: string
+  _module?: string
 ): Promise<void> => {
-  await api.delete(`/clientCompanyInvoice/${module}/${id}/`);
+  await api.delete(`/clientCompanyInvoice/${id}/`);
 };
+
 export const generateClientCompanyInvoiceApi = async (
   data: any,
   action: "PREVIEW" | "GENERATE" = "GENERATE"
@@ -101,7 +102,7 @@ export interface CompanyClientInvoiceData {
 export const getClientInvoiceByCompanyApi = async (
   companyInvoiceId: number
 ): Promise<PaginatedResponse<CompanyClientInvoiceData>> => {
-  const response = await api.get(`/clientInvoice/clientInvoice/`, {
+  const response = await api.get(`/clientInvoice/`, {
     params: {
       company_invoice_id: companyInvoiceId,
     },

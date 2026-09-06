@@ -39,7 +39,7 @@ export interface PaginatedResponse<T> {
 
 // GET GROUPED ROUTES (For Main Table)
 export const getGroupedCustomRoutesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -49,16 +49,16 @@ export const getGroupedCustomRoutesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/routeGroup/${module}/`, { params });
+  const response = await api.get(`/routeGroup/`, { params });
   return response.data;
 };
 
 // POST ROUTE GROUP
 export const createRouteGroupApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<any> => {
-  const response = await api.post(`/routeGroup/${module}/`, data);
+  const response = await api.post(`/routeGroup/`, data);
   return response.data;
 };
 
@@ -66,15 +66,15 @@ export const createRouteGroupApi = async (
 export const updateRouteGroupApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<any> => {
-  const response = await api.patch(`/routeGroup/${module}/${id}/`, data);
+  const response = await api.patch(`/routeGroup/${id}/`, data);
   return response.data;
 };
 
 // GET DETAILED ROUTES (For Sub-Table inside Modal)
 export const getCustomRoutesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -84,16 +84,16 @@ export const getCustomRoutesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/customRoute/${module}/`, { params });
+  const response = await api.get(`/customRoute/`, { params });
   return response.data;
 };
 
 // POST
 export const createCustomRouteApi = async (
   data: any, // ⚡️ Can accept single object OR Array of objects
-  module: string,
+  _module?: string,
 ): Promise<CustomRouteData> => {
-  const response = await api.post(`/customRoute/${module}/`, data);
+  const response = await api.post(`/customRoute/`, data);
   return response.data;
 };
 
@@ -101,9 +101,9 @@ export const createCustomRouteApi = async (
 export const putCustomRouteApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CustomRouteData> => {
-  const response = await api.put(`/customRoute/${module}/${id}/`, data);
+  const response = await api.put(`/customRoute/${id}/`, data);
   return response.data;
 };
 
@@ -111,26 +111,26 @@ export const putCustomRouteApi = async (
 export const updateCustomRouteApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CustomRouteData> => {
-  const response = await api.patch(`/customRoute/${module}/${id}/`, data);
+  const response = await api.patch(`/customRoute/${id}/`, data);
   return response.data;
 };
 
 // DELETE
 export const deleteCustomRouteApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/customRoute/${module}/${id}/`);
+  await api.delete(`/customRoute/${id}/`);
 };
 
 // BULK UPDATE (Add new route to existing group)
 export const bulkUpdateCustomRouteApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CustomRouteData> => {
-  const response = await api.put(`/customRoute/bulkUpdate/${module}/`, data);
+  const response = await api.put(`/customRoute/bulkUpdate/`, data);
   return response.data;
 };
 
@@ -152,36 +152,36 @@ export interface RouteGroupCountryData {
 }
 
 export const getRouteGroupCountriesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
 ): Promise<PaginatedResponse<RouteGroupCountryData>> => {
   const params = { page, page_size: pageSize, ...searchParams };
-  const response = await api.get(`/routeGroupCountry/${module}/`, { params });
+  const response = await api.get(`/routeGroupCountry/`, { params });
   return response.data;
 };
 
 export const createRouteGroupCountryApi = async (
   data: Partial<RouteGroupCountryData>,
-  module: string,
+  _module?: string,
 ): Promise<RouteGroupCountryData> => {
-  const response = await api.post(`/routeGroupCountry/${module}/`, data);
+  const response = await api.post(`/routeGroupCountry/`, data);
   return response.data;
 };
 
 export const updateRouteGroupCountryApi = async (
   id: number,
   data: Partial<RouteGroupCountryData>,
-  module: string,
+  _module?: string,
 ): Promise<RouteGroupCountryData> => {
-  const response = await api.patch(`/routeGroupCountry/${module}/${id}/`, data);
+  const response = await api.patch(`/routeGroupCountry/${id}/`, data);
   return response.data;
 };
 
 export const deleteRouteGroupCountryApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/routeGroupCountry/${module}/${id}/`);
+  await api.delete(`/routeGroupCountry/${id}/`);
 };

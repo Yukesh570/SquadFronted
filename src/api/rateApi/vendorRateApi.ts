@@ -36,7 +36,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getVendorRateGroupsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -46,36 +46,36 @@ export const getVendorRateGroupsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendorRateGroup/${module}/`, { params });
+  const response = await api.get(`/vendorRateGroup/`, { params });
   return response.data;
 };
 
 export const createVendorRateGroupApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<VendorRateGroupData> => {
-  const response = await api.post(`/vendorRateGroup/${module}/`, data);
+  const response = await api.post(`/vendorRateGroup/`, data);
   return response.data;
 };
 
 export const updateVendorRateGroupApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<VendorRateGroupData> => {
-  const response = await api.patch(`/vendorRateGroup/${module}/${id}/`, data);
+  const response = await api.patch(`/vendorRateGroup/${id}/`, data);
   return response.data;
 };
 
 export const deleteVendorRateGroupApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/vendorRateGroup/${module}/${id}/`);
+  await api.delete(`/vendorRateGroup/${id}/`);
 };
 
 export const getVendorRatesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -85,12 +85,12 @@ export const getVendorRatesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendorRate/${module}/`, { params });
+  const response = await api.get(`/vendorRate/`, { params });
   return response.data;
 };
 
 export const getVendorRatesPerMNCMCCApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -100,7 +100,7 @@ export const getVendorRatesPerMNCMCCApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendorRatePerQuery/${module}/`, { params });
+  const response = await api.get(`/vendorRatePerQuery/`, { params });
   return response.data;
 };
 
@@ -115,26 +115,26 @@ export const findVendorRateApi = async (
 
 export const createVendorRateApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<VendorRateData> => {
-  const response = await api.post(`/vendorRate/${module}/`, data);
+  const response = await api.post(`/vendorRate/`, data);
   return response.data;
 };
 
 export const updateVendorRateApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<VendorRateData> => {
-  const response = await api.post(`/vendorRate/upgrade_rate/${module}/${id}/`, data);
+  const response = await api.post(`/vendorRate/upgrade_rate/${id}/`, data);
   return response.data;
 };
 
 export const deleteVendorRateApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/vendorRate/${module}/${id}/`);
+  await api.delete(`/vendorRate/${id}/`);
 };
 
 // ⚡️ FIX: Send rateGroupId directly in the URL string
@@ -163,6 +163,7 @@ export const getImportStatusApi = async (taskId: string): Promise<any> => {
 export const exportVendorRatesEmailApi = async (
   rateGroupId: number,
   data: { exportOnlyNew: boolean; emailTemplateId: number },
+  _module?: string,
 ): Promise<any> => {
   const response = await api.post(`/vendorRateGroup/emailtemplate/${rateGroupId}/export_rates_email/`, data);
   return response.data;

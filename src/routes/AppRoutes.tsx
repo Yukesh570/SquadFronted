@@ -65,11 +65,11 @@ import MccMncPrefixImportBatch from "../pages/MccMncPrefix/MccMncPrefixImportBat
 import FindRoute from "../pages/RouteManager/FindRoute";
 import AnalyticsReport from "../pages/Report/AnalyticsReport";
 import UserCreation from "../pages/UserCreation/UserCreation";
-import VendorCampaign from "../pages/Campaign/VendorCampaignList";
+import VendorCampaign from "../pages/Campaign/VendorCampaign";
 
 export const componentRegistry: Record<string, React.ComponentType<any>> = {
   dashboard: Dashboard,
-  createSidebar: CreateSidebar,
+  navItem: CreateSidebar,
   role: PermissionsTable,
   changePassword: ChangePassword,
   "change-password": ChangePassword,
@@ -91,23 +91,23 @@ export const componentRegistry: Record<string, React.ComponentType<any>> = {
   vendor: Vendor,
   smpp: Smpp,
   client: Client,
-  vendorRate: VendorRate,
-  customerRate: CustomerRate,
+  vendorRateGroup: VendorRate,
+  customerRateGroup: CustomerRate,
   mappingSetup: MappingSetup,
   // operators: Operators,
   userLog: UserLog,
   userAction: UserAction,
   customRoute: CustomRoute,
   liveTraffic: LiveTraffic,
-  messageReport: MessageReport,
+  liveReport: MessageReport,
   addCredit: AddCredit,
   detailedReport: DetailedReport,
   clientTransaction: ClientTransaction,
   vendorTransaction: VendorTransaction,
   invoiceSetup: InvoiceSetup,
-  clientInvoice: ClientInvoice,
+  clientCompanyInvoice: ClientInvoice,
   generateClientInvoice: GenerateClientInvoice,
-  vendorInvoice: VendorInvoice,
+  vendorCompanyInvoice: VendorInvoice,
   generateVendorInvoice: GenerateVendorInvoice,
   messageAttempt: MessageAttempt,
   dlrEvent: DLREvent,

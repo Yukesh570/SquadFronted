@@ -26,7 +26,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getTrafficLogsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -36,15 +36,15 @@ export const getTrafficLogsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/report/${module}/traffic/`, { params });
+  const response = await api.get(`/report/traffic/`, { params });
   return response.data;
 };
 
 export const exportTrafficLogsApi = async (
-  module: string,
+  _module?: string,
   searchParams?: Record<string, any>
 ) => {
-  const response = await api.get(`/report/${module}/traffic/export/`, {
+  const response = await api.get(`/report/traffic/export/`, {
     params: searchParams,
     responseType: "blob",
   });

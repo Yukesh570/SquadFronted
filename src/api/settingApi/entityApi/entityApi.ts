@@ -23,7 +23,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getEntityApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -33,34 +33,34 @@ export const getEntityApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/entity/${module}/`, { params });
+  const response = await api.get(`/entity/`, { params });
   return response.data;
 };
 
 export const createEntityApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<EntityData> => {
   // FIXED: If data is FormData (contains a file), set the correct multipart headers
   const config = data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : {};
-  const response = await api.post(`/entity/${module}/`, data, config);
+  const response = await api.post(`/entity/`, data, config);
   return response.data;
 };
 
 export const updateEntityApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<EntityData> => {
   // FIXED: If data is FormData (contains a file), set the correct multipart headers
   const config = data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : {};
-  const response = await api.patch(`/entity/${module}/${id}/`, data, config);
+  const response = await api.patch(`/entity/${id}/`, data, config);
   return response.data;
 };
 
 export const deleteEntityApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/entity/${module}/${id}/`);
+  await api.delete(`/entity/${id}/`);
 };

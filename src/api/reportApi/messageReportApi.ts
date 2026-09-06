@@ -45,7 +45,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getMessageLogsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -55,28 +55,27 @@ export const getMessageLogsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/smppSMS/${module}/`, { params });
+  const response = await api.get(`/smppSMS/`, { params });
   return response.data;
 };
 
 export const exportMessageLogsApi = async (
-  module: string,
+  _module?: string,
   searchParams?: Record<string, any>,
 ) => {
-  const response = await api.get(`/smppSMS/${module}/export/`, {
+  const response = await api.get(`/smppSMS/export/`, {
     params: searchParams,
     responseType: "blob",
   });
   return response.data;
 };
 
-
 export const downloadCSVApi = async (
-  module: string,
+  _module?: string,
   searchParams?: Record<string, any>,
 ) => {
   // Remove responseType: "blob" here!
-  const response = await api.get(`/smppSMS/${module}/downloadCsv/`, {
+  const response = await api.get(`/smppSMS/downloadCsv/`, {
     params: searchParams,
   });
   return response.data; // This will now correctly be the { task_id: ... } JSON

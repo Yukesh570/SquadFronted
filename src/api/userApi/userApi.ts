@@ -26,7 +26,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getUsersApi = async (
-    module: string = "user",
+    _module?: string,
     page: number = 1,
     pageSize: number = 1000,
     searchParams?: Record<string, any>
@@ -37,7 +37,7 @@ export const getUsersApi = async (
         ...searchParams,
     };
     try {
-        const response = await api.get(`/${module}/`, { params });
+        const response = await api.get(`/user/`, { params });
         return response.data;
     } catch (error) {
         return { count: 0, next: null, previous: null, results: [] };

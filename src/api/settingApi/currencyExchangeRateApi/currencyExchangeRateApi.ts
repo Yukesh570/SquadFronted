@@ -7,10 +7,10 @@ export interface CurrencyExchangeRateData {
   targetCurrency: string;
   targetCurrency_name?: string;
   targetCurrency_symbol?: string;
-  effectiveFrom: string,
-  effectiveto: string,
-  source: string,
-  version: string,
+  effectiveFrom: string;
+  effectiveto: string;
+  source: string;
+  version: string;
   exchangeRate: string | number;
   status: "ACTIVE" | "INACTIVE" | "EXPIRED";
   createdAt?: string;
@@ -25,7 +25,7 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getCurrencyExchangeRatesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -35,7 +35,7 @@ export const getCurrencyExchangeRatesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/currencyExchangeRate/${module}/`, {
+  const response = await api.get(`/currencyExchangeRate/`, {
     params,
   });
   return response.data;
@@ -43,12 +43,12 @@ export const getCurrencyExchangeRatesApi = async (
 
 // GET HISTORY
 export const getCurrencyExchangeRateHistoryApi = async (
-  module: string,
-  id: number,
+  _module?: string,
+  id?: number,
   page: number = 1,
   pageSize: number = 50
 ): Promise<PaginatedResponse<CurrencyExchangeRateData>> => {
-  const response = await api.get(`/currencyExchangeRateHistory/${module}/${id}`, {
+  const response = await api.get(`/currencyExchangeRateHistory/${id}`, {
     params: { page, page_size: pageSize },
   });
   return response.data;
@@ -57,9 +57,9 @@ export const getCurrencyExchangeRateHistoryApi = async (
 // POST
 export const createCurrencyExchangeRateApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CurrencyExchangeRateData> => {
-  const response = await api.post(`/currencyExchangeRate/${module}/`, data);
+  const response = await api.post(`/currencyExchangeRate/`, data);
   return response.data;
 };
 
@@ -67,10 +67,10 @@ export const createCurrencyExchangeRateApi = async (
 export const putCurrencyExchangeRateApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CurrencyExchangeRateData> => {
   const response = await api.put(
-    `/currencyExchangeRate/${module}/${id}/`,
+    `/currencyExchangeRate/${id}/`,
     data,
   );
   return response.data;
@@ -80,10 +80,10 @@ export const putCurrencyExchangeRateApi = async (
 export const updateCurrencyExchangeRateApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CurrencyExchangeRateData> => {
   const response = await api.patch(
-    `/currencyExchangeRate/${module}/${id}/`,
+    `/currencyExchangeRate/${id}/`,
     data,
   );
   return response.data;
@@ -92,9 +92,9 @@ export const updateCurrencyExchangeRateApi = async (
 // DELETE
 export const deleteCurrencyExchangeRateApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/currencyExchangeRate/${module}/${id}/`);
+  await api.delete(`/currencyExchangeRate/${id}/`);
 };
 
 // ⚡️ NEW: Fetch Live Exchange Rates

@@ -38,7 +38,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getSmsMessagePartApi = async (
-  moduleName: string,
+  _moduleName?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -48,6 +48,6 @@ export const getSmsMessagePartApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/smsMessagePart/${moduleName}/`, { params });
+  const response = await api.get(`/smsMessagePart/`, { params });
   return response.data;
 };

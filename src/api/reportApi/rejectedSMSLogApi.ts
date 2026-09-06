@@ -25,7 +25,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getRejectedSMSLogApi = async (
-  moduleName: string,
+  _moduleName?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -35,6 +35,6 @@ export const getRejectedSMSLogApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/rejectedSMSLog/${moduleName}/`, { params });
+  const response = await api.get(`/rejectedSMSLog/`, { params });
   return response.data;
 };

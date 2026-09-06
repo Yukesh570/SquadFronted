@@ -1,4 +1,5 @@
 import api from "../axiosInstance";
+
 export interface SideBarApi {
   id?: number;
   label: string;
@@ -18,7 +19,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getSideBarApi = async (
-  module?: string,
+  _module?: string,
   page?: number,
   pageSize?: number,
   searchParams?: Record<string, any>,
@@ -31,20 +32,20 @@ export const getSideBarApi = async (
 
   // if (page !== undefined) params.page = page;
   // if (pageSize !== undefined) params.page_size = pageSize;
-  const response = await api.get(`/navItem/${module}/`, { params });
+  const response = await api.get(`/navItem/`, { params });
   return response.data;
 };
 
 export const createSideBarApi = async (
   data: SideBarApi,
-  module: string,
+  _module?: string,
 ): Promise<SideBarApi> => {
   if (data.parent === 0) {
     const { parent, ...rest } = data;
-    const response = await api.post(`/navItem/${module}/`, rest);
+    const response = await api.post(`/navItem/`, rest);
     return response.data;
   } else {
-    const response = await api.post(`/navItem/${module}/`, data);
+    const response = await api.post(`/navItem/`, data);
     return response.data;
   }
 };
@@ -52,15 +53,15 @@ export const createSideBarApi = async (
 export const updateSideBarApi = async (
   id: number,
   data: SideBarApi,
-  module: string,
+  _module?: string,
 ): Promise<SideBarApi> => {
-  const response = await api.patch(`/navItem/${module}/${id}/`, data);
+  const response = await api.patch(`/navItem/${id}/`, data);
   return response.data;
 };
 
 export const deleteSideBarApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/navItem/${module}/${id}/`);
+  await api.delete(`/navItem/${id}/`);
 };

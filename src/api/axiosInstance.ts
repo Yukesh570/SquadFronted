@@ -24,25 +24,22 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
     if (!error.response) {
-    if (error.code === "ECONNABORTED") {
-  toast.error("Connection timed out. Backend is not responding.", {
-    toastId: "backend-timeout",
-  });
-} else {
-  toast.error("Cannot connect to server. Is the Backend running?", {
-    toastId: "backend-unreachable",
-  });
-}
+      if (error.code === "ECONNABORTED") {
+        toast.error("Connection timed out. Backend is not responding.", {
+          toastId: "backend-timeout",
+        });
+      } else {
+        toast.error("Cannot connect to server. Is the Backend running?", {
+          toastId: "backend-unreachable",
+        });
+      }
       return Promise.reject(error);
     }
 
     const isLoginRequest = originalRequest?.url?.includes("login/");
 
-    if (
-      !isLoginRequest &&
-      (error.response.status === 401 || error.response.status === 403) &&
-      !originalRequest._retry
-    ) {
+    // Handle 401 Unauthorized -> Attempt token refresh
+    if (!isLoginRequest && error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem("refreshToken");
@@ -81,18 +78,17 @@ api.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
-    if (!isLoginRequest && error.response.status === 403) {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
-      localStorage.removeItem("sidebar_collapsed");
 
-      if (window.location.pathname !== "/login" && window.location.pathname !== "/") {
-        window.location.href = "/login";
-      }
+    // Handle 403 Forbidden -> Display warning, DO NOT logout
+    if (!isLoginRequest && error.response.status === 403) {
+      toast.error(
+        error.response?.data?.detail || "You do not have permission to access this resource.",
+        { toastId: "permission-denied" }
+      );
     }
 
     return Promise.reject(error);
   }
 );
+
 export default api;

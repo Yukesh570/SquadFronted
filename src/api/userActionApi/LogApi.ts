@@ -44,16 +44,16 @@ export const createUserActionApi = async (
 export const updateTimezoneApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<UserActionData> => {
-  const response = await api.patch(`/timeZone/${module}/${id}/`, data);
+  const response = await api.patch(`/timeZone/${id}/`, data);
   return response.data;
 };
 
 // DELETE
 export const deleteTimezoneApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/timeZone/${module}/${id}/`);
+  await api.delete(`/timeZone/${id}/`);
 };

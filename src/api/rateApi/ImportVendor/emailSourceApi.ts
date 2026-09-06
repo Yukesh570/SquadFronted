@@ -22,7 +22,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getEmailSourcesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -32,30 +32,30 @@ export const getEmailSourcesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendorRateEmailSource/${module}/`, { params });
+  const response = await api.get(`/vendorRateEmailSource/`, { params });
   return response.data;
 };
 
 export const createEmailSourceApi = async (
   data: any,
-  module: string
+  _module?: string
 ): Promise<EmailSourceData> => {
-  const response = await api.post(`/vendorRateEmailSource/${module}/`, data);
+  const response = await api.post(`/vendorRateEmailSource/`, data);
   return response.data;
 };
 
 export const updateEmailSourceApi = async (
   id: number,
   data: any,
-  module: string
+  _module?: string
 ): Promise<EmailSourceData> => {
-  const response = await api.patch(`/vendorRateEmailSource/${module}/${id}/`, data);
+  const response = await api.patch(`/vendorRateEmailSource/${id}/`, data);
   return response.data;
 };
 
 export const deleteEmailSourceApi = async (
   id: number,
-  module: string
+  _module?: string
 ): Promise<void> => {
-  await api.delete(`/vendorRateEmailSource/${module}/${id}/`);
+  await api.delete(`/vendorRateEmailSource/${id}/`);
 };

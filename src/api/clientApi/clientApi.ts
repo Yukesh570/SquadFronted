@@ -48,7 +48,7 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getClientsApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -58,16 +58,16 @@ export const getClientsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/client/${module}/`, { params });
+  const response = await api.get(`/client/`, { params });
   return response.data;
 };
 
 // POST
 export const createClientApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<ClientData> => {
-  const response = await api.post(`/client/${module}/`, data);
+  const response = await api.post(`/client/`, data);
   return response.data;
 };
 
@@ -75,9 +75,9 @@ export const createClientApi = async (
 export const putClientApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<ClientData> => {
-  const response = await api.put(`/client/${module}/${id}/`, data);
+  const response = await api.put(`/client/${id}/`, data);
   return response.data;
 };
 
@@ -85,18 +85,18 @@ export const putClientApi = async (
 export const updateClientApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<ClientData> => {
-  const response = await api.patch(`/client/${module}/${id}/`, data);
+  const response = await api.patch(`/client/${id}/`, data);
   return response.data;
 };
 
 // DELETE
 export const deleteClientApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/client/${module}/${id}/`);
+  await api.delete(`/client/${id}/`);
 };
 
 // --- NEW: Generate Credentials API ---
@@ -140,7 +140,7 @@ export const getCustomerRateByClientApi = async (params: {
   [key: string]: any;
 }): Promise<PaginatedResponse<ClientRateData>> => {
   const { client_id, page = 1, page_size = 10, ...rest } = params;
-  const response = await api.get(`/customerRateByClient/client`, {
+  const response = await api.get(`/customerRateByClient/`, {
     params: { client_id, page, page_size, ...rest },
   });
   return response.data;

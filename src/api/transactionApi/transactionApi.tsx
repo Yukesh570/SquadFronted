@@ -54,7 +54,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getVendorTransactionsApi = async (
-  module: string = "all",
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -64,12 +64,12 @@ export const getVendorTransactionsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendorTransaction/${module}/`, { params });
+  const response = await api.get(`/vendorTransaction/`, { params });
   return response.data;
 };
 
 export const getClientTransactionsApi = async (
-  module: string = "all",
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -79,6 +79,6 @@ export const getClientTransactionsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/clientTransaction/${module}/`, { params });
+  const response = await api.get(`/clientTransaction/`, { params });
   return response.data;
 };

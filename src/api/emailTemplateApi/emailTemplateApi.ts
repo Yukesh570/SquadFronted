@@ -16,42 +16,42 @@ export interface PaginatedResponse<T> {
 }
 
 export const getEmailTemplatesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
 ): Promise<PaginatedResponse<EmailTemplateData>> => {
-    const params: any = {
-      page: page,
+  const params: any = {
+    page: page,
     page_size: pageSize,
     ...searchParams
-    };
-  const response = await api.get(`/emailTemplate/${module}/`, { params });
+  };
+  const response = await api.get(`/emailTemplate/`, { params });
   return response.data;
 };
 
 export const createEmailTemplateApi = async (
   data: Omit<EmailTemplateData, 'id'>,
-  module: string
+  _module?: string
 ): Promise<EmailTemplateData> => {
-  const response = await api.post(`/emailTemplate/${module}/`, data);
+  const response = await api.post(`/emailTemplate/`, data);
   return response.data;
 };
 
 export const updateEmailTemplateApi = async (
   id: number,
   data: Omit<EmailTemplateData, 'id'>,
-  module: string
+  _module?: string
 ): Promise<EmailTemplateData> => {
-  const response = await api.patch(`/emailTemplate/${module}/${id}/`, data);
+  const response = await api.patch(`/emailTemplate/${id}/`, data);
   return response.data;
 };
 
 export const deleteEmailTemplateApi = async (
   id: number,
-  module: string
+  _module?: string
 ): Promise<void> => {
-  await api.delete(`/emailTemplate/${module}/${id}/`);
+  await api.delete(`/emailTemplate/${id}/`);
 };
 
 export const getEmailTemplateVariablesApi = async (): Promise<any> => {

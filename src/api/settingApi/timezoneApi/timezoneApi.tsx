@@ -16,7 +16,7 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getTimezoneApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -26,16 +26,16 @@ export const getTimezoneApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/timeZone/${module}/`, { params });
+  const response = await api.get(`/timeZone/`, { params });
   return response.data;
 };
 
 // POST
 export const createTimezoneApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<TimezoneData> => {
-  const response = await api.post(`/timeZone/${module}/`, data);
+  const response = await api.post(`/timeZone/`, data);
   return response.data;
 };
 
@@ -43,16 +43,16 @@ export const createTimezoneApi = async (
 export const updateTimezoneApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<TimezoneData> => {
-  const response = await api.patch(`/timeZone/${module}/${id}/`, data);
+  const response = await api.patch(`/timeZone/${id}/`, data);
   return response.data;
 };
 
 // DELETE
 export const deleteTimezoneApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/timeZone/${module}/${id}/`);
+  await api.delete(`/timeZone/${id}/`);
 };

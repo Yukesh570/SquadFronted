@@ -27,7 +27,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getMccMncPrefixRangesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -37,30 +37,30 @@ export const getMccMncPrefixRangesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/mccMncPrefixRange/${module}/`, { params });
+  const response = await api.get(`/mccMncPrefixRange/`, { params });
   return response.data;
 };
 
 export const updateMccMncPrefixRangeApi = async (
   id: number,
   data: any,
-  module: string
+  _module?: string
 ): Promise<MccMncPrefixRangeData> => {
-  const response = await api.patch(`/mccMncPrefixRange/${module}/${id}/`, data);
+  const response = await api.patch(`/mccMncPrefixRange/${id}/`, data);
   return response.data;
 };
 
 export const createMccMncPrefixRangeApi = async (
   data: any,
-  module: string
+  _module?: string
 ): Promise<MccMncPrefixRangeData> => {
-  const response = await api.post(`/mccMncPrefixRange/${module}/`, data);
+  const response = await api.post(`/mccMncPrefixRange/`, data);
   return response.data;
 };
 
 export const deleteMccMncPrefixRangeApi = async (
   id: number,
-  module: string
+  _module?: string
 ): Promise<void> => {
-  await api.delete(`/mccMncPrefixRange/${module}/${id}/`);
+  await api.delete(`/mccMncPrefixRange/${id}/`);
 };

@@ -18,7 +18,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getSmtpServersApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, string>,
@@ -28,32 +28,32 @@ export const getSmtpServersApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/emailHost/${module}/`, { params });
+  const response = await api.get(`/emailHost/`, { params });
   return response.data;
 };
 
 export const createSmtpServerApi = async (
   data: Omit<SmtpServerData, "id">,
-  module: string,
+  _module?: string,
 ): Promise<SmtpServerData> => {
-  const response = await api.post(`/emailHost/${module}/`, data);
+  const response = await api.post(`/emailHost/`, data);
   return response.data;
 };
 
 export const updateSmtpServerApi = async (
   id: number,
   data: Omit<SmtpServerData, "id">,
-  module: string,
+  _module?: string,
 ): Promise<SmtpServerData> => {
-  const response = await api.patch(`/emailHost/${module}/${id}/`, data);
+  const response = await api.patch(`/emailHost/${id}/`, data);
   return response.data;
 };
 
 export const deleteSmtpServerApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/emailHost/${module}/${id}/`);
+  await api.delete(`/emailHost/${id}/`);
 };
 
 // --- NEW: Test Email API ---

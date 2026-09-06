@@ -1,4 +1,5 @@
 import api from "../../axiosInstance";
+
 export interface CompanyStatusData {
   id?: number;
   name: string;
@@ -13,7 +14,7 @@ export interface PaginatedResponse<T> {
 
 // GET
 export const getCompanyStatusApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -23,16 +24,16 @@ export const getCompanyStatusApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/companyStatus/${module}/`, { params });
+  const response = await api.get(`/companyStatus/`, { params });
   return response.data;
 };
 
 // POST
 export const createCompanyStatusApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CompanyStatusData> => {
-  const response = await api.post(`/companyStatus/${module}/`, data);
+  const response = await api.post(`/companyStatus/`, data);
   return response.data;
 };
 
@@ -40,16 +41,16 @@ export const createCompanyStatusApi = async (
 export const updateCompanyStatusApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CompanyStatusData> => {
-  const response = await api.patch(`/companyStatus/${module}/${id}/`, data);
+  const response = await api.patch(`/companyStatus/${id}/`, data);
   return response.data;
 };
 
 // DELETE
 export const deleteCompanyStatusApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/companyStatus/${module}/${id}/`);
+  await api.delete(`/companyStatus/${id}/`);
 };

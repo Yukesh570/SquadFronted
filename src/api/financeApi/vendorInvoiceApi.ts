@@ -27,7 +27,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getVendorInvoicesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -37,7 +37,7 @@ export const getVendorInvoicesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendorCompanyInvoice/${module}/`, { params });
+  const response = await api.get(`/vendorCompanyInvoice/`, { params });
   return response.data;
 };
 
@@ -58,13 +58,13 @@ export const generateVendorInvoiceApi = async (
 
 export const deleteVendorInvoiceApi = async (
   id: number,
-  module: string
+  _module?: string
 ): Promise<void> => {
-  await api.delete(`/vendorCompanyInvoice/${module}/${id}/`);
+  await api.delete(`/vendorCompanyInvoice/${id}/`);
 };
 
 export const getVendorsApi = async (
-  module: string = "vendor",
+  _module?: string,
   page: number = 1,
   pageSize: number = 1000,
   searchParams?: Record<string, any>
@@ -74,7 +74,7 @@ export const getVendorsApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/vendor/${module}/`, { params });
+  const response = await api.get(`/vendor/`, { params });
   return response.data;
 };
 
@@ -116,7 +116,7 @@ export interface CompanyVendorInvoiceData {
 export const getVendorInvoiceByCompanyApi = async (
   companyInvoiceId: number
 ): Promise<PaginatedResponse<CompanyVendorInvoiceData>> => {
-  const response = await api.get(`/vendorInvoice/vendorInvoice/`, {
+  const response = await api.get(`/vendorInvoice/`, {
     params: {
       company_invoice_id: companyInvoiceId,
     },

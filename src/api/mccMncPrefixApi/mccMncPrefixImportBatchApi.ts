@@ -25,7 +25,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getMccMncPrefixImportBatchesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>
@@ -35,16 +35,16 @@ export const getMccMncPrefixImportBatchesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/mccMncPrefixImportBatch/${module}/`, { params });
+  const response = await api.get(`/mccMncPrefixImportBatch/`, { params });
   return response.data;
 };
 
 export const updateMccMncPrefixImportBatchApi = async (
   id: number,
   data: any,
-  module: string
+  _module?: string
 ): Promise<MccMncPrefixImportBatchData> => {
-  const response = await api.patch(`/mccMncPrefixImportBatch/${module}/${id}/`, data);
+  const response = await api.patch(`/mccMncPrefixImportBatch/${id}/`, data);
   return response.data;
 };
 

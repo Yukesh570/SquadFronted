@@ -17,7 +17,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const getCountriesApi = async (
-  module: string,
+  _module?: string,
   page: number = 1,
   pageSize: number = 10,
   searchParams?: Record<string, any>,
@@ -27,32 +27,32 @@ export const getCountriesApi = async (
     page_size: pageSize,
     ...searchParams,
   };
-  const response = await api.get(`/country/${module}/`, { params });
+  const response = await api.get(`/country/`, { params });
   return response.data;
 };
 
 export const createCountryApi = async (
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CountryData> => {
-  const response = await api.post(`/country/${module}/`, data);
+  const response = await api.post(`/country/`, data);
   return response.data;
 };
 
 export const updateCountryApi = async (
   id: number,
   data: any,
-  module: string,
+  _module?: string,
 ): Promise<CountryData> => {
-  const response = await api.patch(`/country/${module}/${id}/`, data);
+  const response = await api.patch(`/country/${id}/`, data);
   return response.data;
 };
 
 export const deleteCountryApi = async (
   id: number,
-  module: string,
+  _module?: string,
 ): Promise<void> => {
-  await api.delete(`/country/${module}/${id}/`);
+  await api.delete(`/country/${id}/`);
 };
 
 // Import API
