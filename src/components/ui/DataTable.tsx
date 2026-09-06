@@ -23,6 +23,11 @@ interface DataTableProps<T> {
 
   // Column Reordering Callback
   onReorderColumns?: (fromIndex: number, toIndex: number) => void;
+
+  // Sorting
+  onSort?: (columnIndex: number) => void;
+  sortColumnIndex?: number | null;
+  sortDirection?: "asc" | "desc" | null;
 }
 
 const rowsOptions = [
@@ -51,6 +56,9 @@ export function DataTable<T extends { id?: number | string }>({
   rowsPerPageOptions = rowsOptions,
 
   onReorderColumns,
+  onSort,
+  sortColumnIndex = null,
+  sortDirection = null,
 }: DataTableProps<T>) {
   const [clientPage, setClientPage] = useState(1);
   const [clientRows, setClientRows] = useState(50);
@@ -284,7 +292,7 @@ export function DataTable<T extends { id?: number | string }>({
                       isDraggable
                         ? "cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-800"
                         : ""
-                    } ${
+                    } ${onSort && i > 0 ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800" : ""} ${
                       isBeingDragged
                         ? "opacity-30 border border-dashed border-primary bg-primary/5"
                         : ""
@@ -297,6 +305,11 @@ export function DataTable<T extends { id?: number | string }>({
                         ? "border-r-4 border-r-primary bg-primary/10 dark:bg-primary/20"
                         : ""
                     }`}
+                    onClick={() => {
+                      if (onSort && i > 0) {
+                        onSort(i);
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-1.5 pointer-events-none">
                       {isDraggable && (
@@ -306,6 +319,11 @@ export function DataTable<T extends { id?: number | string }>({
                         />
                       )}
                       <span>{header}</span>
+                      {sortColumnIndex === i && (
+                        <span className="text-primary ml-1">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
                     </div>
                   </th>
                 );

@@ -84,6 +84,7 @@ const VendorTransaction: React.FC = () => {
   }, [searchColumns]);
 
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("vendortx_table_columns");
@@ -165,6 +166,15 @@ const VendorTransaction: React.FC = () => {
         }
       });
 
+      if (sortConfig) {
+        const columnDef = allColumns.find((c: any) => c.key === sortConfig.key);
+        let sortKey = sortConfig.key;
+        if (columnDef && columnDef.filterKey) {
+          sortKey = columnDef.filterKey.replace(/__(icontains|exact|range|gt_lt|gte|lte)$/, "");
+        }
+        currentSearchParams["ordering"] = sortConfig.direction === "desc" ? `-${sortKey}` : sortKey;
+      }
+
       const response: any = await getVendorTransactionsApi(routeName, page, BATCH_SIZE, currentSearchParams);
 
       if (newController.signal.aborted) return;
@@ -197,7 +207,7 @@ const VendorTransaction: React.FC = () => {
   useEffect(() => {
     fetchTransactions(undefined, 1, false);
     return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
-  }, [routeName, searchColumns]);
+  }, [routeName, searchColumns, sortConfig]);
 
   useEffect(() => {
     const scrollEl = tableWrapperRef.current?.querySelector<HTMLDivElement>(
@@ -224,6 +234,20 @@ const VendorTransaction: React.FC = () => {
   const handleClearFilters = () => {
     setFilterValues({});
     fetchTransactions({}, 1, false);
+  };
+
+  const handleSort = (columnIndex: number) => {
+    const colIndex = columnIndex - 1;
+    if (colIndex >= 0 && colIndex < visibleTableFields.length) {
+      const col = visibleTableFields[colIndex];
+      setSortConfig((prev) => {
+        if (prev?.key === col.key) {
+          if (prev.direction === "asc") return { key: col.key, direction: "desc" };
+          return null;
+        }
+        return { key: col.key, direction: "asc" };
+      });
+    }
   };
 
   const handleView = (log: VendorTransactionData) => { setViewData(log); setIsModalOpen(true); };
@@ -381,6 +405,9 @@ const VendorTransaction: React.FC = () => {
           rowsPerPage={BATCH_SIZE}
           headers={tableHeaders}
           isLoading={isLoading}
+        onSort={handleSort}
+        sortColumnIndex={sortConfig ? visibleTableFields.findIndex(c => c.key === sortConfig.key) + 1 : null}
+        sortDirection={sortConfig?.direction || null}
           showCountOnly={true}
           density="compact"
           onReorderColumns={(fromIdx, toIdx) => {

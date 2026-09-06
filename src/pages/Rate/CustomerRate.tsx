@@ -136,6 +136,7 @@ const CustomerRate: React.FC = () => {
   }, [searchColumns]);
 
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("customerrate_grouped_columns");
@@ -277,6 +278,15 @@ const CustomerRate: React.FC = () => {
         }
       });
 
+      if (sortConfig) {
+        const columnDef = allColumns.find((c: any) => c.key === sortConfig.key);
+        let sortKey = sortConfig.key;
+        if (columnDef && columnDef.filterKey) {
+          sortKey = columnDef.filterKey.replace(/__(icontains|exact|range|gt_lt|gte|lte)$/, "");
+        }
+        currentSearchParams["ordering"] = sortConfig.direction === "desc" ? `-${sortKey}` : sortKey;
+      }
+
       const response: any = await getCustomerRateGroupsApi(routeName, currentPage, rowsPerPage, currentSearchParams);
 
       if (newController.signal.aborted) return;
@@ -302,7 +312,7 @@ const CustomerRate: React.FC = () => {
   useEffect(() => {
     fetchGroupedRates();
     return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
-  }, [routeName, currentPage, rowsPerPage, searchColumns]);
+  }, [routeName, currentPage, rowsPerPage, searchColumns, sortConfig]);
 
   const handleSearch = () => { setCurrentPage(1); fetchGroupedRates(); };
   const handleClearFilters = () => { setFilterValues({}); setCurrentPage(1); fetchGroupedRates({}); };
@@ -316,6 +326,20 @@ const CustomerRate: React.FC = () => {
       } catch (error) { toast.error("Failed to delete group."); }
       setDeleteId(null);
       setSelectedRowGroup(null);
+    }
+  };
+
+  const handleSort = (columnIndex: number) => {
+    const colIndex = columnIndex - 1;
+    if (colIndex >= 0 && colIndex < visibleTableFields.length) {
+      const col = visibleTableFields[colIndex];
+      setSortConfig((prev) => {
+        if (prev?.key === col.key) {
+          if (prev.direction === "asc") return { key: col.key, direction: "desc" };
+          return null;
+        }
+        return { key: col.key, direction: "asc" };
+      });
     }
   };
 
@@ -413,6 +437,9 @@ const CustomerRate: React.FC = () => {
         density="compact"
         headers={tableHeaders}
         isLoading={isLoading}
+        onSort={handleSort}
+        sortColumnIndex={sortConfig ? visibleTableFields.findIndex(c => c.key === sortConfig.key) + 1 : null}
+        sortDirection={sortConfig?.direction || null}
         onReorderColumns={(fromIdx, toIdx) => {
           setTableColumns((prev) => {
             const next = [...prev];

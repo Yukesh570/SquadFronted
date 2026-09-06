@@ -84,6 +84,7 @@ const ImapServer: React.FC = () => {
   }, [searchColumns]);
 
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
@@ -235,6 +236,15 @@ const ImapServer: React.FC = () => {
         }
       });
 
+      if (sortConfig) {
+        const columnDef = allColumns.find((c: any) => c.key === sortConfig.key);
+        let sortKey = sortConfig.key;
+        if (columnDef && columnDef.filterKey) {
+          sortKey = columnDef.filterKey.replace(/__(icontains|exact|range|gt_lt|gte|lte)$/, "");
+        }
+        currentSearchParams["ordering"] = sortConfig.direction === "desc" ? `-${sortKey}` : sortKey;
+      }
+
       const response = await getImapServersApi(
         routeName,
         currentPage,
@@ -264,6 +274,20 @@ const ImapServer: React.FC = () => {
     setFilterValues({});
     setCurrentPage(1);
     fetchServers({});
+  };
+
+  const handleSort = (columnIndex: number) => {
+    const colIndex = columnIndex - 1;
+    if (colIndex >= 0 && colIndex < visibleTableFields.length) {
+      const col = visibleTableFields[colIndex];
+      setSortConfig((prev) => {
+        if (prev?.key === col.key) {
+          if (prev.direction === "asc") return { key: col.key, direction: "desc" };
+          return null;
+        }
+        return { key: col.key, direction: "asc" };
+      });
+    }
   };
 
   const handleAdd = () => {
@@ -480,6 +504,9 @@ const ImapServer: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onSort={handleSort}
+        sortColumnIndex={sortConfig ? visibleTableFields.findIndex(c => c.key === sortConfig.key) + 1 : null}
+        sortDirection={sortConfig?.direction || null}
         onReorderColumns={(fromIdx, toIdx) => {
           setTableColumns((prev) => {
             const next = [...prev];

@@ -32,6 +32,7 @@ interface ColumnConfig {
   key: string;
   label: string;
   render: (log: LogItemWithId) => React.ReactNode;
+  filterKey?: string;
 }
 
 const DEFAULT_TABLE_COLUMNS = ["ipAddress", "browser", "device", "loggedAt"];
@@ -56,6 +57,7 @@ const UserLog: React.FC = () => {
   const [ipFilter, setIpFilter] = useState("");
   const [browserFilter, setBrowserFilter] = useState("");
   const [deviceFilter, setDeviceFilter] = useState("");
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
   // --- Column Order State & Persistence ---
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
@@ -149,6 +151,15 @@ const UserLog: React.FC = () => {
         Object.entries(currentSearchParams).filter(([_, v]) => v !== "")
       );
 
+      if (sortConfig) {
+        const columnDef = allColumns.find((c: any) => c.key === sortConfig.key);
+        let sortKey = sortConfig.key;
+        if (columnDef && columnDef.filterKey) {
+          sortKey = columnDef.filterKey.replace(/__(icontains|exact|range|gt_lt|gte|lte)$/, "");
+        }
+        cleanParams["ordering"] = sortConfig.direction === "desc" ? `-${sortKey}` : sortKey;
+      }
+
       const response: any = await getUserLogApi(
         currentPage,
         rowsPerPage,
@@ -187,7 +198,7 @@ const UserLog: React.FC = () => {
 
   useEffect(() => {
     fetchUserLogs();
-  }, [currentPage, rowsPerPage]);
+  }, [currentPage, rowsPerPage, sortConfig]);
 
   const handleSearch = () => {
     setCurrentPage(1);
@@ -200,6 +211,20 @@ const UserLog: React.FC = () => {
     setDeviceFilter("");
     setCurrentPage(1);
     fetchUserLogs({ ipAddress: "", browser: "", device: "" });
+  };
+
+  const handleSort = (columnIndex: number) => {
+    const colIndex = columnIndex - 1;
+    if (colIndex >= 0 && colIndex < visibleTableFields.length) {
+      const col = visibleTableFields[colIndex];
+      setSortConfig((prev) => {
+        if (prev?.key === col.key) {
+          if (prev.direction === "asc") return { key: col.key, direction: "desc" };
+          return null;
+        }
+        return { key: col.key, direction: "asc" };
+      });
+    }
   };
 
   const getLatestLoginDisplay = () => {
@@ -361,6 +386,9 @@ const UserLog: React.FC = () => {
         density="compact"
         headers={headers}
         isLoading={isLoading}
+        onSort={handleSort}
+        sortColumnIndex={sortConfig ? visibleTableFields.findIndex(c => c.key === sortConfig.key) + 1 : null}
+        sortDirection={sortConfig?.direction || null}
         onReorderColumns={(fromIdx, toIdx) => {
           setTableColumns((prev) => {
             const next = [...prev];

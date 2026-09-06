@@ -105,6 +105,7 @@ const CustomRoute: React.FC = () => {
   }, [searchColumns]);
 
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
   const [tableColumns, setTableColumns] = useState<string[]>(() => {
     const saved = localStorage.getItem("customroute_grouped_columns");
@@ -311,6 +312,15 @@ const CustomRoute: React.FC = () => {
         }
       });
 
+      if (sortConfig) {
+        const columnDef = allColumns.find((c: any) => c.key === sortConfig.key);
+        let sortKey = sortConfig.key;
+        if (columnDef && columnDef.filterKey) {
+          sortKey = columnDef.filterKey.replace(/__(icontains|exact|range|gt_lt|gte|lte)$/, "");
+        }
+        currentSearchParams["ordering"] = sortConfig.direction === "desc" ? `-${sortKey}` : sortKey;
+      }
+
       let response: any = await getGroupedCustomRoutesApi(
         routeName,
         currentPage,
@@ -430,7 +440,7 @@ const CustomRoute: React.FC = () => {
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [routeName, currentPage, rowsPerPage, searchColumns, location.search]);
+  }, [routeName, currentPage, rowsPerPage, searchColumns, location.search, sortConfig]);
 
   const handleSearch = () => {
     setCurrentPage(1);
@@ -441,6 +451,20 @@ const CustomRoute: React.FC = () => {
     setFilterValues({});
     setCurrentPage(1);
     fetchGroupedRoutes({});
+  };
+
+  const handleSort = (columnIndex: number) => {
+    const colIndex = columnIndex - 1;
+    if (colIndex >= 0 && colIndex < visibleTableFields.length) {
+      const col = visibleTableFields[colIndex];
+      setSortConfig((prev) => {
+        if (prev?.key === col.key) {
+          if (prev.direction === "asc") return { key: col.key, direction: "desc" };
+          return null;
+        }
+        return { key: col.key, direction: "asc" };
+      });
+    }
   };
 
   const handleAddMain = () => {
@@ -622,6 +646,9 @@ const CustomRoute: React.FC = () => {
         density="compact"
         headers={tableHeaders}
         isLoading={isLoading}
+        onSort={handleSort}
+        sortColumnIndex={sortConfig ? visibleTableFields.findIndex(c => c.key === sortConfig.key) + 1 : null}
+        sortDirection={sortConfig?.direction || null}
         onReorderColumns={(fromIdx, toIdx) => {
           setTableColumns((prev) => {
             const next = [...prev];
