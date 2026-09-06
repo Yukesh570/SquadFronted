@@ -367,6 +367,20 @@ const VendorInvoice: React.FC = () => {
     };
   }, [currentPage, rowsPerPage, searchColumns, sortConfig]);
 
+  const handleSort = (columnIndex: number) => {
+    const colIndex = columnIndex - 1;
+    if (colIndex >= 0 && colIndex < visibleTableFields.length) {
+      const col = visibleTableFields[colIndex];
+      setSortConfig((prev) => {
+        if (prev?.key === col.key) {
+          if (prev.direction === "asc") return { key: col.key, direction: "desc" };
+          return null;
+        }
+        return { key: col.key, direction: "asc" };
+      });
+    }
+  };
+
   const handleDelete = async () => {
     if (deleteId && canDelete) {
       try {
