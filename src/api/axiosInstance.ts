@@ -6,6 +6,18 @@ const api = axios.create({
   timeout: 15000,
 });
 
+// Helper to clear credentials and redirect to login
+const handleLogout = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("user");
+  localStorage.removeItem("sidebar_collapsed");
+
+  if (window.location.pathname !== "/login" && window.location.pathname !== "/") {
+    window.location.href = "/login";
+  }
+};
+
 // 1. Request Interceptor (Adds token)
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
@@ -38,49 +50,52 @@ api.interceptors.response.use(
 
     const isLoginRequest = originalRequest?.url?.includes("login/");
 
-    // Handle 401 Unauthorized -> Attempt token refresh
-    if (!isLoginRequest && error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      try {
-        const refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) {
-          throw new Error("No refresh token available");
-        }
-        const refreshResponse = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}refresh/`,
-          { refresh: refreshToken }
-        );
-        const newAccessToken = refreshResponse.data.access;
+    // Check if error is genuine token expiration (401 OR 403 with "Token expired")
+    const responseDataStr = JSON.stringify(error.response.data || "").toLowerCase();
+    const isTokenExpired =
+      error.response.status === 401 ||
+      (error.response.status === 403 && responseDataStr.includes("token expired"));
 
-        localStorage.setItem("accessToken", newAccessToken);
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-
-        return api(originalRequest);
-      } catch (refreshError) {
-        if (axios.isAxiosError(refreshError)) {
-          console.error(
-            "Refresh API failed:",
-            refreshError.response?.data || refreshError.message
+    // Handle token expiration -> Refresh or Redirect to /login
+    if (!isLoginRequest && isTokenExpired) {
+      if (!originalRequest._retry) {
+        originalRequest._retry = true;
+        try {
+          const refreshToken = localStorage.getItem("refreshToken");
+          if (!refreshToken) {
+            throw new Error("No refresh token available");
+          }
+          const refreshResponse = await axios.post(
+            `${import.meta.env.VITE_API_BASE_URL}refresh/`,
+            { refresh: refreshToken }
           );
-        } else {
-          console.error("An unexpected error occurred during refresh:", refreshError);
+          const newAccessToken = refreshResponse.data.access;
+
+          localStorage.setItem("accessToken", newAccessToken);
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+          return api(originalRequest);
+        } catch (refreshError) {
+          if (axios.isAxiosError(refreshError)) {
+            console.error(
+              "Refresh API failed:",
+              refreshError.response?.data || refreshError.message
+            );
+          } else {
+            console.error("An unexpected error occurred during refresh:", refreshError);
+          }
+
+          handleLogout();
+          return Promise.reject(refreshError);
         }
-
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("user");
-        localStorage.removeItem("sidebar_collapsed");
-
-        if (window.location.pathname !== "/login" && window.location.pathname !== "/") {
-          window.location.href = "/login";
-        }
-
-        return Promise.reject(refreshError);
+      } else {
+        handleLogout();
+        return Promise.reject(error);
       }
     }
 
-    // Handle 403 Forbidden -> Display warning, DO NOT logout
-    if (!isLoginRequest && error.response.status === 403) {
+    // Handle genuine 403 Forbidden (Only permission errors, NOT token expired)
+    if (!isLoginRequest && error.response.status === 403 && !isTokenExpired) {
       toast.error(
         error.response?.data?.detail || "You do not have permission to access this resource.",
         { toastId: "permission-denied" }
