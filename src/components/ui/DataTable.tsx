@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import Select from "./Select";
-import { ChevronLeft, ChevronRight, Database, GripVertical } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Database,
+  GripVertical,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+} from "lucide-react";
 
 interface DataTableProps<T> {
   data: T[];
@@ -67,6 +75,7 @@ export function DataTable<T extends { id?: number | string }>({
   const [draggedHeaderIdx, setDraggedHeaderIdx] = useState<number | null>(null);
   const [dragOverHeaderIdx, setDragOverHeaderIdx] = useState<number | null>(null);
   const [dropSide, setDropSide] = useState<"left" | "right" | null>(null);
+  const hasDraggedRef = useRef(false);
 
   // Track scroll container viewport width to perfectly center sticky empty states
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -148,6 +157,7 @@ export function DataTable<T extends { id?: number | string }>({
   // Drag Handlers
   const handleDragStart = (e: React.DragEvent, index: number) => {
     if (index === 0) return; // Skip S.N. column
+    hasDraggedRef.current = true;
     setDraggedHeaderIdx(index);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", String(index));
@@ -199,12 +209,18 @@ export function DataTable<T extends { id?: number | string }>({
     setDraggedHeaderIdx(null);
     setDragOverHeaderIdx(null);
     setDropSide(null);
+    setTimeout(() => {
+      hasDraggedRef.current = false;
+    }, 100);
   };
 
   const handleDragEnd = () => {
     setDraggedHeaderIdx(null);
     setDragOverHeaderIdx(null);
     setDropSide(null);
+    setTimeout(() => {
+      hasDraggedRef.current = false;
+    }, 100);
   };
 
   return (
@@ -278,6 +294,8 @@ export function DataTable<T extends { id?: number | string }>({
                 const isDraggable = Boolean(onReorderColumns && i > 0);
                 const isBeingDragged = draggedHeaderIdx === i;
                 const isDragOver = dragOverHeaderIdx === i;
+                const isSortable = Boolean(onSort && i > 0);
+                const isSorted = sortColumnIndex === i;
 
                 return (
                   <th
@@ -288,11 +306,19 @@ export function DataTable<T extends { id?: number | string }>({
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, i)}
                     onDragEnd={handleDragEnd}
-                    className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-secondary dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 whitespace-nowrap min-w-[120px] transition-all select-none ${
+                    className={`group px-4 py-3 text-left text-xs font-medium uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 whitespace-nowrap min-w-[120px] transition-all select-none ${
+                      isSorted
+                        ? "text-primary dark:text-primary bg-primary/[0.03] dark:bg-primary/[0.06]"
+                        : "text-text-secondary dark:text-gray-400 bg-gray-50 dark:bg-gray-900"
+                    } ${
                       isDraggable
                         ? "cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-800"
                         : ""
-                    } ${onSort && i > 0 ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800" : ""} ${
+                    } ${
+                      isSortable
+                        ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+                        : ""
+                    } ${
                       isBeingDragged
                         ? "opacity-30 border border-dashed border-primary bg-primary/5"
                         : ""
@@ -306,7 +332,8 @@ export function DataTable<T extends { id?: number | string }>({
                         : ""
                     }`}
                     onClick={() => {
-                      if (onSort && i > 0) {
+                      if (hasDraggedRef.current) return;
+                      if (isSortable && onSort) {
                         onSort(i);
                       }
                     }}
@@ -315,13 +342,26 @@ export function DataTable<T extends { id?: number | string }>({
                       {isDraggable && (
                         <GripVertical
                           size={14}
-                          className="text-gray-400 shrink-0 opacity-40 hover:opacity-100"
+                          className="text-gray-400 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity"
                         />
                       )}
-                      <span>{header}</span>
-                      {sortColumnIndex === i && (
-                        <span className="text-primary ml-1">
-                          {sortDirection === "asc" ? "↑" : "↓"}
+                      <span className={isSorted ? "font-semibold text-primary dark:text-white" : ""}>
+                        {header}
+                      </span>
+                      {isSortable && (
+                        <span className="inline-flex items-center shrink-0 ml-0.5">
+                          {isSorted ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp size={13} className="text-primary stroke-[2.5]" />
+                            ) : (
+                              <ArrowDown size={13} className="text-primary stroke-[2.5]" />
+                            )
+                          ) : (
+                            <ArrowUpDown
+                              size={12}
+                              className="text-gray-400 opacity-0 group-hover:opacity-70 transition-opacity"
+                            />
+                          )}
                         </span>
                       )}
                     </div>

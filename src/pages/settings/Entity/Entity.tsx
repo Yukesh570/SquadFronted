@@ -301,6 +301,7 @@ const Entity: React.FC = () => {
     const colIndex = columnIndex - 1;
     if (colIndex >= 0 && colIndex < visibleTableFields.length) {
       const col = visibleTableFields[colIndex];
+      setCurrentPage(1);
       setSortConfig((prev) => {
         if (prev?.key === col.key) {
           if (prev.direction === "asc") return { key: col.key, direction: "desc" };
